@@ -1,0 +1,82 @@
+{
+  "arms": {
+    "bare": {
+      "arm": "bare",
+      "sessions": 1,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 11168,
+      "session_output_tokens": 625,
+      "session_wall_time_ms": 27560.37760000072,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 1,
+      "ingest_wall_time_ms": 0.0,
+      "total_tokens": 11793,
+      "notes": [
+        "ingest into 'smoke-bare-0' was not token-metered (vendor-side extraction); its cost is missing from the totals, not zero"
+      ],
+      "estimated_usd": 0.0007,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    },
+    "claude_md": {
+      "arm": "claude_md",
+      "sessions": 1,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 6887,
+      "session_output_tokens": 341,
+      "session_wall_time_ms": 41275.375400000485,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 1,
+      "ingest_wall_time_ms": 0.0,
+      "total_tokens": 7228,
+      "notes": [
+        "ingest into 'smoke-claude_md-0' was not token-metered (vendor-side extraction); its cost is missing from the totals, not zero"
+      ],
+      "estimated_usd": 0.0004,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    },
+    "fs_grep": {
+      "arm": "fs_grep",
+      "sessions": 1,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 5841,
+      "session_output_tokens": 595,
+      "session_wall_time_ms": 30316.29670000075,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "total_tokens": 6436,
+      "notes": [],
+      "estimated_usd": 0.0004,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    },
+    "recall": {
+      "arm": "recall",
+      "sessions": 1,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 12357,
+      "session_output_tokens": 282,
+      "session_wall_time_ms": 101009.52340000003,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 1,
+      "ingest_wall_time_ms": 9931.087000000844,
+      "total_tokens": 12639,
+      "notes": [
+        "ingest into 'smoke-recall-0' was not token-metered (vendor-side extraction); its cost is missing from the totals, not zero"
+      ],
+      "estimated_usd": 0.0008,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    }
+  },
+  "total_tokens": 38096,
+  "total_sessions": 4,
+  "estimated_usd": 0.0023,
+  "pricing_as_of": "2026-08-22"
+}

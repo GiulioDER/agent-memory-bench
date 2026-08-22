@@ -98,7 +98,14 @@ class RecallAdapter(MemoryAdapter):
                 "index",
                 str(staged),
             ],
-            env={**os.environ, "RECALL_DSN": self._dsn()},
+            env={
+                **os.environ,
+                "RECALL_DSN": self._dsn(),
+                "RECALL_EMBEDDER": str(self.config["embedder"]),
+                # A small bound, always: fastembed pads a batch to its longest member, and an
+                # unbounded batch is how a 987-memo index run died of a bad allocation.
+                "RECALL_INDEX_BATCH_CHUNKS": os.environ.get("RECALL_INDEX_BATCH_CHUNKS", "16"),
+            },
             capture_output=True,
             text=True,
             timeout=3600,

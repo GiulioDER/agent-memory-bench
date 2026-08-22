@@ -12,3 +12,5 @@ staging/
 .pytest_cache/
 .ruff_cache/
 .venv/
+results/*/cfg/
+results/*.log

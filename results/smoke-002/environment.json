@@ -1,0 +1,75 @@
+{
+  "run_id": "smoke-002",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": {
+    "bare": {
+      "arm": "bare",
+      "memory": "none"
+    },
+    "claude_md": {
+      "arm": "claude_md",
+      "memory": "static",
+      "prompt_sha256": "b339cd97620ecb1e72a1314f24da81ff165219a95b338474c2f01cbb35bb54de"
+    },
+    "fs_grep": {
+      "arm": "fs_grep",
+      "memory": "filesystem+grep"
+    },
+    "recall": {
+      "arm": "recall",
+      "memory": "static+retrieved",
+      "config_sha256": "a7abee7ae7e96f5897bd3a329012e0d812f26da6ac811c6e227ca791054cf97f",
+      "package_pin": "TBD: recall-rag==<exact version, frozen at the Phase 4 preregistration>"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "bare",
+      "namespace": "smoke-bare-0",
+      "sessions_offered": 2,
+      "items_stored": 0,
+      "wall_time_ms": null,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "notes": [
+        "bare arm stores nothing by design"
+      ]
+    },
+    {
+      "arm": "claude_md",
+      "namespace": "smoke-claude_md-0",
+      "sessions_offered": 2,
+      "items_stored": 0,
+      "wall_time_ms": null,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "notes": [
+        "the static bundle is authored, not ingested: this arm measures what a hand-maintained file gives you, so feeding it the transcripts would make it a memory product"
+      ]
+    },
+    {
+      "arm": "fs_grep",
+      "namespace": "smoke-fs_grep-0",
+      "sessions_offered": 2,
+      "items_stored": 2,
+      "wall_time_ms": null,
+      "llm_input_tokens": 0,
+      "llm_output_tokens": 0,
+      "notes": [
+        "verbatim markdown render; no extraction, no index"
+      ]
+    },
+    {
+      "arm": "recall",
+      "namespace": "smoke-recall-0",
+      "sessions_offered": 2,
+      "items_stored": 2,
+      "wall_time_ms": 9931.087000000844,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "notes": [
+        "indexed via `python -m recall.cli index`, one tenant per namespace"
+      ]
+    }
+  ]
+}

@@ -546,6 +546,7 @@ def build_record(
     return SessionRecord(
         task_id=str(row["task_id"]),
         arm=arm,
+        seed=int(row.get("seed", 0)),
         # Whether the agent got the task right is decided by the graders, not here. This flag says
         # only that the session ran to completion, which is the precondition for grading it.
         success=error is None,
