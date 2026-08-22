@@ -55,11 +55,19 @@ class Completed:
 
 
 def git_bash() -> Path:
-    """Absolute path to Git Bash, never System32's WSL launcher.
+    """Absolute path to a usable bash.
 
-    `shutil.which("bash")` is not usable for this: it answers with Git Bash while the actual
-    launch resolves to WSL, so the two disagree and only the launch matters.
+    On POSIX that is simply `bash` from PATH. The ceremony below is Windows-only: there,
+    `shutil.which("bash")` answers with Git Bash while the actual launch resolves to
+    System32's WSL launcher, so the two disagree and only the launch matters; the reliable
+    route walks up from `git.exe` to Git for Windows' own `bin/bash.exe`.
     """
+
+    if os.name != "nt":
+        bash = shutil.which("bash")
+        if not bash:
+            raise RuntimeError("bash is not on PATH")
+        return Path(bash)
 
     git = shutil.which("git")
     if not git:
