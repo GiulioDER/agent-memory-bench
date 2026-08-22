@@ -1,0 +1,21 @@
+[project]
+name = "agent-memory-bench"
+version = "0.0.1"
+description = "A preregistered, execution-graded benchmark of pluggable memory layers for Claude Code, measured by task success on real coding tasks."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+# Each product arm's dependencies are installed only when that arm runs, and are pinned in
+# adapters/<name>/versions.lock at the preregistration freeze. Nothing here, on purpose:
+# the harness itself is stdlib-only so a reviewer can read it without an environment.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py312"

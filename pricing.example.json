@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy to pricing.json and fill with CURRENT prices from your provider's pricing page. Every entry must carry as_of (the date you read the price) and source (where). A price without a date rots silently and then gets trusted because it is specific.",
+  "anthropic/claude-sonnet-5": {
+    "usd_per_mtok_input": 0.0,
+    "usd_per_mtok_output": 0.0,
+    "as_of": "YYYY-MM-DD",
+    "source": "https://openrouter.ai/models or provider pricing page"
+  }
+}

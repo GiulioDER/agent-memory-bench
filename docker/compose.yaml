@@ -1,0 +1,30 @@
+# One-command reproduction. Credentials come from ../.env (never committed).
+#
+# Services for self-hosted arms join this file with their adapters in Phase 3:
+#   falkordb   (zep/graphiti backend)
+#   litellm    (metering proxy: adapter extraction traffic, tagged per arm)
+services:
+  harness:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.harness
+    env_file:
+      - ../.env
+    volumes:
+      - ../results:/bench/results
+    depends_on:
+      - recall-db
+
+  recall-db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: bench
+    # No host port on purpose: only the harness container reaches it, and a benchmark
+    # database must never be reachable by (or confusable with) anything else on the host.
+    volumes:
+      - recall-db-data:/var/lib/postgresql/data
+
+volumes:
+  recall-db-data:

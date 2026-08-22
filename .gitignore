@@ -1,0 +1,14 @@
+# Secrets and local environment. Both halves of a server config are disclosure: tokens
+# obviously, host inventories too. Neither ever lives in this tree.
+.env
+*.secrets.json
+pricing.json
+
+# Run artifacts are published deliberately, per run, after review; work dirs never.
+results/*/work/
+staging/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/

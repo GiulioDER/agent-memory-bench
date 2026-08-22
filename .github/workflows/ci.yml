@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest ruff
+      - run: ruff check .
+      - run: python -m pytest tests/ -q
+  # An admission smoke (1 cheap task, every wired arm, gate must admit) joins this file at the
+  # end of Phase 0. It needs the Claude CLI and per-arm credentials, so it runs on a schedule
+  # with secrets, not on fork PRs.
