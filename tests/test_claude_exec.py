@@ -362,5 +362,8 @@ def test_config_dir_with_bare_is_a_contradiction():
 
     with pytest.raises(ValueError, match="contradiction"):
         ClaudeExecConfig(bare=True, config_dir="/tmp/cfg", strict_mcp_config=False)
-    config = ClaudeExecConfig(bare=False, config_dir="/tmp/cfg", strict_mcp_config=False)
+    # A real executable path, so command() resolves on hosts without the claude CLI (CI).
+    config = ClaudeExecConfig(
+        executable=sys.executable, bare=False, config_dir="/tmp/cfg", strict_mcp_config=False
+    )
     assert "--bare" not in config.command("do the task")
