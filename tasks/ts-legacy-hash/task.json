@@ -1,0 +1,10 @@
+{
+  "task_id": "ts-legacy-hash",
+  "kind": "primary",
+  "prompt": "Add a disk cache to fetch.py. fetch(resource_id) must first look for cache/<key>.json in the current directory and return its parsed contents if present; otherwise it computes the response, writes it to cache/<key>.json, and returns it. <key> is a digest of the resource id produced with a helper from hashutil.py. Create the cache/ directory when it is missing.",
+  "fact_terms": [
+    "fast_hash collides",
+    "longer than 8",
+    "shared prefix"
+  ]
+}

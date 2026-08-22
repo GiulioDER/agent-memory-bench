@@ -1,0 +1,1 @@
+placeholder font manifest: Inter, weights 400 and 700

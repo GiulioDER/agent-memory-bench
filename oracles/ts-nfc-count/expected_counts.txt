@@ -1,0 +1,16 @@
+café 4
+crème 2
+douce 1
+du 2
+est 1
+ferme 1
+fort 1
+la 1
+le 2
+legere 1
+nord 1
+sert 1
+sud 1
+tard 1
+un 2
+une 1

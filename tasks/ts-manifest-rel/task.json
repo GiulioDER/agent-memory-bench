@@ -1,0 +1,6 @@
+{
+  "task_id": "ts-manifest-rel",
+  "kind": "primary",
+  "prompt": "Write make_manifest.py in the repository root. Running it must write manifest.json in the repository root: a JSON object with one entry per file under release/, mapping the file's path to its SHA-256 hex digest. Then run it so manifest.json exists.",
+  "fact_terms": ["relative to the repo root", "forward slashes", "POSIX paths", "never absolute", "portable manifest"]
+}

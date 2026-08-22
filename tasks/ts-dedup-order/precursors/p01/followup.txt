@@ -1,0 +1,1 @@
+Agreed. Decision: when an event_id repeats, the first occurrence is authoritative, earliest wins. Any dedupe or export over events.jsonl must keep the first occurrence of each event_id and drop later re-sends, in original order.

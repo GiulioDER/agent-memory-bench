@@ -1,6 +1,12 @@
 {
   "sessions": {
     "sessions/smoke/s01.jsonl": "4d7c4357de3079b700db4641926d8d5e082af3e2f05470a9692bff54ea1543de",
-    "sessions/smoke/s02.jsonl": "c3a97eb5a28cbadfbe09dd3cf10b9931ec064c61b3cd88ca78356d9243373f2d"
+    "sessions/smoke/s02.jsonl": "c3a97eb5a28cbadfbe09dd3cf10b9931ec064c61b3cd88ca78356d9243373f2d",
+    "sessions/ts-dedup-order/p01.jsonl": "cc356baf713483ddc1596ed70a9220de80bd7fc6341dfc3d6143d91ffaced89c",
+    "sessions/ts-nfc-count/p01.jsonl": "0744f2d7fbcd9f695462e5ab7c98adfbbc08bdeccc5f5b7c4593070a33bc8370",
+    "sessions/ts-round-money/p01.jsonl": "a3a55721798708dcadec75f8f05eaad8f6c8451bb06706c9f727ded0f22bdf92",
+    "distractors/d001.jsonl": "1216b5e26a5719f2a62f9e6a63c6652440b580d27a1dd23ce0f3d1839280beda",
+    "distractors/d002.jsonl": "3a8d2a2b4e3299150c4eb8392b27b7efbcae5f802b7579009d54267d4ff5211e",
+    "distractors/d003.jsonl": "79ba4fdb8ed0272d08cc1aa7fa30e0abc55a53b4681441ce2f61814332a16bf2"
   }
 }

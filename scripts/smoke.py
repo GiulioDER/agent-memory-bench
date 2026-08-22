@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import hashlib
 import json
 import os
 import shutil
@@ -57,17 +56,9 @@ DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
 
 
 def build_corpus_manifest() -> CorpusManifest:
-    """Hash the smoke transcripts into corpus/manifest.json and load it back."""
+    """Hash every transcript into corpus/manifest.json and load it back."""
 
-    root = REPO / "corpus"
-    sessions = {}
-    for path in sorted((root / "sessions").rglob("*.jsonl")):
-        rel = path.relative_to(root).as_posix()
-        sessions[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
-    (root / "manifest.json").write_text(
-        json.dumps({"sessions": sessions}, indent=2), encoding="utf-8"
-    )
-    return CorpusManifest.load(root)
+    return CorpusManifest.build(REPO / "corpus")
 
 
 def check_result(workdir: Path) -> tuple[bool, str]:

@@ -1,0 +1,1 @@
+Confirmed, that closes the reconciliation gap. Decision: money is never float. Every line total is computed with Decimal and rounded to cents with ROUND_HALF_UP per line, before summing. Totals formatted with two decimals from the Decimal sum.

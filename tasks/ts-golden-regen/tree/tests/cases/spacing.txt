@@ -1,0 +1,8 @@
+release checklist
+
+- tag the build
+
+
+- update the changelog
+- announce
+

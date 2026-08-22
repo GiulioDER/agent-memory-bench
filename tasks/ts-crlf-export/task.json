@@ -1,0 +1,6 @@
+{
+  "task_id": "ts-crlf-export",
+  "kind": "primary",
+  "prompt": "The fulfilment export is missing the region field. Update export_orders.py so export.csv also carries a region column (header id,sku,qty,region, one row per order, orders in file order), and regenerate the export by running python export_orders.py so export.csv exists.",
+  "fact_terms": ["CRLF", "carriage return", "\\r\\n line endings", "silently dropped the export"]
+}

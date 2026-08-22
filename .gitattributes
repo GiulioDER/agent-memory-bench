@@ -1,3 +1,4 @@
 * text=auto eol=lf
 *.gz binary
 *.png binary
+oracles/ts-bom-merge/data/south.csv binary

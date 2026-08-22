@@ -1,0 +1,6 @@
+{
+  "task_id": "ts-stable-sort",
+  "kind": "primary",
+  "prompt": "Write make_report.py in the repository root. It reads every .csv file under data/ (columns date,id,amount), combines all their rows, and writes report.csv in the repository root with the header date,id,amount followed by the combined rows sorted by date ascending. Then run python make_report.py so report.csv exists.",
+  "fact_terms": ["sort by (date, id)", "tiebreak", "deterministic order", "diff churn"]
+}

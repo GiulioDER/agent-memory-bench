@@ -1,0 +1,6 @@
+{
+  "task_id": "ts-quote-shell",
+  "kind": "primary",
+  "prompt": "deploy.sh stages the application into the release directory given as its first argument. Extend it so it also copies the assets/ directory, including subdirectories, into the release directory as assets/. Verify it works: bash deploy.sh out/rel should leave app/ and assets/ under out/rel.",
+  "fact_terms": ["quote every path", "spaces in directory names", "word splitting", "unquoted variable"]
+}

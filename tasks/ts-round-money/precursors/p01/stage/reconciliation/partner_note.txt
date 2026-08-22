@@ -1,0 +1,5 @@
+INV-1042 rejected at reconciliation.
+Partner computed total: 2.70
+Our exported total: 2.69
+Partner remittance system computes each line to the cent before summing.
+Please align and resubmit.

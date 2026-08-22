@@ -1,0 +1,11 @@
+{
+  "task_id": "ts-semver-pin",
+  "kind": "primary",
+  "prompt": "Add our internal package textutils at version 2.4.1 to requirements.txt in the repository root, keeping the existing entries. The updated requirements.txt is the deliverable.",
+  "fact_terms": [
+    "pinned exactly",
+    "never a range",
+    "== not >=",
+    "breakage from an internal release"
+  ]
+}

@@ -1,0 +1,6 @@
+[
+  {"id": "O-2101", "sku": "T-90", "qty": 4, "region": "ap-south"},
+  {"id": "O-2102", "sku": "K-33", "qty": 12, "region": "eu-west"},
+  {"id": "O-2103", "sku": "V-18", "qty": 3, "region": "us-west"},
+  {"id": "O-2104", "sku": "M-51", "qty": 8, "region": "us-east"}
+]

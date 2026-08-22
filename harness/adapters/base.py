@@ -51,6 +51,26 @@ class CorpusManifest:
         data = json.loads(manifest_path.read_text(encoding="utf-8"))
         return cls(root=root, sessions=dict(data["sessions"]))
 
+    @classmethod
+    def build(cls, corpus_root: str | Path) -> CorpusManifest:
+        """Hash every transcript (precursors AND distractors) into manifest.json.
+
+        Distractors are part of the feed on purpose: retrieval quality against a corpus
+        that is mostly mundane is the thing being measured, so a manifest that carried
+        only the signal sessions would quietly benchmark an easier problem.
+        """
+
+        root = Path(corpus_root)
+        sessions: dict[str, str] = {}
+        for pattern in ("sessions/**/*.jsonl", "distractors/*.jsonl"):
+            for path in sorted(root.glob(pattern)):
+                rel = path.relative_to(root).as_posix()
+                sessions[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+        (root / "manifest.json").write_text(
+            json.dumps({"sessions": sessions}, indent=2) + "\n", encoding="utf-8"
+        )
+        return cls(root=root, sessions=sessions)
+
     def verify(self) -> None:
         """Refuse to ingest a corpus whose bytes do not match its manifest."""
 

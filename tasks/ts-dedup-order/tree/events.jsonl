@@ -1,0 +1,5 @@
+{"event_id": "EV-101", "site": "north", "status": "open", "reported_at": "2026-07-01T08:00:00Z"}
+{"event_id": "EV-102", "site": "east", "status": "open", "reported_at": "2026-07-01T08:15:00Z"}
+{"event_id": "EV-101", "site": "north", "status": "ack", "reported_at": "2026-07-01T09:02:00Z"}
+{"event_id": "EV-103", "site": "west", "status": "open", "reported_at": "2026-07-01T09:30:00Z"}
+{"event_id": "EV-102", "site": "east", "status": "closed", "reported_at": "2026-07-01T10:05:00Z"}

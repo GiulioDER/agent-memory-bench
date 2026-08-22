@@ -1,0 +1,1 @@
+Good find. Decision: every text is passed through unicodedata NFC normalize before tokenising, so a decomposed spelling with a combining accent collapses into the composed form. The glossary must be regenerated with NFC normalisation, and any word counting over docs/ does the same from now on.

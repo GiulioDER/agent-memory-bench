@@ -1,0 +1,13 @@
+brioche 1
+café 2
+café 1
+chaud 1
+est 2
+fraiche 1
+la 1
+le 3
+menu 1
+ouvre 1
+petit 1
+the 2
+tôt 1

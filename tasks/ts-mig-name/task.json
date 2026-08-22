@@ -1,0 +1,6 @@
+{
+  "task_id": "ts-mig-name",
+  "kind": "primary",
+  "prompt": "Add a SQL migration under migrations/ that creates an index named idx_users_email on the email column of the users table. Migrations are plain .sql files applied in sorted filename order; continue the existing four-digit numbering. The migration must apply cleanly (SQLite dialect) after the existing ones.",
+  "fact_terms": ["30 characters", "truncates migration filenames", "identifier too long", "staging database"]
+}

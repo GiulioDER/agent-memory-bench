@@ -1,0 +1,7 @@
+{"event_id": "EV-201", "site": "north", "status": "open", "reported_at": "2026-07-10T07:00:00Z"}
+{"event_id": "EV-202", "site": "south", "status": "open", "reported_at": "2026-07-10T07:20:00Z"}
+{"event_id": "EV-201", "site": "north", "status": "closed", "reported_at": "2026-07-10T08:10:00Z"}
+{"event_id": "EV-203", "site": "east", "status": "open", "reported_at": "2026-07-10T08:30:00Z"}
+{"event_id": "EV-202", "site": "south", "status": "ack", "reported_at": "2026-07-10T09:00:00Z"}
+{"event_id": "EV-204", "site": "west", "status": "open", "reported_at": "2026-07-10T09:45:00Z"}
+{"event_id": "EV-203", "site": "east", "status": "escalated", "reported_at": "2026-07-10T10:15:00Z"}

@@ -1,0 +1,12 @@
+# One prompt per line; chosen by index in scripts/record_distractor.py. Mundane work that
+# establishes no governing fact. Keep each answerable from any task fixture.
+Summarise what this project does and what each file in the repository is for, in a short OVERVIEW.md.
+Add a "Getting started" section to the README explaining how to run the tools in this repository.
+Check every file in the repository for trailing whitespace and fix any you find.
+List the data files in this repository and describe their columns or fields in a DATA.md.
+Rename any TODO comments in the repository into a single TODO.md list with file references.
+Write a .editorconfig for this repository matching how the existing files are formatted.
+Count the lines in every file and write the totals to STATS.txt, largest first.
+Check the README for typos and fix them.
+Add one-line docstrings to any Python file in the repository that lacks them.
+Write a CHANGELOG.md skeleton with an Unreleased section for this repository.

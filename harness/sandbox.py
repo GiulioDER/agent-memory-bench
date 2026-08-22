@@ -11,16 +11,17 @@ from the same digest, exactly as it refuses a pair that cannot prove the treatme
 difference in starting state would look like a treatment effect and there would be nothing in the
 artifact to say otherwise.
 
-A fixture is a directory under `workspaces/<task_id>/`:
+A fixture is a directory under `tasks/<task_id>/` at the repository root:
 
     tree/     the committed state; everything here is added and committed
     dirty/    optional, copied OVER the tree after that commit, leaving those files modified
 
-`dirty/` exists for the one task whose whole point is an unclean working tree. Doing it as an
+`dirty/` exists for any task whose whole point is an unclean working tree. Doing it as an
 overlay rather than as a script keeps the fixture readable as data.
 
-⛔ **Oracles live in `oracles/`, a sibling of `workspaces/`, and are never copied.** The endpoint
-is only meaningful while the input that decides it stays out of the agent's reach.
+⛔ **Oracles live in `oracles/<task_id>/` at the repository root, beside `tasks/`, and are never
+copied.** The endpoint is only meaningful while the input that decides it stays out of the
+agent's reach.
 """
 
 from __future__ import annotations
@@ -32,9 +33,9 @@ from pathlib import Path
 
 from .checker_run import git
 
-PACKAGE_ROOT = Path(__file__).resolve().parent
-WORKSPACES = PACKAGE_ROOT / "workspaces"
-ORACLES = PACKAGE_ROOT / "oracles"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+WORKSPACES = REPO_ROOT / "tasks"
+ORACLES = REPO_ROOT / "oracles"
 
 #: Never copied into a sandbox and never hashed.
 EXCLUDED = frozenset({".git", "__pycache__", ".pytest_cache", ".ruff_cache"})
