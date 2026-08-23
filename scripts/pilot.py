@@ -57,7 +57,29 @@ GENERIC_RULES = (
 )
 
 
-def build_bundles(task, out_dir: Path) -> dict[str, Path]:
+def recall_instruction(variant: str) -> str:
+    """The recall arm's memory instruction: the frozen one-liner, or the shipped skill.
+
+    ``skill`` is the check-memory-before-acting skill, copied VERBATIM from recall's
+    plugin (provenance: recall origin/master 438779ff, sha256 prefix 0ea85e7aab4736d5,
+    copied 2026-08-24). It teaches searching by operations and symptoms rather than by
+    goal, and exists precisely because measured sessions searched with task vocabulary.
+    """
+
+    if variant == "oneliner":
+        return str(RECALL_CONFIG["instruction"]).format(
+            server=RECALL_CONFIG["server_name"], tool=f"{RECALL_PREFIX}recall_search"
+        )
+    if variant == "skill":
+        text = (REPO / "adapters" / "recall" / "skill.md").read_text(encoding="utf-8")
+        # Strip the plugin frontmatter block; the body is the instruction.
+        if text.startswith("---"):
+            text = text.split("---", 2)[2]
+        return text.strip()
+    raise ValueError(f"unknown recall instruction variant {variant!r}")
+
+
+def build_bundles(task, out_dir: Path, instruction: str) -> dict[str, Path]:
     """Per-task static bundles: identical bytes for claude_md and the tail of recall's."""
 
     readme = task.path / "tree" / "README.md"
@@ -67,9 +89,6 @@ def build_bundles(task, out_dir: Path) -> dict[str, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     claude_md = out_dir / "claude_md.md"
     claude_md.write_text(static, encoding="utf-8", newline="\n")
-    instruction = str(RECALL_CONFIG["instruction"]).format(
-        server=RECALL_CONFIG["server_name"], tool=f"{RECALL_PREFIX}recall_search"
-    )
     recall = out_dir / "recall.md"
     recall.write_text(
         instruction.rstrip() + "\n\n" + static, encoding="utf-8", newline="\n"
@@ -115,6 +134,17 @@ async def main() -> int:
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--namespace", default="bench-recall-pilot")
+    parser.add_argument(
+        "--recall-instruction",
+        choices=("oneliner", "skill"),
+        default="oneliner",
+        help="which memory instruction the recall arm carries; recorded in the artifacts",
+    )
+    parser.add_argument(
+        "--arms",
+        default=",".join(ARMS),
+        help="comma-separated subset of bare,claude_md,recall",
+    )
     parser.add_argument("--price-in", type=float, default=0.05866)
     parser.add_argument("--price-out", type=float, default=0.11732)
     parser.add_argument("--price-as-of", default="2026-08-22")
@@ -126,6 +156,12 @@ async def main() -> int:
     if not os.environ.get("RECALL_DSN"):
         raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
 
+    run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
+    unknown = [arm for arm in run_arms if arm not in ARMS]
+    if unknown:
+        raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
+    instruction = recall_instruction(args.recall_instruction)
+
     tasks = [task for task in discover_tasks() if task.task_id.startswith("ts-")]
     run_dir = REPO / "results" / args.run_id
     if (run_dir / "records.jsonl").exists():
@@ -133,18 +169,35 @@ async def main() -> int:
     (run_dir / "streams").mkdir(parents=True, exist_ok=True)
 
     mcp_config = write_mcp_config(run_dir / "cfg" / "recall.mcp.json", args.namespace)
+    all_signals = {
+        "bare": AdmissionSignal(arm="bare"),
+        "claude_md": AdmissionSignal(arm="claude_md"),
+        "recall": AdmissionSignal(arm="recall", mcp_tool_prefixes=(RECALL_PREFIX,)),
+    }
     signals = with_forbidden_prefixes(
-        {
-            "bare": AdmissionSignal(arm="bare"),
-            "claude_md": AdmissionSignal(arm="claude_md"),
-            "recall": AdmissionSignal(arm="recall", mcp_tool_prefixes=(RECALL_PREFIX,)),
-        }
+        {arm: all_signals[arm] for arm in run_arms}
     )
 
     bundles = {
-        task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id)
+        task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, instruction)
         for task in tasks
     }
+    (run_dir / "environment.json").write_text(
+        json.dumps(
+            {
+                "run_id": args.run_id,
+                "model": args.model,
+                "arms": list(run_arms),
+                "recall_instruction": args.recall_instruction,
+                "recall_instruction_sha256": hashlib.sha256(
+                    instruction.encode("utf-8")
+                ).hexdigest(),
+                "namespace": args.namespace,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     by_id = {task.task_id: task for task in tasks}
 
     env = {
@@ -210,16 +263,16 @@ async def main() -> int:
         for seed in range(args.seeds)
     ]
     print(
-        f"[pilot] {len(rows)} cells x {len(ARMS)} arms = {len(rows) * len(ARMS)} sessions, "
+        f"[pilot] {len(rows)} cells x {len(run_arms)} arms = {len(rows) * len(run_arms)} sessions, "
         f"model {args.model}",
         flush=True,
     )
     started = time.monotonic()
-    records = await run_grid(rows, ARMS, runner, block_concurrency=1)
+    records = await run_grid(rows, run_arms, runner, block_concurrency=1)
     wall_min = (time.monotonic() - started) / 60
 
     write_jsonl(run_dir / "records.final.jsonl", records)
-    report = admit_cells(records, signals, required_arms=ARMS)
+    report = admit_cells(records, signals, required_arms=run_arms)
     (run_dir / "admission.json").write_text(
         json.dumps(report.summary(), indent=2), encoding="utf-8"
     )
@@ -235,12 +288,12 @@ async def main() -> int:
     costs = summarize(records, pricing=pricing, model=args.model)
     (run_dir / "costs.json").write_text(json.dumps(costs, indent=2), encoding="utf-8")
 
-    by_arm: dict[str, list] = {arm: [] for arm in ARMS}
+    by_arm: dict[str, list] = {arm: [] for arm in run_arms}
     for record in report.admitted:
         by_arm[record.arm].append(record.success)
     print(f"\n[pilot] wall {wall_min:.0f} min, admitted cells {report.admitted_cell_count}, "
           f"discarded {len(report.discarded_cells)} {report.discarded_by_arm()}")
-    for arm in ARMS:
+    for arm in run_arms:
         outcomes = by_arm[arm]
         rate = sum(outcomes) / len(outcomes) if outcomes else float("nan")
         print(f"  {arm:<10} success {sum(outcomes)}/{len(outcomes)} = {rate:.3f}")
