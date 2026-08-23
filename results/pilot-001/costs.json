@@ -1,0 +1,59 @@
+{
+  "arms": {
+    "bare": {
+      "arm": "bare",
+      "sessions": 72,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 1170912,
+      "session_output_tokens": 126709,
+      "session_wall_time_ms": 3256296.8607000085,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "total_tokens": 1297621,
+      "notes": [],
+      "estimated_usd": 0.0836,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    },
+    "claude_md": {
+      "arm": "claude_md",
+      "sessions": 72,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 1257800,
+      "session_output_tokens": 141293,
+      "session_wall_time_ms": 2929184.1980000027,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "total_tokens": 1399093,
+      "notes": [],
+      "estimated_usd": 0.0904,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    },
+    "recall": {
+      "arm": "recall",
+      "sessions": 72,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 2534626,
+      "session_output_tokens": 138489,
+      "session_wall_time_ms": 3894648.7268999983,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "total_tokens": 2673115,
+      "notes": [],
+      "estimated_usd": 0.1649,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    }
+  },
+  "total_tokens": 5369829,
+  "total_sessions": 216,
+  "estimated_usd": 0.3388,
+  "pricing_as_of": "2026-08-22"
+}

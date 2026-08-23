@@ -615,7 +615,10 @@ async def run_claude_case(
         directory = Path(config.stream_dir)
         directory.mkdir(parents=True, exist_ok=True)
         safe_task = re.sub(r"[^A-Za-z0-9._#-]", "_", str(row["task_id"]))
-        stream_path = directory / f"{safe_task}.{arm}.jsonl.gz"
+        # The seed is part of the name: without it, a grid run's seeds silently overwrite
+        # one another's raw evidence (pilot-001 kept 72 streams out of 216 this way).
+        seed = int(row.get("seed", 0))
+        stream_path = directory / f"{safe_task}.s{seed}.{arm}.jsonl.gz"
         with gzip.open(stream_path, "wt", encoding="utf-8") as handle:
             handle.write(stream)
 

@@ -1,0 +1,272 @@
+{
+  "run_id": "pilot-001",
+  "admitted_cells": 71,
+  "discarded_cells": [
+    [
+      "ts-empty-input",
+      2
+    ]
+  ],
+  "arm_success": {
+    "bare": 0.423,
+    "claude_md": 0.38,
+    "recall": 0.394
+  },
+  "primary_recall_vs_claude_md_all_tasks": {
+    "per_task_mean_delta": 0.0139,
+    "cluster_ci95": [
+      -0.0278,
+      0.0556
+    ],
+    "mcnemar_p": 1.0,
+    "discordant": {
+      "only_recall": 2,
+      "only_claude_md": 1
+    },
+    "n_tasks": 24,
+    "n_cells": 71
+  },
+  "primary_recall_vs_claude_md_survivors": {
+    "per_task_mean_delta": 0.0256,
+    "cluster_ci95": [
+      0.0,
+      0.0769
+    ],
+    "mcnemar_p": 1.0,
+    "discordant": {
+      "only_recall": 1,
+      "only_claude_md": 0
+    },
+    "n_tasks": 13,
+    "n_cells": 38
+  },
+  "exploratory_bare_vs_claude_md": {
+    "per_task_mean_delta": 0.0417,
+    "cluster_ci95": [
+      -0.0278,
+      0.125
+    ],
+    "mcnemar_p": 0.453125,
+    "discordant": {
+      "only_bare": 5,
+      "only_claude_md": 2
+    },
+    "n_tasks": 24,
+    "n_cells": 71
+  },
+  "mechanism": {
+    "search_rate": 0.211,
+    "reached_given_searched": 0.733,
+    "reached_overall": 0.155
+  },
+  "screening": {
+    "ts-append-only": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-atomic-write": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-base36-id": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 0
+    },
+    "ts-bom-merge": {
+      "bare": 1.0,
+      "claude_md": 0.667,
+      "recall": 0.333,
+      "screen": "ceiling",
+      "recall_searched": 1,
+      "recall_reached": 0
+    },
+    "ts-casefold-sort": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 0
+    },
+    "ts-config-layer": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-crlf-export": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 2,
+      "recall_reached": 1
+    },
+    "ts-dedup-order": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-empty-input": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-glob-hidden": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-golden-regen": {
+      "bare": 0.333,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-ignore-gen": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-legacy-hash": {
+      "bare": 0.667,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "ceiling",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-log-mask": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-manifest-rel": {
+      "bare": 1.0,
+      "claude_md": 0.667,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-mig-name": {
+      "bare": 0.333,
+      "claude_md": 0.667,
+      "recall": 0.667,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-nfc-count": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-quote-shell": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-retry-cap": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-round-money": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-schema-additive": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-semver-pin": {
+      "bare": 0.667,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-stable-sort": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-tz-utc": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 0,
+      "recall_reached": 0
+    }
+  },
+  "survivors": [
+    "ts-atomic-write",
+    "ts-base36-id",
+    "ts-casefold-sort",
+    "ts-config-layer",
+    "ts-crlf-export",
+    "ts-empty-input",
+    "ts-golden-regen",
+    "ts-log-mask",
+    "ts-mig-name",
+    "ts-nfc-count",
+    "ts-quote-shell",
+    "ts-round-money",
+    "ts-stable-sort"
+  ],
+  "n_survivors": 13
+}

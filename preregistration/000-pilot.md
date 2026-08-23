@@ -105,3 +105,59 @@ More than half the tasks failing screens; or discard rate above 25%, which would
 harness, not the treatment, decides outcomes.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Results, appended 2026-08-24 (run pilot-001, artifacts in results/pilot-001/)
+
+Wall 77 minutes. 71 of 72 cells admitted; 1 discard (`ts-empty-input` seed 2, bare arm
+session error). Spend $0.34 for 5.37M tokens.
+
+### Endpoints, in the preregistered order
+
+1. **Primary, all 24 tasks**: recall 0.394 vs claude_md 0.380; per-task mean delta
+   **+0.0139**, cluster CI **[-0.0278, +0.0556]**, McNemar p=1.0 (discordant 2 vs 1).
+   **Null.** On the 13 screen survivors: delta +0.0256, CI [0.0, +0.0769], driven by one
+   discordant cell (`ts-nfc-count`, the one session that searched, reached the governing
+   precursor, and succeeded where every other arm and seed failed).
+2. **Screening**: 10 tasks fail ceiling, 1 fails floor (`ts-retry-cap`: no arm ever
+   succeeds although recall searched and reached 2 of 3), **13 survivors** against the 15+
+   target. Eight of the 13 survivors show zero success in every arm, which under this
+   model reads as capability shortfall rather than task discrimination.
+3. **Mechanism**: search rate **0.211**; reached given searched **0.733**; reached overall
+   0.155. The layer works when it fires and rarely fires: the ancestor benchmark's
+   diagnosis, reproduced on a neutral corpus.
+4. **Costs**: totals above; per-arm detail in costs.json.
+5. **Exploratory**: bare vs claude_md +0.0417, CI [-0.0278, +0.125], p=0.45. The README
+   bundle does not measurably help this model.
+
+### Predictions against measurements
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| 1 | claude_md 0.25 | 0.380 | falsified, under-predicted |
+| 2 | bare 0.20 | 0.423 | falsified, under-predicted |
+| 3 | delta +0.12, CI crossing zero | +0.014, CI crossing zero | direction and CI right, magnitude over-predicted again |
+| 4 | search 0.55 / reached-given-searched 0.55 | 0.211 / 0.733 | search falsified low; retrieval falsified HIGH |
+| 5 | 4 to 7 tasks screened out | 11 | falsified, attrition under-predicted |
+| 6 | fewer than 10 discards | 1 | correct |
+| 7 | spend $3, cap $15 | $0.34 | over-predicted 9x; the 5x cost prior overcorrected |
+| 8 | wall 3 to 5 h | 1.3 h | over-predicted |
+
+### Decision gate verdict
+
+Search rate 0.211 is below the 0.5 health bar while reached-given-searched 0.733 is above
+it: **mechanism unhealthy on the search side only**. Per the committed gate, the next move
+is the instruction/placement/model, not task redesign. Concretely: the one-line instruction
+at the top does not make deepseek-v4-flash search; the candidates to test next are the
+shipped check-memory-before-acting skill path, a stronger instruction, and a more capable
+model, and the ceiling/floor screens must be re-estimated under whatever model the full run
+freezes (the caveat written above before the run).
+
+### Defects found by or during the run
+
+- Caught BEFORE launch by the sanity search: transcript renders collided on `p01.jsonl`
+  names and the ingested corpus held one precursor of twenty-four; fixed (self-identifying
+  names, collisions raise, regression test) and re-ingested before any session ran.
+- Found at artifact review: stream files were named without the seed, so a grid run keeps
+  one raw stream per (task, arm) and seeds overwrite one another; pilot-001 retains 72 of
+  216 raw streams. The fsynced per-session records are complete, so analysis is unaffected;
+  fixed for every future run by putting the seed in the stream name.
