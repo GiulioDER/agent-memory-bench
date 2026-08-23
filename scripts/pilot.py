@@ -35,14 +35,14 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness import sandbox  # noqa: E402
-from harness.claude_exec import ClaudeExecConfig, run_claude_case  # noqa: E402
-from harness.costs import ModelPricing, summarize  # noqa: E402
-from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes  # noqa: E402
-from harness.io import write_jsonl  # noqa: E402
-from harness.prereg import assert_preregistered  # noqa: E402
-from harness.runner import run_grid  # noqa: E402
-from harness.tasks import discover_tasks, run_checker  # noqa: E402
+from harness import sandbox
+from harness.claude_exec import ClaudeExecConfig, run_claude_case
+from harness.costs import ModelPricing, summarize
+from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
+from harness.io import write_jsonl
+from harness.prereg import assert_preregistered
+from harness.runner import run_grid
+from harness.tasks import discover_tasks, run_checker
 
 ARMS = ("bare", "claude_md", "recall")
 BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
