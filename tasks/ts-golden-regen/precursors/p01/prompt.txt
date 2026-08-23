@@ -1,0 +1,1 @@
+Last night's release was blocked by the golden integrity gate (ci/golden_integrity.log) even though python run_tests.py is green here and in CI. Reconstruct how tests/golden/spacing.out got into a state that passes the tests but fails the gate, and spell out the rule for how goldens get updated so the gate can never block a release like this again.

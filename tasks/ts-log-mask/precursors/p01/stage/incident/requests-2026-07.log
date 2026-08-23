@@ -1,0 +1,4 @@
+POST /orders order_id=ORD-102 token=tok_live_0000aaaa1111 qty=1
+POST /orders order_id=ORD-103 token=tok_live_0000aaaa1111 qty=3
+GET /orders/ORD-102
+POST /orders order_id=ORD-104 token=tok_live_0000aaaa1111 qty=2

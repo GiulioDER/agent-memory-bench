@@ -1,0 +1,4 @@
+2026-06-30 09:14:01 intake: REJECT atlas-0091 ValueError: missing required fields: ['source']
+2026-06-30 09:15:21 intake: REJECT atlas-0092 ValueError: missing required fields: ['source']
+2026-06-30 09:16:44 intake: REJECT atlas-0093 ValueError: missing required fields: ['source']
+2026-06-30 10:02:10 intake: reject rate for client atlas at 100 percent since 09:14, alerting

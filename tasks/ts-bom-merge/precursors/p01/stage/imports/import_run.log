@@ -1,0 +1,7 @@
+2026-06-22 07:05:14 import of all_20260622.csv
+2026-06-22 07:05:14 row 1: A-100 ok
+2026-06-22 07:05:14 row 2: A-101 ok
+2026-06-22 07:05:14 row 3: B-200 ok
+2026-06-22 07:05:14 row 4: rejected, empty id
+2026-06-22 07:05:14 row 5: rejected, empty id
+2026-06-22 07:05:14 loaded 3 of 5 rows

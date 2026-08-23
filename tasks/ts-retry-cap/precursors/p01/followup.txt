@@ -1,0 +1,1 @@
+Agreed. Decision: retries in client.py use exponential backoff, starting at one second and doubling per attempt, capped at 30 seconds, with jitter added to every delay so the fleet desynchronises; never a fixed sleep interval. That is what prevents another thundering herd the moment the partner recovers.

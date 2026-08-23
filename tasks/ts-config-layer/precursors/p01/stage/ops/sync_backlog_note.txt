@@ -1,0 +1,9 @@
+Ops note, 2026-06-18 (Friday backlog)
+
+During the backlog the sync box was observed running with timeout 10, the
+checked-in default. We had shipped a config.local.ini next to config.ini with
+timeout = 30 for that box, and the unit's environment file sets APP_TIMEOUT=45.
+The older fleet services honour both of those sources (that is the whole fleet
+convention: the process environment beats the local file, the local file beats
+the checked-in one). The sync service used neither, and requests timed out at
+10s all night.

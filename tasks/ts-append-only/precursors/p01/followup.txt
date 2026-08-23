@@ -1,0 +1,1 @@
+Agreed. Decision: metrics.log is append-only; it is an audit trail. Never rewrite past lines and do not tidy old spacing or formatting, however inconsistent it looks: after any update, the previous file content must remain a byte-identical prefix of the new file, with the day's entry appended at the end and nothing else touched.

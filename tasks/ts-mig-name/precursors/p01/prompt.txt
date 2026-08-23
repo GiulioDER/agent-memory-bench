@@ -1,0 +1,1 @@
+Last night's staging deploy of orderdb aborted partway through the migration step; ops pasted the loader output into deploy/staging_deploy_20260601.log. The same migration applied cleanly on my machine and in CI's SQLite. Figure out why staging refused it, and recommend what our migration naming has to follow so a migration can never again pass CI and then die in staging.

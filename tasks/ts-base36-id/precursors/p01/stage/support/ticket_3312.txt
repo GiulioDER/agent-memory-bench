@@ -1,0 +1,8 @@
+Support ticket 3312, 2026-06-05
+
+Customer called for a status check and read their order id from the packing
+slip over the phone. The agent keyed in ORD-2310 and read back another
+customer's shipment status. The id on the customer's slip is ORD-23I0. Both
+ids are genuinely issued, so nothing looked wrong during the call. This is
+the third mix-up of this shape since March; the earlier two involved zero
+versus the letter O on hand-copied slips.

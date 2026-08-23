@@ -1,0 +1,17 @@
+Conflict in .gitignore during merge of feature/build-cache into master, 2026-08-06.
+Both branches had hand-appended entries at the bottom of the file.
+
+<<<<<<< HEAD
+node_modules/
+secrets.ini
+=======
+node_modules/
+tmp/
+>>>>>>> feature/build-cache
+
+Resolution as committed (took the feature side wholesale):
+
+node_modules/
+tmp/
+
+The secrets.ini line was gone from the resolved file.

@@ -1,0 +1,12 @@
+release 142 deploy to prod-web1, 2026-06-22 02:11 -- FAILED (exit 1)
+
+$ bash -x deploy.sh "/srv/releases/June Launch/rel-142"
++ set -euo pipefail
++ TARGET='/srv/releases/June Launch/rel-142'
++ mkdir -p /srv/releases/June Launch/rel-142/app
++ cp app/main.py /srv/releases/June Launch/rel-142/app/
+cp: -r not specified; omitting directory '/srv/releases/June'
+
+left behind on prod-web1: directory '/srv/releases/June' and, relative to the
+checkout, 'Launch/rel-142/app/' containing main.py. The staging deploy of the
+same tag succeeded (staging release dir: /srv/releases/rel-142).

@@ -1,0 +1,5 @@
+verify: reading manifest-1.3.2.json, 3 entries
+verify: MISSING C:\builds\agent7\repo\release\app\main.py
+verify: MISSING C:\builds\agent7\repo\release\assets\banner.txt
+verify: MISSING C:\builds\agent7\repo\release\VERSION
+verify: FAILED, 3 of 3 entries unmatched on target (linux host, tree extracted at /srv/deploy/parcel)

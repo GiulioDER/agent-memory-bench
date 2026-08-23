@@ -1,0 +1,8 @@
+2026-08-12 14:02:11.004 host=sync-17 attempt=1 TransportError url=feeds.partner.example/v2/items
+2026-08-12 14:02:12.006 host=sync-17 attempt=2 TransportError url=feeds.partner.example/v2/items
+2026-08-12 14:02:13.007 host=sync-17 attempt=3 TransportError url=feeds.partner.example/v2/items
+2026-08-12 14:02:14.008 host=sync-17 attempt=4 TransportError url=feeds.partner.example/v2/items
+2026-08-12 14:02:15.010 host=sync-17 attempt=5 TransportError url=feeds.partner.example/v2/items
+2026-08-12 14:02:16.011 host=sync-17 attempt=6 HTTP 429 too many requests
+2026-08-12 14:02:17.012 host=sync-17 attempt=7 HTTP 429 too many requests
+2026-08-12 14:03:00.000 fleet-aggregate: 198 hosts retrying, inter-attempt interval 1.000s on every host, attempts aligned to the second

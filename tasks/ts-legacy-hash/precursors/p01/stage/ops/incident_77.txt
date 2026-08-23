@@ -1,0 +1,8 @@
+Incident 77, 2026-06-11
+
+Finance requested reports/2026-05 through the caching branch and got April's
+numbers back: the payload itself names reports/2026-04. A direct fetch()
+without the cache returns the correct May payload. The branch keyed its cache
+files on digests from hashutil, per the README's recommendation, and the
+on-disk entries are preserved unmodified under cache_prototype/ for this
+investigation.

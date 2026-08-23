@@ -1,0 +1,9 @@
+From: EDI intake, Meridian Fulfilment
+Ticket 5541, opened 2026-06-03
+
+export_20260602.csv arrived on the feed at 04:12 and was skipped by intake:
+0 records parsed. No rejection is raised for this case; a file that parses to
+zero complete records is treated as a partial transfer and dropped without an
+error. export_20260512 parsed 3 records and loaded cleanly. Nothing changed
+on our side between the two transfers. check_feed.py, attached, is the exact
+pre-parse we run on every incoming file, if you want to reproduce the verdict.

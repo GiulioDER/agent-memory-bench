@@ -1,0 +1,1 @@
+Agreed. Decision: the token value is never logged in full, anywhere. Every logging path must mask it so only the last 4 characters appear, for example ****1111, and any debug output must redact the token the same way. This is a compliance requirement, not a style preference, and it applies equally to any credential-bearing field we add later.

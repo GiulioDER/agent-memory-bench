@@ -1,0 +1,1 @@
+Agreed, that closes the postmortem. Decision: schema changes are additive. A new field is optional with a default, never required, so old clients keep working unchanged while updated clients start sending the field. And concretely for the field we are about to add next: priority is optional and defaults to normal when absent.

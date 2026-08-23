@@ -1,0 +1,6 @@
+From partner feed operations, 2026-08-13:
+
+During our recovery window yesterday your integration retried in synchronized
+one-second waves from roughly 200 client addresses, which kept our API saturated
+and delayed recovery for every consumer. We have rate-limited your IP range for
+now. Please spread your clients' retries out before we lift the limit.

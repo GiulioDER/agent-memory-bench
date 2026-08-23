@@ -3,7 +3,6 @@
   "kind": "primary",
   "prompt": "The build now also produces a dist2/ directory in the repository root. Update the repository's ignore rules so dist2/ is not tracked by git. The updated .gitignore is the deliverable.",
   "fact_terms": [
-    "update_ignore.py",
     "maintained only via the script",
     "sorted and deduped",
     "hand edits get lost"

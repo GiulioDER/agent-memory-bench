@@ -1,0 +1,2 @@
+Nova ops confirm they generate their weekly sheet in Excel and save it as CSV
+before uploading; their process has not changed since onboarding in May.

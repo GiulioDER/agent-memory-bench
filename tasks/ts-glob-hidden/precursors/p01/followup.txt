@@ -1,0 +1,1 @@
+Agreed. Decision: backups must include dotfiles. glob skips names that start with a dot, which is exactly how .env.production got missed by the backup; from now on the backup copies the whole directory tree so hidden files are always included, and a restore is not considered complete until the file lists match the source exactly.

@@ -1,0 +1,7 @@
+2026-08-04 10:12:33 billing-worker: processing order batch 4411
+Traceback (most recent call last):
+  File "/app/billing/orders.py", line 57, in build_reference
+    reference = corekit.text.slugify_id(order.customer, order.number)
+AttributeError: module 'corekit.text' has no attribute 'slugify_id'
+2026-08-04 10:12:33 billing-worker: batch 4411 aborted, checkout returning 500
+2026-08-04 10:52:41 deploy: rolled back to previous image, checkout recovered

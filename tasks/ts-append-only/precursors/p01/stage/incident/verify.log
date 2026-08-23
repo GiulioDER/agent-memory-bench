@@ -1,0 +1,5 @@
+2026-08-04 21:00:03 ledger-verify: comparing metrics.log against snapshot-2026-08-03
+2026-08-04 21:00:03 ledger-verify: FAILED prefix check, first divergence at byte offset 43
+2026-08-04 21:00:03 ledger-verify: expected '2026-07-29  builds=36  failures=0'
+2026-08-04 21:00:03 ledger-verify: found    '2026-07-29 builds=36 failures=0'
+2026-08-04 21:00:03 ledger-verify: refusing the file; reporting side kept the snapshot

@@ -2,5 +2,10 @@
   "task_id": "ts-nfc-count",
   "kind": "primary",
   "prompt": "Write count_words.py in the repository root. It must read every .txt file under docs/ in the current directory, lowercase each word, strip the punctuation characters .,;:!? from word edges, and count occurrences. Write counts.txt in the repository root with one line per word formatted as 'word count', sorted alphabetically by word. Then run it so counts.txt exists.",
-  "fact_terms": ["NFC", "normalize", "decomposed", "combining accent", "glossary"]
+  "fact_terms": [
+    "NFC normalize",
+    "decomposed",
+    "combining accent",
+    "glossary"
+  ]
 }

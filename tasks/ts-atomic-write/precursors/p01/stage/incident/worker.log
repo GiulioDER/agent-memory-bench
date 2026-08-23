@@ -1,0 +1,6 @@
+2026-07-21 03:12:07 wrk-04 set_status: writing state.json
+2026-07-21 03:12:07 wrk-04 kernel: Out of memory: Killed process 2214 (python3) total-vm:812340kB
+2026-07-21 06:00:12 wrk-01 startup: reading state.json
+2026-07-21 06:00:12 wrk-01 FATAL json.decoder.JSONDecodeError: Unterminated string starting at: line 8 column 18 (char 96)
+2026-07-21 06:00:14 wrk-02 startup: reading state.json
+2026-07-21 06:00:14 wrk-02 FATAL json.decoder.JSONDecodeError: Unterminated string starting at: line 8 column 18 (char 96)

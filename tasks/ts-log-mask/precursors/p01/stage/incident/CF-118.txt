@@ -1,0 +1,8 @@
+Finding CF-118 (compliance review 2026-07, severity: high, must-fix)
+
+File requests-2026-07.log contains a partner API credential in cleartext on three
+lines (token=tok_live_0000aaaa1111). Gateway logs replicate to the analytics bucket
+with 180-day retention and are readable by every engineer with analytics access.
+
+Required: remediate the logging path, state the policy for sensitive payload fields,
+and confirm the partner credential has been rotated.

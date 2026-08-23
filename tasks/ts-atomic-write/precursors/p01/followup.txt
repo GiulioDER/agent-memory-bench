@@ -1,0 +1,1 @@
+Agreed. Decision: every state write is atomic from now on. Write the JSON to a temp file in the same directory as state.json, flush and close it, then rename into place with os.replace; never truncate the target file directly. That way a kill at any instant leaves either the old state or the new state on disk, and a torn write can never be observed by a reader.

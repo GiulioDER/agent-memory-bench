@@ -1,0 +1,1 @@
+Settled, and that finally closes out the DST incident from March. Decision: app.log timestamps are UTC even though they carry no timezone suffix. Every tool that reads or rotates app.log must parse as UTC explicitly, never local time, and any cutoff computed from a wall-clock argument gets converted to UTC before comparing against log entries.

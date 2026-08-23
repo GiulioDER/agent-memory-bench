@@ -1,0 +1,9 @@
+Review note, 2026-06-09 (May report regeneration)
+
+The May report was regenerated while chasing the amount-column fix that never
+landed. The inputs under data/ are byte-identical between the two runs, yet
+review shows three changed lines: the three 2026-05-04 rows come out in a
+different order from run to run, so downstream reconciliation flagged all
+three rows as changed against the committed report. Both runs are preserved:
+reports/report_20260601_a.csv (runner) and reports/report_20260601_b.csv
+(regenerated locally).

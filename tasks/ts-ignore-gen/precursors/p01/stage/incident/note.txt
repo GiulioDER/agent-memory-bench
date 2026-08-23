@@ -1,0 +1,4 @@
+2026-08-08 security: secrets.ini appeared in commit 41c9f02 on master.
+The file holds the service account credentials for the label printer bridge.
+Credentials rotated the same afternoon. Wanted from engineering: how did the
+ignore rule disappear, and what stops it happening again.

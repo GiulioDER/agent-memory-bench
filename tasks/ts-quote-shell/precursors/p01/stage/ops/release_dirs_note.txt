@@ -1,0 +1,3 @@
+Prod release directories are named from the launch calendar by the release
+tooling; the current campaign directory is '/srv/releases/June Launch/'.
+Staging uses plain '/srv/releases/rel-NNN', which is why staging stays green.

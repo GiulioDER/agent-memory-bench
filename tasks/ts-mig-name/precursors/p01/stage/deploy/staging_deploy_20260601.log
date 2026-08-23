@@ -1,0 +1,7 @@
+2026-06-01 22:10:03 staging deploy: orderdb schema step
+2026-06-01 22:10:03 loader: applying pending migrations in sorted filename order
+2026-06-01 22:10:03 loader: 0001_create_users.sql .. already applied
+2026-06-01 22:10:03 loader: 0002_add_last_login.sql .. already applied
+2026-06-01 22:10:04 loader: 0003_add_shipping_address_to_users.sql .. ERROR
+2026-06-01 22:10:04 loader: migration id '0003_add_shipping_address_to_users' rejected: identifier too long (staging catalog limit: 30)
+2026-06-01 22:10:04 loader: schema left at 0002; deploy aborted

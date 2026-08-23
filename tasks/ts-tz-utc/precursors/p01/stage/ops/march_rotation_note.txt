@@ -1,0 +1,7 @@
+Ops note, 2026-03-30
+
+The Sunday clock change bit us again: Saturday evening's entries were swept
+into archive.log one rotation early, and during the outage call the timeline
+built from app.log ran an hour off against the provider's dashboard. Root
+cause never written up; parking the evidence here was supposed to be
+temporary.

@@ -1,0 +1,4 @@
+2026-06-16 20:14:02 release gate: golden integrity check
+2026-06-16 20:14:02 tests/golden/basic.out: footer fd233ff3 matches content digest
+2026-06-16 20:14:02 tests/golden/spacing.out: footer cd6678b4 does not match content digest 1dac02fb
+2026-06-16 20:14:02 golden files modified outside the regeneration flow; release blocked

@@ -1,0 +1,1 @@
+Yes, that's the failure. Decision: order ids move to a restricted alphabet: uppercase base36 with no 0/O/1/I, i.e. 23456789ABCDEFGHJKLMNPQRSTUVWXYZ, dropping the confusable characters entirely so an id cannot be misread over the phone or off a slip. New ids continue from the last issued id, encoded positionally in that 32-character alphabet, still ORD- plus four characters.
