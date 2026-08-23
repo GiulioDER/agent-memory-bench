@@ -21,8 +21,8 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.io import read_jsonl  # noqa: E402
-from harness.stats import mcnemar_exact  # noqa: E402
+from harness.io import read_jsonl
+from harness.stats import mcnemar_exact
 
 ARMS = ("bare", "claude_md", "recall")
 
