@@ -33,13 +33,33 @@ def render_transcript(jsonl_path: Path) -> str:
     return "\n".join(lines)
 
 
-def render_corpus(session_paths: list[Path], target_dir: Path) -> int:
-    """Render a set of transcripts into ``target_dir``; returns the count written."""
+def render_corpus(
+    session_paths: list[Path], target_dir: Path, *, root: Path | None = None
+) -> int:
+    """Render transcripts into ``target_dir``; returns the count written.
+
+    With ``root`` given, each output is named from its path relative to ``root`` with
+    separators flattened to ``__`` (``sessions/ts-dedup-order/p01.jsonl`` becomes
+    ``sessions__ts-dedup-order__p01.md``): unique by construction AND self-identifying in a
+    retrieval result. Without ``root``, bare filenames are used and a collision RAISES,
+    because the first version of this function silently overwrote colliding names and
+    shipped a corpus holding one precursor out of twenty-four.
+    """
 
     target_dir.mkdir(parents=True, exist_ok=True)
     written = 0
+    seen: dict[str, Path] = {}
     for source in sorted(session_paths):
-        out = target_dir / source.with_suffix(".md").name
-        out.write_text(render_transcript(source), encoding="utf-8")
+        if root is not None:
+            name = source.relative_to(root).with_suffix(".md").as_posix().replace("/", "__")
+        else:
+            name = source.with_suffix(".md").name
+        if name in seen:
+            raise ValueError(
+                f"transcript name collision: {source} and {seen[name]} both render to "
+                f"{name!r}; pass root= so names mirror their paths"
+            )
+        seen[name] = source
+        (target_dir / name).write_text(render_transcript(source), encoding="utf-8")
         written += 1
     return written

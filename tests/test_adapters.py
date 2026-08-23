@@ -75,9 +75,9 @@ def test_fs_grep_ingest_renders_verbatim_markdown(tmp_path, corpus, base_prompt)
     report = adapter.ingest(corpus, "bench-fs_grep-0")
     assert report.items_stored == 1
     assert report.llm_input_tokens == 0
-    rendered = (tmp_path / "staging" / "bench-fs_grep-0" / "memory" / "s01.md").read_text(
-        encoding="utf-8"
-    )
+    rendered = (
+        tmp_path / "staging" / "bench-fs_grep-0" / "memory" / "sessions__t1__s01.md"
+    ).read_text(encoding="utf-8")
     assert "mig.sh truncates names" in rendered
     spec = adapter.build(tmp_path, "bench-fs_grep-0")
     assert spec.metadata["sandbox_overlay"].endswith("memory")
@@ -114,3 +114,25 @@ def test_registry_refuses_duplicate_names():
     registry.register(BareAdapter())
     with pytest.raises(ValueError, match="already registered"):
         registry.register(BareAdapter())
+
+
+def test_render_corpus_refuses_or_disambiguates_name_collisions(tmp_path):
+    from harness.transcripts import render_corpus
+
+    root = tmp_path / "corpus"
+    for sub in ("sessions/task-a", "sessions/task-b"):
+        d = root / sub
+        d.mkdir(parents=True)
+        (d / "p01.jsonl").write_text('{"role": "user", "content": "x", "ts": "1"}\n', "utf-8")
+    paths = sorted(root.rglob("*.jsonl"))
+
+    # Without a root, the collision must RAISE (the silent overwrite shipped a corpus
+    # holding one precursor out of twenty-four).
+    with pytest.raises(ValueError, match="collision"):
+        render_corpus(paths, tmp_path / "flat")
+
+    # With a root, both survive under self-identifying names.
+    count = render_corpus(paths, tmp_path / "mirrored", root=root)
+    names = sorted(p.name for p in (tmp_path / "mirrored").glob("*.md"))
+    assert count == 2
+    assert names == ["sessions__task-a__p01.md", "sessions__task-b__p01.md"]

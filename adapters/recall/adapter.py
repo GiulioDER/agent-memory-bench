@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -81,8 +82,12 @@ class RecallAdapter(MemoryAdapter):
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
         staged = self.staging_root / namespace / "feed"
+        # Fresh render: leftovers from an earlier feed layout must not survive into the
+        # index (and the subsequent re-index prunes what is no longer on disk).
+        if staged.exists():
+            shutil.rmtree(staged)
         count = render_corpus(
-            [corpus.root / rel for rel in corpus.sessions], staged
+            [corpus.root / rel for rel in corpus.sessions], staged, root=corpus.root
         )
         start = time.monotonic()
         # recall's own write path: the published CLI, one tenant per namespace. Re-indexing

@@ -10,11 +10,12 @@ notes exist. No extraction, no index, no product.
 from __future__ import annotations
 
 import hashlib
+import shutil
 from pathlib import Path
 
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
 from harness.gate import AdmissionSignal
-from harness.transcripts import render_transcript
+from harness.transcripts import render_corpus
 
 #: The one-line nudge, at the TOP of the bundle like every other arm's (measured: buried
 #: instructions produce a 0% usage rate, and then you are benchmarking prompt placement).
@@ -42,13 +43,13 @@ class FsGrepAdapter(MemoryAdapter):
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
         target = self._staging_dir(namespace)
-        target.mkdir(parents=True, exist_ok=True)
-        stored = 0
-        for rel_path in sorted(corpus.sessions):
-            source = corpus.root / rel_path
-            out = target / (Path(rel_path).with_suffix(".md").name)
-            out.write_text(render_transcript(source), encoding="utf-8")
-            stored += 1
+        # A fresh render every time: a stale file from an earlier feed layout would ride
+        # along invisibly (the flat-name collision bug left exactly such files behind).
+        if target.exists():
+            shutil.rmtree(target)
+        stored = render_corpus(
+            [corpus.root / rel for rel in corpus.sessions], target, root=corpus.root
+        )
         prompt = self._prompt_path(namespace)
         prompt.write_text(
             FS_GREP_SENTENCE + self.base_prompt_file.read_text(encoding="utf-8"),
