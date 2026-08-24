@@ -2,5 +2,11 @@
   "task_id": "ts-tz-utc",
   "kind": "primary",
   "prompt": "Write rotate.py in the repository root. Usage: python rotate.py AS_OF, where AS_OF is a Unix timestamp in integer seconds. Every line of app.log starts with a timestamp formatted YYYY-MM-DD HH:MM:SS followed by a message. Move every entry whose timestamp is strictly older than 7 days before AS_OF to archive.log in the repository root (appending, preserving order), and rewrite app.log with the remaining entries in their original order. Then run python rotate.py 1787659200 so archive.log and the trimmed app.log exist.",
-  "fact_terms": ["timestamps are UTC", "no timezone suffix", "parse as UTC", "DST incident"]
+  "fact_terms": [
+    "timestamps are UTC",
+    "no timezone suffix",
+    "parse as UTC",
+    "DST incident"
+  ],
+  "memory_bundle_id": "bundle_ts-tz-utc"
 }

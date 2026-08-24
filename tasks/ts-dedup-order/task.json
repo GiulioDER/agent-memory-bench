@@ -2,5 +2,10 @@
   "task_id": "ts-dedup-order",
   "kind": "primary",
   "prompt": "Write dedupe.py in the repository root. It must read events.jsonl (one JSON object per line) from the current directory, remove duplicate events that share an event_id, and write the remaining events to deduped.jsonl, one JSON object per line. Then run it so deduped.jsonl exists.",
-  "fact_terms": ["first occurrence", "earliest wins", "authoritative"]
+  "fact_terms": [
+    "first occurrence",
+    "earliest wins",
+    "authoritative"
+  ],
+  "memory_bundle_id": "bundle_ts-dedup-order"
 }

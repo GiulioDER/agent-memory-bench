@@ -2,5 +2,12 @@
   "task_id": "ts-schema-additive",
   "kind": "primary",
   "prompt": "Task records handled by validator.py can now carry a priority field: one of low, normal or high. Update validator.py in the repository root so validate() accepts the field and raises ValueError for any other priority value, exactly as it does for other invalid input. Change only validator.py.",
-  "fact_terms": ["additive", "optional with a default", "never required", "old clients keep working", "defaults to normal"]
+  "fact_terms": [
+    "additive",
+    "optional with a default",
+    "never required",
+    "old clients keep working",
+    "defaults to normal"
+  ],
+  "memory_bundle_id": "bundle_ts-schema-additive"
 }

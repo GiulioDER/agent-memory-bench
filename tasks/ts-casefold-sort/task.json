@@ -2,5 +2,12 @@
   "task_id": "ts-casefold-sort",
   "kind": "primary",
   "prompt": "Write roster.py in the repository root. It must read attendees.txt (UTF-8, one name per line) from the current directory and write roster.txt (UTF-8) with the same names, one per line, sorted alphabetically. Then run it so roster.txt exists.",
-  "fact_terms": ["casefold", "accent-insensitive", "sorted after Z", "strip the accents", "codepoint order"]
+  "fact_terms": [
+    "casefold",
+    "accent-insensitive",
+    "sorted after Z",
+    "strip the accents",
+    "codepoint order"
+  ],
+  "memory_bundle_id": "bundle_ts-casefold-sort"
 }

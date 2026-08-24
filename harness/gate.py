@@ -146,6 +146,46 @@ def _ledger_events(record: SessionRecord) -> dict[str, dict[str, Any]]:
     return events
 
 
+def _check_diagnostic(record: SessionRecord, signal: AdmissionSignal, reasons: list[str]) -> None:
+    expected = signal.metadata.get("diagnostic_kind")
+    diagnostic = record.metadata.get("memory_diagnostic")
+    if diagnostic is not None and not isinstance(diagnostic, Mapping):
+        reasons.append("diagnostic metadata is malformed")
+        return
+    actual = diagnostic.get("kind") if isinstance(diagnostic, Mapping) else None
+    if expected is None:
+        if diagnostic is not None:
+            reasons.append("non diagnostic arm contains diagnostic memory metadata")
+        return
+    if actual != expected:
+        reasons.append(
+            f"diagnostic arm {signal.arm!r} expected memory treatment {expected!r}, got {actual!r}"
+        )
+        return
+    if expected == "oracle_memory":
+        if diagnostic.get("task_id") != record.task_id:
+            reasons.append("oracle injection task identity does not match the session task")
+        expected_catalog = signal.metadata.get("catalog_sha256")
+        if expected_catalog is not None and diagnostic.get("catalog_sha256") != expected_catalog:
+            reasons.append("oracle injection catalog digest mismatch")
+        expected_bundles = signal.metadata.get("bundle_digests")
+        if isinstance(expected_bundles, Mapping):
+            expected_bundle = expected_bundles.get(record.task_id)
+            if expected_bundle is not None and diagnostic.get("bundle_sha256") != expected_bundle:
+                reasons.append("oracle injection bundle digest mismatch")
+        if not diagnostic.get("bundle_sha256") and diagnostic.get("bundle_id") is not None:
+            reasons.append("oracle injection missing bundle digest")
+        if not diagnostic.get("injected_text_sha256"):
+            reasons.append("oracle injection missing injected text hash")
+        if diagnostic.get("status") not in ("ok", "empty"):
+            reasons.append("oracle injection malformed")
+    if expected == "recall_prefetch":
+        if diagnostic.get("prefetch_status") != "ok":
+            reasons.append("prefetch failed")
+        if not diagnostic.get("query_sha256") or not diagnostic.get("result_sha256"):
+            reasons.append("prefetch record is malformed")
+
+
 def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVerdict:
     """Decide whether one session is admissible evidence for its arm."""
 
@@ -156,6 +196,8 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
 
     reasons: list[str] = []
     notes: list[str] = []
+
+    _check_diagnostic(record, signal, reasons)
 
     if not record.metadata.get("init_present", True):
         reasons.append(

@@ -2,5 +2,11 @@
   "task_id": "ts-config-layer",
   "kind": "primary",
   "prompt": "Add a max_retries setting to settings.py: load_settings() must also return an integer under the key 'max_retries', read from the [app] section like the existing settings, defaulting to 3 when it is not configured.",
-  "fact_terms": ["config.local.ini", "APP_MAX_RETRIES", "precedence", "environment variable overrides"]
+  "fact_terms": [
+    "config.local.ini",
+    "APP_MAX_RETRIES",
+    "precedence",
+    "environment variable overrides"
+  ],
+  "memory_bundle_id": "bundle_ts-config-layer"
 }
