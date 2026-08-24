@@ -1,0 +1,262 @@
+{
+  "run_id": "pilot-003-deepseek",
+  "admitted_cells": 72,
+  "discarded_cells": [],
+  "arm_success": {
+    "bare": 0.5,
+    "claude_md": 0.361,
+    "recall": 0.583
+  },
+  "primary_recall_vs_claude_md_all_tasks": {
+    "per_task_mean_delta": 0.2222,
+    "cluster_ci95": [
+      0.1111,
+      0.3333
+    ],
+    "mcnemar_p": 0.00014495849609375,
+    "discordant": {
+      "only_recall": 17,
+      "only_claude_md": 1
+    },
+    "n_tasks": 24,
+    "n_cells": 72
+  },
+  "primary_recall_vs_claude_md_survivors": {
+    "per_task_mean_delta": 0.4583,
+    "cluster_ci95": [
+      0.2917,
+      0.625
+    ],
+    "mcnemar_p": 0.0009765625,
+    "discordant": {
+      "only_recall": 11,
+      "only_claude_md": 0
+    },
+    "n_tasks": 8,
+    "n_cells": 24
+  },
+  "exploratory_bare_vs_claude_md": {
+    "per_task_mean_delta": 0.1389,
+    "cluster_ci95": [
+      0.0417,
+      0.2639
+    ],
+    "mcnemar_p": 0.001953125,
+    "discordant": {
+      "only_bare": 10,
+      "only_claude_md": 0
+    },
+    "n_tasks": 24,
+    "n_cells": 72
+  },
+  "mechanism": {
+    "search_rate": 0.833,
+    "reached_given_searched": 0.85,
+    "reached_overall": 0.708
+  },
+  "screening": {
+    "ts-append-only": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-atomic-write": {
+      "bare": 0.667,
+      "claude_md": 0.0,
+      "recall": 0.667,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-base36-id": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-bom-merge": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-casefold-sort": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 1
+    },
+    "ts-config-layer": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-crlf-export": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-dedup-order": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-empty-input": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-glob-hidden": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-golden-regen": {
+      "bare": 0.333,
+      "claude_md": 0.0,
+      "recall": 0.667,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-ignore-gen": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-legacy-hash": {
+      "bare": 1.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 1
+    },
+    "ts-log-mask": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-manifest-rel": {
+      "bare": 1.0,
+      "claude_md": 0.333,
+      "recall": 0.667,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-mig-name": {
+      "bare": 1.0,
+      "claude_md": 0.333,
+      "recall": 0.667,
+      "screen": "ceiling",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-nfc-count": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.667,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-quote-shell": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.667,
+      "screen": "keep",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-retry-cap": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-round-money": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.667,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-schema-additive": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 1
+    },
+    "ts-semver-pin": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-stable-sort": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-tz-utc": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 2
+    }
+  },
+  "survivors": [
+    "ts-base36-id",
+    "ts-casefold-sort",
+    "ts-crlf-export",
+    "ts-golden-regen",
+    "ts-nfc-count",
+    "ts-quote-shell",
+    "ts-round-money",
+    "ts-stable-sort"
+  ],
+  "n_survivors": 8
+}

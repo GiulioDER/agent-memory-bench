@@ -1,0 +1,301 @@
+{
+  "run_id": "pilot-002",
+  "analysis_basis": "pilot-002 original records with ten infrastructure-discarded recall cells replaced by results/pilot-002-repair",
+  "final_admitted_cells": 72,
+  "final_records": 144,
+  "tasks": [
+    "ts-append-only",
+    "ts-atomic-write",
+    "ts-base36-id",
+    "ts-bom-merge",
+    "ts-casefold-sort",
+    "ts-config-layer",
+    "ts-crlf-export",
+    "ts-dedup-order",
+    "ts-empty-input",
+    "ts-glob-hidden",
+    "ts-golden-regen",
+    "ts-ignore-gen",
+    "ts-legacy-hash",
+    "ts-log-mask",
+    "ts-manifest-rel",
+    "ts-mig-name",
+    "ts-nfc-count",
+    "ts-quote-shell",
+    "ts-retry-cap",
+    "ts-round-money",
+    "ts-schema-additive",
+    "ts-semver-pin",
+    "ts-stable-sort",
+    "ts-tz-utc"
+  ],
+  "original_admission": {
+    "admitted_cells": 62,
+    "discarded_cells": [
+      [
+        "ts-retry-cap",
+        2
+      ],
+      [
+        "ts-semver-pin",
+        0
+      ],
+      [
+        "ts-semver-pin",
+        1
+      ],
+      [
+        "ts-semver-pin",
+        2
+      ],
+      [
+        "ts-stable-sort",
+        0
+      ],
+      [
+        "ts-stable-sort",
+        1
+      ],
+      [
+        "ts-stable-sort",
+        2
+      ],
+      [
+        "ts-tz-utc",
+        0
+      ],
+      [
+        "ts-tz-utc",
+        1
+      ],
+      [
+        "ts-tz-utc",
+        2
+      ]
+    ],
+    "discarded_by_arm": {
+      "recall": 10
+    }
+  },
+  "repair": {
+    "cells": [
+      [
+        "ts-stable-sort",
+        2
+      ],
+      [
+        "ts-semver-pin",
+        2
+      ],
+      [
+        "ts-tz-utc",
+        1
+      ],
+      [
+        "ts-stable-sort",
+        1
+      ],
+      [
+        "ts-semver-pin",
+        1
+      ],
+      [
+        "ts-tz-utc",
+        0
+      ],
+      [
+        "ts-stable-sort",
+        0
+      ],
+      [
+        "ts-tz-utc",
+        2
+      ],
+      [
+        "ts-semver-pin",
+        0
+      ],
+      [
+        "ts-retry-cap",
+        2
+      ]
+    ],
+    "records": 10,
+    "successes": 7,
+    "mcp_connected": 10,
+    "memory_calls": 13,
+    "schema_migration_applied": "0015_semantic_graph_foundation.sql"
+  },
+  "arm_success": {
+    "claude_md": 0.403,
+    "recall": 0.639
+  },
+  "mechanism": {
+    "search_rate": 0.806,
+    "reached_given_searched": 0.879,
+    "reached_overall": 0.708,
+    "searched": 58,
+    "reached": 51,
+    "recall_records": 72
+  },
+  "primary_recall_vs_claude_md_all_tasks": {
+    "per_task_mean_delta": 0.2361,
+    "cluster_ci95": [
+      0.1111,
+      0.375
+    ],
+    "mcnemar_p": 7.62939453125e-05,
+    "discordant": {
+      "only_recall": 18,
+      "only_claude_md": 1
+    },
+    "n_tasks": 24,
+    "n_cells": 72
+  },
+  "primary_recall_vs_claude_md_survivors": {
+    "per_task_mean_delta": 0.3333,
+    "cluster_ci95": [
+      0.1538,
+      0.5128
+    ],
+    "mcnemar_p": 0.0009765625,
+    "discordant": {
+      "only_recall": 14,
+      "only_claude_md": 1
+    },
+    "n_tasks": 13,
+    "n_cells": 39
+  },
+  "survivors": [
+    "ts-atomic-write",
+    "ts-base36-id",
+    "ts-casefold-sort",
+    "ts-config-layer",
+    "ts-crlf-export",
+    "ts-empty-input",
+    "ts-golden-regen",
+    "ts-log-mask",
+    "ts-mig-name",
+    "ts-nfc-count",
+    "ts-quote-shell",
+    "ts-round-money",
+    "ts-stable-sort"
+  ],
+  "costs_valid_replacement_basis": {
+    "arms": {
+      "claude_md": {
+        "arm": "claude_md",
+        "sessions": 72,
+        "sessions_unmetered": 0,
+        "session_input_tokens": 1103112,
+        "session_output_tokens": 118695,
+        "session_wall_time_ms": 3264816.7634000042,
+        "ingest_input_tokens": 0,
+        "ingest_output_tokens": 0,
+        "ingest_unmetered": 0,
+        "ingest_wall_time_ms": 0.0,
+        "total_tokens": 1221807,
+        "notes": [],
+        "estimated_usd": 0.0786,
+        "pricing_as_of": "2026-08-22",
+        "pricing_model": "deepseek/deepseek-v4-flash"
+      },
+      "recall": {
+        "arm": "recall",
+        "sessions": 72,
+        "sessions_unmetered": 0,
+        "session_input_tokens": 5676376,
+        "session_output_tokens": 185615,
+        "session_wall_time_ms": 5999635.6890000105,
+        "ingest_input_tokens": 0,
+        "ingest_output_tokens": 0,
+        "ingest_unmetered": 0,
+        "ingest_wall_time_ms": 0.0,
+        "total_tokens": 5861991,
+        "notes": [],
+        "estimated_usd": 0.3548,
+        "pricing_as_of": "2026-08-22",
+        "pricing_model": "deepseek/deepseek-v4-flash"
+      }
+    },
+    "total_tokens": 7083798,
+    "total_sessions": 144,
+    "estimated_usd": 0.4334,
+    "pricing_as_of": "2026-08-22"
+  },
+  "costs_original_plus_repair_actual": {
+    "original": {
+      "arms": {
+        "claude_md": {
+          "arm": "claude_md",
+          "sessions": 72,
+          "sessions_unmetered": 0,
+          "session_input_tokens": 1103112,
+          "session_output_tokens": 118695,
+          "session_wall_time_ms": 3264816.7634000042,
+          "ingest_input_tokens": 0,
+          "ingest_output_tokens": 0,
+          "ingest_unmetered": 0,
+          "ingest_wall_time_ms": 0.0,
+          "total_tokens": 1221807,
+          "notes": [],
+          "estimated_usd": 0.0786,
+          "pricing_as_of": "2026-08-22",
+          "pricing_model": "deepseek/deepseek-v4-flash"
+        },
+        "recall": {
+          "arm": "recall",
+          "sessions": 72,
+          "sessions_unmetered": 0,
+          "session_input_tokens": 5183371,
+          "session_output_tokens": 181698,
+          "session_wall_time_ms": 6145682.964700004,
+          "ingest_input_tokens": 0,
+          "ingest_output_tokens": 0,
+          "ingest_unmetered": 0,
+          "ingest_wall_time_ms": 0.0,
+          "total_tokens": 5365069,
+          "notes": [],
+          "estimated_usd": 0.3254,
+          "pricing_as_of": "2026-08-22",
+          "pricing_model": "deepseek/deepseek-v4-flash"
+        }
+      },
+      "total_tokens": 6586876,
+      "total_sessions": 144,
+      "estimated_usd": 0.404,
+      "pricing_as_of": "2026-08-22"
+    },
+    "repair": {
+      "arms": {
+        "recall": {
+          "arm": "recall",
+          "sessions": 10,
+          "sessions_unmetered": 0,
+          "session_input_tokens": 711909,
+          "session_output_tokens": 24005,
+          "session_wall_time_ms": 682680.8797000013,
+          "ingest_input_tokens": 0,
+          "ingest_output_tokens": 0,
+          "ingest_unmetered": 0,
+          "ingest_wall_time_ms": 0.0,
+          "total_tokens": 735914,
+          "notes": [],
+          "estimated_usd": 0.0446,
+          "pricing_as_of": "2026-08-22",
+          "pricing_model": "deepseek/deepseek-v4-flash"
+        }
+      },
+      "total_tokens": 735914,
+      "total_sessions": 10,
+      "estimated_usd": 0.0446,
+      "pricing_as_of": "2026-08-22"
+    },
+    "estimated_usd_total": 0.4486,
+    "total_tokens": 7322790
+  },
+  "recall_input_tokens_per_session": {
+    "pilot_001": 35203.13888888889,
+    "pilot_002_valid_replacement_basis": 78838.55555555556
+  }
+}

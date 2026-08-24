@@ -1,0 +1,316 @@
+{
+  "run_id": "pilot-003-gpt53",
+  "admitted_cells": 40,
+  "discarded_cells": [
+    [
+      "ts-glob-hidden",
+      2
+    ],
+    [
+      "ts-log-mask",
+      1
+    ],
+    [
+      "ts-log-mask",
+      2
+    ],
+    [
+      "ts-manifest-rel",
+      0
+    ],
+    [
+      "ts-manifest-rel",
+      1
+    ],
+    [
+      "ts-manifest-rel",
+      2
+    ],
+    [
+      "ts-mig-name",
+      0
+    ],
+    [
+      "ts-mig-name",
+      1
+    ],
+    [
+      "ts-nfc-count",
+      0
+    ],
+    [
+      "ts-nfc-count",
+      1
+    ],
+    [
+      "ts-nfc-count",
+      2
+    ],
+    [
+      "ts-quote-shell",
+      0
+    ],
+    [
+      "ts-quote-shell",
+      1
+    ],
+    [
+      "ts-quote-shell",
+      2
+    ],
+    [
+      "ts-retry-cap",
+      0
+    ],
+    [
+      "ts-retry-cap",
+      1
+    ],
+    [
+      "ts-retry-cap",
+      2
+    ],
+    [
+      "ts-round-money",
+      0
+    ],
+    [
+      "ts-round-money",
+      1
+    ],
+    [
+      "ts-round-money",
+      2
+    ],
+    [
+      "ts-schema-additive",
+      0
+    ],
+    [
+      "ts-schema-additive",
+      1
+    ],
+    [
+      "ts-schema-additive",
+      2
+    ],
+    [
+      "ts-semver-pin",
+      0
+    ],
+    [
+      "ts-semver-pin",
+      1
+    ],
+    [
+      "ts-semver-pin",
+      2
+    ],
+    [
+      "ts-stable-sort",
+      0
+    ],
+    [
+      "ts-stable-sort",
+      1
+    ],
+    [
+      "ts-stable-sort",
+      2
+    ],
+    [
+      "ts-tz-utc",
+      0
+    ],
+    [
+      "ts-tz-utc",
+      1
+    ],
+    [
+      "ts-tz-utc",
+      2
+    ]
+  ],
+  "arm_success": {
+    "bare": 0.475,
+    "claude_md": 0.3,
+    "recall": 0.5
+  },
+  "primary_recall_vs_claude_md_all_tasks": {
+    "per_task_mean_delta": 0.1778,
+    "cluster_ci95": [
+      0.0667,
+      0.3333
+    ],
+    "mcnemar_p": 0.0078125,
+    "discordant": {
+      "only_recall": 8,
+      "only_claude_md": 0
+    },
+    "n_tasks": 15,
+    "n_cells": 40
+  },
+  "primary_recall_vs_claude_md_survivors": {
+    "per_task_mean_delta": 0.2,
+    "cluster_ci95": [
+      0.0667,
+      0.3333
+    ],
+    "mcnemar_p": 0.25,
+    "discordant": {
+      "only_recall": 3,
+      "only_claude_md": 0
+    },
+    "n_tasks": 5,
+    "n_cells": 13
+  },
+  "exploratory_bare_vs_claude_md": {
+    "per_task_mean_delta": 0.1556,
+    "cluster_ci95": [
+      -0.0,
+      0.3333
+    ],
+    "mcnemar_p": 0.0390625,
+    "discordant": {
+      "only_bare": 8,
+      "only_claude_md": 1
+    },
+    "n_tasks": 15,
+    "n_cells": 40
+  },
+  "mechanism": {
+    "search_rate": 1.0,
+    "reached_given_searched": 0.725,
+    "reached_overall": 0.725
+  },
+  "screening": {
+    "ts-append-only": {
+      "bare": 1.0,
+      "claude_md": 0.667,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-atomic-write": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-base36-id": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-bom-merge": {
+      "bare": 1.0,
+      "claude_md": 0.333,
+      "recall": 0.667,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 1
+    },
+    "ts-casefold-sort": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 1
+    },
+    "ts-config-layer": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-crlf-export": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-dedup-order": {
+      "bare": 0.667,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-empty-input": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-glob-hidden": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 1
+    },
+    "ts-golden-regen": {
+      "bare": 0.667,
+      "claude_md": 0.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 1
+    },
+    "ts-ignore-gen": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-legacy-hash": {
+      "bare": 1.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 2
+    },
+    "ts-log-mask": {
+      "bare": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-mig-name": {
+      "bare": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 1,
+      "recall_reached": 1
+    }
+  },
+  "survivors": [
+    "ts-atomic-write",
+    "ts-base36-id",
+    "ts-casefold-sort",
+    "ts-crlf-export",
+    "ts-log-mask"
+  ],
+  "n_survivors": 5
+}

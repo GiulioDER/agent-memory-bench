@@ -80,3 +80,59 @@ using the adapter write path. A startup check must report the current migration 
 721 corpus chunks, and a connected recall MCP server before the first model session.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Results
+
+### `pilot-003-deepseek`
+
+Model: `deepseek/deepseek-v4-flash`. The run completed all 216 sessions as 72 paired
+cells with zero discards. Wall time was 95 minutes and estimated spend was `$0.4964`.
+
+| arm | success |
+|---|---:|
+| bare | 36/72, 50.0% |
+| claude_md | 26/72, 36.1% |
+| recall | 42/72, 58.3% |
+
+Recall search rate was `0.833`, reached-given-searched was `0.850`, and reached overall
+was `0.708`.
+
+The primary recall versus `claude_md` task-level delta was `+0.2222`, with cluster
+bootstrap 95% CI `[+0.1111, +0.3333]`. The cell-level McNemar p-value was
+`0.00014495849609375`, with 17 recall-only successes and 1 `claude_md`-only success.
+
+On the eight pilot-survivor tasks, the delta was `+0.4583`, CI `[+0.2917, +0.625]`,
+McNemar p `0.0009765625`, with 11 recall-only successes and 0 `claude_md`-only
+successes.
+
+The exploratory bare versus `claude_md` delta was `+0.1389`, CI
+`[+0.0417, +0.2639]`, McNemar p `0.001953125`. The static `claude_md` arm therefore
+underperformed bare in this run.
+
+### `pilot-003-gpt53`
+
+Model: `openai/gpt-5.3-codex`. The run attempted 216 sessions but admitted only 40 of
+72 paired cells and discarded 32, so it failed the preregistered 95% admission rule.
+Wall time was 71 minutes and estimated spend was `$13.4845`.
+
+The discarded sessions were primarily caused by OpenRouter HTTP 402 credit and
+in-flight request limits. One discarded cell also reported a transient recall MCP
+startup failure. This is an operationally incomplete run, not a model-quality result.
+
+Descriptive admitted-cell success rates were:
+
+| arm | success |
+|---|---:|
+| bare | 19/40, 47.5% |
+| claude_md | 12/40, 30.0% |
+| recall | 20/40, 50.0% |
+
+These GPT numbers are not used for model selection or pooled comparison.
+
+### Eligibility outcome
+
+DeepSeek met all eligibility criteria and is the only eligible candidate. GPT-5.3 Codex
+met the recall mechanism thresholds but failed paired-cell admission because of the
+provider credit failure. DeepSeek is therefore the provisionally selected model under
+the frozen rule. A fair model head-to-head requires a complete GPT rerun after the
+provider capacity issue is fixed.
