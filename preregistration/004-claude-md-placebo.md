@@ -89,3 +89,32 @@ The run is exploratory follow-up evidence and does not alter pilot-003's frozen 
 decision or the planned competitor comparison.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Results
+
+Run: `pilot-004-placebo`, model `deepseek/deepseek-v4-flash`, Claude Code `2.1.238`.
+The run completed all 288 sessions. The admission gate admitted 63 of 72 paired cells
+and discarded 9, which is inside the preregistered limit of fewer than 10 discarded cells.
+Eight discarded cells were recall MCP startup failures and one was a placebo admission
+failure. Discarded cells were not scored as failures.
+
+| arm | success |
+|---|---:|
+| bare | 26/63, 41.3% |
+| placebo | 30/63, 47.6% |
+| claude_md | 27/63, 42.9% |
+| recall | 39/63, 61.9% |
+
+The placebo-minus-bare per-task mean delta was `+0.0556`, with cluster bootstrap 95%
+interval `[-0.0278, +0.1528]` and cell McNemar `p = 0.21875`. The claude_md-minus-placebo
+delta was `-0.0486`, interval `[-0.1875, +0.0903]`, and `p = 0.453125`. Neither
+preregistered ablation contrast supports a confirmed dilution or content-misdirection
+effect. Pilot-003's 13.9-point bare-versus-claude_md gap did not replicate in this block.
+
+Recall remained a secondary continuity check. Recall-minus-claude_md was `+0.1736`,
+interval `[+0.0486, +0.3125]`, with `p = 0.001831`; there were 13 recall-only successes
+and 1 claude_md-only success. Search rate was `0.857`, reached-given-searched was `0.926`,
+and reached overall was `0.794`.
+
+The run used 9,386,264 metered tokens and had estimated session spend `$0.5836`. Full
+analysis and limitations are recorded in `reports/pilot-004-placebo-report.md`.
