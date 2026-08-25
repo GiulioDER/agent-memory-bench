@@ -1,0 +1,49 @@
+{
+  "source_run": "pilot-002",
+  "cells": [
+    [
+      "ts-retry-cap",
+      2
+    ],
+    [
+      "ts-semver-pin",
+      0
+    ],
+    [
+      "ts-semver-pin",
+      1
+    ],
+    [
+      "ts-semver-pin",
+      2
+    ],
+    [
+      "ts-stable-sort",
+      0
+    ],
+    [
+      "ts-stable-sort",
+      1
+    ],
+    [
+      "ts-stable-sort",
+      2
+    ],
+    [
+      "ts-tz-utc",
+      0
+    ],
+    [
+      "ts-tz-utc",
+      1
+    ],
+    [
+      "ts-tz-utc",
+      2
+    ]
+  ],
+  "model": "deepseek/deepseek-v4-flash",
+  "mcp_config": "C:\\Users\\gde00\\Documents\\agent-memory-bench\\results\\pilot-002\\cfg\\recall.mcp.json",
+  "executable": "C:\\Users\\gde00\\AppData\\Local\\npm-cache\\_npx\\f7648e3197948a29\\node_modules\\@anthropic-ai\\claude-code-win32-x64\\claude.exe",
+  "wall_minutes": 11.489297803333313
+}

@@ -32,6 +32,7 @@ class TaskSpec:
     kind: str
     fact_terms: tuple[str, ...]
     path: Path
+    memory_bundle_id: str | None = None
 
     @property
     def checker_path(self) -> Path:
@@ -62,12 +63,24 @@ def load_task(task_dir: str | Path) -> TaskSpec:
         raise FileNotFoundError(f"{task_id}: fixture tree/ is missing")
     if not (path / "checker.py").is_file():
         raise FileNotFoundError(f"{task_id}: checker.py is missing")
+    if "memory_bundle_id" not in data:
+        memory_bundle_id = None if kind == "control" else f"bundle_{task_id}"
+    else:
+        raw_bundle = data["memory_bundle_id"]
+        if raw_bundle is not None and not isinstance(raw_bundle, str):
+            raise ValueError(f"{task_id}: memory_bundle_id must be a string or null")
+        memory_bundle_id = raw_bundle
+    if kind == "control" and "memory_bundle_id" not in data:
+        raise ValueError(f"{task_id}: controls must explicitly declare memory_bundle_id: null")
+    if kind == "control" and memory_bundle_id is not None:
+        raise ValueError(f"{task_id}: controls must declare memory_bundle_id: null")
     return TaskSpec(
         task_id=task_id,
         prompt=prompt,
         kind=kind,
         fact_terms=tuple(str(term) for term in data.get("fact_terms", ())),
         path=path,
+        memory_bundle_id=memory_bundle_id,
     )
 
 

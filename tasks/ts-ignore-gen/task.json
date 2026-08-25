@@ -6,5 +6,6 @@
     "maintained only via the script",
     "sorted and deduped",
     "hand edits get lost"
-  ]
+  ],
+  "memory_bundle_id": "bundle_ts-ignore-gen"
 }

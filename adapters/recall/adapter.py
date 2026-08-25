@@ -65,6 +65,15 @@ class RecallAdapter(MemoryAdapter):
                 env[passthrough] = value
         return env
 
+    def search_env(self, namespace: str) -> dict[str, str]:
+        """Return the frozen environment used by the published search path."""
+
+        return self._server_env(namespace)
+
+    @property
+    def prefetch_k(self) -> int:
+        return int(self.config.get("prefetch_k", 5))
+
     def _prompt_path(self, namespace: str) -> Path:
         return self.staging_root / namespace / "prompt.md"
 

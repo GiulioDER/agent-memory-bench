@@ -2,5 +2,12 @@
   "task_id": "ts-append-only",
   "kind": "primary",
   "prompt": "Add the entry for 2026-08-22 to metrics.log in the repository root: builds=41, failures=3. Entries are one line per day in the form 'YYYY-MM-DD builds=N failures=M'. The updated metrics.log is the deliverable.",
-  "fact_terms": ["append-only", "audit trail", "never rewrite past lines", "byte-identical prefix", "do not tidy"]
+  "fact_terms": [
+    "append-only",
+    "audit trail",
+    "never rewrite past lines",
+    "byte-identical prefix",
+    "do not tidy"
+  ],
+  "memory_bundle_id": "bundle_ts-append-only"
 }

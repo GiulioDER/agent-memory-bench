@@ -2,5 +2,12 @@
   "task_id": "ts-empty-input",
   "kind": "primary",
   "prompt": "Write report.py in the repository root. It must read every .txt file in inbox/ in the current directory (each line holds one integer measurement) and write report.txt in the repository root with exactly three lines: 'entries N', 'total T', 'average A' where A has two decimal places. Then run it so report.txt exists.",
-  "fact_terms": ["empty inbox", "NO DATA", "exit 0", "red pages", "quiet weeks are normal"]
+  "fact_terms": [
+    "empty inbox",
+    "NO DATA",
+    "exit 0",
+    "red pages",
+    "quiet weeks are normal"
+  ],
+  "memory_bundle_id": "bundle_ts-empty-input"
 }

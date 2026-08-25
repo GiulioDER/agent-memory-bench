@@ -2,5 +2,12 @@
   "task_id": "ts-retry-cap",
   "kind": "primary",
   "prompt": "Add retry to fetch in client.py in the repository root: when transport(url) raises TransportError, retry the call, up to 8 attempts in total, sleeping between attempts via the sleep callable. If all 8 attempts fail, let the final TransportError propagate. Keep the signature fetch(url, transport, sleep=time.sleep) unchanged.",
-  "fact_terms": ["exponential backoff", "capped at 30", "jitter", "thundering herd", "never a fixed sleep"]
+  "fact_terms": [
+    "exponential backoff",
+    "capped at 30",
+    "jitter",
+    "thundering herd",
+    "never a fixed sleep"
+  ],
+  "memory_bundle_id": "bundle_ts-retry-cap"
 }

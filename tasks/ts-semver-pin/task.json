@@ -7,5 +7,6 @@
     "never a range",
     "== not >=",
     "breakage from an internal release"
-  ]
+  ],
+  "memory_bundle_id": "bundle_ts-semver-pin"
 }
