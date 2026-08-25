@@ -24,6 +24,7 @@ from harness.claude_exec import ClaudeExecConfig, run_claude_case
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.io import write_jsonl
 from harness.memory_bundles import MemoryBundleCatalog
+from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 
@@ -72,6 +73,16 @@ async def main() -> int:
     parser.add_argument("--namespace", default="bench-recall-diagnostic")
     parser.add_argument("--arms", default=",".join(ARMS))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--startup-attempts",
+        type=int,
+        default=3,
+        help=(
+            "how many times one session may be run while its treatment fails to wire up. "
+            "1 reproduces the pilot-004 behaviour: no retry, and the cell is discarded. "
+            "The retry is triggered by the admission surface only, never by the checker."
+        ),
+    )
     args = parser.parse_args()
 
     run_arms = tuple(item.strip() for item in args.arms.split(",") if item.strip())
@@ -169,6 +180,33 @@ async def main() -> int:
         print(f"dry run validated {len(tasks)} tasks and arms {run_arms}; no provider calls made")
         return 0
 
+    startup_probes: dict[str, list[dict]] = {}
+    for arm in run_arms:
+        wired = [
+            specs[(task.task_id, arm)]
+            for task in tasks
+            if specs[(task.task_id, arm)] is not None
+            and getattr(specs[(task.task_id, arm)], "mcp_config", None)
+        ]
+        if not wired:
+            continue
+        probes = await probe_mcp_config(wired[0].mcp_config)
+        startup_probes[arm] = [probe.to_dict() for probe in probes]
+        if not probes or not all(probe.ok for probe in probes):
+            # Refusing here costs nothing. Discovering it 288 sessions later costs the run.
+            for probe in probes:
+                print(f"preflight {arm}/{probe.server}: ok={probe.ok} {probe.error or ''}")
+                if probe.stderr_tail.strip():
+                    print(f"  server stderr: {probe.stderr_tail.strip()[-800:]}")
+            raise SystemExit(
+                f"preflight failed for arm {arm!r}: its MCP server did not answer "
+                f"initialize/tools-list, so every one of its sessions would be discarded"
+            )
+        print(
+            f"preflight {arm}: server up in {probes[0].elapsed_ms:.0f} ms, "
+            f"tools {list(probes[0].tools)}"
+        )
+
     signals = with_forbidden_prefixes(
         {
             "claude_md": AdmissionSignal(arm="claude_md"),
@@ -203,6 +241,13 @@ async def main() -> int:
     rows = [{"task_id": task.task_id, "seed": seed, "user_input": task.prompt} for task in tasks for seed in range(args.seeds)]
     records_path = run_dir / "records.jsonl"
 
+    def _workdir(task_id: str, seed: int, arm: str, attempt: int) -> Path:
+        # Each attempt gets its own sandbox rather than reusing one: sandbox.restore refuses a
+        # directory that already exists, and cleaning it in place would destroy the failed
+        # attempt's tree, which is the evidence for what the retry recovered from.
+        suffix = "" if attempt == 1 else f".attempt{attempt}"
+        return run_dir / "work" / task_id / f"s{seed}" / f"{arm}{suffix}"
+
     async def runner(row, arm):
         task_id, seed = str(row["task_id"]), int(row["seed"])
         if specs[(task_id, arm)] is None:
@@ -217,29 +262,77 @@ async def main() -> int:
             elif arm == "oracle_memory":
                 failure_diagnostic = {"kind": arm, "status": "missing"}
             return synthetic_failure(row, arm, failures[(task_id, arm)], failure_diagnostic)
-        workdir = run_dir / "work" / task_id / f"s{seed}" / arm
-        digest = sandbox.restore(task_id, workdir)
-        record = await run_claude_case(row, arm, config_for(task_id, arm, workdir))
-        ok, verdict = run_checker(by_id[task_id], workdir)
         spec = specs[(task_id, arm)]
-        extra = {
-            "checker": verdict,
-            "sandbox_digest": digest,
-            "prompt_sha256": hashlib.sha256(Path(spec.append_system_prompt_file).read_bytes()).hexdigest() if spec.append_system_prompt_file else None,
-            **dict(spec.metadata),
-        }
-        final = replace(record, success=ok and record.success, metadata={**record.metadata, **extra})
-        with records_path.open("a", encoding="utf-8") as sink:
-            sink.write(json.dumps(final.to_dict(), sort_keys=True) + "\n")
-            sink.flush()
-        return final
+        made = {"attempts": 0}
+
+        async def one_attempt(attempt_row, attempt_arm, _config):
+            made["attempts"] += 1
+            workdir = _workdir(task_id, seed, arm, made["attempts"])
+            digest = sandbox.restore(task_id, workdir)
+            record = await run_claude_case(
+                attempt_row, attempt_arm, config_for(task_id, arm, workdir)
+            )
+            ok, verdict = run_checker(by_id[task_id], workdir)
+            extra = {
+                "checker": verdict,
+                "sandbox_digest": digest,
+                "attempt": made["attempts"],
+                "prompt_sha256": hashlib.sha256(Path(spec.append_system_prompt_file).read_bytes()).hexdigest() if spec.append_system_prompt_file else None,
+                **dict(spec.metadata),
+            }
+            final = replace(
+                record, success=ok and record.success, metadata={**record.metadata, **extra}
+            )
+            # Every attempt lands here; records.final.jsonl keeps one record per cell and arm.
+            with records_path.open("a", encoding="utf-8") as sink:
+                sink.write(json.dumps(final.to_dict(), sort_keys=True) + "\n")
+                sink.flush()
+            return final
+
+        prefixes = (
+            (spec.memory_tool_prefix,) if spec.mcp_config and spec.memory_tool_prefix else ()
+        )
+        return await run_with_memory_startup_retry(
+            row,
+            arm,
+            config_for(task_id, arm, _workdir(task_id, seed, arm, 1)),
+            tool_prefixes=prefixes,
+            attempts=args.startup_attempts,
+            probe_config=spec.mcp_config,
+            runner=one_attempt,
+        )
 
     records = await run_grid(rows, run_arms, runner, block_concurrency=1)
     write_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
     (run_dir / "admission.json").write_text(json.dumps(report.summary(), indent=2), encoding="utf-8")
-    (run_dir / "environment.json").write_text(json.dumps({"run_id": args.run_id, "arms": list(run_arms), "model": args.model, "catalog_sha256": catalog.digest}, indent=2), encoding="utf-8")
-    print(f"diagnostic complete: {report.admitted_cell_count} admitted cells, {len(report.discarded_cells)} discarded")
+    recovered = [
+        [record.task_id, record.seed, record.arm]
+        for record in records
+        if (record.metadata.get("memory_startup") or {}).get("recovered")
+    ]
+    (run_dir / "environment.json").write_text(
+        json.dumps(
+            {
+                "run_id": args.run_id,
+                "arms": list(run_arms),
+                "model": args.model,
+                "catalog_sha256": catalog.digest,
+                "startup_attempts": args.startup_attempts,
+                "startup_preflight": startup_probes,
+                # Cells the pilot-004 protocol would have discarded. Reported, never hidden: a
+                # recovered cell changes what the discard count means.
+                "recovered_sessions": recovered,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(
+        f"diagnostic complete: {report.admitted_cell_count} admitted cells, "
+        f"{len(report.discarded_cells)} discarded, "
+        f"{len(recovered)} session(s) recovered by retry"
+    )
     return 0
 
 

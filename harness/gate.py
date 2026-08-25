@@ -137,6 +137,14 @@ def _matching(tools: Iterable[str], prefix: str) -> list[str]:
     return [name for name in tools if name.startswith(prefix)]
 
 
+#: Public aliases, so `harness.memory_startup` can apply the gate's OWN predicate rather than
+#: a second copy of it. A retry rule that disagreed with the admission rule would either retry
+#: sessions the gate would have admitted, or leave discarded ones unretried, and either way the
+#: discard count would stop describing the run.
+session_tools = _session_tools
+matching_tools = _matching
+
+
 def _ledger_events(record: SessionRecord) -> dict[str, dict[str, Any]]:
     events: dict[str, dict[str, Any]] = {}
     for entry in record.hook_ledger:
