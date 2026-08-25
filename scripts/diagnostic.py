@@ -28,6 +28,7 @@ from harness.claude_exec import (
 )
 from harness.costs import ModelPricing, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
+from harness.host_memory import free_memory_mb, wait_for_headroom
 from harness.io import write_jsonl
 from harness.memory_bundles import MemoryBundleCatalog
 from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
@@ -107,6 +108,19 @@ async def main() -> int:
     parser.add_argument("--namespace", default="bench-recall-diagnostic")
     parser.add_argument("--arms", default=",".join(ARMS))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--min-free-mb",
+        type=float,
+        default=1200.0,
+        help=(
+            "wait before each cell until the host has this much physical memory free. "
+            "A memory arm's MCP server loads its embedder before it can answer, and on "
+            "a starved host that start fails silently: the session runs with no tools "
+            "and the cell is discarded. Measured at 421 MB free on 2026-08-26, the "
+            "recall arm failed nearly every session. 0 disables the wait."
+        ),
+    )
+    parser.add_argument("--headroom-timeout", type=float, default=900.0)
     parser.add_argument("--price-in", type=float, default=0.0826)
     parser.add_argument("--price-out", type=float, default=0.1652)
     parser.add_argument("--price-as-of", default="2026-08-25")
@@ -329,6 +343,8 @@ async def main() -> int:
         "recall_pythonpath": os.environ.get("PYTHONPATH", ""),
         "startup_attempts": args.startup_attempts,
         "startup_preflight": startup_probes,
+        "min_free_mb": args.min_free_mb,
+        "free_mb_at_start": free_memory_mb(),
         "pricing": {
             "model": args.model,
             "usd_per_mtok_input": args.price_in,
@@ -367,6 +383,16 @@ async def main() -> int:
             return synthetic_failure(row, arm, failures[(task_id, arm)], failure_diagnostic)
         spec = specs[(task_id, arm)]
         made = {"attempts": 0}
+        headroom = None
+        if args.min_free_mb > 0:
+            headroom = wait_for_headroom(
+                args.min_free_mb, timeout_s=args.headroom_timeout
+            )
+            if not headroom.satisfied:
+                print(
+                    f"[headroom] {task_id}/{arm}: still {headroom.observed_mb:.0f} MB "
+                    f"free after {headroom.waited_s:.0f}s, running anyway and recording it"
+                )
 
         async def one_attempt(attempt_row, attempt_arm, _config):
             made["attempts"] += 1
@@ -380,6 +406,7 @@ async def main() -> int:
                 "checker": verdict,
                 "sandbox_digest": digest,
                 "attempt": made["attempts"],
+                "host_headroom": headroom.to_dict() if headroom else None,
                 "prompt_sha256": hashlib.sha256(Path(spec.append_system_prompt_file).read_bytes()).hexdigest() if spec.append_system_prompt_file else None,
                 **dict(spec.metadata),
             }
@@ -402,6 +429,7 @@ async def main() -> int:
             tool_prefixes=prefixes,
             attempts=args.startup_attempts,
             probe_config=spec.mcp_config,
+            probe_min_free_mb=args.min_free_mb,
             runner=one_attempt,
         )
 

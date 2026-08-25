@@ -48,6 +48,7 @@ from typing import Any
 
 from .claude_exec import ClaudeExecConfig, run_claude_case
 from .gate import CONNECTED_STATUSES, matching_tools, session_tools
+from .host_memory import free_memory_mb
 from .schema import SessionRecord
 
 #: The stdio handshake, in the order the specification requires it.
@@ -292,6 +293,7 @@ async def run_with_memory_startup_retry(
     attempts: int = 3,
     backoff_s: float = 2.0,
     probe_config: str | Path | None = None,
+    probe_min_free_mb: float = 0.0,
     runner: Callable[..., Awaitable[SessionRecord]] = run_claude_case,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> SessionRecord:
@@ -319,8 +321,18 @@ async def run_with_memory_startup_retry(
                 entry["stream"] = stream_name
         else:
             if probe_config is not None:
-                probes = await probe_mcp_config(probe_config)
-                entry["probe"] = [probe.to_dict() for probe in probes]
+                # The probe starts another server. Below the threshold that is the
+                # last thing a starved host needs, so say so instead of doing it.
+                free_mb = free_memory_mb()
+                if probe_min_free_mb and free_mb is not None and free_mb < probe_min_free_mb:
+                    entry["probe_skipped"] = {
+                        "reason": "host below the memory threshold",
+                        "free_mb": round(free_mb, 1),
+                        "required_mb": probe_min_free_mb,
+                    }
+                else:
+                    probes = await probe_mcp_config(probe_config)
+                    entry["probe"] = [probe.to_dict() for probe in probes]
             kept = _preserve_stream(config.stream_dir, stream_name, attempt)
             entry["stream"] = kept or (stream_name if isinstance(stream_name, str) else None)
         history.append(entry)
