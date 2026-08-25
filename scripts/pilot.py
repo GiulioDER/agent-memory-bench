@@ -35,16 +35,18 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness import sandbox
-from harness.claude_exec import ClaudeExecConfig, run_claude_case
-from harness.costs import ModelPricing, summarize
-from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
-from harness.io import write_jsonl
-from harness.prereg import assert_preregistered
-from harness.runner import run_grid
-from harness.tasks import discover_tasks, run_checker
+from harness import sandbox  # noqa: E402
+from harness.claude_exec import ClaudeExecConfig, run_claude_case  # noqa: E402
+from harness.costs import ModelPricing, summarize  # noqa: E402
+from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes  # noqa: E402
+from harness.io import write_jsonl  # noqa: E402
+from harness.placebo import length_metadata, render_placebo  # noqa: E402
+from harness.prereg import assert_preregistered  # noqa: E402
+from harness.runner import run_grid  # noqa: E402
+from harness.tasks import discover_tasks, run_checker  # noqa: E402
 
-ARMS = ("bare", "claude_md", "recall")
+ARMS = ("bare", "placebo", "claude_md", "recall")
+DEFAULT_ARMS = ("bare", "claude_md", "recall")
 BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
 DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
 RECALL_CONFIG = json.loads(
@@ -80,7 +82,7 @@ def recall_instruction(variant: str) -> str:
 
 
 def build_bundles(task, out_dir: Path, instruction: str) -> dict[str, Path]:
-    """Per-task static bundles: identical bytes for claude_md and the tail of recall's."""
+    """Per-task bundles, including a length-matched neutral placebo."""
 
     readme = task.path / "tree" / "README.md"
     static = GENERIC_RULES + (
@@ -89,11 +91,13 @@ def build_bundles(task, out_dir: Path, instruction: str) -> dict[str, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     claude_md = out_dir / "claude_md.md"
     claude_md.write_text(static, encoding="utf-8", newline="\n")
+    placebo = out_dir / "placebo.md"
+    placebo.write_text(render_placebo(static), encoding="utf-8", newline="\n")
     recall = out_dir / "recall.md"
     recall.write_text(
         instruction.rstrip() + "\n\n" + static, encoding="utf-8", newline="\n"
     )
-    return {"claude_md": claude_md, "recall": recall}
+    return {"claude_md": claude_md, "placebo": placebo, "recall": recall}
 
 
 def write_mcp_config(path: Path, namespace: str) -> Path:
@@ -142,8 +146,8 @@ async def main() -> int:
     )
     parser.add_argument(
         "--arms",
-        default=",".join(ARMS),
-        help="comma-separated subset of bare,claude_md,recall",
+        default=",".join(DEFAULT_ARMS),
+        help="comma-separated subset of bare,placebo,claude_md,recall",
     )
     parser.add_argument("--price-in", type=float, default=0.05866)
     parser.add_argument("--price-out", type=float, default=0.11732)
@@ -169,19 +173,36 @@ async def main() -> int:
     (run_dir / "streams").mkdir(parents=True, exist_ok=True)
 
     mcp_config = write_mcp_config(run_dir / "cfg" / "recall.mcp.json", args.namespace)
+    bundles = {
+        task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, instruction)
+        for task in tasks
+    }
+    prompt_hashes = {
+        arm: {
+            task_id: hashlib.sha256(path.read_bytes()).hexdigest()
+            for task_id, bundle in bundles.items()
+            if (path := bundle.get(arm)) is not None
+        }
+        for arm in ("placebo", "claude_md", "recall")
+    }
     all_signals = {
         "bare": AdmissionSignal(arm="bare"),
-        "claude_md": AdmissionSignal(arm="claude_md"),
-        "recall": AdmissionSignal(arm="recall", mcp_tool_prefixes=(RECALL_PREFIX,)),
+        "placebo": AdmissionSignal(
+            arm="placebo", metadata={"prompt_sha256_by_task": prompt_hashes["placebo"]}
+        ),
+        "claude_md": AdmissionSignal(
+            arm="claude_md", metadata={"prompt_sha256_by_task": prompt_hashes["claude_md"]}
+        ),
+        "recall": AdmissionSignal(
+            arm="recall",
+            mcp_tool_prefixes=(RECALL_PREFIX,),
+            metadata={"prompt_sha256_by_task": prompt_hashes["recall"]},
+        ),
     }
     signals = with_forbidden_prefixes(
         {arm: all_signals[arm] for arm in run_arms}
     )
 
-    bundles = {
-        task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, instruction)
-        for task in tasks
-    }
     (run_dir / "environment.json").write_text(
         json.dumps(
             {
@@ -192,6 +213,15 @@ async def main() -> int:
                 "recall_instruction_sha256": hashlib.sha256(
                     instruction.encode("utf-8")
                 ).hexdigest(),
+                "placebo_length_metric": "whitespace_tokens_and_lines",
+                "placebo_length_match": {
+                    task_id: length_metadata(
+                        (bundle["claude_md"]).read_text(encoding="utf-8"),
+                        (bundle["placebo"]).read_text(encoding="utf-8"),
+                    )
+                    for task_id, bundle in bundles.items()
+                },
+                "prompt_sha256_by_task": prompt_hashes,
                 "namespace": args.namespace,
             },
             indent=2,

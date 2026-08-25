@@ -21,10 +21,11 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.io import read_jsonl
-from harness.stats import mcnemar_exact
+from harness.io import read_jsonl  # noqa: E402
+from harness.stats import mcnemar_exact  # noqa: E402
 
-ARMS = ("bare", "claude_md", "recall")
+DEFAULT_ARMS = ("bare", "claude_md", "recall")
+SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "recall")
 
 
 def cluster_bootstrap(per_task_deltas: list[float], iterations: int = 10_000, seed: int = 42):
@@ -41,7 +42,16 @@ def cluster_bootstrap(per_task_deltas: list[float], iterations: int = 10_000, se
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="pilot-001")
+    parser.add_argument(
+        "--arms",
+        default=",".join(DEFAULT_ARMS),
+        help="comma-separated arms in the run; pilot-004 adds placebo",
+    )
     args = parser.parse_args()
+    run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
+    unknown = [arm for arm in run_arms if arm not in SUPPORTED_ARMS]
+    if unknown:
+        raise SystemExit(f"unknown arms {unknown}; choose from {SUPPORTED_ARMS}")
     run_dir = REPO / "results" / args.run_id
 
     records = read_jsonl(run_dir / "records.final.jsonl")
@@ -55,10 +65,10 @@ def main() -> int:
 
     tasks = sorted({task_id for task_id, _ in by_cell})
     per_task: dict[str, dict[str, list[bool]]] = {
-        task: {arm: [] for arm in ARMS} for task in tasks
+        task: {arm: [] for arm in run_arms} for task in tasks
     }
     for (task_id, _seed), arms in sorted(by_cell.items()):
-        for arm in ARMS:
+        for arm in run_arms:
             per_task[task_id][arm].append(bool(arms[arm].success))
 
     def rate(outcomes: list[bool]) -> float:
@@ -68,7 +78,6 @@ def main() -> int:
     screening = {}
     for task in tasks:
         bare_r, cmd_r = rate(per_task[task]["bare"]), rate(per_task[task]["claude_md"])
-        recall_ok = per_task[task]["recall"]
         ceiling = cmd_r >= 0.7 or bare_r >= 0.5
         mech = [
             r
@@ -86,12 +95,12 @@ def main() -> int:
             )
         ]
         floor = not any(
-            per_task[task][arm][i] for arm in ARMS for i in range(len(per_task[task][arm]))
+            per_task[task][arm][i]
+            for arm in run_arms
+            for i in range(len(per_task[task][arm]))
         ) and len(reached) >= 2
         screening[task] = {
-            "bare": round(bare_r, 3),
-            "claude_md": round(cmd_r, 3),
-            "recall": round(rate(recall_ok), 3),
+            **{arm: round(rate(per_task[task][arm]), 3) for arm in run_arms},
             "screen": "ceiling" if ceiling else ("floor" if floor else "keep"),
             "recall_searched": len(mech),
             "recall_reached": len(reached),
@@ -140,7 +149,7 @@ def main() -> int:
         "discarded_cells": sorted(discarded),
         "arm_success": {
             arm: round(rate([bool(a[arm].success) for a in by_cell.values()]), 3)
-            for arm in ARMS
+            for arm in run_arms
         },
         "primary_recall_vs_claude_md_all_tasks": contrast("recall", "claude_md", tasks),
         "primary_recall_vs_claude_md_survivors": (
@@ -158,6 +167,9 @@ def main() -> int:
         "survivors": survivors,
         "n_survivors": len(survivors),
     }
+    if "placebo" in run_arms:
+        analysis["placebo_vs_bare"] = contrast("placebo", "bare", tasks)
+        analysis["claude_md_vs_placebo"] = contrast("claude_md", "placebo", tasks)
     (run_dir / "analysis.json").write_text(
         json.dumps(analysis, indent=2), encoding="utf-8"
     )
@@ -166,8 +178,9 @@ def main() -> int:
     for task in tasks:
         s = screening[task]
         print(
-            f"  {task:<20} bare={s['bare']:.2f} cmd={s['claude_md']:.2f} "
-            f"recall={s['recall']:.2f} {s['screen']:<8} "
+            f"  {task:<20} "
+            + " ".join(f"{arm}={s[arm]:.2f}" for arm in run_arms)
+            + f" {s['screen']:<8} "
             f"searched={s['recall_searched']}/3 reached={s['recall_reached']}"
         )
     return 0

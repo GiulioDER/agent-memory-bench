@@ -289,12 +289,16 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
                     f"as present at session start"
                 )
 
-    if signal.prompt_sha256 is not None:
+    expected_prompt_sha256 = signal.prompt_sha256
+    prompt_hashes = signal.metadata.get("prompt_sha256_by_task")
+    if isinstance(prompt_hashes, Mapping):
+        expected_prompt_sha256 = prompt_hashes.get(record.task_id)
+    if expected_prompt_sha256 is not None:
         actual = record.metadata.get("prompt_sha256")
-        if actual != signal.prompt_sha256:
+        if actual != expected_prompt_sha256:
             reasons.append(
                 f"system prompt hash {actual!r} does not match the arm's frozen prompt "
-                f"{signal.prompt_sha256!r}"
+                f"{expected_prompt_sha256!r}"
             )
 
     has_memory_surface = bool(

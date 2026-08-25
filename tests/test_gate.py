@@ -127,6 +127,19 @@ def test_sandbox_path_and_prompt_hash_checks():
     assert not wrong.admitted
 
 
+def test_prompt_hash_map_is_checked_per_task():
+    signal = AdmissionSignal(
+        arm="placebo",
+        metadata={"prompt_sha256_by_task": {"t1": "abc", "t2": "def"}},
+    )
+    ok = check_session(_record("placebo", metadata={"prompt_sha256": "abc"}), signal)
+    wrong = check_session(
+        _record("placebo", task="t2", metadata={"prompt_sha256": "abc"}), signal
+    )
+    assert ok.admitted
+    assert not wrong.admitted
+
+
 def test_session_error_is_discarded():
     record = _record("bare", error="TimeoutError: 1800s")
     assert not check_session(record, BARE_SIGNAL).admitted
