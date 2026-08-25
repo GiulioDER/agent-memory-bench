@@ -48,8 +48,35 @@ def build_static_prompt(task_path: Path, target: Path) -> Path:
     generic = "# Project notes\n\nYou are working in this repository. Keep changes small and leave the tree clean.\n\n"
     readme = task_path / "tree" / "README.md"
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(generic + (readme.read_text(encoding="utf-8") if readme.is_file() else ""), encoding="utf-8")
+    body = generic + (readme.read_text(encoding="utf-8") if readme.is_file() else "")
+    target.write_text(body, encoding="utf-8", newline="\n")
     return target
+
+
+def refuse_shared_prompts(prompt_hashes: dict[str, dict[str, str]]) -> None:
+    """Refuse a grid in which any arm serves one task's static bundle to another task.
+
+    RecallAdapter cached one prompt per NAMESPACE and wrote it only when absent, so a grid, whose
+    namespace is constant across tasks, served the first task's bundle to all 24 with nothing
+    raising. Measured on `diagnostic-001`: one distinct prompt across 24 recall sessions against
+    24 for every other arm, which turned that arm's static half into misdirection about a
+    different repository and voided three of five preregistered contrasts.
+
+    This runs in `--dry-run` too, so the check that would have caught it costs nothing.
+    """
+
+    for arm, by_task in prompt_hashes.items():
+        if not by_task or len(set(by_task.values())) == len(by_task):
+            continue
+        shared: dict[str, list[str]] = {}
+        for task_id, digest in by_task.items():
+            shared.setdefault(digest, []).append(task_id)
+        worst = max(shared.values(), key=len)
+        raise SystemExit(
+            f"arm {arm!r} has {len(set(by_task.values()))} distinct prompts across "
+            f"{len(by_task)} tasks; {len(worst)} of them share one, starting {worst[:4]}. "
+            f"Every task must receive its own static bundle or the arm is not comparable."
+        )
 
 
 def synthetic_failure(row: dict, arm: str, error: str, diagnostic: dict | None = None):
@@ -183,13 +210,18 @@ async def main() -> int:
             except (OSError, RuntimeError, TypeError, ValueError) as error:
                 specs[(task.task_id, arm)] = None
                 failures[(task.task_id, arm)] = f"{type(error).__name__}: {error}"
-    if args.dry_run:
+    prompt_hashes: dict[str, dict[str, str]] = {}
+    for arm in run_arms:
+        by_task: dict[str, str] = {}
         for task in tasks:
-            for arm in run_arms:
-                if specs[(task.task_id, arm)] is None:
-                    raise SystemExit(f"dry run failed for {task.task_id}/{arm}: {failures[(task.task_id, arm)]}")
-        print(f"dry run validated {len(tasks)} tasks and arms {run_arms}; no provider calls made")
-        return 0
+            spec = specs[(task.task_id, arm)]
+            if spec is None or not spec.append_system_prompt_file:
+                continue
+            by_task[task.task_id] = hashlib.sha256(
+                Path(spec.append_system_prompt_file).read_bytes()
+            ).hexdigest()
+        prompt_hashes[arm] = by_task
+    refuse_shared_prompts(prompt_hashes)
 
     startup_probes: dict[str, list[dict]] = {}
     for arm in run_arms:
@@ -226,6 +258,19 @@ async def main() -> int:
             "recall_prefetch": prefetch_adapter.admission_signal(),
         }
     )
+    # harness/gate.py has read `prompt_sha256_by_task` all along and nothing ever populated it,
+    # so a session that ran with another task's bundle was admitted as evidence.
+    signals = {
+        arm: (
+            replace(
+                signal,
+                metadata={**signal.metadata, "prompt_sha256_by_task": prompt_hashes[arm]},
+            )
+            if prompt_hashes.get(arm)
+            else signal
+        )
+        for arm, signal in signals.items()
+    }
     by_id = {task.task_id: task for task in tasks}
     env = {"ANTHROPIC_BASE_URL": args.base_url, "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"], "ANTHROPIC_API_KEY": ""}
 

@@ -78,14 +78,20 @@ class RecallAdapter(MemoryAdapter):
         return self.staging_root / namespace / "prompt.md"
 
     def _write_prompt(self, namespace: str) -> Path:
+        return self._write_prompt_at(self._prompt_path(namespace))
+
+    def _write_prompt_at(self, prompt: Path) -> Path:
         prefix = str(self.config["tool_prefix"])
         instruction = str(self.config["instruction"]).format(
             server=self.config["server_name"], tool=f"{prefix}recall_search"
         )
-        prompt = self._prompt_path(namespace)
         prompt.parent.mkdir(parents=True, exist_ok=True)
         static = self.base_prompt_file.read_text(encoding="utf-8")
-        prompt.write_text(instruction.rstrip() + "\n\n" + static.rstrip() + "\n", "utf-8")
+        # newline="\n" because scripts/pilot.py writes its prompts that way and a benchmark that
+        # scores line-ending tasks should not vary its own prompts' line endings between runners.
+        prompt.write_text(
+            instruction.rstrip() + "\n\n" + static.rstrip() + "\n", "utf-8", newline="\n"
+        )
         return prompt
 
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
@@ -139,11 +145,13 @@ class RecallAdapter(MemoryAdapter):
             notes=("indexed via `python -m recall.cli index`, one tenant per namespace",),
         )
 
-    def build(self, session_dir: Path, namespace: str) -> ArmSpec:
+    def build(
+        self, session_dir: Path, namespace: str, *, prompt_path: Path | None = None
+    ) -> ArmSpec:
         session_dir.mkdir(parents=True, exist_ok=True)
-        prompt = self._prompt_path(namespace)
+        prompt = prompt_path if prompt_path is not None else self._prompt_path(namespace)
         if not prompt.is_file():
-            prompt = self._write_prompt(namespace)
+            prompt = self._write_prompt_at(prompt)
         # A file path, not inline JSON: the config may carry credentials, and an inline
         # --mcp-config would copy them into every recorded command line.
         mcp_config_path = session_dir / "recall.mcp.json"
@@ -178,6 +186,24 @@ class RecallAdapter(MemoryAdapter):
                 "tool_prefix": prefix,
                 "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest(),
             },
+        )
+
+    def build_for_task(
+        self, session_dir: Path, namespace: str, task_id: str, user_input: str
+    ) -> ArmSpec:
+        """One prompt per TASK, written into this session's own directory.
+
+        ⛔ Do not route this back through the namespace-keyed cache in :meth:`build`. That cache
+        writes only when the file is absent, and a grid holds the namespace constant across tasks,
+        so the FIRST task's static bundle is then served to every other task with nothing raising.
+        Measured on `diagnostic-001`: all 24 recall sessions received `ts-append-only`'s README
+        while every other arm received its own, which quietly turned the recall arm's static half
+        into misdirection about a different repository.
+        """
+
+        session_dir.mkdir(parents=True, exist_ok=True)
+        return self.build(
+            session_dir, namespace, prompt_path=self._write_prompt_at(session_dir / "prompt.md")
         )
 
     def admission_signal(self) -> AdmissionSignal:
