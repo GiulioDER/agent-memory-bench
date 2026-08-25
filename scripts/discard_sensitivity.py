@@ -35,8 +35,8 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.stats import mcnemar_exact  # noqa: E402
-from scripts.analyze_pilot import cluster_bootstrap  # noqa: E402
+from harness.stats import mcnemar_exact
+from scripts.analyze_pilot import cluster_bootstrap
 
 DEFAULT_CONTRASTS = (
     ("recall", "claude_md"),

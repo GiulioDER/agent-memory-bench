@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -20,11 +21,17 @@ from adapters.oracle_memory.adapter import OracleMemoryAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from harness import sandbox
-from harness.claude_exec import ClaudeExecConfig, run_claude_case
+from harness.claude_exec import (
+    ClaudeExecConfig,
+    resolve_claude_executable,
+    run_claude_case,
+)
+from harness.costs import ModelPricing, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.io import write_jsonl
 from harness.memory_bundles import MemoryBundleCatalog
 from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
+from harness.prereg import assert_preregistered
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 
@@ -73,6 +80,9 @@ async def main() -> int:
     parser.add_argument("--namespace", default="bench-recall-diagnostic")
     parser.add_argument("--arms", default=",".join(ARMS))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--price-in", type=float, default=0.0826)
+    parser.add_argument("--price-out", type=float, default=0.1652)
+    parser.add_argument("--price-as-of", default="2026-08-25")
     parser.add_argument(
         "--startup-attempts",
         type=int,
@@ -115,6 +125,7 @@ async def main() -> int:
     }
     run_dir.mkdir(parents=True, exist_ok=True)
     if not args.dry_run:
+        assert_preregistered(REPO)
         if not os.environ.get("OPENROUTER_API_KEY"):
             raise SystemExit("OPENROUTER_API_KEY is not set")
         if not os.environ.get("RECALL_DSN"):
@@ -238,6 +249,53 @@ async def main() -> int:
             stream_dir=run_dir / "streams",
         )
 
+    def claude_code_version() -> str:
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                [resolve_claude_executable("claude"), "--version"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+            return result.stdout.strip() or result.stderr.strip()
+        except (OSError, subprocess.SubprocessError) as error:
+            return f"unavailable: {type(error).__name__}: {error}"
+
+    # Preregistration 003: the environment artifact is written BEFORE the first session, not
+    # after it. An artifact written at the end describes a run that already happened, and cannot
+    # be the record the run was committed to.
+    environment = {
+        "run_id": args.run_id,
+        "arms": list(run_arms),
+        "model": args.model,
+        "provider_base_url": args.base_url,
+        "claude_code_version": claude_code_version(),
+        "timeout_s": args.timeout,
+        "permission_mode": "acceptEdits",
+        "seeds": args.seeds,
+        "repetitions_per_cell": 1,
+        "tasks": [task.task_id for task in tasks],
+        "namespace": args.namespace,
+        "catalog_sha256": catalog.digest,
+        "corpus_sessions": len(corpus.sessions),
+        "recall_pythonpath": os.environ.get("PYTHONPATH", ""),
+        "startup_attempts": args.startup_attempts,
+        "startup_preflight": startup_probes,
+        "pricing": {
+            "model": args.model,
+            "usd_per_mtok_input": args.price_in,
+            "usd_per_mtok_output": args.price_out,
+            "as_of": args.price_as_of,
+            "source": "https://openrouter.ai/api/v1/models",
+        },
+    }
+    (run_dir / "environment.json").write_text(
+        json.dumps(environment, indent=2), encoding="utf-8"
+    )
+
     rows = [{"task_id": task.task_id, "seed": seed, "user_input": task.prompt} for task in tasks for seed in range(args.seeds)]
     records_path = run_dir / "records.jsonl"
 
@@ -302,6 +360,7 @@ async def main() -> int:
             runner=one_attempt,
         )
 
+    started = time.monotonic()
     records = await run_grid(rows, run_arms, runner, block_concurrency=1)
     write_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
@@ -311,22 +370,26 @@ async def main() -> int:
         for record in records
         if (record.metadata.get("memory_startup") or {}).get("recovered")
     ]
-    (run_dir / "environment.json").write_text(
-        json.dumps(
-            {
-                "run_id": args.run_id,
-                "arms": list(run_arms),
-                "model": args.model,
-                "catalog_sha256": catalog.digest,
-                "startup_attempts": args.startup_attempts,
-                "startup_preflight": startup_probes,
-                # Cells the pilot-004 protocol would have discarded. Reported, never hidden: a
-                # recovered cell changes what the discard count means.
-                "recovered_sessions": recovered,
-            },
-            indent=2,
-        ),
+    pricing = {
+        args.model: ModelPricing(
+            model=args.model,
+            usd_per_mtok_input=args.price_in,
+            usd_per_mtok_output=args.price_out,
+            as_of=args.price_as_of,
+            source="https://openrouter.ai/api/v1/models",
+        )
+    }
+    (run_dir / "costs.json").write_text(
+        json.dumps(summarize(records, pricing=pricing, model=args.model), indent=2),
         encoding="utf-8",
+    )
+    # Appended to the artifact written before the first session; nothing above is rewritten.
+    # Cells the pilot-004 protocol would have discarded are published here, never folded into
+    # the discard count, because a recovered cell changes what that count means.
+    environment["recovered_sessions"] = recovered
+    environment["wall_minutes"] = round((time.monotonic() - started) / 60, 1)
+    (run_dir / "environment.json").write_text(
+        json.dumps(environment, indent=2), encoding="utf-8"
     )
     print(
         f"diagnostic complete: {report.admitted_cell_count} admitted cells, "
