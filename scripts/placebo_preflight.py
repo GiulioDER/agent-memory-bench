@@ -16,9 +16,9 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.placebo import length_metadata  # noqa: E402
-from harness.tasks import discover_tasks  # noqa: E402
-from scripts.pilot import build_bundles, recall_instruction  # noqa: E402
+from harness.placebo import length_metadata
+from harness.tasks import discover_tasks
+from scripts.pilot import build_bundles, recall_instruction
 
 
 def main() -> int:

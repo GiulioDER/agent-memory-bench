@@ -19,3 +19,6 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 99
 target-version = "py312"
+
+[tool.ruff.lint]
+ignore = ["E402"]
