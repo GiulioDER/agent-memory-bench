@@ -1,0 +1,1257 @@
+{
+  "required_arms": [
+    "claude_md",
+    "recall"
+  ],
+  "admitted_cells": 62,
+  "discarded_cells": [
+    [
+      "ts-retry-cap",
+      2
+    ],
+    [
+      "ts-semver-pin",
+      0
+    ],
+    [
+      "ts-semver-pin",
+      1
+    ],
+    [
+      "ts-semver-pin",
+      2
+    ],
+    [
+      "ts-stable-sort",
+      0
+    ],
+    [
+      "ts-stable-sort",
+      1
+    ],
+    [
+      "ts-stable-sort",
+      2
+    ],
+    [
+      "ts-tz-utc",
+      0
+    ],
+    [
+      "ts-tz-utc",
+      1
+    ],
+    [
+      "ts-tz-utc",
+      2
+    ]
+  ],
+  "discarded_by_arm": {
+    "recall": 10
+  },
+  "verdicts": [
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error : API Error: Connection lost mid-response. The response above may be incomplete."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available; servers reported ['recall=failed']",
+        "MCP server 'recall' was 'failed', not connected"
+      ],
+      "notes": []
+    }
+  ]
+}

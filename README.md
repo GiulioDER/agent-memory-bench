@@ -10,6 +10,11 @@ pass or they do not. No judge anywhere in the primary endpoint.
 
 ## Status
 
+The benchmark includes a preregistered oracle and proactive retrieval diagnostic. See
+[`docs/ORACLE_PREFETCH_DIAGNOSTIC.md`](docs/ORACLE_PREFETCH_DIAGNOSTIC.md) and
+[`preregistration/003-oracle-prefetch-diagnostic.md`](preregistration/003-oracle-prefetch-diagnostic.md).
+The two diagnostic arms are reference tracks and are not ranked as products.
+
 Phase 0: harness bring-up. Nothing here is a result yet. The first preregistered run will be
 announced before it happens, not after.
 

@@ -2,5 +2,11 @@
   "task_id": "ts-base36-id",
   "kind": "primary",
   "prompt": "Write gen_id.py in the repository root. It reads ids.txt from the current directory (one order id per line, most recent last) and prints the next order id to stdout followed by a newline. Ids have the form ORD- followed by four characters. Run python gen_id.py to confirm it prints the next id.",
-  "fact_terms": ["restricted alphabet", "no 0/O/1/I", "confusable characters", "misread over the phone"]
+  "fact_terms": [
+    "restricted alphabet",
+    "no 0/O/1/I",
+    "confusable characters",
+    "misread over the phone"
+  ],
+  "memory_bundle_id": "bundle_ts-base36-id"
 }

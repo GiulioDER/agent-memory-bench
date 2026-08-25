@@ -161,6 +161,17 @@ class MemoryAdapter(ABC):
         the returned ``config_dir_digest`` is asserted stable across sessions of one run.
         """
 
+    def build_for_task(
+        self,
+        session_dir: Path,
+        namespace: str,
+        task_id: str,
+        user_input: str,
+    ) -> ArmSpec:
+        """Build a task aware arm, preserving the original adapter contract by default."""
+
+        return self.build(session_dir, namespace)
+
     @abstractmethod
     def admission_signal(self) -> AdmissionSignal:
         """What the gate must verify before this arm's sessions count as evidence."""

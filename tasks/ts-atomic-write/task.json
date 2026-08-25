@@ -2,5 +2,12 @@
   "task_id": "ts-atomic-write",
   "kind": "primary",
   "prompt": "Add a function save(path, data) to store.py in the repository root. It must write the dict data as JSON to the file at path, so that load(path) returns an equal dict afterwards. Keep load unchanged. Demonstrate it by running python -c \"import store; store.save('state.json', store.load('state.json'))\" from the repository root.",
-  "fact_terms": ["atomic", "temp file in the same directory", "rename into place", "never truncate the target", "torn write"]
+  "fact_terms": [
+    "atomic",
+    "temp file in the same directory",
+    "rename into place",
+    "never truncate the target",
+    "torn write"
+  ],
+  "memory_bundle_id": "bundle_ts-atomic-write"
 }

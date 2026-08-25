@@ -1,0 +1,11 @@
+{
+  "run_id": "pilot-002",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": [
+    "claude_md",
+    "recall"
+  ],
+  "recall_instruction": "skill",
+  "recall_instruction_sha256": "1fdc9e85a556c2cc5404b7b036ae4cf4962ff41ea088860b6380660862fe47c1",
+  "namespace": "bench-recall-pilot"
+}

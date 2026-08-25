@@ -15,6 +15,7 @@ jobs:
       - run: pip install pytest ruff
       - run: ruff check .
       - run: python -m pytest tests/ -q
+      - run: python scripts/diagnostic.py --dry-run --run-id ci-diagnostic-dry-run --seeds 1
   # An admission smoke (1 cheap task, every wired arm, gate must admit) joins this file at the
   # end of Phase 0. It needs the Claude CLI and per-arm credentials, so it runs on a schedule
   # with secrets, not on fork PRs.

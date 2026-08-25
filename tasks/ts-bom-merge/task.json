@@ -2,5 +2,11 @@
   "task_id": "ts-bom-merge",
   "kind": "primary",
   "prompt": "Write merge.py in the repository root. It reads every .csv file under data/ (all share the columns id,name,qty), and writes all.csv in the repository root: a single header line id,name,qty followed by every data row, files processed in sorted filename order, rows kept in order. Then run python merge.py so all.csv exists.",
-  "fact_terms": ["UTF-8 BOM", "utf-8-sig", "\\ufeff", "Excel exports"]
+  "fact_terms": [
+    "UTF-8 BOM",
+    "utf-8-sig",
+    "\\ufeff",
+    "Excel exports"
+  ],
+  "memory_bundle_id": "bundle_ts-bom-merge"
 }

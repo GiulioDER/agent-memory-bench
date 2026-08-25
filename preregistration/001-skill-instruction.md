@@ -60,3 +60,44 @@ system prompt.
 - Between: both knobs stay live and the full-run prereg says which is primary.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Results
+
+The original execution completed all 144 sessions. It admitted 62 paired cells and
+discarded 10 recall cells. Nine cells failed because the recall MCP server could not
+start while migration `0015` was pending in the disposable benchmark database. One
+cell ended with an API connection loss. I applied migration `0015_semantic_graph_foundation.sql`
+to that disposable database and reran the ten discarded recall cells. The repair had
+10 connected MCP sessions and no execution errors. The final analysis therefore uses
+72 paired cells and all 24 tasks. The original and repair artifacts remain separate.
+
+### Mechanism
+
+Search rate was `0.806` (`58/72`). Reached given searched was `0.879` (`51/58`).
+Reached overall was `0.708` (`51/72`). The search rate crossed the preregistered
+`>= 0.5` decision gate, so the shipped skill is the backbone of the fix. The remaining
+retrieval and outcome gap is now primarily a model choice question.
+
+### Primary paired contrast
+
+Recall with the skill succeeded on `46/72` sessions (`0.639`). `claude_md` succeeded
+on `29/72` sessions (`0.403`). The per task mean delta was `+0.2361`, with the
+cluster bootstrap 95 percent interval `[+0.1111, +0.3750]`. Cell McNemar had
+18 cells where recall alone succeeded and 1 where `claude_md` alone succeeded,
+with `p = 0.0000763`.
+
+On the 13 pilot 001 survivor tasks, the per task mean delta was `+0.3333`, with
+cluster bootstrap 95 percent interval `[+0.1538, +0.5128]`. Cell McNemar had
+14 recall only cells and 1 `claude_md` only cell, with `p = 0.0009766`.
+
+### Costs
+
+On the valid replacement basis, recall input was `78,839` tokens per session,
+versus `35,203` in pilot 001. This is a `+123.9%` cross run increase, above the
+predicted `+40%`. The original run cost estimate was `$0.404`. The ten cell repair
+cost `$0.0446`, for an actual total of `$0.4486`, below the `$5` cap and above the
+predicted `$0.30`. Original wall time was 106 minutes and repair wall time was
+11.5 minutes.
+
+The machine readable analysis is in `results/pilot-002/analysis.json`. The repaired
+session evidence is in `results/pilot-002-repair/`.
