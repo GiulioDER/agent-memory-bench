@@ -121,6 +121,18 @@ async def main() -> int:
         ),
     )
     parser.add_argument("--headroom-timeout", type=float, default=900.0)
+    parser.add_argument(
+        "--arm-concurrency",
+        type=int,
+        default=0,
+        help=(
+            "how many of a cell's arms run at once. 1 runs them one after another, in a "
+            "seeded per-cell random order, which cuts peak memory to about a quarter; four "
+            "concurrent sessions took this 12 GB workstation to an out-of-memory reboot. "
+            "0, the DEFAULT, is the preregistered shape: all of a cell's arms together, so "
+            "no arm systematically runs on a quieter host."
+        ),
+    )
     parser.add_argument("--price-in", type=float, default=0.0826)
     parser.add_argument("--price-out", type=float, default=0.1652)
     parser.add_argument("--price-as-of", default="2026-08-25")
@@ -344,6 +356,8 @@ async def main() -> int:
         "startup_attempts": args.startup_attempts,
         "startup_preflight": startup_probes,
         "min_free_mb": args.min_free_mb,
+        "arm_concurrency": args.arm_concurrency or None,
+        "arm_order_seed": args.run_id,
         "free_mb_at_start": free_memory_mb(),
         "pricing": {
             "model": args.model,
@@ -434,7 +448,14 @@ async def main() -> int:
         )
 
     started = time.monotonic()
-    records = await run_grid(rows, run_arms, runner, block_concurrency=1)
+    records = await run_grid(
+        rows,
+        run_arms,
+        runner,
+        block_concurrency=1,
+        arm_concurrency=args.arm_concurrency or None,
+        order_seed=args.run_id,
+    )
     write_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
     (run_dir / "admission.json").write_text(json.dumps(report.summary(), indent=2), encoding="utf-8")
