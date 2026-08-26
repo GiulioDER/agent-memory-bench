@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem("amb-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <title>Method — agent-memory-bench</title>
 <meta name="description" content="How agent-memory-bench works: neutral corpus, per-arm ingestion, sandboxed Claude Code sessions, an admission gate, execution grading, and preregistered analysis.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
@@ -25,6 +26,7 @@
       <a href="leaderboard.html">Leaderboard</a>
       <a href="submit.html">Submit</a>
       <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+      <button class="theme-toggle" type="button" aria-label="Switch between light and dark"><span class="sw" aria-hidden="true"></span></button>
     </nav>
   </div>
 </header>
@@ -49,11 +51,12 @@
     <div class="pipeline mt-s" role="img" aria-label="Pipeline diagram: corpus feeds per-arm ingestion, then a sandboxed session, then the admission gate which either discards the cell or passes it to execution grading, and results land in the ledger.">
       <svg viewBox="0 0 1040 176" xmlns="http://www.w3.org/2000/svg" fill="none">
         <style>
-          .bx { stroke: #131311; fill: #fbfbf9; }
-          .tt { font: 600 13px "Spline Sans Mono", monospace; fill: #131311; }
-          .ts { font: 400 9.5px "Spline Sans Mono", monospace; fill: #8b8b85; }
-          .ln { stroke: #131311; }
-          .dsh { stroke: #131311; stroke-dasharray: 3 4; }
+          .bx { stroke: var(--ink); fill: var(--paper); }
+          .tt { font: 600 13px "Spline Sans Mono", monospace; fill: var(--ink); }
+          .ts { font: 400 9.5px "Spline Sans Mono", monospace; fill: var(--ink-faint); }
+          .ln { stroke: var(--ink); }
+          .dsh { stroke: var(--ink); stroke-dasharray: 3 4; }
+          rect.dsh { fill: var(--paper); }
         </style>
         <rect class="bx" x="4"   y="24" width="148" height="52"/>
         <rect class="bx" x="180" y="24" width="148" height="52"/>
@@ -82,7 +85,7 @@
 
         <line class="dsh" x1="606" y1="76" x2="606" y2="122"/>
         <path d="M602 117 L606 122 L610 117" class="ln"/>
-        <rect class="dsh" x="516" y="122" width="180" height="42" fill="#fbfbf9"/>
+        <rect class="dsh" x="516" y="122" width="180" height="42"/>
         <text class="tt" x="530" y="140">DISCARDED</text>
         <text class="ts" x="530" y="156">counts published per arm</text>
       </svg>
@@ -292,5 +295,6 @@
   </div>
 </footer>
 
+<script src="site.js"></script>
 </body>
 </html>
