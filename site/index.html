@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem("amb-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <title>agent-memory-bench — memory for coding agents, graded by execution</title>
 <meta name="description" content="A preregistered, execution-graded benchmark of pluggable memory layers for coding agents. Real tasks, real repositories, no LLM judge in the primary endpoint.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
@@ -25,6 +26,7 @@
       <a href="leaderboard.html">Leaderboard</a>
       <a href="submit.html">Submit</a>
       <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+      <button class="theme-toggle" type="button" aria-label="Switch between light and dark"><span class="sw" aria-hidden="true"></span></button>
     </nav>
   </div>
 </header>
@@ -186,5 +188,6 @@
   </div>
 </footer>
 
+<script src="site.js"></script>
 </body>
 </html>

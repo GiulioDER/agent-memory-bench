@@ -1,3 +1,25 @@
+/* Theme switch. The pre-paint snippet in each page's head has already stamped
+   data-theme on <html>; this wires the masthead button and persists the choice. */
+
+(function () {
+  var btn = document.querySelector(".theme-toggle");
+  if (!btn) return;
+
+  function current() {
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  }
+  function apply(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+    try { localStorage.setItem("amb-theme", theme); } catch (e) { /* private mode etc. */ }
+  }
+
+  btn.setAttribute("aria-pressed", current() === "dark" ? "true" : "false");
+  btn.addEventListener("click", function () {
+    apply(current() === "dark" ? "light" : "dark");
+  });
+})();
+
 /* Renders the leaderboard tables from window.AMB_LEADERBOARD (data/leaderboard.js).
    No frameworks, no fetch, no innerHTML: the data ships as a script so file:// works,
    and every node is built with DOM methods. */
