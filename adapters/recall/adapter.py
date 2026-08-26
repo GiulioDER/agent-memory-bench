@@ -36,10 +36,20 @@ _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 class RecallAdapter(MemoryAdapter):
     name = "recall"
 
-    def __init__(self, staging_root: str | Path, base_prompt_file: str | Path) -> None:
+    def __init__(
+        self,
+        staging_root: str | Path,
+        base_prompt_file: str | Path,
+        instruction: str | None = None,
+    ) -> None:
         self.staging_root = Path(staging_root)
         self.base_prompt_file = Path(base_prompt_file)
         self.config = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+        #: Which instruction to put ABOVE the static bundle. None keeps the frozen
+        #: one-liner. scripts/pilot.py has always chosen this per run and the pilots
+        #: chose the shipped skill; the diagnostic could not, so its recall arm was a
+        #: different treatment from the one it was built to explain.
+        self.instruction_override = instruction
 
     def _dsn(self) -> str:
         dsn_env = self.config["dsn_env"]
@@ -82,7 +92,7 @@ class RecallAdapter(MemoryAdapter):
 
     def _write_prompt_at(self, prompt: Path) -> Path:
         prefix = str(self.config["tool_prefix"])
-        instruction = str(self.config["instruction"]).format(
+        instruction = self.instruction_override or str(self.config["instruction"]).format(
             server=self.config["server_name"], tool=f"{prefix}recall_search"
         )
         prompt.parent.mkdir(parents=True, exist_ok=True)

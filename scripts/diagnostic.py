@@ -35,6 +35,7 @@ from harness.memory_startup import probe_mcp_config, run_with_memory_startup_ret
 from harness.prereg import assert_preregistered
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
+from scripts.pilot import recall_instruction
 
 ARMS = ("claude_md", "recall", "oracle_memory", "recall_prefetch")
 BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
@@ -133,6 +134,18 @@ async def main() -> int:
             "no arm systematically runs on a quieter host."
         ),
     )
+    parser.add_argument(
+        "--recall-instruction",
+        choices=("skill", "oneliner"),
+        default="skill",
+        help=(
+            "which instruction sits above the static bundle in the recall arm. "
+            "pilot-003 and pilot-004 both used `skill`, so that is the default: with "
+            "`oneliner` the recall arm is a different treatment from the runs this "
+            "diagnostic exists to explain, and its search rate measured 16% against "
+            "pilot-004's 85.7%."
+        ),
+    )
     parser.add_argument("--price-in", type=float, default=0.0826)
     parser.add_argument("--price-out", type=float, default=0.1652)
     parser.add_argument("--price-as-of", default="2026-08-25")
@@ -167,7 +180,12 @@ async def main() -> int:
         for task in tasks
     }
     claude_adapter = ClaudeMdAdapter(base_prompts[tasks[0].task_id])
-    recall_adapter = RecallAdapter(run_dir / "adapter", REPO / "corpus" / "claude_md_bundle_smoke.md")
+    instruction = recall_instruction(args.recall_instruction)
+    recall_adapter = RecallAdapter(
+        run_dir / "adapter",
+        REPO / "corpus" / "claude_md_bundle_smoke.md",
+        instruction=instruction,
+    )
     oracle_adapter = OracleMemoryAdapter(run_dir / "adapter", base_prompts[tasks[0].task_id], catalog)
     prefetch_adapter = RecallPrefetchAdapter(recall_adapter, run_dir / "adapter", base_prompts[tasks[0].task_id])
     adapters = {
@@ -214,7 +232,11 @@ async def main() -> int:
                 if arm == "claude_md":
                     task_adapter = ClaudeMdAdapter(base_prompts[task.task_id])
                 elif arm == "recall":
-                    task_adapter = RecallAdapter(run_dir / "adapter", base_prompts[task.task_id])
+                    task_adapter = RecallAdapter(
+                        run_dir / "adapter",
+                        base_prompts[task.task_id],
+                        instruction=instruction,
+                    )
                 elif arm == "oracle_memory":
                     task_adapter = OracleMemoryAdapter(
                         run_dir / "adapter", base_prompts[task.task_id], catalog
@@ -356,6 +378,10 @@ async def main() -> int:
         "startup_attempts": args.startup_attempts,
         "startup_preflight": startup_probes,
         "min_free_mb": args.min_free_mb,
+        "recall_instruction": args.recall_instruction,
+        "recall_instruction_sha256": hashlib.sha256(
+            instruction.encode("utf-8")
+        ).hexdigest(),
         "arm_concurrency": args.arm_concurrency or None,
         "arm_order_seed": args.run_id,
         "free_mb_at_start": free_memory_mb(),
