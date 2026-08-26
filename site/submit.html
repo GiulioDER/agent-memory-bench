@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit &amp; reproduce — agent-memory-bench</title>
+<meta name="description" content="How to enter a memory product into agent-memory-bench, the rules every arm plays by, and how to re-run and verify the benchmark yourself.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Spline+Sans+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html" aria-label="agent-memory-bench home">
+      <span class="tick" aria-hidden="true"></span>
+      <span><strong class="long">agent-memory-bench</strong><strong class="short">AMB</strong><span class="full"> / AMB</span></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="method.html">Method</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="submit.html" aria-current="page">Submit</a>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+    </nav>
+  </div>
+</header>
+
+<main class="sheet">
+
+  <section class="page-head">
+    <span class="kicker reveal">Submit &amp; reproduce</span>
+    <h1 class="reveal r2">Same feed. Same gate.<br><em>Your</em> write path.</h1>
+    <p class="dek reveal r3">Any memory product with a published Claude Code integration can
+    enter. The rules below are the same eight every existing arm plays by, and the harness
+    enforces most of them mechanically. The rest of the page is how to re-run everything
+    yourself.</p>
+  </section>
+
+  <section class="pad-y-s" id="rules">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>The rules</h2>
+      <span class="aside">enforced by the harness where possible</span>
+    </div>
+
+    <ol class="rulebook mt-s">
+      <li>
+        <div>
+          <h3>Enter through your published integration</h3>
+          <p>A product competes as its own shipped Claude Code integration: a plugin, an MCP
+          server, or lifecycle hooks. No bespoke benchmark builds, no unreleased branches. If
+          your users cannot install it, the benchmark does not run it.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>One adapter directory, hash-pinned</h3>
+          <p>Everything an arm is lives in <code>adapters/&lt;name&gt;/</code>: the adapter
+          implementing the <code>MemoryAdapter</code> contract, version pins, and
+          <code>config.frozen.json</code> whose hash is recorded before the run. A config change
+          after the freeze means a new run, not an amended one.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Ingest the neutral feed as it is</h3>
+          <p>Every adapter receives identical bytes: verbatim recorded session transcripts,
+          pinned by a sha256 manifest. Your extraction pipeline decides what to keep, and that
+          decision is part of what is measured. No task-specific tuning, no peeking at the task
+          suite.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Prove the treatment or lose the cell</h3>
+          <p>The <a href="method.html#gate">admission gate</a> discards any cell where the arm
+          cannot prove it was actually applied: MCP tools listed at session init, hooks fired
+          with output, sandbox files digest-verified, no cross-arm contamination. Discard counts
+          are published per arm.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Real credentials or an honest refusal</h3>
+          <p>Arm credentials come from <code>.env</code>, never from the repository. An absent
+          key makes the harness refuse the arm at startup rather than fake it. Local arms run
+          via docker compose, with their extraction LLM traffic metered through the harness
+          proxy so ingestion tokens are counted.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Vendor review before the run</h3>
+          <p>Every vendor is publicly invited to review their adapter and frozen config before
+          any measured run. The invitation, the response, or the documented silence is committed
+          in <code>adapters/&lt;name&gt;/VENDOR_REVIEW.md</code>. Silence does not block the
+          run; it is simply on the record.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Preregistration binds the run</h3>
+          <p>The question, predictions, endpoints, exclusion rules and sizing are committed
+          under <code>preregistration/</code> before the first session. The run scripts refuse
+          to start while that directory is dirty. Numbers in a committed preregistration are
+          never edited; corrections are appended.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Results publish in full, win or lose</h3>
+          <p>Per-session logs, streams, admission verdicts and the complete cost ledger land in
+          <code>results/&lt;run_id&gt;/</code>. There is no private preview and no retraction
+          path: a preregistered run that embarrasses an arm, including the authors' own, is
+          published like any other.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="pad-y-s" id="add">
+    <div class="section-head">
+      <span class="no">02</span>
+      <h2>Adding your product</h2>
+      <span class="aside">a pull request, not a form</span>
+    </div>
+
+    <div class="prose mt-s">
+      <p>Submission is a pull request against the repository. It should contain, and review
+      will check for, exactly four things:</p>
+    </div>
+
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr><th>file</th><th>contents</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">adapters/&lt;name&gt;/adapter.py</span></td>
+              <td>implements the <code>MemoryAdapter</code> contract in <code>harness/adapters/base.py</code>: ingest the feed, install the integration, tear down cleanly</td></tr>
+          <tr><td><span class="m">adapters/&lt;name&gt;/config.frozen.json</span></td>
+              <td>the exact configuration the run uses, hash-pinned; defaults your users would get, not a tuned special</td></tr>
+          <tr><td><span class="m">adapters/&lt;name&gt;/VENDOR_REVIEW.md</span></td>
+              <td>from the template; records the review invitation and its outcome</td></tr>
+          <tr><td><span class="m">adapters/&lt;name&gt;/pins</span></td>
+              <td>package and image versions, exact; the run must be reconstructible from them</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="prose mt-m dim">Vendors of products already in the arms list
+    (<code>mem0</code>, <code>supermemory</code>, <code>zep</code>, <code>cognee</code>,
+    <code>recall</code>) can skip the adapter and go straight to reviewing their frozen config:
+    open an issue or answer the standing invitation in your
+    <code>VENDOR_REVIEW.md</code>.</p>
+  </section>
+
+  <section class="pad-y-s" id="rerun">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>Re-run and test</h2>
+      <span class="aside">trust nothing, execute everything</span>
+    </div>
+
+    <div class="prose mt-s">
+      <p>The harness, the tasks, the checkers and both reference solutions are in the open
+      repository. Verifying the benchmark's own claims takes one command:</p>
+    </div>
+
+<pre><code><span class="c"># clone, then: harness self-tests, task validation,</span>
+<span class="c"># and the CI assertion that every naive reference fails</span>
+<span class="c"># and every informed reference passes</span>
+python -m pytest tests/ -q</code></pre>
+
+    <div class="prose">
+      <p>A real measured run additionally needs:</p>
+    </div>
+
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr><th>requirement</th><th>why</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">Claude Code CLI ≥ 2.1.221</span></td>
+              <td>below that, a pending MCP server runs the session without its tools while reporting success; the admission gate exists because that happened</td></tr>
+          <tr><td><span class="m">.env credentials</span></td>
+              <td>per-arm keys from <code>.env.example</code>; a missing key refuses that arm rather than faking it</td></tr>
+          <tr><td><span class="m">clean preregistration/</span></td>
+              <td>the run scripts refuse to start while the preregistration directory is dirty</td></tr>
+          <tr><td><span class="m">docker</span></td>
+              <td>for the local arms (zep, cognee) and the one-command full reproduction, landing in <code>docker/</code> as part of Phase 0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-invert mt-l">
+      <span class="kicker">Reproduction is the product</span>
+      <div class="prose">
+        <p>If a published result cannot be regenerated from the pinned versions, the frozen
+        configs, the sha256-pinned corpus and the committed preregistration, that is a bug in
+        the benchmark and should be filed as one. Disagreement with a result starts with
+        <code>results/&lt;run_id&gt;/</code>, which contains every session's logs, admission
+        verdicts and costs.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="foot-title">agent-memory-bench</div>
+      <div class="dim">A preregistered, execution-graded benchmark of pluggable memory layers
+      for coding agents. Apache-2.0. Built in the open; results published win or lose.</div>
+    </div>
+    <div>
+      <div class="foot-title">Pages</div>
+      <a href="method.html">Method</a><br>
+      <a href="leaderboard.html">Leaderboard</a><br>
+      <a href="submit.html">Submit &amp; reproduce</a>
+    </div>
+    <div>
+      <div class="foot-title">Source</div>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">Repository</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/preregistration">Preregistrations</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/adapters/VENDOR_REVIEW_TEMPLATE.md">Vendor review</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
