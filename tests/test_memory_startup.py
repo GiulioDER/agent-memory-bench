@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import gzip
 import json
+import sys
 
 import pytest
 
@@ -288,7 +289,7 @@ def test_a_failed_attempt_carries_the_probe_and_the_servers_own_stderr(tmp_path)
     noisy = "import sys; print('boom: no database', file=sys.stderr)"
     config_path.write_text(
         json.dumps(
-            {"mcpServers": {"recall": {"command": "python", "args": ["-c", noisy], "env": {}}}}
+            {"mcpServers": {"recall": {"command": sys.executable, "args": ["-c", noisy], "env": {}}}}
         ),
         encoding="utf-8",
     )
@@ -334,7 +335,7 @@ for line in sys.stdin:
 
 
 def test_the_probe_speaks_enough_mcp_to_list_a_healthy_servers_tools():
-    probe = asyncio.run(probe_mcp_server("python", ["-c", SERVER], {}, server="recall"))
+    probe = asyncio.run(probe_mcp_server(sys.executable, ["-c", SERVER], {}, server="recall"))
     assert probe.ok is True, probe.error
     assert probe.tools == ("mcp__recall__recall_search",)
 
