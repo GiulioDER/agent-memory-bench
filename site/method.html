@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Method — agent-memory-bench</title>
+<meta name="description" content="How agent-memory-bench works: neutral corpus, per-arm ingestion, sandboxed Claude Code sessions, an admission gate, execution grading, and preregistered analysis.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Spline+Sans+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html" aria-label="agent-memory-bench home">
+      <span class="tick" aria-hidden="true"></span>
+      <span><strong class="long">agent-memory-bench</strong><strong class="short">AMB</strong><span class="full"> / AMB</span></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="method.html" aria-current="page">Method</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="submit.html">Submit</a>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+    </nav>
+  </div>
+</header>
+
+<main class="sheet">
+
+  <section class="page-head">
+    <span class="kicker reveal">Method</span>
+    <h1 class="reveal r2">One neutral feed in.<br>One <em>executed</em> artifact out.</h1>
+    <p class="dek reveal r3">Every arm receives the same recorded experience, works the same
+    tasks in the same sandbox, and is graded by the same checkers. The only variable is the
+    memory layer. Everything below is enforced by the harness, not by convention.</p>
+  </section>
+
+  <section class="pad-y-s" id="pipeline">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>The pipeline</h2>
+      <span class="aside">harness/</span>
+    </div>
+
+    <div class="pipeline mt-s" role="img" aria-label="Pipeline diagram: corpus feeds per-arm ingestion, then a sandboxed session, then the admission gate which either discards the cell or passes it to execution grading, and results land in the ledger.">
+      <svg viewBox="0 0 1040 176" xmlns="http://www.w3.org/2000/svg" fill="none">
+        <style>
+          .bx { stroke: #131311; fill: #fbfbf9; }
+          .tt { font: 600 13px "Spline Sans Mono", monospace; fill: #131311; }
+          .ts { font: 400 9.5px "Spline Sans Mono", monospace; fill: #8b8b85; }
+          .ln { stroke: #131311; }
+          .dsh { stroke: #131311; stroke-dasharray: 3 4; }
+        </style>
+        <rect class="bx" x="4"   y="24" width="148" height="52"/>
+        <rect class="bx" x="180" y="24" width="148" height="52"/>
+        <rect class="bx" x="356" y="24" width="148" height="52"/>
+        <rect class="bx" x="532" y="24" width="148" height="52"/>
+        <rect class="bx" x="708" y="24" width="148" height="52"/>
+        <rect class="bx" x="884" y="24" width="152" height="52"/>
+
+        <text class="tt" x="18"  y="46">CORPUS</text>       <text class="ts" x="18"  y="63">verbatim transcripts</text>
+        <text class="tt" x="194" y="46">INGEST</text>       <text class="ts" x="194" y="63">each arm's write path</text>
+        <text class="tt" x="370" y="46">SESSION</text>      <text class="ts" x="370" y="63">Claude Code, sandboxed</text>
+        <text class="tt" x="546" y="46">GATE</text>         <text class="ts" x="546" y="63">proof of treatment</text>
+        <text class="tt" x="722" y="46">EXECUTE</text>      <text class="ts" x="722" y="63">checker vs oracle</text>
+        <text class="tt" x="898" y="46">LEDGER</text>       <text class="ts" x="898" y="63">score + full costs</text>
+
+        <line class="ln" x1="152" y1="50" x2="180" y2="50"/>
+        <line class="ln" x1="328" y1="50" x2="356" y2="50"/>
+        <line class="ln" x1="504" y1="50" x2="532" y2="50"/>
+        <line class="ln" x1="680" y1="50" x2="708" y2="50"/>
+        <line class="ln" x1="856" y1="50" x2="884" y2="50"/>
+        <path d="M175 46 L180 50 L175 54" class="ln"/>
+        <path d="M351 46 L356 50 L351 54" class="ln"/>
+        <path d="M527 46 L532 50 L527 54" class="ln"/>
+        <path d="M703 46 L708 50 L703 54" class="ln"/>
+        <path d="M879 46 L884 50 L879 54" class="ln"/>
+
+        <line class="dsh" x1="606" y1="76" x2="606" y2="122"/>
+        <path d="M602 117 L606 122 L610 117" class="ln"/>
+        <rect class="dsh" x="516" y="122" width="180" height="42" fill="#fbfbf9"/>
+        <text class="tt" x="530" y="140">DISCARDED</text>
+        <text class="ts" x="530" y="156">counts published per arm</text>
+      </svg>
+    </div>
+
+    <div class="prose mt-m">
+      <p>The corpus is fed to every adapter as identical bytes. Each product ingests it through
+      its own published write path, so what its extraction pipeline keeps, and what it throws
+      away, is part of what is measured. The agent then works each task in a fresh sandbox with
+      that arm's integration installed and nothing else.</p>
+      <p>Before a session is scored it must pass the admission gate. After it, the artifact the
+      agent left behind is run against an executable checker whose oracle inputs the sandbox
+      never contained. The result, with every token spent on both ingestion and the session,
+      lands in one per-arm ledger.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="tasks">
+    <div class="section-head">
+      <span class="no">02</span>
+      <h2>Tasks</h2>
+      <span class="aside">tasks/&lt;id&gt;/ · oracles/&lt;id&gt;/</span>
+    </div>
+    <div class="prose mt-s">
+      <p>A task is a fixture repository, a task spec, and an executable checker. Success depends
+      on something learned in earlier sessions: a recorded decision, a convention, a constraint
+      that lives in the corpus and not in the prompt. The current suite holds
+      <strong>24 tasks</strong> (identifiers like <code>ts-tz-utc</code>,
+      <code>ts-stable-sort</code>, <code>ts-log-mask</code>).</p>
+      <p>Every task ships two reference solutions, asserted in CI on every commit:</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead>
+          <tr><th>reference</th><th>encodes</th><th>must</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="m">naive/</span></td>
+            <td>the plausible solution an agent produces <em>without</em> the recorded knowledge</td>
+            <td><strong>fail</strong> the checker</td>
+          </tr>
+          <tr>
+            <td><span class="m">informed/</span></td>
+            <td>the solution that uses what the corpus knows</td>
+            <td><strong>pass</strong> the checker</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose mt-s dim">If the naive solution passes, the task is not measuring memory and
+    is rejected. A do-nothing session scores zero by construction: there is no partial credit
+    from a judge, because there is no judge.</p>
+  </section>
+
+  <section class="pad-y-s" id="corpus">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>The corpus</h2>
+      <span class="aside">corpus/ · sha256 manifest</span>
+    </div>
+    <div class="prose mt-s">
+      <p>The experience feed is <strong>verbatim recorded agent session transcripts</strong>,
+      pinned by a sha256 manifest. It is deliberately not a curated fact list: it contains the
+      noise, the dead ends, and the distractor sessions that real agent history contains.
+      Distilling signal from that stream is the product's job, and the benchmark refuses to do
+      it for anyone.</p>
+      <p>No arm gets a different feed. The only asymmetry any product can gain is what it
+      extracts.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="gate">
+    <div class="section-head">
+      <span class="no">04</span>
+      <h2>The admission gate</h2>
+      <span class="aside">discard, never score</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Silent failure is the standing hazard of agent benchmarks: an MCP server that never
+      attached, a hook that never fired, a sandbox missing its files. A session in that state
+      measures nothing, and scoring it poisons the average in whichever direction luck chooses.</p>
+      <p>So a grid cell is <strong>discarded, not scored</strong>, unless every arm proves its
+      treatment was applied:</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr><th>integration</th><th>required proof</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">MCP server</span></td><td>tools listed at session init, in the session's own record</td></tr>
+          <tr><td><span class="m">lifecycle hooks</span></td><td>hooks demonstrably fired, with output</td></tr>
+          <tr><td><span class="m">sandbox files</span></td><td>digest-verified against the frozen bundle</td></tr>
+          <tr><td><span class="m">isolation</span></td><td>no arm holding another arm's tools</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose mt-s dim">Discard counts are published per arm, so a product that only runs
+    cleanly half the time cannot hide it in a smaller denominator.</p>
+  </section>
+
+  <section class="pad-y-s" id="scoring">
+    <div class="section-head">
+      <span class="no">05</span>
+      <h2>Scoring and costs</h2>
+      <span class="aside">harness/costs.py</span>
+    </div>
+    <div class="prose mt-s">
+      <p>The primary endpoint is <strong>task success</strong>: the checker passes or it does
+      not. Analysis is paired per task, arms are contrasted against the
+      <code>claude_md</code> baseline, and deltas below the preregistered minimum effect are
+      reported as noise rather than dressed up as findings.</p>
+      <p>Costs are end-to-end. Ingestion tokens, session tokens, wall time, and
+      negative-transfer counts (tasks where memory made the agent <em>worse</em>) land in one
+      per-arm ledger and are published beside the success rate, because a memory layer that
+      buys two points of success for triple the tokens is a different product than its
+      headline number suggests.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="diagnostic">
+    <div class="section-head">
+      <span class="no">06</span>
+      <h2>Diagnostic reference tracks</h2>
+      <span class="aside">unranked, by design</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Task success says whether the memory path worked, not which part failed. Two reference
+      tracks decompose it. <code>oracle_memory</code> injects the exact relevant corpus evidence
+      before the session: a ceiling control that removes retrieval and query formulation
+      entirely. <code>recall_prefetch</code> runs retrieval in the harness with the exact task
+      prompt and injects the returned evidence, measuring retrieval quality when the query is
+      already known. The natural <code>recall</code> arm still measures whether the agent
+      decides to search at all, and what it asks.</p>
+    </div>
+    <div class="mt-m">
+      <div class="contrast">
+        <span class="expr">oracle_memory − claude_md</span>
+        <p>Oracle headroom: how much this task set can reward correct evidence at all.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">recall − claude_md</span>
+        <p>Natural memory lift: the product as an agent actually experiences it.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">recall_prefetch − claude_md</span>
+        <p>Prefetch memory lift: retrieval quality with query formulation removed.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">oracle_memory − recall</span>
+        <p>Access gap: everything lost between perfect evidence and the live memory path.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">recall_prefetch − recall</span>
+        <p>Prefetch gap: how much is lost to the agent's own decision to search, and its query.</p>
+      </div>
+    </div>
+    <p class="prose mt-m dim">A gap is evidence about a causal path, not a claim that a product
+    is first or unique. Diagnostic arms never enter the product ranking.</p>
+  </section>
+
+  <section class="pad-y-s" id="prereg">
+    <div class="section-head">
+      <span class="no">07</span>
+      <h2>Preregistration</h2>
+      <span class="aside">preregistration/</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Every measured run is preregistered: the question, the predictions, the endpoints, the
+      contrast families, the exclusion rules and the sizing are committed <strong>before the
+      first session starts</strong>. The run scripts enforce the mechanical half: they refuse to
+      start while the preregistration directory is dirty.</p>
+    </div>
+    <div class="callout mt-m">
+      <span class="kicker">The honest half, by convention</span>
+      <div class="prose">
+        <p><strong>Never edit a number in a committed preregistration.</strong> Not a
+        prediction, not a measured value, not a date. Append a correction underneath.</p>
+        <p><strong>Results are appended below the frozen prediction</strong>, under a marked
+        line, in the same file, so prediction and outcome are read together.</p>
+        <p><strong>Falsified predictions stay.</strong> The gap between expected and measured is
+        the only part of a result that teaches anything.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="foot-title">agent-memory-bench</div>
+      <div class="dim">A preregistered, execution-graded benchmark of pluggable memory layers
+      for coding agents. Apache-2.0. Built in the open; results published win or lose.</div>
+    </div>
+    <div>
+      <div class="foot-title">Pages</div>
+      <a href="method.html">Method</a><br>
+      <a href="leaderboard.html">Leaderboard</a><br>
+      <a href="submit.html">Submit &amp; reproduce</a>
+    </div>
+    <div>
+      <div class="foot-title">Source</div>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">Repository</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/preregistration">Preregistrations</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/adapters/VENDOR_REVIEW_TEMPLATE.md">Vendor review</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
