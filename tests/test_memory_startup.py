@@ -345,7 +345,8 @@ def test_a_server_that_never_answers_times_out_rather_than_hanging_the_run():
 
     probe = asyncio.run(
         probe_mcp_server(
-            "python", ["-c", "import time; time.sleep(30)"], {}, server="recall", timeout_s=1.0
+            sys.executable, ["-c", "import time; time.sleep(30)"], {},
+            server="recall", timeout_s=1.0,
         )
     )
     assert probe.ok is False
