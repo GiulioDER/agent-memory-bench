@@ -3,3 +3,4 @@
 *.png binary
 oracles/ts-bom-merge/data/south.csv binary
 tasks/ts-crlf-export/precursors/p01/stage/archive/export_20260512_accepted.csv binary
+*.ots binary
