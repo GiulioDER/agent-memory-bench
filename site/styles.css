@@ -9,10 +9,26 @@
   --ink-faint: #8b8b85;
   --rule: #dcdcd6;
   --rule-dark: #131311;
+  --code-bg: #f0f0ec;
   --serif: "Newsreader", "Georgia", serif;
   --mono: "Spline Sans Mono", "Courier New", monospace;
   --max: 1120px;
   --pad: clamp(20px, 4vw, 48px);
+  color-scheme: light;
+}
+
+/* Dark mode: the same page, inverted. Paper becomes ink, ink becomes paper,
+   and the blocks that were already inverted (pre, footer, dark callouts)
+   invert back to light, keeping the two-tone language intact. */
+:root[data-theme="dark"] {
+  --paper: #131311;
+  --ink: #f4f4f0;
+  --ink-soft: #b3b3ab;
+  --ink-faint: #7a7a72;
+  --rule: #32322e;
+  --rule-dark: #f4f4f0;
+  --code-bg: #232320;
+  color-scheme: dark;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -22,6 +38,7 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--paper);
   color: var(--ink);
+  transition: background 200ms ease, color 200ms ease;
   font-family: var(--serif);
   font-optical-sizing: auto;
   font-size: 17px;
@@ -103,6 +120,32 @@ a { color: inherit; }
   font-weight: 600;
   box-shadow: inset 0 -3px 0 var(--ink);
 }
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(10px, 1.6vw, 18px);
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  cursor: pointer;
+  color: var(--ink-soft);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.theme-toggle:hover { background: var(--ink); color: var(--paper); }
+
+.theme-toggle .sw {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 1px solid currentColor;
+  background: currentColor;
+  transition: background 120ms ease;
+}
+
+:root[data-theme="dark"] .theme-toggle .sw { background: transparent; }
 
 /* ---------- shared layout ---------- */
 
@@ -262,7 +305,7 @@ code, .m {
 }
 
 .prose code {
-  background: #f0f0ec;
+  background: var(--code-bg);
   padding: 1px 5px;
   border: 1px solid var(--rule);
 }
