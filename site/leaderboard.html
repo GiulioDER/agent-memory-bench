@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaderboard — agent-memory-bench</title>
+<meta name="description" content="Ranked results of memory layers for coding agents, measured by execution-graded task success against the claude_md baseline. Costs and discarded cells published per arm.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Spline+Sans+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html" aria-label="agent-memory-bench home">
+      <span class="tick" aria-hidden="true"></span>
+      <span><strong class="long">agent-memory-bench</strong><strong class="short">AMB</strong><span class="full"> / AMB</span></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="method.html">Method</a>
+      <a href="leaderboard.html" aria-current="page">Leaderboard</a>
+      <a href="submit.html">Submit</a>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+    </nav>
+  </div>
+</header>
+
+<main class="sheet">
+
+  <section class="page-head">
+    <span class="kicker reveal">Leaderboard</span>
+    <h1 class="reveal r2">Ranked by what <em>ran.</em></h1>
+    <p class="dek reveal r3">Task success on executable checkers, paired per task against the
+    <code>claude_md</code> baseline. Every number on this page traces to a published run
+    directory; nothing is typed in by hand.</p>
+  </section>
+
+  <div class="status-line" id="run-meta" role="status"></div>
+
+  <section class="pad-y-s" id="products">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>Products and controls</h2>
+      <span class="aside">ranked when a run is official</span>
+    </div>
+
+    <div class="table-scroll mt-s">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">rank</th>
+            <th>arm</th>
+            <th>integration</th>
+            <th class="num">task success</th>
+            <th class="num">&Delta; vs baseline</th>
+            <th class="num">95% CI</th>
+            <th class="num">discarded cells</th>
+            <th class="num">cost / task</th>
+          </tr>
+        </thead>
+        <tbody id="board-body"></tbody>
+      </table>
+    </div>
+
+    <p class="prose mt-m dim">Deltas below the preregistered minimum effect are noise and are
+    labeled as noise. Discarded cells are sessions that failed the
+    <a href="method.html#gate">admission gate</a>: the treatment could not be proven applied, so
+    the cell is thrown out rather than scored. Cost is end-to-end, ingestion included.</p>
+  </section>
+
+  <section class="pad-y-s" id="reference">
+    <div class="section-head">
+      <span class="no">02</span>
+      <h2>Reference tracks</h2>
+      <span class="aside">diagnostics, never ranked</span>
+    </div>
+
+    <div class="table-scroll mt-s">
+      <table>
+        <thead>
+          <tr>
+            <th>track</th>
+            <th>what it isolates</th>
+            <th class="num">task success</th>
+            <th class="num">&Delta; vs baseline</th>
+          </tr>
+        </thead>
+        <tbody id="reference-body"></tbody>
+      </table>
+    </div>
+
+    <p class="prose mt-m dim">These arms answer <em>where</em> the memory path succeeds or
+    fails, not which product wins. The decomposition they support is on the
+    <a href="method.html#diagnostic">method page</a>.</p>
+  </section>
+
+  <section class="pad-y-s" id="official">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>What makes a result official</h2>
+      <span class="aside">or it does not appear here</span>
+    </div>
+
+    <div class="prose mt-s">
+      <p>A run appears on this page only when all of the following hold, in this order:</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr><th>gate</th><th>requirement</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">1 · preregistered</span></td>
+              <td>protocol committed under <code>preregistration/</code> before the first session; the harness refuses to start while that directory is dirty</td></tr>
+          <tr><td><span class="m">2 · announced</span></td>
+              <td>the run is announced before it happens, not after it succeeds</td></tr>
+          <tr><td><span class="m">3 · gated</span></td>
+              <td>every scored cell passed the admission gate; discard counts published per arm</td></tr>
+          <tr><td><span class="m">4 · published in full</span></td>
+              <td>per-session logs, streams, admission verdicts and costs land in <code>results/&lt;run_id&gt;/</code>, wins and losses alike</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout mt-l">
+      <span class="kicker">Pilot and diagnostic runs</span>
+      <div class="prose">
+        <p>Smoke tests, pilots and diagnostic runs exist in the repository's
+        <code>results/</code> tree and are exactly what their names say: bring-up. They are not
+        rankings, they are not previews of rankings, and they will not be quoted as either.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="foot-title">agent-memory-bench</div>
+      <div class="dim">A preregistered, execution-graded benchmark of pluggable memory layers
+      for coding agents. Apache-2.0. Built in the open; results published win or lose.</div>
+    </div>
+    <div>
+      <div class="foot-title">Pages</div>
+      <a href="method.html">Method</a><br>
+      <a href="leaderboard.html">Leaderboard</a><br>
+      <a href="submit.html">Submit &amp; reproduce</a>
+    </div>
+    <div>
+      <div class="foot-title">Source</div>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">Repository</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/preregistration">Preregistrations</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/adapters/VENDOR_REVIEW_TEMPLATE.md">Vendor review</a>
+    </div>
+  </div>
+</footer>
+
+<script src="data/leaderboard.js"></script>
+<script src="site.js"></script>
+</body>
+</html>
