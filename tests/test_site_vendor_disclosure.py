@@ -15,7 +15,6 @@ harmless in review.
 from __future__ import annotations
 
 import importlib.util
-import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +53,19 @@ def _site_files() -> list[Path]:
     return sorted(p for p in SITE.rglob("*") if p.is_file())
 
 
+def _names_in(path: Path, names) -> list[str]:
+    """Which of ``names`` occur in the file, as SUBSTRINGS, case-insensitively.
+
+    Not word boundaries. A leak arrives as a link or a package name far more often than as
+    the bare word, and a word-boundary match catches neither ``getzep.com`` nor ``mem0ai``;
+    both were checked against the boundary version before this replaced it. A guard against
+    disclosure should over-match, because a false positive costs one rephrased sentence and
+    a miss costs a published name.
+    """
+    haystack = path.read_text(encoding="utf-8", errors="ignore").lower()
+    return [name for name in names if name.lower() in haystack]
+
+
 def test_the_site_directory_is_not_empty():
     """A guard over an empty tree passes for the wrong reason."""
     files = _site_files()
@@ -64,22 +76,18 @@ def test_no_undisclosed_arm_is_named_anywhere_under_site():
     forbidden = _undisclosed_names()
     assert forbidden, "nothing is undisclosed; delete this test rather than passing it vacuously"
 
-    patterns = {name: re.compile(rf"\b{re.escape(name)}\b", re.IGNORECASE) for name in forbidden}
     leaks = [
         f"{path.relative_to(REPO_ROOT).as_posix()} names {name!r}"
         for path in _site_files()
-        for name, pattern in patterns.items()
-        if pattern.search(path.read_text(encoding="utf-8", errors="ignore"))
+        for name in _names_in(path, forbidden)
     ]
     assert not leaks, "the published site names an unannounced product: " + "; ".join(leaks)
 
 
 def test_no_adjacent_brand_is_named_anywhere_under_site():
-    patterns = {b: re.compile(rf"\b{re.escape(b)}\b", re.IGNORECASE) for b in ADJACENT_BRANDS}
     leaks = [
         f"{path.relative_to(REPO_ROOT).as_posix()} names {brand!r}"
         for path in _site_files()
-        for brand, pattern in patterns.items()
-        if pattern.search(path.read_text(encoding="utf-8", errors="ignore"))
+        for brand in _names_in(path, ADJACENT_BRANDS)
     ]
     assert not leaks, "the published site names a third-party brand: " + "; ".join(leaks)
