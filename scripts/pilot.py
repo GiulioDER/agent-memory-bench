@@ -159,6 +159,13 @@ async def main() -> int:
         "calibrating new tasks, never for a preregistered comparison, whose task set is "
         "fixed by its record.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="resolve arms, tasks and seeds, print the grid, and stop before writing or "
+        "executing anything. This is how you check a command line; running it with a "
+        "placeholder API key instead executes the whole grid and burns the run id.",
+    )
     parser.add_argument("--price-in", type=float, default=0.05866)
     parser.add_argument("--price-out", type=float, default=0.11732)
     parser.add_argument("--price-as-of", default="2026-08-22")
@@ -186,6 +193,16 @@ async def main() -> int:
         if missing:
             raise SystemExit(f"unknown task(s) {missing}; a silent subset is a different run")
         tasks = [task for task in tasks if task.task_id in set(wanted)]
+
+    if args.dry_run:
+        # Placed BEFORE the run directory is created, so a dry run touches nothing at all.
+        sessions = len(tasks) * args.seeds * len(run_arms)
+        print(f"[dry-run] run-id {args.run_id}, model {args.model}, seeds {args.seeds}")
+        print(f"[dry-run] arms   {list(run_arms)}")
+        print(f"[dry-run] tasks  {len(tasks)}: {', '.join(task.task_id for task in tasks)}")
+        print(f"[dry-run] would run {sessions} session(s); nothing written, nothing executed")
+        return 0
+
     run_dir = REPO / "results" / args.run_id
     if (run_dir / "records.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
