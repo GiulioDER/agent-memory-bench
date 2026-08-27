@@ -1,0 +1,13 @@
+{
+  "task_id": "ts-csv-quote",
+  "kind": "primary",
+  "prompt": "Write export_csv.py in the repository root. It must read records.json (a JSON list of objects with the keys id, customer, note and amount) and write report.csv in the repository root: a header row id,customer,note,amount followed by one row per record, in the order they appear in records.json. Then run it so report.csv exists.",
+  "fact_terms": [
+    "free-text field",
+    "embedded delimiter",
+    "quote the field",
+    "spreadsheet import",
+    "never hand-roll the row"
+  ],
+  "memory_bundle_id": "bundle_ts-csv-quote"
+}

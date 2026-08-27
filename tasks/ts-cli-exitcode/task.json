@@ -1,0 +1,12 @@
+{
+  "task_id": "ts-cli-exitcode",
+  "kind": "primary",
+  "prompt": "Write validate.py in the repository root. It must read orders.json (a JSON list of objects with the keys id and amount) and check that every order has a non-empty id and an amount greater than zero. Print one line per problem it finds, naming the offending id. Then run it.",
+  "fact_terms": [
+    "exit status is the contract",
+    "non-zero on failure",
+    "a pipeline step that prints and succeeds",
+    "printing is not reporting"
+  ],
+  "memory_bundle_id": "bundle_ts-cli-exitcode"
+}

@@ -1,0 +1,7 @@
+[
+  {"id": "R-2001", "customer": "Northwind", "note": "renewal", "amount": "420.00"},
+  {"id": "R-2002", "customer": "Contoso, Ltd", "note": "prorated after the March credit", "amount": "88.50"},
+  {"id": "R-2003", "customer": "Fabrikam", "note": "customer said \"bill it annually\"", "amount": "1200.00"},
+  {"id": "R-2004", "customer": "Adventure Works", "note": "split: 60% licence, 40% support", "amount": "310.25"},
+  {"id": "R-2005", "customer": "Tailspin", "note": "annual", "amount": "75.00"}
+]
