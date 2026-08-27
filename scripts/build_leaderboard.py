@@ -24,6 +24,12 @@ Inputs, both committed:
   a summary that drops an embarrassing arm, invents a new one, or moves the baseline is
   refused, not smoothed over.
 
+Disclosure is a separate, later step. A run summary always carries the internal arm names;
+what reaches the page is decided by ``PRODUCT_ARMS``, and an arm whose vendor has not been
+announced yet is emitted under a neutral ``product_a``/``product_b`` label. The pages
+therefore publish the shape of the grid without naming a product before its review
+invitation has gone out, and nothing downstream of the harness has to know the difference.
+
 Usage, from the repository root:
 
     python scripts/build_leaderboard.py           # regenerate the file in place
@@ -37,16 +43,30 @@ import json
 from pathlib import Path
 
 # One entry per arm, in display order. The structure lives here; numbers never do.
+#
+# The fourth field is the name the SITE is allowed to print. ``None`` means the arm is not
+# named publicly yet: the third-party products are unannounced, their vendor-review
+# invitations have not gone out, and the pages carry a neutral placeholder instead. The
+# first field is the INTERNAL name, which the harness, the adapters, the admission gate and
+# every run summary use, and which never changes. Disclosing an arm is a one-word edit here
+# plus a regeneration; nothing else in the harness moves.
 PRODUCT_ARMS = [
-    ("recall", "MCP server", None),
-    ("mem0", "SaaS API", None),
-    ("supermemory", "SaaS API", None),
-    ("zep", "Graphiti, local docker", None),
-    ("cognee", "local docker", None),
-    ("fs_grep", "transcripts on disk", "control"),
-    ("claude_md", "CLAUDE.md bundle", "baseline"),
-    ("bare", "no memory", "floor"),
+    # internal name, integration, role, public name (None while undisclosed)
+    ("recall", "MCP server", None, "recall"),
+    ("mem0", "SaaS API", None, None),
+    ("supermemory", "SaaS API", None, None),
+    ("zep", "Graphiti, local docker", None, None),
+    ("cognee", "local docker", None, None),
+    ("fs_grep", "transcripts on disk", "control", "fs_grep"),
+    ("claude_md", "CLAUDE.md bundle", "baseline", "claude_md"),
+    ("bare", "no memory", "floor", "bare"),
 ]
+
+# What an undisclosed arm looks like on the page. The integration description is withheld
+# with the name, because "SaaS API" against a short field of candidates is most of an
+# identification on its own.
+UNDISCLOSED_TYPE = "third-party product, not yet named"
+UNDISCLOSED_PREFIX = "product_"
 
 REFERENCE_TRACKS = [
     ("oracle_memory", "exact evidence injected; ceiling control"),
@@ -78,7 +98,7 @@ def _load_summary(results_dir: Path, run_id: str) -> dict:
     if missing_run:
         raise SummaryInvalid(f"summary run block is missing {missing_run}")
 
-    expected = {name for name, _, _ in PRODUCT_ARMS}
+    expected = {name for name, *_ in PRODUCT_ARMS}
     got = set(summary.get("arms", {}))
     if got != expected:
         raise SummaryInvalid(
@@ -101,6 +121,26 @@ def _load_summary(results_dir: Path, run_id: str) -> dict:
     return summary
 
 
+def public_arms() -> list[tuple[str, str, str, str | None]]:
+    """``(internal, public, integration, role)`` per arm, in display order.
+
+    An undisclosed arm becomes ``product_a``, ``product_b``, ... and loses its integration
+    description. The internal name stays behind for the run summary lookup and never
+    reaches the page; ``tests/test_site_vendor_disclosure.py`` reads this function to
+    assert that, over the whole of ``site/``, rather than trusting the generator.
+    """
+    out: list[tuple[str, str, str, str | None]] = []
+    anonymous = 0
+    for internal, arm_type, role, public in PRODUCT_ARMS:
+        if public is None:
+            label = UNDISCLOSED_PREFIX + chr(ord("a") + anonymous)
+            anonymous += 1
+            out.append((internal, label, UNDISCLOSED_TYPE, role))
+        else:
+            out.append((internal, public, arm_type, role))
+    return out
+
+
 def build(repo_root: str | Path) -> str:
     repo_root = Path(repo_root)
     config = json.loads(
@@ -110,14 +150,14 @@ def build(repo_root: str | Path) -> str:
     summary = _load_summary(repo_root / "results", run_id) if run_id else None
 
     arms = []
-    for name, arm_type, role in PRODUCT_ARMS:
-        entry: dict = {"name": name, "type": arm_type}
+    for internal, public, arm_type, role in public_arms():
+        entry: dict = {"name": public, "type": arm_type}
         if role:
             entry["role"] = role
-        numbers = summary["arms"][name] if summary else {}
+        numbers = summary["arms"][internal] if summary else {}
         for field in ARM_FIELDS:
             entry[field] = numbers.get(field)
-        if name == "claude_md" and entry["delta"] is None:
+        if internal == "claude_md" and entry["delta"] is None:
             entry["delta"] = 0  # the page renders the baseline row from this sentinel
         arms.append(entry)
 
