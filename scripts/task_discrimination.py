@@ -117,7 +117,10 @@ def main() -> int:
             else:
                 verdict = "ok"
             verdicts[task].append(verdict)
-            cells.append(f"{base:5.2f} {spread:5.2f} {verdict:>7s}")
+            # `base` is None when the baseline arm has no admitted records for this task,
+            # which is what a truncated run looks like. Formatting None with %.2f raises.
+            shown = "  n/a" if base is None else f"{base:5.2f}"
+            cells.append(f"{shown} {spread:5.2f} {verdict:>7s}")
         print(f"{task:20s} " + " ".join(cells))
 
     print()
