@@ -115,6 +115,39 @@ def salience_envelope() -> tuple[int, int, int, int, float]:
     return min(chars), max(chars), min(turns), max(turns), worst
 
 
+def outside_texts(
+    task_id: str,
+    task_dir: Path,
+    other_task_ids: list[str],
+    corpus_root: Path | None = None,
+) -> dict[Path, str]:
+    """Everywhere a wrong term must NOT appear, for one task.
+
+    Other tasks' PLANTS belong here as much as their sessions do. Two plants sharing a wrong term
+    would make their damage rates dependent, and since the per-condition analysis clusters on the
+    task, that dependence would not show up in the interval: the number would simply be narrower
+    than the evidence supports.
+    """
+
+    root = corpus_root or BASE_CORPUS
+    texts: dict[Path, str] = {}
+    for other_id in other_task_ids:
+        if other_id == task_id:
+            continue
+        for subdir in ("sessions", "plants"):
+            for path in sorted((root / subdir / other_id).glob("*.jsonl")):
+                texts[path] = _text(path)
+    for path in sorted((root / "distractors").glob("*.jsonl")):
+        texts[path] = _text(path)
+    for path in (task_dir / "tree").rglob("*"):
+        if path.is_file():
+            texts[path] = _text(path)
+    for path in BUNDLES:
+        if path.is_file():
+            texts[path] = _text(path)
+    return texts
+
+
 def corpus_vocabulary() -> set[str]:
     words: set[str] = set()
     for path in real_session_paths():
@@ -148,19 +181,7 @@ def main() -> int:
         real_sessions = sorted((BASE_CORPUS / "sessions" / task_id).glob("*.jsonl"))
         real_text = " ".join(_text(path) for path in real_sessions)
 
-        outside: dict[Path, str] = {}
-        for other_id in tasks:
-            if other_id != task_id:
-                for path in sorted((BASE_CORPUS / "sessions" / other_id).glob("*.jsonl")):
-                    outside[path] = _text(path)
-        for path in sorted((BASE_CORPUS / "distractors").glob("*.jsonl")):
-            outside[path] = _text(path)
-        for path in (task.path / "tree").rglob("*"):
-            if path.is_file():
-                outside[path] = _text(path)
-        for path in BUNDLES:
-            if path.is_file():
-                outside[path] = _text(path)
+        outside = outside_texts(task_id, task.path, list(tasks))
 
         seen_plants = {
             plant.name: plant

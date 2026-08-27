@@ -252,6 +252,45 @@ def test_rebuilding_a_condition_does_not_accumulate_stale_files(fake_corpus, tmp
 # ---------------------------------------------------------------------------------------
 
 
+def test_a_restamped_session_is_written_with_the_same_line_endings_as_the_feed(tmp_path):
+    """Mutation: dropping newline="\\n". On Windows the re-stamped memos become the only CRLF
+    files among 125 LF ones, so they can chunk differently from the sessions they compete with,
+    and the corpus hashes differently depending on where it was assembled."""
+
+    from scripts.assemble_condition_corpus import _write_jsonl
+
+    target = tmp_path / "memo.jsonl"
+    _write_jsonl(target, [{"role": "user", "content": "one"}, {"role": "user", "content": "two"}])
+    raw = target.read_bytes()
+    assert b"\r\n" not in raw
+    assert raw.count(b"\n") == 2
+
+    corpus_sample = (
+        Path(__file__).resolve().parents[1] / "corpus" / "sessions" / "ts-base36-id" / "p01.jsonl"
+    )
+    assert b"\r\n" not in corpus_sample.read_bytes(), "the base corpus is LF; this test assumes it"
+
+
+def test_another_task_s_plant_is_inside_the_containment_net(tmp_path):
+    """Mutation: dropping the plants/ sweep from outside_texts. Two plants could then share a
+    wrong term, their damage rates would be dependent, and because the per-condition analysis
+    clusters on the task the interval would be narrower than the evidence supports rather than
+    visibly wrong."""
+
+    from scripts.audit_plants import outside_texts
+
+    root = tmp_path / "corpus"
+    (root / "plants" / "ts-other").mkdir(parents=True)
+    (root / "sessions" / "ts-other").mkdir(parents=True)
+    (root / "distractors").mkdir(parents=True)
+    theirs = root / "plants" / "ts-other" / "their_plant.jsonl"
+    theirs.write_text('{"content": "emitted lowercase"}\n', encoding="utf-8")
+
+    texts = outside_texts("ts-mine", tmp_path / "nonexistent", ["ts-mine", "ts-other"], root)
+    assert theirs in texts, "another task's plant was not checked for term collisions"
+    assert "emitted lowercase" in texts[theirs]
+
+
 def test_restamp_moves_time_and_leaves_content_alone():
     lines = [
         {"role": "user", "content": "first", "ts": "2020-01-01T00:00:00Z"},

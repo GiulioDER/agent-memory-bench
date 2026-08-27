@@ -89,9 +89,18 @@ def _read_jsonl(path: Path) -> list[dict]:
 
 
 def _write_jsonl(path: Path, lines: list[dict]) -> None:
+    """Write a re-stamped session with LF endings, matching every other file in the feed.
+
+    ``newline="\\n"`` is load-bearing on Windows, where the default translates to CRLF. A
+    re-stamped memo would then be the only CRLF file among 125 LF ones, differing in bytes for a
+    reason that has nothing to do with its condition: it could chunk differently from the sessions
+    it competes with, which is the salience confound preregistration 005 names, and the corpus
+    would hash differently depending on whether it was assembled here or on the run host.
+    """
+
     path.parent.mkdir(parents=True, exist_ok=True)
     body = "".join(json.dumps(line, ensure_ascii=False) + "\n" for line in lines)
-    path.write_text(body, encoding="utf-8")
+    path.write_text(body, encoding="utf-8", newline="\n")
 
 
 def assemble(condition: str, seed: int, selection: list[str], out_root: Path) -> dict:
