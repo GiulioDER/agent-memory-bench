@@ -133,6 +133,8 @@ def public_arms() -> list[tuple[str, str, str, str | None]]:
     anonymous = 0
     for internal, arm_type, role, public in PRODUCT_ARMS:
         if public is None:
+            if anonymous >= 26:
+                raise ValueError("more undisclosed arms than letters; widen the label scheme")
             label = UNDISCLOSED_PREFIX + chr(ord("a") + anonymous)
             anonymous += 1
             out.append((internal, label, UNDISCLOSED_TYPE, role))
