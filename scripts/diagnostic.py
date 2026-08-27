@@ -139,11 +139,15 @@ async def main() -> int:
         choices=("skill", "oneliner"),
         default="skill",
         help=(
+            # argparse expands this with `help % params`, so a literal percent sign must be
+            # doubled. Undoubled it raised `ValueError: incomplete format` on --help, which no
+            # run ever hit because a run never formats the help. The figures are left as they
+            # were measured when this text was written.
             "which instruction sits above the static bundle in the recall arm. "
             "pilot-003 and pilot-004 both used `skill`, so that is the default: with "
             "`oneliner` the recall arm is a different treatment from the runs this "
-            "diagnostic exists to explain, and its search rate measured 16% against "
-            "pilot-004's 85.7%."
+            "diagnostic exists to explain, and its search rate measured 16%% against "
+            "pilot-004's 85.7%%."
         ),
     )
     parser.add_argument("--price-in", type=float, default=0.0826)

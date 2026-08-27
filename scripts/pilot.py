@@ -102,7 +102,10 @@ def build_bundles(task, out_dir: Path, instruction: str) -> dict[str, Path]:
 
 def write_mcp_config(path: Path, namespace: str) -> Path:
     env = {
-        "RECALL_DSN": os.environ["RECALL_DSN"],
+        # A run with no recall arm never launches this server, and main() refuses the run when
+        # a recall arm IS present without a DSN. So an empty value here can only reach a config
+        # nothing reads, and it is what lets a bare-only calibration run with no database.
+        "RECALL_DSN": os.environ.get("RECALL_DSN", ""),
         "RECALL_EMBEDDER": str(RECALL_CONFIG["embedder"]),
         "RECALL_TRUST_MODE": str(RECALL_CONFIG["trust_mode"]),
         "RECALL_TENANT": namespace,
@@ -149,6 +152,13 @@ async def main() -> int:
         default=",".join(DEFAULT_ARMS),
         help="comma-separated subset of bare,placebo,claude_md,recall",
     )
+    parser.add_argument(
+        "--tasks",
+        default="",
+        help="comma-separated task ids to run; default is every ts-* task. A subset is for "
+        "calibrating new tasks, never for a preregistered comparison, whose task set is "
+        "fixed by its record.",
+    )
     parser.add_argument("--price-in", type=float, default=0.05866)
     parser.add_argument("--price-out", type=float, default=0.11732)
     parser.add_argument("--price-as-of", default="2026-08-22")
@@ -157,16 +167,25 @@ async def main() -> int:
     assert_preregistered(REPO)
     if not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
-    if not os.environ.get("RECALL_DSN"):
-        raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
 
     run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
+    # Only the recall arm reads a corpus. Demanding a DSN for a run that has no recall arm would
+    # make a bare-only calibration impossible without standing up a database it never queries.
+    if "recall" in run_arms and not os.environ.get("RECALL_DSN"):
+        raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
     instruction = recall_instruction(args.recall_instruction)
 
     tasks = [task for task in discover_tasks() if task.task_id.startswith("ts-")]
+    if args.tasks:
+        wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
+        available = {task.task_id for task in tasks}
+        missing = [task_id for task_id in wanted if task_id not in available]
+        if missing:
+            raise SystemExit(f"unknown task(s) {missing}; a silent subset is a different run")
+        tasks = [task for task in tasks if task.task_id in set(wanted)]
     run_dir = REPO / "results" / args.run_id
     if (run_dir / "records.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
