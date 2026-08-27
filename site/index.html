@@ -141,11 +141,17 @@
       <div class="arm-cell"><div class="arm-name">claude_md</div><div class="arm-type">curated CLAUDE.md bundle</div><span class="badge">baseline</span></div>
       <div class="arm-cell"><div class="arm-name">fs_grep</div><div class="arm-type">transcripts on disk + grep</div><span class="badge">control</span></div>
       <div class="arm-cell"><div class="arm-name">recall</div><div class="arm-type">MCP server</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">mem0</div><div class="arm-type">SaaS API</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">supermemory</div><div class="arm-type">SaaS API</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">zep</div><div class="arm-type">Graphiti, local via docker</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">cognee</div><div class="arm-type">local via docker</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_a</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_b</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_c</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_d</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
     </div>
+
+    <p class="prose mt-m dim">The four third-party arms are unnamed on purpose. Every vendor
+    is invited to review its own adapter and frozen config before any measured run, no
+    invitation has gone out yet, and naming a product first would enter it into a benchmark
+    nobody has told it about. They are named when the first preregistered run is announced,
+    which is before the run rather than after it.</p>
 
     <p class="prose mt-m dim">Two additional reference tracks, <code>oracle_memory</code> and
     <code>recall_prefetch</code>, isolate <em>where</em> the memory path succeeds or fails. They

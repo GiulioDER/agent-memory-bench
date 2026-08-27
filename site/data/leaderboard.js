@@ -18,8 +18,8 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
-      "name": "mem0",
-      "type": "SaaS API",
+      "name": "product_a",
+      "type": "third-party product, not yet named",
       "success": null,
       "delta": null,
       "ci": null,
@@ -28,8 +28,8 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
-      "name": "supermemory",
-      "type": "SaaS API",
+      "name": "product_b",
+      "type": "third-party product, not yet named",
       "success": null,
       "delta": null,
       "ci": null,
@@ -38,8 +38,8 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
-      "name": "zep",
-      "type": "Graphiti, local docker",
+      "name": "product_c",
+      "type": "third-party product, not yet named",
       "success": null,
       "delta": null,
       "ci": null,
@@ -48,8 +48,8 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
-      "name": "cognee",
-      "type": "local docker",
+      "name": "product_d",
+      "type": "third-party product, not yet named",
       "success": null,
       "delta": null,
       "ci": null,

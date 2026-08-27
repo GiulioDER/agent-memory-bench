@@ -44,7 +44,12 @@ announced before it happens, not after.
 ## Arms
 
 `bare`, `claude_md` (designated baseline), `fs_grep` (transcripts on disk plus grep),
-`recall`, `mem0`, `supermemory`, `zep` (Graphiti), `cognee`.
+`recall`, and four third-party memory products.
+
+Those four are not named yet. Every vendor is invited to review its own adapter and frozen
+config before any measured run, no invitation has gone out, and naming a product first would
+enter it into a benchmark nobody has told it about. They are named when the first
+preregistered run is announced, which is before the run rather than after it.
 
 Disclosure: this benchmark is built by the authors of recall, which competes in it. That is
 exactly why the methodology is preregistered, the harness is open, every adapter config is
