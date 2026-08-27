@@ -51,7 +51,11 @@ if str(REPO) not in sys.path:
 #: Runs carrying a real `bare` arm on deepseek/deepseek-v4-flash, the model 005 pins. pilot-001 is
 #: excluded for having no environment.json, so its model cannot be confirmed; pilot-003-gpt53 is
 #: excluded for being a different model, and is printed as a cross-check rather than used.
-SAME_MODEL_RUNS = ("pilot-003-deepseek", "pilot-004-placebo")
+#:
+#: `midband-001` joins on the criterion preregistration 007 already froze ("runs that carried a
+#: real `bare` arm, on the model 005 pins"), not on a revised one. It covers only the six tasks
+#: added on 2026-08-27 and is disjoint from the pilots, so it changes no existing task's rate.
+SAME_MODEL_RUNS = ("pilot-003-deepseek", "pilot-004-placebo", "midband-001")
 CROSS_CHECK_RUNS = ("pilot-003-gpt53",)
 
 #: Below this many admitted `bare` observations a rate is not a screen, it is a rumour.

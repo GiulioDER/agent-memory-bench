@@ -33,6 +33,31 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 
 
+def _preregistration_dirty() -> bool:
+    """Is `preregistration/` uncommitted, so pilot.py will refuse before reaching any check here?
+
+    `assert_preregistered` runs first in main(), so while a record is being written every test in
+    this file sees that refusal instead of the one it asserts. Skipping is right rather than
+    working around it: the alternative is four failures every time a result is appended, which
+    trains you to ignore this file exactly when it might be telling you something.
+    """
+
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain", "preregistration/", "benchmarks/"],
+            cwd=str(REPO), capture_output=True, text=True, timeout=60, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return bool(result.stdout.strip())
+
+
+needs_clean_preregistration = pytest.mark.skipif(
+    _preregistration_dirty(),
+    reason="preregistration/ is uncommitted, so pilot.py refuses before any check under test",
+)
+
+
 def _run(args: list[str], env_overrides: dict[str, str | None]) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     for key, value in env_overrides.items():
@@ -74,6 +99,7 @@ def probe_run_dir():
     _force_rmtree(target)
 
 
+@needs_clean_preregistration
 def test_a_bare_only_run_does_not_require_a_database():
     """Mutation: restoring the unconditional DSN check. A bare-only calibration then cannot run
     without standing up a database it never queries.
@@ -93,6 +119,7 @@ def test_a_bare_only_run_does_not_require_a_database():
     assert "unknown task(s)" in output
 
 
+@needs_clean_preregistration
 def test_a_run_with_the_recall_arm_still_refuses_without_a_corpus():
     """The half of the old check that must survive: a recall arm with no DSN is a run whose
     treatment is silently absent, which is what the admission gate exists to prevent."""
@@ -104,6 +131,7 @@ def test_a_run_with_the_recall_arm_still_refuses_without_a_corpus():
     assert "RECALL_DSN is not set" in result.stdout + result.stderr
 
 
+@needs_clean_preregistration
 def test_an_unknown_task_id_is_refused():
     """Mutation: filtering silently. A typo would then run a smaller grid than asked for and
     report it under the same run id."""
@@ -121,6 +149,7 @@ def test_an_unknown_task_id_is_refused():
     assert "ts-does-not-exist" in result.stdout + result.stderr
 
 
+@needs_clean_preregistration
 def test_a_dry_run_writes_nothing_and_executes_nothing(probe_run_dir):
     """Mutation: moving the dry-run exit below the run directory creation, or removing it.
 

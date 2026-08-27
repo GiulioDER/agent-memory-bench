@@ -144,3 +144,28 @@ non-negotiable afterwards.
   conditions; that flatness is an apparatus check and its failure voids the whole suite.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Update, 2026-08-27: six tasks added, the strata re-counted
+
+`midband-001` (preregistration 008) calibrated six new tasks under the screen frozen above, at the
+same `n = 6`, with the same `stratify` function. 36 sessions, 36 admitted, 0 discarded.
+
+| stratum | was | now | added |
+|---|---:|---:|---|
+| `TWO_SIDED` | 5 | **6** | ts-idempotent-run (0.17) |
+| `DAMAGE_ONLY` | 8 | **11** | ts-bool-env, ts-csv-quote, ts-natural-order (all 1.00) |
+| `BENEFIT_ONLY` | 11 | **13** | ts-cli-exitcode, ts-json-sorted (both 0.00) |
+
+**The consequence stated above is unchanged: preregistration 005's primary endpoint is still
+underpowered.** `TWO_SIDED` is 6 against the threshold of 8, and that is before any admission
+discard. One of six candidates landed there, so the rule that produced them does not close the
+gap; preregistration 008's frozen text forbids simply building more to the same rule.
+
+What did improve, and it is the stratum carrying the suite's most quotable number: `DAMAGE_ONLY`
+was sitting at **exactly** the 8-task threshold, where a single discarded task would have dropped
+endpoint 2 under it too. At 11 it has three tasks of headroom.
+
+Nothing above this line was edited. `tests/test_abstention_selection.py` pins the original five
+`TWO_SIDED` rates and the count of 5; that count is now stale by design, and the tripwire test
+documented there is what forced this section to be written rather than letting the change pass
+unnoticed.

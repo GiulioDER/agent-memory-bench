@@ -104,3 +104,75 @@ that fails and an informed solution that passes. That gate says nothing about wh
 lands between them, which is the entire question here.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Result, measured 2026-08-27
+
+`midband-001`, VPS2, `deepseek/deepseek-v4-flash`, `bare` only, 6 tasks x 6 seeds.
+**36 sessions, 36 admitted, 0 discarded, 0 session errors.** Wall 18 minutes, $0.0493,
+539,253 tokens. Overall `bare` 19/36 = 0.528.
+
+| task | `bare` | stratum | predicted |
+|---|---:|---|---|
+| ts-bool-env | 1.00 | `DAMAGE_ONLY` | mid-band |
+| ts-cli-exitcode | 0.00 | `BENEFIT_ONLY` | mid-band |
+| ts-csv-quote | 1.00 | `DAMAGE_ONLY` | ceiling ✓ |
+| ts-idempotent-run | 0.17 | `TWO_SIDED` | mid-band ✓ |
+| ts-json-sorted | 0.00 | `BENEFIT_ONLY` | mid-band |
+| ts-natural-order | 1.00 | `DAMAGE_ONLY` | floor ✗ (ceilinged) |
+
+Reproduce with `scripts.select_abstention_tasks.stratify` over
+`results/midband-001/records.final.jsonl`.
+
+### Scoring the predictions: two confirmed, three falsified
+
+1. **Three of six land mid-band, range 2 to 4.** **FALSIFIED.** One did. Below the stated range,
+   so this is not a near miss.
+2. **`ts-csv-quote` ceilings at or above 0.83.** **CONFIRMED**, at 1.00.
+3. **`ts-natural-order` floors at or below 0.33.** **FALSIFIED**, and in the opposite direction: it
+   ceilinged at 1.00. The model sorts by numeric suffix reliably, unprompted, with only five
+   single-digit reports visible.
+4. **No task at exactly 0.00 except possibly `ts-natural-order`.** **FALSIFIED.** Two tasks landed
+   at exactly 0.00, and neither was the predicted one.
+5. **Cost under $0.60.** **CONFIRMED**, at $0.0493, an order of magnitude under.
+
+That makes thirteen falsified predictions out of seventeen on this benchmark. Prediction 1 failed
+in the same direction as every previous one: too optimistic.
+
+### What the pre-committed rule now binds me to
+
+The frozen text says: "Prediction 1 falsified at 0, 1, 5 or 6 mid-band. At 0 or 1 the design rule
+does not generalise and I should say so rather than build a seventh candidate."
+
+**The design rule does not generalise.** Building more candidates to the same rule is exactly what
+this record forbids, and the 1-in-6 hit rate says the cost of reaching 8 that way would be roughly
+twelve more tasks for two more slots.
+
+### What the pattern actually is, which the rule missed
+
+The rule was "a recognised best practice applied inconsistently". The results say agent
+convention-following is close to **deterministic per convention**, not inconsistent, and splits on
+something the rule never mentioned:
+
+* **Reliably right** (1.00): use the csv module, parse `off`/`no`/`0` as false, sort by numeric
+  suffix. Every one of these is a property of the output of a **single run**, visible by looking at
+  what the program just produced.
+* **Reliably wrong** (0.00): sort JSON keys for reproducibility, exit non-zero so a pipeline stops.
+  Both are properties that only exist **across invocations or across consumers**, and neither is
+  visible in the artefact a single run produces.
+* **The one mid-band case** (0.17): idempotency on re-run, which is also a cross-invocation
+  property, and the only one where the fixture's README said out loud that re-runs happen.
+
+So the blind spot is **cross-invocation properties**, and it is close to all-or-nothing too. That
+is a more useful generalisation than the one predicted, and it was not derivable from the three
+existing 0.50 tasks, which is why the rule extracted from them failed.
+
+### A resolution limit that this design cannot see, recorded rather than fixed
+
+With `n = 6`, a task whose true rate is 0.90 shows 6/6 about 53% of the time. So `DAMAGE_ONLY`
+here means "no failure in six", not "cannot fail", and some of these three may be near-ceiling
+rather than at it. The same applies to every task in preregistration 007, which used 4 to 6.
+
+This is **not** grounds for re-measuring these six at higher `n`: doing that now would give the new
+tasks an easier path into `TWO_SIDED` than the old ones faced, which is the exact bias the frozen
+design avoided by matching `n`. A higher-resolution re-measurement is only legitimate if it covers
+**all 30 tasks at the same `n`**, and that is a separate preregistration, not an amendment here.

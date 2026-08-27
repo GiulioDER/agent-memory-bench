@@ -71,12 +71,27 @@ def test_too_few_observations_is_not_a_stratum():
 
 
 def _record_tasks(stratum: str) -> set[str]:
-    """The task ids preregistration 007 lists for one stratum."""
+    """Every task id preregistration 007 assigns to one stratum, frozen table plus updates.
+
+    Two row shapes, because the record grows by appending rather than by editing:
+
+        frozen   | `TWO_SIDED` | **5** | ts-atomic-write (0.50), ... |
+        update   | `TWO_SIDED` | 5 | **6** | ts-idempotent-run (0.17) |
+
+    Reading only the first would make this test fail the moment a calibration adds a task, which
+    would push whoever hit it toward editing the frozen table. Reading both is what lets the
+    record stay append-only.
+    """
 
     text = RECORD.read_text(encoding="utf-8")
-    row = re.search(rf"^\| `{stratum}` \| \*\*\d+\*\* \| (.+?) \|$", text, re.MULTILINE)
-    assert row, f"007 has no table row for {stratum}"
-    return set(re.findall(r"\bts-[a-z0-9\-]+", row.group(1)))
+    frozen = re.search(rf"^\| `{stratum}` \| \*\*\d+\*\* \| (.+?) \|$", text, re.MULTILINE)
+    assert frozen, f"007 has no frozen table row for {stratum}"
+    tasks = set(re.findall(r"\bts-[a-z0-9\-]+", frozen.group(1)))
+    for update in re.finditer(
+        rf"^\| `{stratum}` \| \d+ \| \*\*\d+\*\* \| (.+?) \|$", text, re.MULTILINE
+    ):
+        tasks |= set(re.findall(r"\bts-[a-z0-9\-]+", update.group(1)))
+    return tasks
 
 
 @pytest.mark.skipif(
@@ -142,7 +157,10 @@ def test_the_primary_endpoint_is_known_to_be_underpowered():
 
     pooled = bare_outcomes(SAME_MODEL_RUNS)
     two_sided = [t for t, o in pooled.items() if stratify(o) == TWO_SIDED]
-    assert len(two_sided) == 5, (
+    # 5 on 2026-08-27, then 6 once midband-001 added ts-idempotent-run. Raised here only because
+    # the matching result is appended below 007's marker, which is the condition this test's
+    # docstring sets. Still short of the 8 that preregistration 005 requires.
+    assert len(two_sided) == 6, (
         f"the TWO_SIDED stratum has moved to {len(two_sided)} tasks. If it reached 8, "
         f"preregistration 005's primary endpoint is deliverable and 007's consequence section "
         f"needs a result appended below its marker."
