@@ -116,9 +116,16 @@ def run_checker(task: TaskSpec, workdir: Path) -> tuple[bool, str]:
 
 
 def apply_reference(task: TaskSpec, variant: str, workdir: Path) -> None:
-    """Apply one committed reference solution (``naive`` or ``informed``) to a sandbox."""
+    """Apply one committed reference solution to a sandbox.
 
-    if variant not in ("naive", "informed"):
+    ``naive`` and ``informed`` are the discrimination pair every task carries. A ``damaged_*``
+    variant is the third leg, added for preregistration 005: a solution that retrieved a PLANTED
+    WRONG fact and applied it. It exists so a damage detector can be watched firing on a sandbox
+    whose damage is known by construction, exactly as the other two let the checker be watched
+    failing and passing.
+    """
+
+    if variant not in ("naive", "informed") and not variant.startswith("damaged_"):
         raise ValueError(f"unknown reference variant {variant!r}")
     apply = _load_callable(task.reference_dir / f"{variant}.py", "apply")
     apply(Path(workdir))
