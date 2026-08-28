@@ -1,5 +1,5 @@
 # The harness image: everything a full run needs except credentials.
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:09f7da3bc104798d0afb40bc08d23ab2da20a76130cec1f2ef170848f5d85217
 
 # git for sandbox fixtures and the preregistration guard; nodejs+npm for the Claude Code CLI.
 RUN apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates \
@@ -10,11 +10,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # Pin the CLI at or above 2.1.221: below that, a session with a pending MCP server runs
 # WITHOUT its tools while reporting success. The harness asserts the version at startup too;
 # this pin is the first line of defence, not the only one.
-ARG CLAUDE_CODE_VERSION=latest
+ARG CLAUDE_CODE_VERSION=2.1.221
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 WORKDIR /bench
 COPY . /bench
-RUN pip install --no-cache-dir pytest
+RUN pip install --no-cache-dir -r requirements-dev.txt
 
 CMD ["python", "-m", "pytest", "tests/", "-q"]
