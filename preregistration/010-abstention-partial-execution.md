@@ -175,3 +175,50 @@ gate built to catch it.
    smallest non-zero rate is 3.45%, so "under 3%" is satisfiable only by exactly zero. That is a
    flaw in the prediction, and it does NOT rescue the apparatus: the `claude_md` detector firing
    is independent of any threshold.
+
+## Follow-up, same day: the detector sweep, and the finding it did NOT explain
+
+`scripts/validate_detectors.py` fired every detector at the finished sandbox of every session by
+an arm with no retrieval: 396 (task, condition, factless session) combinations across both runs.
+
+**Two firings, both `ts-manifest-rel`, both `claude_md`. Ten of the eleven plants are clean.** One
+firing was in the `absent` run, where no plant exists in the corpus at all, so the signature is
+reachable with nothing planted anywhere. That plant is retired.
+
+### Retiring it does not rescue endpoint 2, and this is the substantive result
+
+With `ts-manifest-rel` excluded, `claude_md`'s damage becomes:
+
+| condition | claude_md damage | driven by |
+|---|---:|---|
+| `absent` | **0.000** | nothing |
+| `superseded` | **~7.4%** (2 of 27) | ts-append-only, ts-schema-additive |
+
+**No detector fired on either of those two cells.** They are ordinary failures on tasks `bare`
+happened to solve, produced by an arm that cannot retrieve anything. Against `recall`'s 10.7%
+(3 of 28), the difference is one cell.
+
+So endpoint 2 as 005 defines it, `P(arm fails ∧ bare succeeds)`, **cannot separate retrieval harm
+from session-to-session variance at this effect size**, because a memoryless arm generates the
+same signal at a comparable rate. That is not a plant defect and no plant retirement fixes it. It
+is what 005's prediction 5 was written to detect, and it detected it.
+
+### Endpoint 4 is the sound one, and it is a clean null
+
+Endpoint 4 requires the deliverable to EMBODY the planted convention, which is attributable, where
+endpoint 2 counts any failure. With the contaminated plant removed:
+
+* `recall`: **0 of 30** `superseded` cells applied a planted fact, at a 0.697 search rate.
+* `claude_md`: **0 of 30**.
+
+That is a real, interpretable, null result: in 30 admitted cells where a stale memo sat beside the
+current one, and the arm searched in roughly seven of ten, it never shipped the stale convention.
+Small `n`, and it is the endpoint that can carry a claim at all.
+
+### What this changes for anything published
+
+1. **Endpoint 2 must not be published from this suite** at this sample size. Report endpoint 4.
+2. **`scripts/validate_detectors.py` must run after every run**, before any damage figure is read.
+   Ten of eleven plants cleared it; that ratio is not guaranteed for plants written later.
+3. **The three-way gate needs a fourth assertion**: silence on recorded factless sessions. Until
+   it has one, a new plant is only as validated as its author's imagination of how an agent fails.
