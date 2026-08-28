@@ -194,7 +194,12 @@ class RecallAdapter(MemoryAdapter):
         except ImportError:  # pragma: no cover - environment without the driver
             return -1
         with psycopg.connect(self._dsn()) as connection, connection.cursor() as cursor:
-            cursor.execute("SET LOCAL recall.tenant_id = %s", (namespace,))
+            # `set_config`, NOT `SET LOCAL ... = %s`. Postgres does not accept a parameter
+            # placeholder in a SET statement, and the first version of this raised
+            # `syntax error at or near "$1"` AFTER a twenty-minute embed had already succeeded.
+            # set_config is an ordinary function, so the tenant name binds as a parameter and is
+            # never interpolated into SQL text.
+            cursor.execute("SELECT set_config('recall.tenant_id', %s, true)", (namespace,))
             cursor.execute("SELECT count(*) FROM chunks")
             row = cursor.fetchone()
         return int(row[0]) if row else 0

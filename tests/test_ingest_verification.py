@@ -12,6 +12,7 @@ go looking; a competitor's maintainer would have to take our word for it.
 from __future__ import annotations
 
 import inspect
+import re
 from pathlib import Path
 
 import pytest
@@ -54,10 +55,36 @@ def test_the_row_count_sets_the_tenant_guc():
 
     rows = inspect.getsource(RecallAdapter._rows_for_tenant)
     assert "recall.tenant_id" in rows, "the count must set the tenant GUC or RLS hides every row"
-    assert "SET LOCAL" in rows
     guc_at = rows.index("recall.tenant_id")
     count_at = rows.index("SELECT count(*)")
     assert guc_at < count_at, "the GUC must be set BEFORE the count, not after"
+
+
+def test_the_tenant_is_bound_as_a_parameter_not_a_set_statement():
+    """Postgres rejects a placeholder in SET, and these tests could not see that.
+
+    The first version ran `SET LOCAL recall.tenant_id = %s` and raised `syntax error at or near
+    "$1"` in production, AFTER a twenty-minute embed had already succeeded. Every test here passed,
+    because they read the source with `inspect.getsource` and never executed a statement. That is
+    the same weakness that was caught and fixed in the pilot tests hours earlier, repeated.
+
+    This still cannot execute SQL without a database, so it checks the one thing that is decidable
+    from the text: that the tenant is bound through `set_config`, a function, rather than
+    interpolated into a SET statement that cannot take a parameter.
+    """
+
+    rows = inspect.getsource(RecallAdapter._rows_for_tenant)
+    assert "set_config(" in rows, "the tenant must bind through set_config, which takes parameters"
+    # Target the EXECUTED statement, not any mention. A first attempt asserted `"SET LOCAL" not in
+    # rows` and failed on the comment above the fix explaining the bug, which is source-text
+    # brittleness in the opposite direction from the miss it was written to cover.
+    executed = re.findall(r"""cursor\.execute\(\s*["']([^"']+)""", rows)
+    assert executed, "no executed statement found; the extraction pattern has drifted"
+    offending = [sql for sql in executed if sql.lstrip().upper().startswith("SET ")]
+    assert not offending, (
+        f"SET cannot take a parameter placeholder and this raised in production once already: "
+        f"{offending}"
+    )
 
 
 def test_a_missing_driver_degrades_rather_than_crashing():
