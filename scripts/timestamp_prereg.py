@@ -67,6 +67,20 @@ def cmd_verify(manifest: str | None, strict: bool) -> int:
         result = subprocess.run([ots, "verify", str(path)], capture_output=True, text=True, check=False)
         detail = (result.stderr or result.stdout).strip().splitlines()
         print(f"ots verify {path.name}: {detail[-1] if detail else 'no output'}")
+        # The attestation is the strongest anchor the scheme has, so "could not verify it" must
+        # not exit 0 the way it used to: an unverified stamp reading as a verified one is the
+        # whole failure this guard exists to prevent. Note the two causes are different and the
+        # wording says so, because a broken local client is not evidence of a bad timestamp.
+        if result.returncode != 0:
+            for line in detail:
+                print(f"  {line}")
+            print(
+                f"  -> {path.name} is NOT verified (ots exit {result.returncode}). Either the "
+                "attestation does not verify, or the local ots client failed to run; read the "
+                "output above to tell which, and do not treat this stamp as an anchor until it "
+                "passes."
+            )
+            failed = True
 
     return 1 if failed else 0
 

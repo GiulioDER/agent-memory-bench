@@ -2,10 +2,16 @@
 
     python scripts/salvage.py --run-id <run-id> --arms recall,bare
 
-`run_claude_case` writes each session's stream to disk **before** parsing it, and the runner only
-writes `records.jsonl` at the very end. So a runner that dies mid-run loses its index but not its
-evidence: the transcripts are all there. This turns them back into records and writes the same
-records artifact a completed run would, minus the cells that never finished.
+`run_claude_case` writes each session's stream to disk **before** parsing it, so a runner that
+dies mid-run loses its index but not its evidence: the transcripts are all there. This turns them
+back into records, minus the cells that never finished.
+
+**It writes `records.salvaged.jsonl`, never `records.jsonl`.** `scripts/pilot.py` appends each
+CHECKER-GRADED record to `records.jsonl` with fsync as the run proceeds, exactly so a dying run
+keeps every finished cell. A salvaged record has no checker verdict: `build_record` sets `success`
+from "the session reached its result event", which is a different question from "the task was
+solved". Writing one over the other would silently promote graded failures to successes in the
+artifact that backs published numbers, so this refuses to run when `records.jsonl` exists.
 
 Used in anger on 2026-08-21 in the source project, when a headline run's process died at 71 of
 100 sessions.
@@ -29,6 +35,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -46,27 +53,47 @@ from harness.claude_exec import (
 )
 from harness.io import write_jsonl
 from harness.schema import DEFAULT_MEMORY_TOOL_PREFIX
+from harness.tasks import discover_tasks
 
-# TODO(port): the source script also imported `arms.BASE_TOOLS` (only fed
-# `ClaudeExecConfig.allowed_tools` on a parse-only config, where it changes nothing),
-# `gate.admit_pairs` (the availability gate), `summarize.summarize_pairs` /
-# `summarize_recall_overhead` and `traps.score_record`. None of those modules are ported yet, so
-# this script admits every complete cell without the gate and writes only `records.jsonl` and
-# `salvage.json`; summaries and trap scores are recomputed by their own tools once ported.
+# `harness.gate.admit_cells` IS available (scripts/pilot.py, smoke.py and diagnostic.py all use
+# it), but it needs the run's AdmissionSignal roster, which describes how the run was CONFIGURED
+# and does not survive in the transcripts. So this script still writes every complete cell
+# ungated, and says so in the artifact. Run the gate before analysing these records.
 
 
-def split_name(name: str, arms: tuple[str, ...]) -> tuple[str, str] | None:
-    """`trap-x#r2.recall.jsonl.gz` -> `("trap-x#r2", "recall")`.
+def split_name(name: str, arms: tuple[str, ...]) -> tuple[str, int, str] | None:
+    """`ts-tz-utc.s2.recall.jsonl.gz` -> `("ts-tz-utc", 2, "recall")`.
 
     Matches on the arm suffix rather than splitting on dots, because a task id may legitimately
-    contain a dot.
+    contain a dot. `harness.claude_exec` names streams `<task>.s<seed>.<arm>.jsonl.gz`; an older
+    stream with no seed segment parses as seed 0 rather than being dropped.
     """
 
     base = name.removesuffix(".jsonl.gz")
     for arm in arms:
-        if base.endswith(f".{arm}"):
-            return base[: -len(arm) - 1], arm
+        if not base.endswith(f".{arm}"):
+            continue
+        remainder = base[: -len(arm) - 1]
+        head, _, seed_part = remainder.rpartition(".")
+        if head and re.fullmatch(r"s\d+", seed_part):
+            return head, int(seed_part[1:]), arm
+        return remainder, 0, arm
     return None
+
+
+def refuse_if_records_exist(artifacts: Path) -> None:
+    """Refuse to salvage over an artifact the runner already graded.
+
+    A salvaged record's `success` means "the session completed", not "the checker passed", so
+    overwriting the runner's graded records.jsonl would rewrite failures as successes.
+    """
+
+    existing = artifacts / "records.jsonl"
+    if existing.exists():
+        raise SystemExit(
+            f"{existing} already exists and holds checker-graded records; salvage would replace "
+            "them with ungraded ones. Move it aside first if you really mean to rebuild."
+        )
 
 
 def main() -> int:
@@ -76,9 +103,13 @@ def main() -> int:
         "--arms",
         required=True,
         help="comma-separated arm names the run used; each stream file is named "
-        "<task_id>.<arm>.jsonl.gz",
+        "<task_id>.s<seed>.<arm>.jsonl.gz",
     )
-    parser.add_argument("--tasks", default=str(REPO_ROOT / "tasks" / "traps.jsonl"))
+    parser.add_argument(
+        "--tasks",
+        default=None,
+        help="optional JSONL of task rows; without it, prompts are read from tasks/<id>/task.json",
+    )
     parser.add_argument("--memory-tool-prefix", default=DEFAULT_MEMORY_TOOL_PREFIX)
     args = parser.parse_args()
 
@@ -90,15 +121,22 @@ def main() -> int:
     streams = artifacts / "streams"
     if not streams.is_dir():
         raise SystemExit(f"no streams at {streams}")
+    refuse_if_records_exist(artifacts)
 
-    tasks = {
-        row["task_id"]: row
-        for row in (
-            json.loads(line)
-            for line in Path(args.tasks).read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        )
-    }
+    if args.tasks:
+        tasks = {
+            row["task_id"]: row
+            for row in (
+                json.loads(line)
+                for line in Path(args.tasks).read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            )
+        }
+    else:
+        tasks = {
+            task.task_id: {"task_id": task.task_id, "user_input": task.prompt}
+            for task in discover_tasks()
+        }
 
     records = []
     unreadable: list[str] = []
@@ -106,11 +144,12 @@ def main() -> int:
         parsed = split_name(path.name, arms)
         if parsed is None:
             continue
-        task_id, arm = parsed
+        task_id, seed, arm = parsed
         base = task_id.split("#")[0]
         row = dict(tasks.get(base, {}))
         row["task_id"] = task_id
         row["base_task_id"] = base
+        row["seed"] = seed
         with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
             stream = handle.read()
         try:
@@ -150,14 +189,19 @@ def main() -> int:
         except Exception as error:  # noqa: BLE001 - one bad transcript must not lose the rest
             unreadable.append(f"{path.name}: {type(error).__name__}: {error}"[:200])
 
-    by_task: dict[str, set[str]] = defaultdict(set)
+    # Key on the CELL, (task_id, seed), not the task. Before the seed was parsed out of the
+    # stream name it stayed inside task_id, so keying on task_id alone was accidentally per-cell;
+    # once the seed moved to its own field that key would have pooled every seed of a task and
+    # admitted a seed whose partner arm never finished. A lone arm is not a comparison.
+    by_cell: dict[tuple[str, int], set[str]] = defaultdict(set)
     for record in records:
-        by_task[record.task_id].add(record.arm)
-    complete = {t for t, seen in by_task.items() if set(arms) <= seen}
-    orphans = sorted(set(by_task) - complete)
-    paired = [r for r in records if r.task_id in complete]
+        by_cell[(record.task_id, record.seed)].add(record.arm)
+    complete = {cell for cell, seen in by_cell.items() if set(arms) <= seen}
+    orphans = sorted(f"{task}.s{seed}" for task, seed in set(by_cell) - complete)
+    paired = [r for r in records if (r.task_id, r.seed) in complete]
 
     print(f"salvaged {len(records)} records from {len(list(streams.iterdir()))} streams")
+    print(f"wrote {(artifacts / 'records.salvaged.jsonl').name} (ungraded; run the gate before analysis)")
     print(f"complete cells: {len(complete)}")
     if orphans:
         print(f"incomplete (excluded, an arm never finished): {len(orphans)} -> {orphans[:6]}")
@@ -172,11 +216,11 @@ def main() -> int:
     # artifact says so.
     admitted = paired
 
-    write_jsonl(artifacts / "records.jsonl", admitted)
+    write_jsonl(artifacts / "records.salvaged.jsonl", admitted)
     salvage: dict[str, Any] = {
         "run_id": args.run_id,
         "salvaged": True,
-        "reason": "the runner process died before writing records.jsonl",
+        "reason": "the runner process died mid-run; records rebuilt from the saved streams",
         "arms": list(arms),
         "streams_seen": len(list(streams.iterdir())),
         "records_rebuilt": len(records),
@@ -184,8 +228,12 @@ def main() -> int:
         "incomplete_excluded": orphans,
         "unreadable": unreadable,
         "gate_applied": False,
-        "gate_note": "TODO(port): harness.gate not yet available to this script; no availability "
-        "gate was applied, run it before analysing these records",
+        "gate_note": "harness.gate.admit_cells needs the run's AdmissionSignal roster, which "
+        "does not survive in the transcripts; no availability gate was applied, run it before "
+        "analysing these records",
+        "success_semantics": "the session reached its result event; NO checker was re-run, so "
+        "these flags are not task verdicts",
+        "records_path": "records.salvaged.jsonl",
         "wall_time_source": "stream_duration_ms (the runner's own timing did not survive)",
     }
     (artifacts / "salvage.json").write_text(json.dumps(salvage, indent=2), encoding="utf-8")
