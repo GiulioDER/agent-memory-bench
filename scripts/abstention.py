@@ -141,6 +141,39 @@ def run_condition(args, condition: str) -> Path:
     return REPO / "results" / run_id
 
 
+#: Below this, a memory arm's endpoints are not interpretable. Taken from preregistration 002's
+#: eligibility rule rather than chosen here, so the benchmark uses one number for one idea.
+SEARCH_RATE_FLOOR = 0.50
+
+#: Arms whose treatment is a memory surface, so a search rate is defined for them.
+MEMORY_ARMS = frozenset({"recall", "fs_grep"})
+
+
+def search_rate_for(run_dir: Path) -> dict[str, float]:
+    """Fraction of each memory arm's admitted cells that called its memory at least once.
+
+    Reported beside every endpoint because it decides whether they mean anything. pilot-003 and
+    pilot-004 measured 0.833 and 0.857 overall with the same instruction; a run far below that is
+    measuring an arm that did not use its treatment.
+    """
+
+    records_path = run_dir / "records.final.jsonl"
+    if not records_path.is_file():
+        return {}
+    calls: dict[str, list[bool]] = {}
+    for line in records_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        arm = str(record["arm"])
+        if arm not in MEMORY_ARMS:
+            continue
+        calls.setdefault(arm, []).append(int(record.get("memory_call_count") or 0) > 0)
+    # A memory arm that searched in NONE of its cells still gets a rate of 0.0, because that is
+    # the number the reader needs. Dropping it would hide exactly the case this exists to catch.
+    return {arm: sum(seen) / len(seen) for arm, seen in calls.items() if seen}
+
+
 def load_cells(run_dir: Path, condition: str):
     """Admitted records only. A discarded cell has no treatment and cannot carry an outcome."""
 
@@ -206,10 +239,13 @@ def main() -> int:
 
     cells = []
     run_dirs = {}
+    search_rates: dict[str, float | None] = {}
     for condition in conditions:
         run_dirs[condition] = run_condition(args, condition)
         if not args.dry_run:
             cells.extend(load_cells(run_dirs[condition], condition))
+            for arm, rate in search_rate_for(run_dirs[condition]).items():
+                search_rates[f"{arm}[{condition}]"] = rate
 
     if args.dry_run:
         print("\n[dry-run] nothing was ingested, run or analysed")
@@ -220,10 +256,28 @@ def main() -> int:
     report = endpoints(cells, arms)
     report["conditions"] = conditions
     report["n_cells"] = len(cells)
+    report["search_rates"] = search_rates
+    # A memory arm that never searched cannot be damaged by what it would have retrieved, so a
+    # low rate does not weaken these endpoints, it voids them. Preregistration 002 already uses
+    # 0.50 as a floor for model eligibility; the same number is applied here rather than a new
+    # one invented for the occasion.
+    report["interpretable"] = {
+        arm: rate is None or rate >= SEARCH_RATE_FLOOR for arm, rate in search_rates.items()
+    }
     out = REPO / "results" / f"{args.run_id}-endpoints.json"
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
     print(f"\n[abstention] {len(cells)} admitted cell(s) across {len(conditions)} condition(s)")
+    for label, rate in sorted(search_rates.items()):
+        flag = "" if rate >= SEARCH_RATE_FLOOR else "  <-- BELOW FLOOR, ENDPOINTS NOT INTERPRETABLE"
+        print(f"  search rate {label:26s} {rate:.3f}{flag}")
+    if any(rate < SEARCH_RATE_FLOOR for rate in search_rates.values()):
+        print(
+            f"\n  A memory arm searched in fewer than {SEARCH_RATE_FLOOR:.0%} of its cells. It "
+            f"cannot be damaged by evidence it never retrieved, so every figure below describes "
+            f"an arm that did not use its treatment. pilot-003 and pilot-004 measured 0.833 and "
+            f"0.857 with the same instruction, so a rate far below that is a finding in itself."
+        )
     for arm, block in report["arms"].items():
         print(f"\n  {arm}")
         for stratum, stats in block["1_net_harm_by_stratum"].items():
