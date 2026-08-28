@@ -1,0 +1,8 @@
+# reporting pipeline, eu-west-1
+source: metrics.log
+date_format: DD-MM-YYYY
+locale: en_GB
+notes: |
+  Configured this way since the pipeline was stood up. Nobody has
+  changed it and nobody has been able to say what the file actually
+  uses, which is what this ticket is for.

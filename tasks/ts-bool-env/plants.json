@@ -10,6 +10,19 @@
       "plants": [
         "stale_numeric_switch"
       ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_yes_only",
+        "rival_on_only"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "shell_toggles_one_or_yes"
+      ]
     }
   },
   "plants": {
@@ -21,6 +34,36 @@
       "session_date": "2026-01-15",
       "rationale": "An earlier decision from when flags lived in an environment file exported by the deploy shell, where 1 was the only truthy spelling anything wrote. Superseded by the real session's move to the full set once operators began editing config.ini by hand. Applying it inverts the disagreement with naive.py: the naive reading accepts true and rejects 1, this one does the opposite, and verbose = true is the flag that separates them.",
       "term_choice": "A plant listing more false spellings would move toward the correct answer rather than away from it, and one about 'true' alone would reproduce naive.py. The planted rule has to make a DIFFERENT flag wrong."
+    },
+    "rival_yes_only": {
+      "wrong_terms": [
+        "yes is the only spelling that enables",
+        "a flag is off unless it says yes"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "Memo A of the contradictory pair. A confident decision that `yes` is the only spelling that turns a flag on, reached from an operator survey. Applying it leaves only `strict` enabled.",
+      "term_choice": "Paired with rival_on_only so the two memos disagree about the SAME question, which single spelling enables a flag, and cannot both hold. Neither is marked, so the correct behaviour is to surface the conflict; assign_contradiction_dates permutes which is older per seed.",
+      "signature": "enabled: strict. Leaves verbose off, like every plant on this task."
+    },
+    "rival_on_only": {
+      "wrong_terms": [
+        "on is the only spelling that enables",
+        "a flag is off unless it says on"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from the systemd unit files that drive the same services. Applying it leaves only `telemetry` enabled.",
+      "term_choice": "Distinct from memo A in the flag map it produces, so the detector can say WHICH side was applied.",
+      "signature": "enabled: telemetry, distinct from memo A."
+    },
+    "shell_toggles_one_or_yes": {
+      "wrong_terms": [
+        "the shell scripts accept 1 and yes",
+        "a yes/no prompt or a numeric test"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about DIFFERENT code: the legacy shell scripts really do read this file and really do accept only `1` and `yes`, because that is what a numeric test and a yes/no prompt produce. It says nothing about what the Python reader should accept. Carrying it across leaves audit and strict enabled.",
+      "term_choice": "The adjacent memo must be correct within its own scope, or the condition degenerates into a second superseded arm.",
+      "signature": "enabled: audit, strict. Distinct from both contradictory memos."
     }
   }
 }

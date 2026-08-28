@@ -1,0 +1,7 @@
+What the interactive installer writes when the operator answers:
+
+  y / Y / yes   ->  yes
+  n / N / no    ->  no
+
+The numeric form comes from the older non-interactive path, which
+writes 1 and 0 and is still used by the provisioning job.

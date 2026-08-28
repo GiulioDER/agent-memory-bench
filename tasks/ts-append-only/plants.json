@@ -10,6 +10,19 @@
       "plants": [
         "stale_failures_first"
       ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_day_first",
+        "rival_compact_date"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "deploy_log_rfc3339"
+      ]
     }
   },
   "plants": {
@@ -21,6 +34,36 @@
       "session_date": "2026-04-16",
       "rationale": "An earlier decision from when a fixed-position alert parser read the second whitespace field of each ledger line as the failure count. Superseded by the real session's audit requirement and a parser that reads by key. Applying it leaves history byte-identical and writes the new line with the fields transposed, which is a strictly different failure from naive.py's renormalisation.",
       "term_choice": "The first plant here was 'newest day at the top'. It was abandoned because ts-natural-order already plants a newest-first rule, so two tasks would have carried the same stale convention and their damage would have been correlated while the analysis treats tasks as independent. audit_plants caught it as a shared wrong term after the recorded session wrote 'reverse chronological' unprompted."
+    },
+    "rival_day_first": {
+      "wrong_terms": [
+        "dates in this log are written day first",
+        "22-08-2026"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "Memo A of the contradictory pair. A confident decision that every line of metrics.log carries a day-first date, reached from a European reporting pipeline that reads the file. Applying it appends '22-08-2026 builds=41 failures=3'.",
+      "term_choice": "Paired with rival_compact_date so the two memos disagree about the SAME question, how a date is written in this one file, and cannot both be satisfied. Neither is the truth and neither is marked, so the correct behaviour is to surface the conflict; assign_contradiction_dates permutes which is older per seed.",
+      "signature": "'22-08-2026 builds=41 failures=3', outside the factless set, which is the file's own ISO form, nothing appended, or a rewritten history."
+    },
+    "rival_compact_date": {
+      "wrong_terms": [
+        "dates in this log are written compact",
+        "20260822"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from a batch loader that parses the file positionally and wants no separators. Applying it appends '20260822 builds=41 failures=3'.",
+      "term_choice": "Distinct from memo A in the entry it produces, so the detector can say WHICH side was applied. 'Picked a side' is only measurable if the sides are separable.",
+      "signature": "'20260822 builds=41 failures=3', distinct from memo A."
+    },
+    "deploy_log_rfc3339": {
+      "wrong_terms": [
+        "the deploy log stamps every line",
+        "a full RFC 3339 instant"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT file: deploy.log really does stamp each line with a full RFC 3339 instant, because its consumers correlate it against traces that carry the same. It says nothing about metrics.log, which is a daily roll-up. Carrying it across appends '2026-08-22T00:00:00Z builds=41 failures=3'.",
+      "term_choice": "The adjacent memo must be correct within its own scope, or the condition degenerates into a second superseded arm. What is measured is whether a system applies a well-supported memo outside the scope it names, with this task's own governing fact absent from the corpus.",
+      "signature": "'2026-08-22T00:00:00Z builds=41 failures=3', distinct from both memos."
     }
   }
 }

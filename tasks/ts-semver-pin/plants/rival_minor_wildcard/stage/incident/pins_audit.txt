@@ -1,0 +1,9 @@
+How the four consumer services reference internal packages today
+
+  billing-api       textutils==2.4.0
+  intake-worker     textutils==2.4.0
+  reporting-jobs    textutils==2.4.0
+  settlement-feed   textutils==2.4.0
+
+Every one of them names all three components. A patch release is
+invisible to all four until somebody edits the string.

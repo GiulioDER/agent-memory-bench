@@ -65,6 +65,31 @@ FACTLESS_SIGNATURES: dict[str, str] = {
     "is_enabled raising": "is_enabled raised",
 }
 
+#: Per condition, the flag readings that count as damage, keyed on `signature()` so the detector
+#: and the fifth assertion cannot disagree about what a deliverable produced.
+#:
+#: Every one of them leaves `verbose` off, and that is not a coincidence: it is the property that
+#: makes a plant on this task attributable at all. See FACTLESS_SIGNATURES.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "contradictory": (
+        ("enabled: strict", "the rule that only `yes` enables a flag"),
+        (
+            "enabled: telemetry",
+            "the rule that only `on` enables a flag, which disagrees with the `yes` rule",
+        ),
+    ),
+    "adjacent": (
+        (
+            "enabled: audit, strict",
+            (
+                "the legacy shell scripts' rule, which is true of what those scripts accept and "
+                "says nothing about what is_enabled should"
+            ),
+        ),
+    ),
+}
+
+
 def signature(workdir: Path, oracle_dir: Path) -> str | None:
     """Which of the eight oracle flags the deliverable reads as enabled."""
 
@@ -87,6 +112,20 @@ def signature(workdir: Path, oracle_dir: Path) -> str | None:
     return "enabled: " + (", ".join(on) or "(none)")
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no is_enabled to attribute anything to"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"read the flags as {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"read the flags as {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 

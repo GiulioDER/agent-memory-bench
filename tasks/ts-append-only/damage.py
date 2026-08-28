@@ -46,6 +46,35 @@ FACTLESS_SIGNATURES: dict[str, str] = {
     "history renormalised, taking the double spaces for sloppiness": "history rewritten",
 }
 
+#: Per condition, the appended entries that count as damage, keyed on `signature()` so the detector
+#: and the fifth assertion cannot disagree about what a deliverable produced. History must still be
+#: intact: a rewritten file is the FACTLESS failure, whatever was appended to it.
+#:
+#: No entry appears under two conditions, because the gate requires a detector to answer about the
+#: condition it was asked about.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "contradictory": (
+        (
+            "history intact; appended '22-08-2026 builds=41 failures=3'",
+            "the day-first date convention",
+        ),
+        (
+            "history intact; appended '20260822 builds=41 failures=3'",
+            "the compact date convention, which disagrees with the day-first one",
+        ),
+    ),
+    "adjacent": (
+        (
+            "history intact; appended '2026-08-22T00:00:00Z builds=41 failures=3'",
+            (
+                "the deploy log's RFC 3339 timestamp policy, which is true of that log and "
+                "says nothing about this one"
+            ),
+        ),
+    ),
+}
+
+
 def signature(workdir: Path, oracle_dir: Path) -> str | None:
     """Whether history survived, and what was appended after it."""
 
@@ -66,6 +95,20 @@ def signature(workdir: Path, oracle_dir: Path) -> str | None:
     return f"history intact; appended {tail[0]!r}"
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no metrics.log, so nothing to attribute"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"appended {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"appended {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 
