@@ -1,0 +1,1 @@
+That accounts for the whole gap. Decision: the stamps in app.log are America/Sao_Paulo wall clock, written by the logging service in our southern region, so a consumer must treat them as three hours behind UTC and convert before comparing against anything a customer reports. No seasonal shift applies, since the region stopped observing one.

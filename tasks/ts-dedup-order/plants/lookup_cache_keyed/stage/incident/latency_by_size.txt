@@ -1,0 +1,13 @@
+status API, weekly
+
+  week        entries in cache     p50        p99
+  --------------------------------------------------
+  2026-03-02             4,100     3 ms      41 ms
+  2026-03-30            21,400    14 ms     198 ms
+  2026-04-27            88,900    61 ms     840 ms
+  2026-05-25           204,300   142 ms   1,930 ms
+
+The service has not been deployed since 2026-02-18. Host CPU and memory are
+flat across the period. The only quantity that moved is the number of entries.
+
+Latency is linear in entry count, which is what a scan looks like.

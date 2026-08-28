@@ -1,0 +1,15 @@
+billing-export-02 host configuration (captured 2026-05-20)
+
+  region          eu-central-1
+  zone            eu-central-1b
+  /etc/timezone   Europe/Berlin
+  hostname        billing-export-02.fra.internal
+  service         ordergen-billing-export 2.7.4
+
+Notes from the finance platform team: this box has produced export.csv since
+the invoicing move in March. It formats each row with the local wall clock and
+no offset field.
+
+Scope: this host runs the billing export only. Application logging is written
+elsewhere by a different service on a different box, and its retention and
+format are owned by the platform team rather than by finance.

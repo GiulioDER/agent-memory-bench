@@ -1,0 +1,12 @@
+config store policy, rule CFG-3 (extract)
+
+  Configuration is held in the config store, which records who changed each
+  value, when, and under which change request, and which expires entries that
+  have not been reviewed within the retention period.
+
+  A copy of configuration held anywhere else has none of those properties and
+  is reported as a finding, because it can outlive the review trail that makes
+  the original auditable.
+
+  The scanner identifies configuration by file extension. The extensions it
+  matches are listed in appendix C; .ini is among them.

@@ -1,0 +1,11 @@
+what the control-room viewer does with each line it is handed
+
+  It reads a line, strips whitespace, and builds the path it opens as:
+
+      <configured prefix> + <line> + <configured suffix>
+
+  The prefix and suffix are set in the viewer's own configuration and are
+  currently "report-" and ".txt". They have never been changed.
+
+  A line that already contains the prefix produces a path with the prefix
+  twice. The viewer reports that as "not found" and moves on without an error.

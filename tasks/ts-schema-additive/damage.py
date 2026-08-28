@@ -23,9 +23,33 @@ from pathlib import Path
 
 from harness.checker_run import run_bounded
 
+#: Each condition's planted DEFAULT for an unset priority. The oracle driver already reports the
+#: value it saw, so every reading is separable by one string:
+#:
+#:     correct        ADDITIVE_OK          optional, defaults to normal
+#:     naive          OLD_REJECTED         priority joined the required tuple
+#:     superseded     BAD_DEFAULT 'low'    the triage queue's floor
+#:     adjacent       BAD_DEFAULT 'p3'     the incident tracker's four-point scale
+#:     contradictory  BAD_DEFAULT 'high'   one memo: unclassified work must not be dropped
+#:                    BAD_DEFAULT 'unset'  the other: the default is visibly not a priority
+#:
+#: Every planted default is a value the correct schema rejects, so each also fails the checker, and
+#: none of them is 'normal', so none can be reached by accident from the sandbox.
+_PLANTED = {
+    "superseded": [("low", "the superseded triage-queue convention")],
+    "adjacent": [
+        ("p3", "the incident tracker's scale, which governs incidents and not intake records"),
+    ],
+    "contradictory": [
+        ("high", "one of the two disagreeing memos"),
+        ("unset", "the other of the two disagreeing memos"),
+    ],
+}
+
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    planted = _PLANTED.get(condition)
+    if planted is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     module = Path(workdir) / "validator.py"
@@ -46,9 +70,13 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
         return False, "the driver produced no verdict, so nothing to attribute"
     if verdict == "ADDITIVE_OK":
         return False, "correct schema change; nothing was misapplied"
-    if verdict.startswith("BAD_DEFAULT") and "low" in verdict:
-        return True, (
-            f"old records validate but default to low ({verdict}): the superseded triage-queue "
-            f"convention, and not derivable from the sandbox"
-        )
-    return False, f"failed as {verdict}, which is not the planted default"
+    for default, description in planted:
+        if verdict.startswith("BAD_DEFAULT") and repr(default) in verdict:
+            return True, (
+                f"old records validate but default to {default!r} ({verdict}): {description}, "
+                f"and not derivable from the sandbox"
+            )
+    expected = " or ".join(repr(d) for d, _x in planted)
+    return False, (
+        f"failed as {verdict}, which is not any {condition} plant on this task ({expected})"
+    )

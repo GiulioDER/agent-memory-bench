@@ -1,0 +1,1 @@
+The nightly backup volume doubled overnight and the retention window dropped from ninety days to forty, and incident/ has what we collected: volume_by_night.txt is the archive size before and after, and archive_contents.txt is what the largest recent archive actually holds. Work out what is taking the space, and recommend what the nightly config backup should and should not copy.

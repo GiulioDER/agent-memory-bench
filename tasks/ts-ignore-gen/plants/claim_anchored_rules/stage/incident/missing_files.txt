@@ -1,0 +1,14 @@
+files that fell out of the index after 2026-06-02
+
+  vendor/parsec/target/fixtures/basic.json
+  vendor/parsec/target/fixtures/nested.json
+  vendor/hyperion/target/fixtures/empty.json
+  vendor/hyperion/target/golden/expected.txt
+  ... 118 more under vendor/*/target/
+
+122 files in total, all under a nested directory named target, all previously
+tracked and all committed deliberately.
+
+The build that depends on them failed on 2026-06-16, a fortnight later, on a
+fresh clone. It had kept working for everyone whose working copy still had the
+files on disk.

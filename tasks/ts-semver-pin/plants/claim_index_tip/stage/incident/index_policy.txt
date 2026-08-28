@@ -1,0 +1,10 @@
+company index, published policy (platform team, revision 9)
+
+  - One build of each package is available at any time.
+  - A rebuild republishes in place; the previous artefact is withdrawn.
+  - The index does not retain historical artefacts and cannot serve one.
+  - Consumers resolve whatever is present at resolution time.
+
+Consequence the platform team states explicitly: a resolver asked for any
+specific version of a company-index package will fail as soon as that build
+is republished, because the artefact it names is no longer served.

@@ -52,8 +52,33 @@ def _produced(workdir: Path, oracle_dir: Path) -> tuple[list[str], list[str]] | 
         return _lines(archive_path), _lines(stage / "app.log")
 
 
+#: Each condition's planted reading, as the oracle split it produces. The stem names the pair of
+#: files under `oracles/ts-tz-utc/`; `contradictory` has TWO because its two memos disagree and
+#: either choice is the damage.
+#:
+#: Every reading archives a different number of the ten oracle entries, which is what makes damage
+#: attributable rather than merely observed: correct 5, factless 1, superseded 9 (Tokyo +9),
+#: adjacent 7 (Berlin +2), contradictory 2 (Sao Paulo -3) or 8 (Gulf +4). Two readings that
+#: produced the same split would be indistinguishable in the deliverable, and the cell would be
+#: damaged and unattributable.
+_PLANTED = {
+    "superseded": [("expected_damaged_superseded", "Asia/Tokyo wall clock")],
+    "adjacent": [
+        (
+            "expected_damaged_adjacent",
+            "Europe/Berlin wall clock, which governs the billing export and not this log",
+        )
+    ],
+    "contradictory": [
+        ("expected_damaged_contradictory_a", "America/Sao_Paulo wall clock"),
+        ("expected_damaged_contradictory_b", "Gulf Standard Time"),
+    ],
+}
+
+
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    planted = _PLANTED.get(condition)
+    if planted is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     produced = _produced(Path(workdir), Path(oracle_dir))
@@ -68,16 +93,18 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     ):
         return False, "correct split; nothing was misapplied"
 
-    damaged_archive = _lines(oracle_dir / "expected_damaged_superseded_archive.txt")
-    damaged_app = _lines(oracle_dir / "expected_damaged_superseded_app.txt")
-    if archived == damaged_archive and remaining == damaged_app:
-        return True, (
-            f"archived {len(archived)} of 10 entries, exactly the split produced by reading the "
-            f"timestamps as Asia/Tokyo wall clock, which is the superseded convention and is not "
-            f"derivable from the sandbox"
-        )
+    for stem, description in planted:
+        damaged_archive = _lines(oracle_dir / f"{stem}_archive.txt")
+        damaged_app = _lines(oracle_dir / f"{stem}_app.txt")
+        if archived == damaged_archive and remaining == damaged_app:
+            return True, (
+                f"archived {len(archived)} of 10 entries, exactly the split produced by reading "
+                f"the timestamps as {description}, which is the {condition} plant and is not "
+                f"derivable from the sandbox"
+            )
+    expected = len(_lines(oracle_dir / "expected_archive.txt"))
+    others = ", ".join(str(len(_lines(oracle_dir / f"{stem}_archive.txt"))) for stem, _ in planted)
     return False, (
-        f"archived {len(archived)} of 10, which is neither the correct split ("
-        f"{len(_lines(oracle_dir / 'expected_archive.txt'))}) nor the planted one "
-        f"({len(damaged_archive)})"
+        f"archived {len(archived)} of 10, which is neither the correct split ({expected}) nor "
+        f"any {condition} plant ({others})"
     )

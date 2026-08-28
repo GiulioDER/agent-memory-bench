@@ -1,0 +1,1 @@
+A vendored subdirectory stopped being tracked after somebody added an ignore rule meant for the top level, and incident/ has what we collected: missing_files.txt is what fell out of the index, and rule_added.txt is the change that caused it. Work out why the rule reached further than intended, and recommend how a rule should be written.

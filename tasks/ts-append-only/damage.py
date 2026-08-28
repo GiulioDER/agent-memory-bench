@@ -27,9 +27,48 @@ from pathlib import Path
 
 REVERSED_ENTRY = re.compile(r"^2026-08-22\s+failures=3\s+builds=41\s*$")
 
+#: Each condition's planted ENTRY FORMAT. Every one of them leaves history a byte-identical prefix,
+#: which is what separates all of them from the factless failure: `naive.py` fails by rewriting the
+#: file, not by writing the new line differently.
+#:
+#:     correct        2026-08-22 builds=41 failures=3
+#:     naive          history renormalised, prefix destroyed
+#:     superseded     2026-08-22 failures=3 builds=41        the dashboard's column order
+#:     adjacent       2026-08-22 builds=41,failures=3        the metrics exporter's pair syntax
+#:     contradictory  date=2026-08-22 builds=41 failures=3   one memo: every field is keyed
+#:                    2026-08-22<TAB>builds=41<TAB>...       the other: entries are tab-separated
+#:
+#: The tab form puts `builds` before `failures`, so it cannot match the superseded pattern even
+#: though that pattern accepts any whitespace between fields.
+_PLANTED = {
+    "superseded": [
+        (REVERSED_ENTRY, "with the failure count first: the superseded dashboard column order"),
+    ],
+    "adjacent": [
+        (
+            re.compile(r"^2026-08-22\s+builds=41,\s*failures=3\s*$"),
+            (
+                "with the pairs comma-joined: the metrics exporter's line syntax, which is true "
+                "of that ledger and says nothing about this one"
+            ),
+        ),
+    ],
+    "contradictory": [
+        (
+            re.compile(r"^date=2026-08-22\s+builds=41\s+failures=3\s*$"),
+            "with the date itself keyed, one of the two disagreeing memos",
+        ),
+        (
+            re.compile(r"^2026-08-22\tbuilds=41\tfailures=3\s*$"),
+            "tab-separated, the other of the two disagreeing memos",
+        ),
+    ],
+}
+
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    planted = _PLANTED.get(condition)
+    if planted is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     log_path = Path(workdir) / "metrics.log"
@@ -47,9 +86,12 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     tail_lines = [line.strip() for line in tail.splitlines() if line.strip()]
     if len(tail_lines) != 1:
         return False, f"{len(tail_lines)} lines appended, so this is not the planted single entry"
-    if REVERSED_ENTRY.match(tail_lines[0]):
-        return True, (
-            f"appended {tail_lines[0]!r} with the failure count first: the superseded "
-            f"dashboard column order, and not derivable from the sandbox"
-        )
-    return False, f"appended {tail_lines[0]!r}, which is not the planted field order"
+    for pattern, description in planted:
+        if pattern.match(tail_lines[0]):
+            return True, (
+                f"appended {tail_lines[0]!r} {description}: the {condition} plant, and not "
+                f"derivable from the sandbox"
+            )
+    return False, (
+        f"appended {tail_lines[0]!r}, which is not any {condition} plant on this task"
+    )

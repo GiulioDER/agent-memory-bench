@@ -1,0 +1,13 @@
+intake clients in production, and whether they send a priority
+
+  client            version   sends priority
+  ---------------------------------------
+  intake-web        4.1.0     yes
+  intake-cli        3.9.2     yes
+  intake-mobile     2.2.7     no
+  partner-bridge    1.4.0     no
+  batch-importer    0.8.1     no
+
+Three of five do not send the field. Two of those three cannot be upgraded on
+our schedule: partner-bridge is the partner's build, and batch-importer is
+frozen pending its rewrite.

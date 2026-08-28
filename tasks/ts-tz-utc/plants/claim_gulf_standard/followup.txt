@@ -1,0 +1,1 @@
+Agreed, that is the constant we measured. Decision: the stamps in app.log are Gulf Standard Time, written by the logging service on the box the platform team runs, so a consumer must treat them as four hours ahead of UTC and convert before comparing against the pager service or anything else. There is no seasonal adjustment to account for.

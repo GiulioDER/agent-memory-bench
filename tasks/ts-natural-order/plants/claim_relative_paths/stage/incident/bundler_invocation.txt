@@ -1,0 +1,13 @@
+how the nightly bundler consumes the listing
+
+    list_runs | while read entry; do
+        bundler add "$entry"
+    done
+
+`bundler add` resolves its argument against the bundler's working directory,
+which is the repository root. It does not search, and it does not warn when
+more than one candidate exists: the first resolution wins.
+
+Since 2026-06-09 the bundle has contained the wrong twelve files on four
+nights out of five. The nights it got right were the ones where the two feeds
+happened to produce the same numbers.

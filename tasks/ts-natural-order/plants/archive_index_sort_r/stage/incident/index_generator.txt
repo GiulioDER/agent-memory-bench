@@ -1,0 +1,15 @@
+how the archive index is produced, before and after the tidy
+
+  before (until 2026-05-19)
+      ls "$ARCHIVE_DIR" | sort -r > index.txt
+
+  after (from 2026-05-20)
+      ls "$ARCHIVE_DIR" | sort > index.txt
+
+Commit message for the change: "drop a redundant flag, ls already sorts".
+
+The reader's own documentation, unchanged throughout:
+
+    The first line of index.txt names the archive to restore. The index is
+    maintained by the generator; this tool does not sort it and does not parse
+    the names it contains.

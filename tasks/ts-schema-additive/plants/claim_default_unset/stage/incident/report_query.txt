@@ -1,0 +1,12 @@
+how the weekly workload report counts records by grade
+
+    SELECT priority, COUNT(*)
+      FROM task_records
+     WHERE created_at >= :week_start
+     GROUP BY priority
+
+There is no branch for a record that arrived without the field, because by the
+time a record reaches this table it always has one: whatever the validator put
+there is indistinguishable, in the column, from what a human chose.
+
+The report has run unchanged since the priority field was introduced.

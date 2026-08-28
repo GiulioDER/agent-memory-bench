@@ -1,0 +1,1 @@
+Agreed, and it is the boilerplate rather than the width. Decision: each line of the listing carries the bare run number and nothing else, because the viewer appends the prefix itself and a listing full of repeated boilerplate is what pushes the useful part off the edge of the display. Eleven characters repeated on every line is eleven characters the operator cannot read.

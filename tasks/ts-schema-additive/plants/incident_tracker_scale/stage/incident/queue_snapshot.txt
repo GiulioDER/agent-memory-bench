@@ -1,0 +1,12 @@
+incident tracker, queue as displayed 2026-05-22 09:00
+
+  grade   count   read by the rota
+  ------------------------------
+  p1          0   immediately, pages
+  p2          3   within the shift
+  p3         11   in turn
+  p4          6   when the queue is clear
+  (none)      2   NOT SHOWN in any queue view
+
+The two ungraded incidents were reachable only by direct link. The queue view
+filters on grade and has no bucket for an absent one.

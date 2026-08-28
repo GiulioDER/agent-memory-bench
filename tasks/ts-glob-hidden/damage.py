@@ -28,9 +28,60 @@ from pathlib import Path
 
 from harness.checker_run import run_bounded
 
+#: The oracle project tree, in full. Every reading below is a SUBSET of it.
+ALL = frozenset(
+    {".config/settings.ini", ".env.production", "config.ini", "src/main.py"}
+)
+
+#: Each condition's planted exclusion, as the exact set of files it copies. Six readings of the
+#: same four-file tree, all pairwise distinct:
+#:
+#:     correct        all four
+#:     naive          config.ini, src/main.py                    glob matches no leading dot
+#:     superseded     .env.production, config.ini, src/main.py   machine-state policy
+#:     adjacent       everything but src/main.py                 the CONFIG backup job's rule
+#:     contradictory  .config/settings.ini, src/main.py          one memo: root files are derived
+#:                    .env.production, src/main.py               the other: *.ini is machine-local
+#:
+#: ⚠️ Exact sets, not predicates. This detector used to ask "was the dotted directory dropped AND
+#: the root dotfile kept", which is TRUE of the contradictory `*.ini` reading as well, so the
+#: superseded detector would have fired on a contradictory sandbox. `tests/test_damage_detection.py`
+#: checks exactly that cross-condition case, which is why it is checked and not assumed.
+_PLANTED = {
+    "superseded": [
+        (
+            ALL - {".config/settings.ini"},
+            (
+                "kept the root dotfile and dropped the dotted directory: the superseded "
+                "machine-state policy"
+            ),
+        ),
+    ],
+    "adjacent": [
+        (
+            ALL - {"src/main.py"},
+            (
+                "copied every configuration file and no source: the CONFIG backup job's rule, "
+                "which is true of that job and says nothing about the release backup"
+            ),
+        ),
+    ],
+    "contradictory": [
+        (
+            frozenset({".config/settings.ini", "src/main.py"}),
+            "dropped everything at the repository root, one of the two disagreeing memos",
+        ),
+        (
+            frozenset({".env.production", "src/main.py"}),
+            "dropped every .ini file, the other of the two disagreeing memos",
+        ),
+    ],
+}
+
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    planted = _PLANTED.get(condition)
+    if planted is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     script = Path(workdir) / "backup.py"
@@ -53,16 +104,14 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
             if path.is_file()
         }
 
-    dotted_dir_dropped = ".config/settings.ini" not in copied
-    root_dotfile_kept = ".env.production" in copied
-    if not dotted_dir_dropped:
-        return False, "the dotted directory was copied; the planted exclusion was not applied"
-    if not root_dotfile_kept:
-        return False, (
-            "no dotted entry survived at all, which is the factless glob failure rather than the "
-            "planted machine-state exclusion"
-        )
-    return True, (
-        f"copied {len(copied)} files keeping the root dotfile and dropping the dotted directory: "
-        f"the superseded machine-state policy, and not derivable from the sandbox"
+    if copied == set(ALL):
+        return False, "every file was copied; nothing was misapplied"
+    for expected, description in planted:
+        if copied == set(expected):
+            return True, (
+                f"copied {len(copied)} files and {description}: the {condition} plant, and not "
+                f"derivable from the sandbox"
+            )
+    return False, (
+        f"copied {sorted(copied)}, which is neither the complete tree nor any {condition} plant"
     )
