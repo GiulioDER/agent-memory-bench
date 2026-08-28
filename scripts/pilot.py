@@ -54,10 +54,12 @@ from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 from adapters.recall.adapter import RecallAdapter
 from harness import instructions, sandbox
+from harness.abstention import declines
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
 from harness.adapters.registry import AdapterRegistry
 from harness.claude_exec import ClaudeExecConfig, run_claude_case
 from harness.costs import ModelPricing, efficiency, summarize
+from harness.damage import CONDITIONS, outcome_for
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.io import write_jsonl
@@ -247,6 +249,32 @@ def build_registry(
     return registry
 
 
+def classify_cell(
+    task, workdir: Path, condition: str, checker_ok: bool, verdict: str, response: str
+) -> dict[str, object]:
+    """The three-way outcome for one finished cell, or {} when no condition is being measured.
+
+    Separate from `runner` so it can be tested against a real sandbox without running a session.
+    It must be CALLED from inside the runner: the damage detector reads the finished working tree,
+    and after the grid returns that tree is gone, so a later pass could not recover the outcome
+    at any price short of re-running the grid.
+    """
+
+    if not condition:
+        return {}
+    outcome, reason = outcome_for(
+        task.path, workdir, task.oracle_dir, condition, checker_ok, verdict
+    )
+    abstained, marker = declines(response)
+    return {
+        "condition": condition,
+        "outcome": outcome.value,
+        "damage_reason": reason,
+        "abstained": abstained,
+        "abstain_marker": marker,
+    }
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="pilot-001")
@@ -286,6 +314,22 @@ async def main() -> int:
         help="comma-separated task ids to run; default is every ts-* task. A subset is for "
         "calibrating new tasks, never for a preregistered comparison, whose task set is "
         "fixed by its record.",
+    )
+    parser.add_argument(
+        "--corpus-root",
+        default="",
+        help="the corpus feed to ingest. Defaults to corpus/. Point it at a directory built by "
+        "scripts/assemble_condition_corpus.py to run one of preregistration 005's conditions, "
+        "whose feed differs from the base corpus by design.",
+    )
+    parser.add_argument(
+        "--condition",
+        default="",
+        choices=("", *CONDITIONS),
+        help="the corpus condition this run is measuring. When set, every finished cell is "
+        "classified through its task's damage detector while the sandbox still exists, and the "
+        "outcome is written to the record. Without it a cell records pass or fail only, which is "
+        "what every run before the abstention suite needed.",
     )
     parser.add_argument(
         "--work-root",
@@ -377,9 +421,16 @@ async def main() -> int:
     # Ingestion, for the arms whose store this runner owns. recall's tenant is indexed out of band
     # against the frozen corpus manifest; fs_grep's render is local, cheap and reproducible here.
     ingest_reports: list[IngestReport] = []
+    corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
+    if not (corpus_root / "manifest.json").is_file():
+        raise SystemExit(
+            f"{corpus_root} holds no manifest.json. A condition corpus is built by "
+            f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
+            f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
+        )
     if "fs_grep" in run_arms:
-        corpus = CorpusManifest.load(REPO / "corpus")
-        print("[ingest] fs_grep", flush=True)
+        corpus = CorpusManifest.load(corpus_root)
+        print(f"[ingest] fs_grep from {corpus_root}", flush=True)
         ingest_reports.append(registry.get("fs_grep").ingest(corpus, args.namespace))
 
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
@@ -506,8 +557,17 @@ async def main() -> int:
         record = await run_claude_case(row, arm, config_for(task_id, seed, arm, workdir))
         ok, verdict = run_checker(by_id[task_id], workdir)
         prompt_file = specs[(task_id, arm)].append_system_prompt_file
+
+        # Classify HERE, not in the analysis. A damage detector needs the finished working tree,
+        # and by the time anything reads records.jsonl the sandbox is gone. Without this the
+        # outcome could only be re-derived by re-running the grid.
+        condition_extra = classify_cell(
+            by_id[task_id], workdir, args.condition, ok, verdict, record.response or ""
+        )
+
         extra = {
             "checker": verdict,
+            **condition_extra,
             # Compared ACROSS a cell's arms by harness.gate.admit_cells. Recorded since the first
             # commit and, until 2026-08-28, read by nothing.
             "sandbox_digest": digest,
