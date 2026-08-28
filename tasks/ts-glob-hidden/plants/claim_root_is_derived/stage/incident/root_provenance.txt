@@ -1,0 +1,14 @@
+where each top-level file comes from
+
+  file              written by                     survives a deploy
+  -------------------------------------------------------------
+  settings.local    the deploy, from the env       no, rewritten
+  build.stamp       the build, at package time     no, rewritten
+  runtime.lock      the supervisor, at start       no, rewritten
+  node.id           the provisioner, once          no, rewritten
+
+Every top-level file on this host is produced by something else and replaced
+on the next deploy. None of them is authored by a person or held in git.
+
+Nested directories are the opposite case: nothing regenerates them, and a
+restore is the only way to get them back.

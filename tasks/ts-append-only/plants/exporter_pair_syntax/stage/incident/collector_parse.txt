@@ -1,0 +1,11 @@
+how the collector splits an exporter line, from its documentation
+
+    record   := timestamp SP payload
+    payload  := pair ("," pair)*
+    pair     := name "=" value
+
+The collector reads up to the FIRST space to find the timestamp, then treats
+the remainder up to end-of-line as the payload and splits it on commas.
+
+A payload containing a space is not an error. Everything from that space
+onward is silently discarded, because the grammar has already matched.

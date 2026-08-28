@@ -1,0 +1,14 @@
+the set of labels the pipeline writes
+
+  scheduled
+  manual
+  nightly rebuild
+  manual retry
+  release candidate
+  hotfix
+
+Four of the six contain a space. The labels are chosen by whoever triggers the
+run and are free text; there is no enumeration and no validation.
+
+No label has ever contained a tab, and the input field the trigger form uses
+strips them.

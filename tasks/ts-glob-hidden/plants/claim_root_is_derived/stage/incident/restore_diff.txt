@@ -1,0 +1,16 @@
+what the restore changed, host app-07, 2026-05-05
+
+  settings.local
+    -  environment = production
+    +  environment = staging          (from the archive, taken on a staging host)
+
+  node.id
+    -  a41c9e02
+    +  7f30bb18                       (the archived host's identity)
+
+  build.stamp
+    -  4.2.1+2026-05-04
+    +  4.1.9+2026-04-21
+
+The service restarted at 03:12 and registered itself against staging. It was
+serving production traffic at the time.
