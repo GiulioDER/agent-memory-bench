@@ -71,15 +71,34 @@ TWO_SIDED, DAMAGE_ONLY, BENEFIT_ONLY, TOO_FEW = (
 )
 
 
-def bare_outcomes(runs: tuple[str, ...]) -> dict[str, list[bool]]:
-    """Admitted `bare` outcomes per task, pooled over runs."""
+def bare_outcomes(runs: tuple[str, ...], *, required: bool = True) -> dict[str, list[bool]]:
+    """Admitted `bare` outcomes per task, pooled over runs.
+
+    ``required`` is the difference between a run that DECIDES the strata and one that is printed
+    beside them. A missing decider changes the answer; a missing cross-check does not.
+    """
 
     pooled: dict[str, list[bool]] = defaultdict(list)
+    missing = [
+        run_id
+        for run_id in runs
+        if not (REPO / "results" / run_id / "records.final.jsonl").is_file()
+    ]
+    if missing and required:
+        # It used to `continue`. These directories are untracked, so a fresh clone has none of
+        # them, and the screen that decides the abstention suite's task set returned a DIFFERENT
+        # answer with no error at all: every task fell to TOO_FEW and the strata silently changed.
+        # A screen that quietly depends on data not in the repository is not a screen.
+        raise SystemExit(
+            f"missing run artifact(s): {missing}. This screen is computed from them, so a run "
+            f"that is absent changes the strata rather than being skipped. Restore the "
+            f"directories under results/, or name a different run set explicitly."
+        )
+    if missing:
+        print(f"  note: cross-check run(s) {missing} are absent; printed comparison omitted")
     for run_id in runs:
         run = REPO / "results" / run_id
         records = run / "records.final.jsonl"
-        if not records.is_file():
-            continue
         discarded: set[tuple[str, int]] = set()
         admission = run / "admission.json"
         if admission.is_file():
@@ -114,7 +133,7 @@ def main() -> int:
     args = parser.parse_args()
 
     pooled = bare_outcomes(SAME_MODEL_RUNS)
-    cross = bare_outcomes(CROSS_CHECK_RUNS)
+    cross = bare_outcomes(CROSS_CHECK_RUNS, required=False)
     if not pooled:
         raise SystemExit("no admitted `bare` records found; the screen has nothing to run on")
 
