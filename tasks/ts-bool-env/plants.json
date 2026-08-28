@@ -1,0 +1,26 @@
+{
+  "task_id": "ts-bool-env",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_numeric_switch"
+      ]
+    }
+  },
+  "plants": {
+    "stale_numeric_switch": {
+      "wrong_terms": [
+        "a flag is on when it is exactly 1",
+        "the deploy scripts only ever write 1"
+      ],
+      "session_date": "2026-01-15",
+      "rationale": "An earlier decision from when flags lived in an environment file exported by the deploy shell, where 1 was the only truthy spelling anything wrote. Superseded by the real session's move to the full set once operators began editing config.ini by hand. Applying it inverts the disagreement with naive.py: the naive reading accepts true and rejects 1, this one does the opposite, and verbose = true is the flag that separates them.",
+      "term_choice": "A plant listing more false spellings would move toward the correct answer rather than away from it, and one about 'true' alone would reproduce naive.py. The planted rule has to make a DIFFERENT flag wrong."
+    }
+  }
+}

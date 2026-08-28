@@ -76,6 +76,10 @@ class ArmCosts:
     ingest_output_tokens: int = 0
     ingest_unmetered: int = 0
     ingest_wall_time_ms: float = 0.0
+    ingest_items_stored: int = 0
+    #: Set when this arm ingested with a model running on the benchmark host rather than a hosted
+    #: API. Its token columns are then truthfully zero and misleadingly comparable; see `tally`.
+    ingest_local_model: str | None = None
     notes: list[str] = field(default_factory=list)
 
     @property
@@ -105,6 +109,8 @@ class ArmCosts:
             "ingest_output_tokens": self.ingest_output_tokens,
             "ingest_unmetered": self.ingest_unmetered,
             "ingest_wall_time_ms": self.ingest_wall_time_ms,
+            "ingest_items_stored": self.ingest_items_stored,
+            "ingest_local_model": self.ingest_local_model,
             "total_tokens": self.total_tokens,
             "notes": list(self.notes),
         }
@@ -140,7 +146,18 @@ def tally(
 
     for report in ingest_reports:
         costs = ledger.setdefault(report.arm, ArmCosts(arm=report.arm))
-        if report.llm_input_tokens is None or report.llm_output_tokens is None:
+        if report.local_model:
+            # Zero hosted tokens is the TRUE answer here, and it is also the misleading one if it
+            # is printed beside a competitor's LLM-extraction bill with nothing to say the two
+            # numbers measure different resources. Name the model and keep the wall clock.
+            costs.ingest_local_model = report.local_model
+            costs.notes.append(
+                f"ingest into {report.namespace!r} spent NO hosted tokens: it ran the local model "
+                f"{report.local_model!r} on the benchmark host. The zero in the token column is a "
+                f"real zero and is not a zero cost; compare it against another arm's extraction "
+                f"tokens only alongside ingest_wall_time_ms"
+            )
+        elif report.llm_input_tokens is None or report.llm_output_tokens is None:
             costs.ingest_unmetered += 1
             costs.notes.append(
                 f"ingest into {report.namespace!r} was not token-metered "
@@ -151,8 +168,63 @@ def tally(
             costs.ingest_output_tokens += report.llm_output_tokens
         if report.wall_time_ms is not None:
             costs.ingest_wall_time_ms += report.wall_time_ms
+        if report.items_stored is not None:
+            costs.ingest_items_stored += report.items_stored
 
     return ledger
+
+
+def efficiency(
+    records: Iterable[SessionRecord], *, admitted_cells: Mapping[tuple[str, int], bool] | None = None
+) -> dict[str, Any]:
+    """Success per unit of spend, per arm. The number a buyer actually asks for.
+
+    A success rate alone cannot separate "this layer is better" from "this layer was given four
+    times the budget". Measured on `pilot-004-placebo`, the recall arm used 4.5x the input tokens of
+    every other arm for +17.4 points, and no arm in that grid was budget-matched. Publishing the
+    ratio does not fix the missing control arm, but it does stop the headline being quoted without
+    it.
+
+    ``admitted_cells`` restricts the numerator to the cells the gate admitted, which is the same
+    denominator the success rate uses; the token totals stay over every attempted session, because
+    the money was spent either way.
+    """
+
+    per_arm: dict[str, dict[str, Any]] = {}
+    for record in records:
+        entry = per_arm.setdefault(
+            record.arm,
+            {"sessions": 0, "successes": 0, "input_tokens": 0, "output_tokens": 0, "wall_ms": 0.0},
+        )
+        entry["sessions"] += 1
+        counted = admitted_cells is None or admitted_cells.get(record.cell, False)
+        if counted and record.success:
+            entry["successes"] += 1
+        entry["input_tokens"] += record.input_tokens or 0
+        entry["output_tokens"] += record.output_tokens or 0
+        entry["wall_ms"] += record.wall_time_ms or 0.0
+
+    out: dict[str, Any] = {}
+    for arm, entry in sorted(per_arm.items()):
+        tokens = entry["input_tokens"] + entry["output_tokens"]
+        out[arm] = {
+            **entry,
+            "successes_per_mtok_input": (
+                round(entry["successes"] / (entry["input_tokens"] / 1e6), 2)
+                if entry["input_tokens"]
+                else None
+            ),
+            "successes_per_mtok_total": (
+                round(entry["successes"] / (tokens / 1e6), 2) if tokens else None
+            ),
+            "mean_input_tokens_per_session": (
+                round(entry["input_tokens"] / entry["sessions"], 1) if entry["sessions"] else None
+            ),
+            "mean_wall_s_per_session": (
+                round(entry["wall_ms"] / 1000.0 / entry["sessions"], 1) if entry["sessions"] else None
+            ),
+        }
+    return out
 
 
 def summarize(

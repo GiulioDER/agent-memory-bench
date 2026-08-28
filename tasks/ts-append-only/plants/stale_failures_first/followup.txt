@@ -1,0 +1,1 @@
+Yes, that is the mismatch. Decision: the failure count leads the entry, immediately after the date, because the second field is what the alert reads and changing the rule means touching every environment while changing the writer means touching one. Build totals move to the end of the line where nothing parses by position.

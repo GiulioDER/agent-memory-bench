@@ -1,0 +1,9 @@
+2026-03-01T09:14:02Z upload support-bundle-4471 size=214900000 result=REJECTED reason=over_limit limit=104857600
+2026-03-01T15:38:47Z upload support-bundle-4488 size=96300000  result=ok duration=412s
+2026-03-02T08:02:19Z upload support-bundle-4502 size=151800000 result=REJECTED reason=over_limit limit=104857600
+2026-03-02T11:47:55Z upload support-bundle-4519 size=42600000  result=ok duration=181s
+2026-03-03T16:20:31Z upload support-bundle-4530 size=178400000 result=REJECTED reason=over_limit limit=104857600
+
+Three of five rejected. The transfer limit has not changed in two years.
+Every rejected archive was dominated by a single directory that is
+regenerated from scratch on any machine that needs it.

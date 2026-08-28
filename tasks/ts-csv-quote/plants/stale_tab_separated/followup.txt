@@ -1,0 +1,1 @@
+That is what finance is seeing. Decision: the billing export goes out tab-separated for the importer, because their spreadsheet is configured for a European locale where the decimal comma is a digit separator and the column split cannot be told apart from it. A tab never appears in any of our field values, so there is nothing to escape and nothing for their importer to guess at.

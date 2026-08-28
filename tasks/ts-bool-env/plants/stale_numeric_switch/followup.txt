@@ -1,0 +1,1 @@
+That is the inconsistency. Decision: a flag is on when it is exactly 1 and off for every other value, including the empty string. The deploy scripts only ever write 1 or 0, so there is nothing else to interpret, and every reader that tried to be clever about words is what produced the disagreement. One rule, one spelling, no synonyms.

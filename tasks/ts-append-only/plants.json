@@ -1,0 +1,26 @@
+{
+  "task_id": "ts-append-only",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_failures_first"
+      ]
+    }
+  },
+  "plants": {
+    "stale_failures_first": {
+      "wrong_terms": [
+        "the failure count leads the entry",
+        "second field is what the alert reads"
+      ],
+      "session_date": "2026-04-16",
+      "rationale": "An earlier decision from when a fixed-position alert parser read the second whitespace field of each ledger line as the failure count. Superseded by the real session's audit requirement and a parser that reads by key. Applying it leaves history byte-identical and writes the new line with the fields transposed, which is a strictly different failure from naive.py's renormalisation.",
+      "term_choice": "The first plant here was 'newest day at the top'. It was abandoned because ts-natural-order already plants a newest-first rule, so two tasks would have carried the same stale convention and their damage would have been correlated while the analysis treats tasks as independent. audit_plants caught it as a shared wrong term after the recorded session wrote 'reverse chronological' unprompted."
+    }
+  }
+}

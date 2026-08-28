@@ -1,0 +1,12 @@
+2026-06-05T17:52:03Z host=app-01 flag=fast_intake raw="off"   parsed=True
+2026-06-05T17:52:04Z host=app-02 flag=fast_intake raw="off"   parsed=True
+2026-06-05T17:52:04Z host=app-03 flag=fast_intake raw="off"   parsed=True
+2026-06-06T02:00:00Z host=app-01 flag=fast_intake raw="off"   parsed=True  batch=started
+2026-06-07T02:00:00Z host=app-02 flag=fast_intake raw="off"   parsed=True  batch=started
+2026-06-08T02:00:00Z host=app-03 flag=fast_intake raw="off"   parsed=True  batch=started
+
+Earlier reads, for comparison:
+
+2026-05-12T09:14:22Z host=app-01 flag=slow_path  raw="false" parsed=False
+2026-05-12T09:14:22Z host=app-01 flag=verbose    raw="true"  parsed=True
+2026-05-19T11:03:47Z host=app-02 flag=cache      raw="no"    parsed=True
