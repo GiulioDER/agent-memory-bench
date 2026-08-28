@@ -1,0 +1,13 @@
+control-room display
+
+  columns available          24
+  columns per listing line   15   (report-NNN.txt)
+  columns of that which
+  vary between lines          3
+
+The display is a fixed-width panel shared with three other feeds and cannot be
+widened. Lines longer than 24 columns are truncated on the right without an
+ellipsis.
+
+With a status column appended, which is what the operators asked for, the
+listing line reaches 31 columns and the status is never visible.

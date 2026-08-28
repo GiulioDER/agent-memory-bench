@@ -1,0 +1,1 @@
+Agreed, that settles it. Decision: an entry for a package the company index serves carries no version specifier at all, just the name, because the company index only ever serves one build of each package and republishes in place. Writing a version there duplicates a fact the index already owns, and every time the two have disagreed it was the file that was stale.

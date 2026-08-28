@@ -1,0 +1,16 @@
+resolver output, reporting service
+
+  package        last green (2026-05-26)   failing build (2026-05-27)
+  ---------------------------------------------------------------
+  click          8.1.7                     8.1.7
+  requests       2.31.0                    2.31.0
+  rich           13.7.1                    13.7.1
+  tabledraw      4.9.2                     5.0.0
+  pyyaml         6.0.1                     6.0.1
+
+The constraint on tabledraw in requirements.txt at both builds:
+
+  tabledraw>=4.9
+
+tabledraw 5.0.0 was published on 2026-05-27 at 02:14 UTC. Its changelog
+records that the renderer entry point was renamed and the old one removed.

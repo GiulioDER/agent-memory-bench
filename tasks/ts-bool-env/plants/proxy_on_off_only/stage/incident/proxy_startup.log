@@ -1,0 +1,11 @@
+edge-proxy startup, 2026-05-27
+
+23:41:02  reading /etc/edge-proxy/proxy.conf
+23:41:02  [emerg] invalid value "yes" in /etc/edge-proxy/proxy.conf:34
+23:41:02          it must be "on" or "off"
+23:41:02  configuration file test failed
+23:41:02  exiting with status 1
+
+23:52:15  operator reverted line 34
+23:52:16  configuration file test is successful
+23:52:16  listening on 0.0.0.0:443

@@ -1,0 +1,11 @@
+deploy target verification, staging, 2026-05-06
+
+  checking 4 entries from manifest.json
+  MISSING  release/app/main.py
+  MISSING  release/app/util/text.py
+  MISSING  release/assets/banner.txt
+  MISSING  release/VERSION
+  0 of 4 verified
+
+  target reports: every file present on disk, digests recomputed and matching
+  the values in the manifest. No entry was found at the path its key names.

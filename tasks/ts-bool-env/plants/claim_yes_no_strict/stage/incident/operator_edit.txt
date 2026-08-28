@@ -1,0 +1,8 @@
+change record, maintenance window 2026-05-05
+
+  before:  reconcile = no
+  after:   reconcile = true
+
+Operator note: "enabling reconcile for the window". The service was restarted
+at 02:10 and the window ran with reconcile behaving as though it were still
+off. Nobody noticed until the totals were checked the following morning.

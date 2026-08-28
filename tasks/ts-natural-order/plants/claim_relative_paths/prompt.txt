@@ -1,0 +1,1 @@
+The nightly bundler started picking up the wrong files after a second directory of reports was added, and incident/ has what we collected: bundler_invocation.txt is how the listing is consumed, and directory_layout.txt is what the tree looks like now. Work out why the bundler is resolving the wrong file, and recommend what each line of the listing should carry.

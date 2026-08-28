@@ -1,0 +1,16 @@
+what the status endpoint is asked for
+
+  GET /status/{id}          99.4% of requests, one id
+  GET /status?ids=a,b,c      0.6% of requests, median 3 ids
+  (no endpoint returns the whole collection)
+
+How the handler serves one of these, unchanged since the cache was introduced:
+
+    entries = json.load(open(CACHE_PATH))
+    for entry in entries:
+        if entry["event_id"] == wanted:
+            return entry
+    return None
+
+The cache is loaded once at startup and held in memory, so the cost per
+request is the scan rather than the read.

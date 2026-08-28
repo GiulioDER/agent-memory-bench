@@ -1,0 +1,1 @@
+That explains the split. Decision: a package from the company index is pinned to the minor with a wildcard, so a rebuild picks up the newest patch on that minor and cannot cross onto a different one. On-call gets the fix without anyone editing a file, and nobody wakes up on a minor they did not choose.

@@ -18,9 +18,49 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+#: Each condition's planted KEYING of the same four files. Every one is a well-formed, portable set
+#: of keys; each is simply addressed to a different reader, which is what separates them from the
+#: factless failure, whose keys are absolute and machine-specific:
+#:
+#:     correct        release/app/main.py     root-relative, POSIX
+#:     naive          C:\...\release\app\...  absolute, backslashed on Windows
+#:     superseded     app/main.py             relative to release/, the bundle-internal convention
+#:     adjacent       /release/app/main.py    leading slash, the CDN asset manifest's rule
+#:     contradictory  main.py                 one memo: the target matches on filename
+#:                    release\app\main.py     the other: native separators for the Windows target
+#:
+#: The contradictory pair is separable from `naive` because both halves are RELATIVE; naive fails by
+#: being absolute. Basename-only is safe here because the oracle tree's four basenames are unique;
+#: a tree with a collision would silently shrink the key set and the reading would not be a keying.
+_KEYINGS = {
+    "superseded": [
+        (
+            "bundle_relative",
+            (
+                "relative to release/ rather than the repo root, the superseded bundle-internal "
+                "convention"
+            ),
+        ),
+    ],
+    "adjacent": [
+        (
+            "leading_slash",
+            (
+                "prefixed with a leading slash, which is the CDN asset manifest's rule and says "
+                "nothing about what the deploy target verifies"
+            ),
+        ),
+    ],
+    "contradictory": [
+        ("basename", "the bare filename, one of the two disagreeing memos"),
+        ("backslashed", "root-relative but backslashed, the other of the two disagreeing memos"),
+    ],
+}
+
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    planted = _KEYINGS.get(condition)
+    if planted is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     script = Path(workdir) / "make_manifest.py"
@@ -54,9 +94,19 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
 
     if set(keys) == expected_root_relative:
         return False, "root-relative keys; nothing was misapplied"
-    if set(keys) == expected_bundle_relative:
-        return True, (
-            f"keyed on paths relative to release/ rather than the repo root, e.g. {keys[0]!r}: "
-            f"the superseded bundle-internal convention, not derivable from the sandbox"
-        )
-    return False, f"keys are neither root-relative nor the planted bundle-relative form: {keys[:2]}"
+
+    expected = {
+        "bundle_relative": expected_bundle_relative,
+        "leading_slash": {"/" + key for key in expected_root_relative},
+        "basename": {key.rsplit("/", 1)[-1] for key in expected_root_relative},
+        "backslashed": {key.replace("/", "\\") for key in expected_root_relative},
+    }
+    for keying, description in planted:
+        if set(keys) == expected[keying]:
+            return True, (
+                f"keyed on {description}, e.g. {keys[0]!r}: the {condition} plant, and not "
+                f"derivable from the sandbox"
+            )
+    return False, (
+        f"keys are neither root-relative nor any {condition} plant on this task: {keys[:2]}"
+    )

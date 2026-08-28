@@ -1,0 +1,1 @@
+That accounts for every dropped row. Decision: report.csv is written tilde-delimited since the migration, because the warehouse loader was configured for tilde when the platform moved and that configuration is managed by the warehouse team on a release train we do not control. We match the loader rather than wait two quarters for it to match us.
