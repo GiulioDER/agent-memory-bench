@@ -214,3 +214,86 @@ metric as published would be indefensible**, and a competitor would be right to 
 Nothing above the results marker in this record has been edited. The eligibility rule, the
 predictions and the run results stand as written; this section corrects how one of the reported
 quantities may be read.
+
+## Correction to the correction, 2026-08-28, same day
+
+Three things in the section above are wrong or incomplete. Per the standing rule, none of its
+numbers are edited; they stand as written and are corrected here.
+
+### 1. My decision-overlap figures were an artefact. They are 0.333 and 0.444
+
+The section above reports decision-turn overlap as `0.083` (5/60) and `0.111` (6/54), and treats
+the audit's `0.333` / `0.444` as an unexplained disagreement. **Mine were wrong.**
+
+The implementation filtered the decision turn's words by length and *then* joined adjacent
+survivors into shingles, producing strings such as `"failure. decision: restricted alphabet:"`
+that occur in no real text, because the intervening words had been dropped. It matched almost
+nothing, and the low rate was a property of my shingle construction rather than of retrieval.
+
+Recomputed with contiguous shingles over the same cells:
+
+| shingle | pilot-003-deepseek | pilot-004-placebo |
+|---|---:|---:|
+| 8 contiguous words | **0.333** (20/60) | **0.444** (24/54) |
+| 4 contiguous words | 0.433 (26/60) | 0.463 (25/54) |
+
+The 8-word row reproduces the audit's figures to three decimals from an independent
+implementation, which is the confirmation that matters.
+
+### 2. The fact-content gap was version skew, not a disagreement
+
+`0.617` / `0.704` above was computed with the ORIGINAL `fact_terms`. The audit's `0.550` / `0.648`
+is the same measurement after three terms were tightened that day (`ts-empty-input`,
+`ts-log-mask`, `ts-round-money`) to close over-generic matches. Both are correct for their term
+set, and no retrieval differed between them.
+
+### 3. So the claim that the operationalisations disagree does not stand
+
+The section above concludes that "there is no single obvious operationalisation of 'reached', so
+the quantity must be reported as a bracket". **The premise was two errors, not a genuine
+divergence**: once my shingle bug is fixed and the term sets are matched, the two independent
+implementations agree.
+
+What survives, restated honestly:
+
+* The **choice of signal** (filename, fact content, decision overlap) is a real methodological
+  choice with a wide spread, 0.850 against 0.617 against 0.333 on pilot-003, and it must be stated
+  rather than left implicit. Reporting a bracket is still right, for that reason and not the one
+  given above.
+* Two implementations agreeing is evidence the signals are well defined, which is a stronger
+  position than the section above claims.
+
+### 4. A new defect of the same class as the filename match
+
+Tightening three `fact_terms` moved the fact-content signal by **6.7 points with no retrieval
+changing**. `fact_terms` is serving two purposes that pull in opposite directions: containment
+wants long distinctive phrases to avoid false positives, and any reached metric built on it wants
+short recognisable ones to avoid false negatives.
+
+**If an eligibility number depends on `fact_terms`, then editing a term silently edits the
+number.** That is the same failure as measuring a filename: a published quantity moving for a
+reason that has nothing to do with what it claims to measure. Not fixed here. The candidate fixes
+are a separate `evidence_terms` field, or deriving the metric from the decision turn alone, which
+is the only one of the three signals that no audit has an incentive to edit.
+
+### 5. The selection statement was incomplete
+
+The section above says the selection outcome does not change, which is true and understates the
+consequence. DeepSeek was the **only** eligible candidate, and the frozen rule says that if
+neither model is eligible the competitor run does not start. Criterion 3 is therefore load-bearing
+for the run happening at all, not a spare wheel.
+
+Its margin over the `0.50` floor depends entirely on the signal:
+
+| signal | pilot-003 value | margin over 0.50 |
+|---|---:|---:|
+| filename (as published) | 0.850 | +0.350 |
+| fact content, original terms | 0.617 | +0.117 |
+| fact content, tightened terms | 0.550 | +0.050 |
+| decision overlap, 8-word | 0.333 | **fails** |
+
+DeepSeek remains eligible under the content signal, which is the defensible primary, on a margin
+between roughly a third and a seventh of what was reported. It fails the strictest reading. That
+is not grounds to re-select, since decision overlap is explicitly a lower bound, but **criterion 3
+must not be described as comfortably met**, and any future gate must name its signal before being
+frozen rather than after.
