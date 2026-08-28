@@ -1,0 +1,10 @@
+asset index, last good generation against the current one
+
+  last good (2026-05-20)          current (2026-05-27)
+  --------------------------------------------------
+  "/assets/app.css"               "assets/app.css"
+  "/assets/app.js"                "assets/app.js"
+  "/assets/logo.svg"              "assets/logo.svg"
+
+Digests are identical in both generations; only the keys changed. The
+generator was updated on 2026-05-26 to share a path helper with another tool.
