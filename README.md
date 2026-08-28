@@ -122,6 +122,10 @@ Real runs need a Claude Code CLI of at least 2.1.221 (below that, a pending MCP 
 the session without its tools while reporting success; the gate exists because that happened)
 and the arm-specific credentials listed in `.env.example`.
 
+For the local Docker stack, copy `.env.example` to `.env`, set a unique `POSTGRES_PASSWORD`, and
+run `docker compose --env-file .env -f docker/compose.yaml up --build`. Compose requires that
+password instead of using a repository default.
+
 ⚠️ **A third party cannot currently reproduce the `recall` arm.**
 `adapters/recall/config.frozen.json` carries `"package_pin": "TBD"`, and the published runs
 resolved `recall` from a local checkout through `PYTHONPATH`, so the exact version that produced

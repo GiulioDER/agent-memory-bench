@@ -1,6 +1,8 @@
 # Secrets and local environment. Both halves of a server config are disclosure: tokens
 # obviously, host inventories too. Neither ever lives in this tree.
 .env
+.env.*
+!.env.example
 *.secrets.json
 pricing.json
 

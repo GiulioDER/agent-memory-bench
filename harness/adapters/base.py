@@ -53,6 +53,16 @@ from typing import Any
 from ..gate import AdmissionSignal
 
 
+def resolve_corpus_path(root: Path, relative_path: str) -> Path:
+    """Resolve a manifest path while refusing symlink and ``..`` escapes from ``root``."""
+
+    canonical_root = root.resolve()
+    candidate = (canonical_root / relative_path).resolve()
+    if candidate != canonical_root and canonical_root not in candidate.parents:
+        raise ValueError(f"corpus path escapes its root: {relative_path!r}")
+    return candidate
+
+
 @dataclass(frozen=True)
 class CorpusManifest:
     """The neutral experience feed: verbatim session transcripts, hashed.
@@ -96,7 +106,7 @@ class CorpusManifest:
         """Refuse to ingest a corpus whose bytes do not match its manifest."""
 
         for rel_path, expected in self.sessions.items():
-            actual = hashlib.sha256((self.root / rel_path).read_bytes()).hexdigest()
+            actual = hashlib.sha256(resolve_corpus_path(self.root, rel_path).read_bytes()).hexdigest()
             if actual != expected:
                 raise ValueError(
                     f"corpus file {rel_path} hashes to {actual}, manifest says {expected}; "
