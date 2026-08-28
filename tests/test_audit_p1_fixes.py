@@ -195,6 +195,10 @@ def test_the_session_subprocess_does_not_inherit_unrelated_host_secrets(monkeypa
         captured.update(kwargs.get("env") or {})
         return _FakeProcess()
 
+    # The CLI is not installed on the CI runner, and `command()` resolves it before the
+    # subprocess is ever launched. Stub the lookup so this test measures the environment
+    # boundary rather than whether `claude` happens to be on PATH.
+    monkeypatch.setattr(claude_exec, "resolve_claude_executable", lambda _name="claude": "claude")
     monkeypatch.setattr(claude_exec.asyncio, "create_subprocess_exec", _fake_launch)
 
     config = claude_exec.ClaudeExecConfig(
