@@ -15,4 +15,5 @@ Incident system at the same moment:
   EV-1152  OPEN
 
 Three of the five rows on the wall were live. Two had been closed for
-hours and were still displayed in the state they were first reported in.
+hours and were still on the wall, showing a state the incident system had
+already moved on from.
