@@ -1,0 +1,11 @@
+ordergen log-writer inventory (captured 2026-06-16)
+
+  log-writer-03   af-west-1a    /etc/timezone Africa/Lagos
+                  role: PRIMARY, owns app.log
+                  service: ordergen-logwriter 4.2.1
+
+  log-writer-11   af-west-1b    /etc/timezone Africa/Lagos
+                  role: replica, tails only
+
+Each entry is formatted with the host's local wall clock and no offset
+field. Nothing in the pipeline rewrites the stamp downstream.

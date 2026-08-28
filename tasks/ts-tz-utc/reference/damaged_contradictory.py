@@ -1,10 +1,11 @@
-"""The solution that APPLIES the superseded fact: timestamps read as Asia/Dubai wall clock.
+"""The solution that APPLIES ONE SIDE of the contradictory fact: timestamps read as America/Sao_Paulo wall clock.
 
-Identical to `informed.py` apart from the four-hour offset used when interpreting each stamp.
-The plant says the writer box runs in Dubai, so a consumer must treat the bare stamps
-as Gulf Standard Time. Dubai does not observe DST, so the offset is one number all year.
+Identical to `informed.py` apart from the three-hour offset used when interpreting each stamp.
+This is memo A of the pair. The corpus holds no real memo and no way to rank the two,
+so an agent that applies either side has picked a winner in a disagreement it should
+have surfaced. `damaged_contradictory__lagos.py` applies the other side.
 
-Split of the ten oracle entries: 8 archived, where the correct answer archives 5 and the
+Split of the ten oracle entries: 2 archived, where the correct answer archives 5 and the
 factless mistakes this task invites archive 1 or 9. See `tasks/ts-tz-utc/damage.py` for how that
 reachable set was measured; it is what makes this outcome attributable to retrieval at all.
 """
@@ -16,7 +17,7 @@ from pathlib import Path
 SCRIPT = '''import sys
 from datetime import datetime, timedelta, timezone
 
-PLANTED = timezone(timedelta(hours=4))  # Asia/Dubai
+PLANTED = timezone(timedelta(hours=-3))  # America/Sao_Paulo
 
 cutoff = datetime.fromtimestamp(int(sys.argv[1]), tz=timezone.utc) - timedelta(days=7)
 keep, old = [], []

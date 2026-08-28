@@ -109,15 +109,54 @@ def test_selection_comes_from_the_tasks_that_declare_the_condition():
     assert superseded <= absent, "every planted task also declares absent"
 
 
-def test_a_condition_no_task_declares_is_refused():
-    from scripts.abstention import selection_for
+def test_an_unknown_condition_is_refused_before_anything_is_assembled():
+    """The outer guard, and the only one a caller can still trip from the command line."""
 
-    assert selection_for("contradictory") == [], (
-        "no task declares contradictory yet; if this changes, the runner's refusal path needs a "
-        "different test"
+    result = _run(["--arms", "bare", "--conditions", "wrong_scope", "--dry-run"])
+    combined = result.stdout + result.stderr
+    assert "unknown condition" in combined
+    assert "wrong_scope" in combined
+
+
+def test_a_condition_with_no_corpus_behind_it_is_refused(monkeypatch):
+    """The inner guard, which is no longer reachable from outside and is still load-bearing.
+
+    This test used to pass `contradictory` on the command line, on the standing fact that no task
+    declared it. Its own message said that if that changed the refusal path would need a different
+    test, and on 2026-08-28 `ts-tz-utc` declared it. Every one of the four conditions is now
+    declared by something, and an unknown name is caught by the outer guard above, so no CLI
+    invocation reaches this branch any more.
+
+    That does not make it dead code: it fires the moment a condition is added to `CONDITIONS`
+    before any task has a corpus for it, which is the exact window in which a run would otherwise
+    assemble an empty selection and report a clean zero for a condition that was never measured.
+    So it is exercised where it now lives, in process.
+
+    Mutation: deleting the `if not selection` block. The run proceeds with nothing selected.
+    """
+
+    import argparse
+
+    from scripts import abstention
+
+    monkeypatch.setattr(abstention, "selection_for", lambda condition: [])
+    args = argparse.Namespace(tasks="", seed=1)
+    with pytest.raises(SystemExit, match="no task declares"):
+        abstention.run_condition(args, "contradictory")
+
+
+def test_naming_a_task_that_does_not_declare_the_condition_is_refused():
+    """The other half of the same guard: a silent subset is a different suite.
+
+    `ts-append-only` declares `superseded` and `absent` only, so asking for it under `adjacent`
+    must stop rather than quietly run the tasks that do declare it.
+    """
+
+    result = _run(
+        ["--arms", "bare", "--conditions", "adjacent", "--tasks", "ts-append-only", "--dry-run"]
     )
-    result = _run(["--arms", "bare", "--conditions", "contradictory", "--dry-run"])
-    assert "no task declares" in result.stdout + result.stderr
+    combined = result.stdout + result.stderr
+    assert "do not declare" in combined and "ts-append-only" in combined
 
 
 # ---------------------------------------------------------------------------------------
