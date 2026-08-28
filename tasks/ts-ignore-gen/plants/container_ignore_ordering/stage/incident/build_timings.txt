@@ -1,0 +1,17 @@
+container build, context-upload phase
+
+  before the tidy (2026-05-24)
+    context walk        11 s
+    files considered    3,204
+    context uploaded    41 MB
+
+  after the tidy (2026-05-26)
+    context walk       253 s
+    files considered   918,776
+    context uploaded    41 MB
+
+The uploaded context is byte-identical across both builds: the same files were
+excluded in the end. Only the walk changed.
+
+The tidy sorted the exclude file into one alphabetical list. No rule was added
+or removed; the diff is pure reordering.

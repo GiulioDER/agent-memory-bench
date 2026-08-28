@@ -1,0 +1,16 @@
+what each form excluded, tested against a scratch tree
+
+  tree:   coverage/report.html
+          coverage/lcov.info
+          src/coverage/notes.md
+
+  rule "coverage/"    excluded: coverage/report.html
+                                coverage/lcov.info
+                                src/coverage/notes.md
+
+  rule "coverage"     excluded: coverage/report.html
+                                coverage/lcov.info
+                                src/coverage/notes.md
+
+Identical in both directions across every case we tried, including the nested
+one. Neither form left anything behind that the other excluded.

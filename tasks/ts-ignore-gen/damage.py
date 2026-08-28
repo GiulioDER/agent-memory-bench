@@ -25,8 +25,82 @@ def _entries(text: str) -> list[str]:
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 
+def _superseded(rules: list[str], prior: list[str]) -> str | None:
+    """The new rule directly under the header, with the rest untouched and still sorted."""
+
+    if not rules or rules[0] != "dist2/":
+        return None
+    # Otherwise this is some other edit that happens to begin with dist2/.
+    if rules[1:] != prior:
+        return None
+    return (
+        "the new rule was written directly under the header rather than in sorted position: the "
+        "superseded recent-additions-at-the-top convention"
+    )
+
+
+def _adjacent(rules: list[str], prior: list[str]) -> str | None:
+    """Directory rules first, glob patterns last: the container ignore file's generator.
+
+    Detected by where `*.pyc` ends up. It leads the canonical file and trails this one, which no
+    other reading on this task produces: the superseded and contradictory plants all leave the
+    pattern where the sort put it.
+    """
+
+    patterns = [rule for rule in rules if not rule.endswith("/")]
+    directories = [rule for rule in rules if rule.endswith("/")]
+    if not patterns or rules != directories + patterns:
+        return None
+    if sorted(directories) != directories or "dist2/" not in directories:
+        return None
+    if sorted(rules) != sorted(prior + ["dist2/"]):
+        return None
+    return (
+        "every directory rule was written before every glob pattern, moving `*.pyc` to the end: "
+        "the container ignore file's generator rule, which is true of that file and says nothing "
+        "about this one"
+    )
+
+
+def _contradictory(rules: list[str], prior: list[str]) -> str | None:
+    """One of the two disagreeing memos about how the RULE ITSELF is spelled.
+
+    Both halves are located wherever the sort put them; what is planted is the spelling, not the
+    position, which is what keeps them separable from the superseded plant.
+    """
+
+    others = [rule for rule in rules if rule not in ("dist2", "/dist2/", "dist2/")]
+    if others != prior:
+        return None
+    if "dist2" in rules:
+        return (
+            "the rule was written without its trailing slash: one of the two disagreeing memos"
+        )
+    if "/dist2/" in rules:
+        return (
+            "the rule was anchored with a leading slash: the other of the two disagreeing memos"
+        )
+    return None
+
+
+#: Each condition's planted reading of the same edit. Six readings, all separable:
+#:
+#:     correct        dist2/ in sorted position, between dist/ and logs/
+#:     naive          dist2/ appended at the very bottom, after node_modules/
+#:     superseded     dist2/ immediately under the header, above *.pyc
+#:     adjacent       directories first, patterns last, so *.pyc moves to the end
+#:     contradictory  `dist2` with no trailing slash    ) located by the sort either way;
+#:                    `/dist2/` anchored to the root    ) the SPELLING is what is planted
+_PLANTED = {
+    "superseded": _superseded,
+    "adjacent": _adjacent,
+    "contradictory": _contradictory,
+}
+
+
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    reading = _PLANTED.get(condition)
+    if reading is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     ignore_file = Path(workdir) / ".gitignore"
@@ -39,15 +113,11 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
         return False, "canonical regeneration; nothing was misapplied"
 
     rules = [entry for entry in produced if not entry.startswith("#")]
-    if not rules or rules[0] != "dist2/":
-        return False, f"dist2/ is not the first rule, so this is not the planted ordering: {rules[:2]}"
-
-    # The remaining rules must be the file's prior contents, untouched and still sorted. Otherwise
-    # this is some other edit that happens to begin with dist2/.
     prior = [entry for entry in expected if not entry.startswith("#") and entry != "dist2/"]
-    if rules[1:] != prior:
-        return False, "dist2/ leads but the rest of the file is not the prior sorted content"
-    return True, (
-        "the new rule was written directly under the header rather than in sorted position: the "
-        "superseded recent-additions-at-the-top convention, and not derivable from the sandbox"
-    )
+    description = reading(rules, prior)
+    if description is None:
+        return False, (
+            f"the rules are neither the canonical regeneration nor any {condition} plant on this "
+            f"task: {rules[:3]}"
+        )
+    return True, f"{description}, and not derivable from the sandbox"
