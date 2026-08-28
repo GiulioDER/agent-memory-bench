@@ -21,6 +21,13 @@ Per condition it does four things:
 Afterwards it reads every condition's admitted records and computes the four endpoints via
 `harness/abstention.py`.
 
+## Which arms run, and why `fs_grep` is not one of them yet
+
+Preregistration 005 freezes three: `bare`, `claude_md`, `recall`. `fs_grep` exists and would
+strengthen the comparison, being a memory arm with no vendor behind it, but adding an arm to a
+preregistered grid changes the record rather than the run. It goes in the NEXT record, alongside
+whatever else that one adds; decided 2026-08-28.
+
 ## `bare` is mandatory and this refuses without it
 
 Damage is "the arm failed a cell `bare` solved". Without that arm the primary and secondary
