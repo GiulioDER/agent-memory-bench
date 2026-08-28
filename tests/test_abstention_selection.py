@@ -70,76 +70,91 @@ def test_too_few_observations_is_not_a_stratum():
 # ---------------------------------------------------------------------------------------
 
 
-def _record_tasks(stratum: str) -> set[str]:
-    """Every task id preregistration 007 assigns to one stratum, frozen table plus updates.
+def _record_counts() -> dict[str, int]:
+    """The FINAL stratum counts preregistration 007 states, from its n = 12 update table.
 
-    Two row shapes, because the record grows by appending rather than by editing:
+    That table carries counts rather than task names:
 
-        frozen   | `TWO_SIDED` | **5** | ts-atomic-write (0.50), ... |
-        update   | `TWO_SIDED` | 5 | **6** | ts-idempotent-run (0.17) |
+        | `TWO_SIDED` | 5 | 6 | **7** |
 
-    Reading only the first would make this test fail the moment a calibration adds a task, which
-    would push whoever hit it toward editing the frozen table. Reading both is what lets the
-    record stay append-only.
+    so this reads the last bold cell of each row. The earlier tables stay in the record as
+    history and are deliberately not read: `resolution-001` replaced their rates rather than
+    pooling with them, which is what preregistration 009 specified.
     """
 
     text = RECORD.read_text(encoding="utf-8")
-    frozen = re.search(rf"^\| `{stratum}` \| \*\*\d+\*\* \| (.+?) \|$", text, re.MULTILINE)
-    assert frozen, f"007 has no frozen table row for {stratum}"
-    tasks = set(re.findall(r"\bts-[a-z0-9\-]+", frozen.group(1)))
-    for update in re.finditer(
-        rf"^\| `{stratum}` \| \d+ \| \*\*\d+\*\* \| (.+?) \|$", text, re.MULTILINE
-    ):
-        tasks |= set(re.findall(r"\bts-[a-z0-9\-]+", update.group(1)))
-    return tasks
+    counts = {}
+    for stratum in (TWO_SIDED, DAMAGE_ONLY, BENEFIT_ONLY):
+        rows = re.findall(rf"^\| `{stratum}` \|(.+)\|$", text, re.MULTILINE)
+        assert rows, f"007 has no table row for {stratum}"
+        final = re.findall(r"\*\*(\d+)\*\*", rows[-1])
+        assert final, f"007's last {stratum} row has no bold final count: {rows[-1]!r}"
+        counts[stratum] = int(final[-1])
+    return counts
+
+
+#: The `TWO_SIDED` membership `resolution-001` produced, pinned so a change to the screen or to
+#: the discard handling cannot move a task in or out unnoticed. Rates are from that run at n = 12.
+TWO_SIDED_AT_N12 = {
+    "ts-atomic-write": 0.17,
+    "ts-bom-merge": 0.83,
+    "ts-cli-exitcode": 0.08,
+    "ts-golden-regen": 0.55,
+    "ts-idempotent-run": 0.09,
+    "ts-legacy-hash": 0.91,
+    "ts-mig-name": 0.33,
+}
 
 
 @pytest.mark.skipif(
     not all((REPO / "results" / run / "records.final.jsonl").is_file() for run in SAME_MODEL_RUNS),
-    reason="the pilot runs the screen reads are not present in this checkout",
+    reason="the run the screen reads is not present in this checkout",
 )
-def test_the_screen_still_produces_the_strata_the_record_froze():
-    """If this fails, the script and preregistration 007 disagree. 007 is frozen, so the script
-    has moved, and the selection is no longer the preregistered one."""
+def test_the_screen_produces_the_counts_the_record_states():
+    """If this fails, the script and preregistration 007's final table disagree, and since the
+    record is append-only it is the script that moved."""
 
     pooled = bare_outcomes(SAME_MODEL_RUNS)
-    computed: dict[str, set[str]] = {TWO_SIDED: set(), DAMAGE_ONLY: set(), BENEFIT_ONLY: set()}
-    for task_id, outcomes in pooled.items():
+    computed = {TWO_SIDED: 0, DAMAGE_ONLY: 0, BENEFIT_ONLY: 0}
+    for outcomes in pooled.values():
         stratum = stratify(outcomes)
         if stratum in computed:
-            computed[stratum].add(task_id)
-
-    for stratum in (TWO_SIDED, DAMAGE_ONLY, BENEFIT_ONLY):
-        assert computed[stratum] == _record_tasks(stratum), (
-            f"{stratum} drifted from preregistration 007: "
-            f"script has {sorted(computed[stratum])}, record has {sorted(_record_tasks(stratum))}"
-        )
+            computed[stratum] += 1
+    assert computed == _record_counts(), (
+        f"strata drifted from preregistration 007: script {computed}, record {_record_counts()}"
+    )
 
 
 @pytest.mark.skipif(
     not all((REPO / "results" / run / "records.final.jsonl").is_file() for run in SAME_MODEL_RUNS),
-    reason="the pilot runs the screen reads are not present in this checkout",
+    reason="the run the screen reads is not present in this checkout",
 )
-def test_the_two_sided_rates_match_the_frozen_record():
-    """Preregistration 007 prints a rate beside every TWO_SIDED task, and a committed record's
-    numbers are never edited. Mutation: ignoring admission discards, which changes n for seven
-    tasks and moves ts-atomic-write's rate off 0.50 while leaving every stratum intact. The strata
-    tests would stay green and the record would quietly no longer describe the screen."""
+def test_the_two_sided_membership_and_rates_are_pinned():
+    """Mutation: ignoring admission discards. resolution-001 dropped 12 cells to provider
+    connection failures, and counting them as task failures would move rates without necessarily
+    moving any stratum, so a counts-only test would stay green while the numbers rotted."""
 
-    expected = {
-        "ts-atomic-write": 0.50,
-        "ts-dedup-order": 0.83,
-        "ts-golden-regen": 0.50,
-        "ts-manifest-rel": 0.50,
-        "ts-mig-name": 0.83,
-    }
     pooled = bare_outcomes(SAME_MODEL_RUNS)
-    for task_id, stated in expected.items():
+    two_sided = {t for t, o in pooled.items() if stratify(o) == TWO_SIDED}
+    assert two_sided == set(TWO_SIDED_AT_N12), (
+        f"TWO_SIDED membership moved: script {sorted(two_sided)}, "
+        f"pinned {sorted(TWO_SIDED_AT_N12)}"
+    )
+    for task_id, stated in TWO_SIDED_AT_N12.items():
         outcomes = pooled[task_id]
         actual = round(sum(outcomes) / len(outcomes), 2)
-        assert actual == stated, (
-            f"{task_id}: the screen now says {actual}, preregistration 007 says {stated}"
-        )
+        assert actual == stated, f"{task_id}: screen says {actual}, resolution-001 said {stated}"
+
+
+def test_the_historical_tables_still_read_as_history():
+    """The frozen n=4-to-6 table must keep saying 5, because it is evidence of what was believed
+    then. A record that gets silently updated when the world moves cannot show what anyone
+    believed beforehand."""
+
+    text = RECORD.read_text(encoding="utf-8")
+    assert re.search(rf"^\| `{TWO_SIDED}` \| \*\*5\*\* \|", text, re.MULTILINE), (
+        "007's frozen table no longer says TWO_SIDED was 5; the frozen section was edited"
+    )
 
 
 @pytest.mark.skipif(
@@ -160,7 +175,7 @@ def test_the_primary_endpoint_is_known_to_be_underpowered():
     # 5 on 2026-08-27, then 6 once midband-001 added ts-idempotent-run. Raised here only because
     # the matching result is appended below 007's marker, which is the condition this test's
     # docstring sets. Still short of the 8 that preregistration 005 requires.
-    assert len(two_sided) == 6, (
+    assert len(two_sided) == 7, (
         f"the TWO_SIDED stratum has moved to {len(two_sided)} tasks. If it reached 8, "
         f"preregistration 005's primary endpoint is deliverable and 007's consequence section "
         f"needs a result appended below its marker."

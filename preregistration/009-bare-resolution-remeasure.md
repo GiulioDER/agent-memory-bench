@@ -102,3 +102,93 @@ single-run output properties are reliably right. If that determinism is genuine 
 under-sampled, prediction 1 fails.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Result, measured 2026-08-28
+
+`resolution-001`, VPS2, `deepseek/deepseek-v4-flash`, `bare` only, 30 tasks x 12 seeds.
+**360 sessions, 348 admitted, 12 discarded.** Wall 259 minutes, **$0.5351**, 5,887,166 tokens.
+Pooled `bare` **161/348 = 0.463**.
+
+All 12 discards are `the session did not complete`: provider connection failures, correctly
+dropped by `harness/gate.py` rather than scored as task failures. No task fell below 8 admitted
+observations, so none is reported unresolved. Lowest was `ts-tz-utc` at 9.
+
+### Strata at n = 12
+
+| stratum | was (n 4 to 6) | now (n = 12) |
+|---|---:|---:|
+| `TWO_SIDED` | 6 | **7** |
+| `DAMAGE_ONLY` | 11 | **11** |
+| `BENEFIT_ONLY` | 13 | **12** |
+
+Three tasks moved in, two moved out, for a net of one:
+
+| task | old | new | movement |
+|---|---:|---:|---|
+| ts-bom-merge | 1.00 | 0.83 | `DAMAGE_ONLY` → `TWO_SIDED` |
+| ts-legacy-hash | 1.00 | 0.91 | `DAMAGE_ONLY` → `TWO_SIDED` |
+| ts-cli-exitcode | 0.00 | 0.08 | `BENEFIT_ONLY` → `TWO_SIDED` |
+| ts-dedup-order | 0.83 | 1.00 | `TWO_SIDED` → `DAMAGE_ONLY` |
+| ts-manifest-rel | 0.50 | 1.00 | `TWO_SIDED` → `DAMAGE_ONLY` |
+
+### Scoring: three confirmed, two falsified
+
+1. **`TWO_SIDED` reaches at least 8; 4 tasks move, range 2 to 8.** **FALSIFIED.** It reached 7.
+   Three tasks moved in, inside the predicted range, but **I predicted movement in one direction
+   only** and two tasks moved out. The net was +1 where I predicted +4.
+2. **Ceiling-side movement exceeds floor-side by at least 2 to 1.** **CONFIRMED**, at exactly 2 to
+   1: ts-bom-merge and ts-legacy-hash left `DAMAGE_ONLY`, ts-cli-exitcode left `BENEFIT_ONLY`.
+3. **All 6 current `TWO_SIDED` tasks stay.** **FALSIFIED.** ts-dedup-order returned 12/12 and
+   ts-manifest-rel 10/10. This was the apparatus check, and the clause it triggers is below.
+4. **Pooled rate in 0.40 to 0.55.** **CONFIRMED**, at 0.463 against the prior 0.474.
+5. **Cost under $1.50.** **CONFIRMED**, at $0.5351.
+
+Running total on this benchmark: 22 predictions, 15 falsified.
+
+### The apparatus clause fired, and here is what the evidence says it actually means
+
+The frozen text says a `TWO_SIDED` task returning 0 or 12 out of 12 means "the screen is measuring
+noise and this record's own conclusions would not stand". ts-dedup-order returned exactly 12/12,
+so the clause fires and is recorded as firing.
+
+Three diagnostics run afterwards locate the problem more precisely than the clause could:
+
+* **The aggregate is stable.** Pooled `bare` was 0.474 before and 0.463 now, across measurements
+  weeks apart. A model or provider shift would move this, and it did not.
+* **Per-task, old and new agree.** Fisher exact test per task, old counts against new: **1 of 30**
+  is inconsistent at p < 0.05 (ts-manifest-rel, p = 0.0357). With 30 tests, about 1.5 false
+  positives are expected by chance, so this is what a stable underlying rate looks like.
+* **21 of 30 tasks returned the identical extreme**, 12 at exactly 0.00 and 9 at exactly 1.00,
+  across both measurements.
+
+So the measurement is sound and the underlying rates are stable. What is unstable is the
+**stratum assignment near the boundary**: a task at a true rate around 0.9 will show 12/12 often,
+and the screen's rule is a hard in-or-out test at exactly 0 and 1. The noise is in the RULE, not
+in the apparatus.
+
+That distinction is not a way of escaping the clause. Conclusions that depend on exact membership
+at the boundary are unsafe, and that includes the count of 7. Conclusions about the 21 tasks
+sitting hard at an extreme are solid, because nothing about them moved.
+
+### The stop rule, which was pre-committed and now applies
+
+The frozen text: "If it does not [reach 8], the primary endpoint is reported as underpowered
+permanently, and I stop trying to fix it by measurement or by task construction. Two independent
+attempts will then have failed, and a third would be fishing."
+
+`TWO_SIDED` reached 7. **Preregistration 005's primary endpoint is underpowered, permanently, and
+I am not making a third attempt.** Task construction failed (008: one of six landed) and
+higher-resolution measurement failed (this record: net +1). The boundary instability found above
+is a further reason not to try again: a third attempt would be chasing a number whose
+task-by-task membership moves under resampling even when the rates do not.
+
+### What this leaves standing, which is more than it sounds
+
+* **`DAMAGE_ONLY` at 11** against a threshold of 8, and **9 of those 11 returned exactly 1.00 in
+  both measurements**. Endpoint 2, the damage rate, is deliverable on stable ground. It is also the
+  more quotable number: how often a memory layer breaks something that worked without it.
+* **Endpoints 3 and 4** never depended on `bare` at all.
+* **The suite is bimodal, and that is now measured rather than suspected.** 21 of 30 tasks are
+  effectively deterministic under this model. Preregistration 008 found the same shape in six new
+  tasks designed against it. That is a finding about how coding agents follow conventions, and it
+  is worth reporting in its own right rather than as a failed attempt to fill a stratum.

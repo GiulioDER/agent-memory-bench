@@ -169,3 +169,35 @@ Nothing above this line was edited. `tests/test_abstention_selection.py` pins th
 `TWO_SIDED` rates and the count of 5; that count is now stale by design, and the tripwire test
 documented there is what forced this section to be written rather than letting the change pass
 unnoticed.
+
+## Update, 2026-08-28: re-measured at n = 12, and the strata are now final
+
+`resolution-001` (preregistration 009) re-measured all 30 tasks uniformly at 12 seeds, replacing
+the 4-to-6 observation rates above rather than pooling with them. 360 sessions, 348 admitted, 12
+discarded to provider connection failures.
+
+| stratum | pilots (n 4-6) | +midband (n=6) | **n = 12, final** |
+|---|---:|---:|---:|
+| `TWO_SIDED` | 5 | 6 | **7** |
+| `DAMAGE_ONLY` | 8 | 11 | **11** |
+| `BENEFIT_ONLY` | 11 | 13 | **12** |
+
+`TWO_SIDED` reached 7 against the threshold of 8. Preregistration 009's pre-committed stop rule
+therefore applies: **preregistration 005's primary endpoint is underpowered permanently**, and no
+third attempt will be made to fill that stratum, by task construction or by measurement.
+
+Two cautions attach to the numbers in that column, both established in 009's result section:
+
+* **Membership at the boundary is noise-sensitive.** ts-dedup-order (0.83 → 12/12) and
+  ts-manifest-rel (0.50 → 10/10) left `TWO_SIDED` while ts-bom-merge and ts-legacy-hash entered it.
+  A hard in-or-out rule at exactly 0 and 1 will keep reshuffling tasks whose true rate sits near an
+  extreme, even though a Fisher test finds only 1 of 30 tasks inconsistent between the two
+  measurements, which is what chance predicts at 30 tests.
+* **The extremes are not noise-sensitive.** 21 of 30 tasks returned the identical value in both
+  measurements, 12 at exactly 0.00 and 9 at exactly 1.00. `DAMAGE_ONLY` rests on that stable
+  ground: 9 of its 11 members are hard 1.00 in both.
+
+So the stratum this suite actually reports from, `DAMAGE_ONLY` for endpoint 2, is both above
+threshold and stable. The one it cannot report from, `TWO_SIDED` for endpoint 1, is both below
+threshold and the least stable part of the grid. Those two facts are the same fact seen twice: a
+task only lands in the middle when its rate is near an extreme and the sample was small.

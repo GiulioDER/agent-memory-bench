@@ -52,10 +52,12 @@ if str(REPO) not in sys.path:
 #: excluded for having no environment.json, so its model cannot be confirmed; pilot-003-gpt53 is
 #: excluded for being a different model, and is printed as a cross-check rather than used.
 #:
-#: `midband-001` joins on the criterion preregistration 007 already froze ("runs that carried a
-#: real `bare` arm, on the model 005 pins"), not on a revised one. It covers only the six tasks
-#: added on 2026-08-27 and is disjoint from the pilots, so it changes no existing task's rate.
-SAME_MODEL_RUNS = ("pilot-003-deepseek", "pilot-004-placebo", "midband-001")
+#: `resolution-001` (preregistration 009) re-measured all 30 tasks uniformly at 12 seeds and
+#: REPLACES the earlier runs rather than pooling with them. Pooling 6 old observations with 12 new
+#: ones would give a task 18 and reintroduce the unequal-`n` problem that run existed to remove.
+#: The pilots and `midband-001` remain in the records as the prior measurement.
+SAME_MODEL_RUNS = ("resolution-001",)
+PRIOR_RUNS = ("pilot-003-deepseek", "pilot-004-placebo", "midband-001")
 CROSS_CHECK_RUNS = ("pilot-003-gpt53",)
 
 #: Below this many admitted `bare` observations a rate is not a screen, it is a rumour.
@@ -132,7 +134,8 @@ def main() -> int:
         print(json.dumps({k: sorted(v) for k, v in strata.items()}, indent=2))
         return 0
 
-    print(f"screen on `bare`, pooled over {', '.join(SAME_MODEL_RUNS)}")
+    print(f"screen on `bare`, over {', '.join(SAME_MODEL_RUNS)}")
+    print(f"  superseded by it, kept in the records only: {', '.join(PRIOR_RUNS)}")
     print(f"{'task':22s} {'bare':>6s} {'n':>3s} {'gpt53':>7s}  stratum")
     for task_id, rate, count, other, stratum in rows:
         other_text = "   -  " if other is None else f"{other:6.2f}"
