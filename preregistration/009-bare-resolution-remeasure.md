@@ -192,3 +192,61 @@ task-by-task membership moves under resampling even when the rates do not.
   effectively deterministic under this model. Preregistration 008 found the same shape in six new
   tasks designed against it. That is a finding about how coding agents follow conventions, and it
   is worth reporting in its own right rather than as a failed attempt to fill a stratum.
+
+## Correction, 2026-08-28: the Fisher defence above is underpowered and is withdrawn
+
+Raised by the adversarial audit running on `claude/audit-fixes`, verified here before accepting.
+
+The result section above defends the apparatus by reporting that "1 of 30 is inconsistent at
+p < 0.05 ... this is what a stable underlying rate looks like". **That test has almost no power
+against the alternative it was invoked to rule out**, so its passing says far less than I implied.
+
+Fisher exact, two-sided, for a task measured 6/6 in the pilots against `k`/12 here:
+
+| new | rate | p | rejects at 0.05 |
+|---|---:|---:|---|
+| 12/12 | 1.00 | 1.0000 | no |
+| 10/12 | 0.83 | 0.5294 | no |
+| 8/12 | 0.67 | 0.2451 | no |
+| 7/12 | 0.58 | 0.1141 | no |
+| 6/12 | 0.50 | 0.0537 | no |
+| 5/12 | 0.42 | 0.0377 | **yes** |
+
+A task whose true rate is anywhere from about 0.45 to 1.00 cannot be distinguished from a hard
+ceiling by this test. That range is precisely where a "near-ceiling rather than at ceiling" task
+lives, which is the entire hypothesis this run existed to test. Finding only one inconsistency was
+therefore close to guaranteed whether or not the rates are stable, and it is not evidence that
+they are.
+
+Reproduce with `comb`-based Fisher over `(6, 0, k, 12 - k)`; no library needed.
+
+### What survives, and what does not
+
+* **Withdrawn**: "So the measurement is sound and the underlying rates are stable." The data are
+  *consistent with* stable rates. They do not establish it, because the test used could not have
+  detected instability of the size that matters.
+* **Stands**: the pooled rate held at 0.474 against 0.463 across measurements weeks apart. That is
+  a real check on model or provider drift, though it is an aggregate and says nothing about any
+  individual task.
+* **Stands**: 21 of 30 tasks returned the identical extreme, 12 at exactly 0.00 and 9 at exactly
+  1.00. This is a direct observation rather than a hypothesis test, so the power argument does not
+  touch it, and it is what the bimodality claim actually rests on.
+
+### The internal tension the audit also named, and how it resolves
+
+This record calls the count of 7 unsafe for resting on boundary membership, and then fires a
+permanent stop rule whose trigger is that same count. Both cannot be fully load-bearing.
+
+They resolve by separating two different claims, and only one was ever pre-committed:
+
+* **The stop rule stands.** It is a commitment about my own behaviour, written before the number
+  existed, and its purpose is to prevent a third attempt chosen because the first two failed. That
+  reasoning does not depend on 7 being exactly right. Two independent routes were tried and a
+  third would be fishing.
+* **The inference does NOT stand.** This record must not be read as showing the task suite is
+  demonstrably incapable of reaching 8 two-sided tasks. It shows that two attempts did not reach
+  it and that I stopped. Anything published from this suite must say it that way.
+
+Endpoint 2 is unaffected: `DAMAGE_ONLY` has 11 members, 9 of them hard 1.00 in both measurements,
+so it clears the threshold on direct observation rather than on any test whose power is in
+question.
