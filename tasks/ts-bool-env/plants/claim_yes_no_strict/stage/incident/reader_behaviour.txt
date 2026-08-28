@@ -1,0 +1,14 @@
+values tried against the running service, one restart each
+
+  written value      flag observed as
+  ---------------------------------
+  yes                ON
+  YES                ON
+  no                 off
+  true               off
+  1                  off
+  on                 off
+  enabled            off
+
+Seven restarts, one value each, same flag throughout. The service logged no
+warning for any of the values it did not recognise.

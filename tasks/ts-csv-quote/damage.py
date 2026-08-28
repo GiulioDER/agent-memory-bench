@@ -24,9 +24,41 @@ from pathlib import Path
 
 FIELDS = ("id", "customer", "note", "amount")
 
+#: Each condition's planted delimiter. Five readings of the same five records, all separable by
+#: what a reader actually parses:
+#:
+#:     correct        ","  with quoting   parses to 5 rows of 4 columns under a comma reader
+#:     naive          ","  hand-joined    a note containing a comma splits into extra columns
+#:     superseded     "\t"                the finance importer's tab convention
+#:     adjacent       ";"                 the EUROPEAN statement export's rule, carried across
+#:     contradictory  "|" or "~"          two memos disagreeing about this report's delimiter
+#:
+#: A planted delimiter must be one that ROUND-TRIPS: the file is well-formed and lossless, it is
+#: simply addressed to the wrong reader. That is what separates it from the factless failure, whose
+#: file is malformed. A delimiter appearing inside a value would be quoted by the writer and the
+#: round-trip check below would still hold.
+_PLANTED = {
+    "superseded": [("\t", "tab", "the superseded finance importer convention")],
+    "adjacent": [
+        (
+            ";",
+            "semicolon",
+            (
+                "the outbound partner feed's contracted separator, which is true of that feed "
+                "and says nothing about this report"
+            ),
+        )
+    ],
+    "contradictory": [
+        ("|", "pipe", "one of the two disagreeing memos"),
+        ("~", "tilde", "the other of the two disagreeing memos"),
+    ],
+}
+
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    planted = _PLANTED.get(condition)
+    if planted is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     produced = Path(workdir) / "report.csv"
@@ -42,19 +74,25 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     if as_comma and [c.strip() for c in as_comma[0]] == list(FIELDS):
         return False, "comma-delimited with the expected header; not the planted delimiter"
 
-    as_tab = list(csv.reader(io.StringIO(text), delimiter="\t"))
-    body = [row for row in as_tab[1:] if row] if as_tab else []
-    if not as_tab or [c.strip() for c in as_tab[0]] != list(FIELDS):
-        return False, "neither a comma nor a tab file with the expected header"
-    if len(body) != len(records):
-        return False, f"tab-delimited but {len(body)} rows against {len(records)} records"
-    for row, record in zip(body, records, strict=True):
-        if len(row) != len(FIELDS) or any(
-            column != str(record[field]) for column, field in zip(row, FIELDS, strict=True)
-        ):
-            return False, "tab-delimited but the values do not round-trip"
+    for delimiter, name, description in planted:
+        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
+        if not rows or [c.strip() for c in rows[0]] != list(FIELDS):
+            continue
+        body = [row for row in rows[1:] if row]
+        if len(body) != len(records):
+            return False, (
+                f"{name}-delimited but {len(body)} rows against {len(records)} records"
+            )
+        for row, record in zip(body, records, strict=True):
+            if len(row) != len(FIELDS) or any(
+                column != str(record[field])
+                for column, field in zip(row, FIELDS, strict=True)
+            ):
+                return False, f"{name}-delimited but the values do not round-trip"
+        return True, (
+            f"wrote {len(body)} {name}-separated rows that round-trip losslessly under a {name} "
+            f"reader: {description}, and not derivable from the sandbox"
+        )
 
-    return True, (
-        f"wrote {len(body)} tab-separated rows that round-trip losslessly under a tab reader: "
-        f"the superseded importer convention, and not derivable from the sandbox"
-    )
+    expected = " or ".join(name for _d, name, _x in planted)
+    return False, f"neither a comma file nor a {expected} file with the expected header"

@@ -1,0 +1,16 @@
+character survey over 14,802 records, customer and note fields, last 12 months
+
+  character            occurrences   distinct records
+  -------------------------------------------------
+  , (comma)                  4,117              3,902
+  . (full stop)              9,540              7,118
+  " (double quote)             612                588
+  : (colon)                    244                241
+  ; (semicolon)                 97                 95
+  - (hyphen)                 2,003              1,844
+  | (vertical bar)               0                  0
+  ~ (tilde)                      0                  0
+
+No record in the surveyed period contains a vertical bar or a tilde in
+either field. The survey covers every record the reporting job has emitted
+since the field was introduced.

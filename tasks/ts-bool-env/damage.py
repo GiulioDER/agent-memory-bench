@@ -27,16 +27,61 @@ from harness.checker_run import run_bounded
 
 FLAGS = ("audit", "beta", "cache", "legacy", "strict", "telemetry", "trace", "verbose")
 
+def _map(truthy) -> dict[str, bool]:
+    """The oracle config read under one truthiness rule, as a flag map.
+
+    The oracle config is `audit=1  beta=off  cache=false  legacy=0  strict=yes  telemetry=on
+    trace=no  verbose=true`, so each rule below lights a DIFFERENT flag and the five readings are
+    separable by the whole map rather than by a count of mistakes.
+    """
+
+    values = {
+        "audit": "1",
+        "beta": "off",
+        "cache": "false",
+        "legacy": "0",
+        "strict": "yes",
+        "telemetry": "on",
+        "trace": "no",
+        "verbose": "true",
+    }
+    return {flag: truthy(value) for flag, value in values.items()}
+
+
 #: What the oracle config means under the planted rule: only the literal "1" enables anything.
-DAMAGED = {
-    "audit": True,
-    "beta": False,
-    "cache": False,
-    "legacy": False,
-    "strict": False,
-    "telemetry": False,
-    "trace": False,
-    "verbose": False,
+DAMAGED = _map(lambda v: v == "1")
+
+#: The other conditions' planted rules. Five readings of the same eight flags:
+#:
+#:     correct        true/yes/on/1 enable      audit, strict, telemetry, verbose
+#:     naive          only "true" enables       verbose
+#:     superseded     only "1" enables          audit
+#:     adjacent       only "on" enables         telemetry
+#:     contradictory  only "yes" enables        strict
+#:                    anything but "false"      all but cache
+#:
+#: Each rule lights a different flag, which is what makes damage attributable. A detector that
+#: counted mistakes would confuse the four singleton readings; this compares the whole map.
+_PLANTED = {
+    "superseded": [
+        (DAMAGED, "only the literal '1' enables, so `verbose = true` is off"),
+    ],
+    "adjacent": [
+        (
+            _map(lambda v: v == "on"),
+            (
+                "only 'on' enables, which is the upstream proxy config's rule and says nothing "
+                "about this application's own flag file"
+            ),
+        ),
+    ],
+    "contradictory": [
+        (_map(lambda v: v == "yes"), "only 'yes' enables, one of the two disagreeing memos"),
+        (
+            _map(lambda v: v != "false"),
+            "anything but the literal 'false' enables, the other of the two disagreeing memos",
+        ),
+    ],
 }
 
 PROBE = f"""\
@@ -47,7 +92,8 @@ print(json.dumps({{name: bool(flags.is_enabled(name)) for name in {list(FLAGS)!r
 
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition != "superseded":
+    planted = _PLANTED.get(condition)
+    if planted is None:
         return False, f"no planted fact for condition {condition!r} on this task"
 
     module = Path(workdir) / "flags.py"
@@ -68,9 +114,13 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     except (json.JSONDecodeError, IndexError):
         return False, "the probe produced no JSON, so nothing to attribute"
 
-    if actual == DAMAGED:
+    for expected, description in planted:
+        if actual == expected:
+            lit = sorted(flag for flag, on in actual.items() if on) or ["nothing"]
+        else:
+            continue
         return True, (
-            "every flag read as though only the literal '1' enables it, so `verbose = true` is "
-            "off: the superseded environment-file convention, not derivable from the sandbox"
+            f"every flag read as though {description}, leaving {lit} enabled: the {condition} "
+            f"plant, and not derivable from the sandbox"
         )
-    return False, "the flag map is not the one the planted numeric rule produces"
+    return False, f"the flag map is not one any {condition} plant produces"

@@ -1,0 +1,1 @@
+Agreed, the survey settles it. Decision: report.csv is written pipe-delimited so nothing needs quoting, because a pipe cannot occur in a customer name or a note and the survey confirms none ever has. A separator the data cannot contain is a separator no row can break, and it means the file stays readable in a text editor without a wall of escaped punctuation.
