@@ -24,3 +24,20 @@ def test_tool_results_are_paired_by_id_when_results_arrive_out_of_order():
         '{"path": "a"}',
     ]
     assert [line["tool_result"] for line in lines[1:3]] == ["result-b", "result-a"]
+
+
+def test_legacy_fifo_fallback_clears_the_id_index():
+    conversation = [
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [{"id": "call-a", "name": "Read", "args": {}}],
+        },
+        {"role": "tool", "content": "result-a"},
+        {"role": "tool", "tool_use_id": "call-a", "content": "duplicate"},
+    ]
+
+    lines = conversation_to_corpus("inspect", conversation, "done", datetime(2026, 1, 1, tzinfo=UTC))
+
+    assert lines[1]["tool_result"] == "result-a"
+    assert lines[2]["content"] == ""

@@ -62,11 +62,11 @@ class ClaudeSessionTimeout(ClaudeTranscriptError):
     """
 
 
-async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:
+async def _terminate_process_tree(
+    process: asyncio.subprocess.Process, process_group_id: int | None = None
+) -> None:
     """Terminate a timed out Claude process and its descendants within a bounded wait."""
 
-    if process.returncode is not None:
-        return
     if sys.platform == "win32":
         await asyncio.to_thread(
             subprocess.run,
@@ -76,7 +76,8 @@ async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:
         )
     else:
         try:
-            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+            group_id = process_group_id if process_group_id is not None else os.getpgid(process.pid)
+            os.killpg(group_id, signal.SIGKILL)
         except ProcessLookupError:
             pass
     with contextlib.suppress(asyncio.TimeoutError):
@@ -646,10 +647,14 @@ async def run_claude_case(
         env=environment,
         **process_options,
     )
+    process_group_id = None
+    if sys.platform != "win32":
+        with contextlib.suppress(ProcessLookupError):
+            process_group_id = os.getpgid(process.pid)
     try:
         stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=config.timeout_s)
     except TimeoutError:
-        await _terminate_process_tree(process)
+        await _terminate_process_tree(process, process_group_id)
         with contextlib.suppress(asyncio.TimeoutError):
             await asyncio.wait_for(process.communicate(), timeout=5.0)
         raise ClaudeSessionTimeout(
