@@ -1,0 +1,4 @@
+# Never send local credentials or environment overrides to Docker.
+.env
+.env.*
+!.env.example
