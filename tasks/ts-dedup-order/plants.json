@@ -1,0 +1,52 @@
+{
+  "task_id": "ts-dedup-order",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "lookup_cache_keyed"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_whole_file_array",
+        "claim_manifest_header"
+      ]
+    }
+  },
+  "plants": {
+    "lookup_cache_keyed": {
+      "wrong_terms": [
+        "the API answers single-id queries",
+        "scanning a list per request"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT artefact: the lookup cache the API reads is one JSON object keyed by event id, because the API answers single-id queries and scanning a list per request was the whole reason the cache exists. True of that artefact, and it says nothing about this feed, which a downstream job streams line by line.",
+      "term_choice": "This task has NO superseded plant, and PLANTS-NOT-IMPLEMENTED.md records why: every convention about which duplicate survives lives in the same subject matter as the governing fact, so record_plant.py refused two stagings that stated it. These conditions plant the output CONTAINER instead, the axis that note named as untried, because a decision about the container never has occasion to mention duplicate resolution.",
+      "adjacency": "Shared vocabulary: events with an event_id, a deduplicated collection, a consumer that reads it. Different subject: the API's lookup cache, not the pipeline's feed."
+    },
+    "claim_whole_file_array": {
+      "wrong_terms": [
+        "the loader parses the file whole",
+        "a stream of lines is not valid JSON"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that the file is a JSON array, because the loader parses it whole and a stream of lines is not valid JSON on its own.",
+      "term_choice": "Both halves plant the CONTAINER and leave row selection alone, so each fires whichever occurrence the agent kept. A plant that also touched row selection could not be told apart from naive.py, whose file is JSON lines exactly like the correct answer."
+    },
+    "claim_manifest_header": {
+      "wrong_terms": [
+        "every file the pipeline produces carries a manifest",
+        "a header naming what generated it"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that the file is JSON lines behind a header object naming the generator and the record count. The two halves disagree about whether the file is one JSON value or a stream of them, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "Neither half may describe which duplicate survives, which is this task's governing fact and the reason its superseded plant was retired."
+    }
+  }
+}

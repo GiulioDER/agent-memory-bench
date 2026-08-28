@@ -1,0 +1,15 @@
+build daemon, context upload: how the exclude file is applied
+(from the daemon's own documentation)
+
+  The daemon walks the build context depth first. For each entry it tests the
+  exclude rules IN FILE ORDER and stops at the first match.
+
+  A rule ending in a separator matches a directory. When it matches, the walk
+  does not descend: the whole subtree is skipped without being stat-ed.
+
+  A rule containing a wildcard is tested against each path the walk produced.
+  It cannot prevent a walk, only discard its result.
+
+  Consequence: a directory rule placed after the wildcard rules is still
+  correct, and still excludes the directory, but the walk has already paid for
+  everything inside it.

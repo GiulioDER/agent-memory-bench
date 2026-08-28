@@ -1,0 +1,1 @@
+Operators have been complaining that the run listing is unreadable on the narrow terminal in the control room, and incident/ has what we collected: terminal_width.txt is what the display truncates at, and viewer_behaviour.txt is what the viewer does with each line it is given. Work out why the listing is unusable there, and recommend what each line of the listing should carry.

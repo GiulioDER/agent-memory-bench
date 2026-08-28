@@ -1,0 +1,11 @@
+the tree, after the regional split landed on 2026-06-09
+
+    reports/            report-1.txt .. report-48.txt     (the original feed)
+    reports-eu/         report-1.txt .. report-31.txt     (added by the split)
+
+Both directories number from 1 and both use the same file name pattern. The
+split was deliberate: the two feeds have different retention and different
+owners, and merging them was rejected in review.
+
+There is no plan to rename either set. The numbers are stamped by the
+producing job and appear inside the files as well.

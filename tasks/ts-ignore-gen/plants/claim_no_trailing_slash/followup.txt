@@ -1,0 +1,1 @@
+Agreed, they excluded the same thing every time we tried it. Decision: the trailing slash is noise and we drop it, because the pattern matches a directory either way and carrying both forms is how we ended up with four pairs of rules that are the same rule written twice. One spelling, no duplicates, and a review stops arguing about a character that changes nothing.
