@@ -46,6 +46,18 @@ class ClaudeTranscriptError(ValueError):
     """Raised when a Claude Code JSONL stream cannot be interpreted."""
 
 
+class ClaudeSessionTimeout(ClaudeTranscriptError):
+    """The session hit its wall-clock ceiling.
+
+    A distinct type because `harness/memory_startup.py` must not retry this. A timeout is an
+    OUTCOME: the agent ran and did not finish in the budget every arm was given. Retrying it is
+    retrying a loss, and it is not evenly distributed across arms, because a memory arm's sessions
+    are longer (measured on `pilot-004-placebo`: recall 123.7s mean against claude_md's 46.8s, and
+    2.2 more turns). The retry rule's own docstring claimed it never read anything the model did;
+    until 2026-08-28 it retried this.
+    """
+
+
 def resolve_claude_executable(name: str = "claude") -> str:
     """Resolve `claude` to something `CreateProcess` can actually start.
 
@@ -602,7 +614,7 @@ async def run_claude_case(
     except TimeoutError:
         process.kill()
         await process.wait()
-        raise ClaudeTranscriptError(
+        raise ClaudeSessionTimeout(
             f"claude exceeded timeout_s={config.timeout_s} for task {row.get('task_id')!r}"
         ) from None
     wall_time_ms = (time.perf_counter() - started) * 1000.0

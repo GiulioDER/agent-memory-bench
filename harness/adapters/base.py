@@ -15,8 +15,29 @@ product is wired in, and that wiring is:
   MCP server, or lifecycle hooks), not a harness-imposed wrapper.
 
 Adapters must be additive: every memory arm receives the same CLAUDE.md bundle as the
-``claude_md`` baseline, byte for byte, plus at most a one-line integration sentence at the TOP
-(measured: an instruction buried after 17k characters produced a 0% search rate).
+``claude_md`` baseline, byte for byte, plus a memory instruction at the TOP (measured: an
+instruction buried after 17k characters produced a 0% search rate).
+
+**The instruction is itself controlled**, by :mod:`harness.instructions`, and this paragraph used
+to say something the runs did not do. It read "plus at most a one-line integration sentence at the
+TOP". Every run from ``pilot-002`` onward gave the ``recall`` arm the 5,428-character
+``adapters/recall/skill.md`` while ``fs_grep`` carried 231 characters and ``claude_md`` carried
+nothing, so the contract was stated here and broken in one direction only. Most of those 5,428
+characters were generic coaching (search before your first write, search by operation and symptom)
+that would have helped any retrieval arm, which makes the measured delta partly a prompt effect.
+
+The rule that replaces it, and that :func:`harness.instructions.assert_shared_protocol` enforces
+rather than states:
+
+- every arm with a memory surface receives ``adapters/_shared/memory_protocol.md`` **verbatim**,
+  with one slot filled by a single sentence naming that arm's search mechanism;
+- anything product-specific goes in ``adapters/<name>/instruction_appendix.md``, which may describe
+  only how to read that product's result schema and is capped at
+  :data:`harness.instructions.APPENDIX_MAX_BYTES`;
+- every arm's instruction size and digest are published per run, beside its success rate.
+
+``adapters/recall/skill.md`` is unchanged and still reachable, because ``pilot-002`` through
+``pilot-004`` ran it and a rerun is only comparable to those against that exact text.
 """
 
 from __future__ import annotations
@@ -85,7 +106,15 @@ class CorpusManifest:
 
 @dataclass(frozen=True)
 class IngestReport:
-    """What one adapter did with the feed, metered from outside where possible."""
+    """What one adapter did with the feed, metered from outside where possible.
+
+    ``local_model`` is the fix for an accounting asymmetry that would otherwise favour whichever
+    product embeds locally. An arm that extracts memories with a hosted LLM reports real
+    ``llm_*_tokens``; an arm that embeds with a local model reports zero, and a table showing
+    ``0`` against a competitor's six figures reads as "this one ingests for free". It does not: it
+    pays in compute on the host. Naming the model and keeping ``wall_time_ms`` makes the two costs
+    comparable in kind, and `harness/costs.py` prints the qualification rather than the bare zero.
+    """
 
     arm: str
     namespace: str
@@ -94,6 +123,8 @@ class IngestReport:
     wall_time_ms: float | None = None
     llm_input_tokens: int | None = None
     llm_output_tokens: int | None = None
+    #: The local model that did the work, when no hosted call was made. None means "not applicable".
+    local_model: str | None = None
     notes: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,6 +136,7 @@ class IngestReport:
             "wall_time_ms": self.wall_time_ms,
             "llm_input_tokens": self.llm_input_tokens,
             "llm_output_tokens": self.llm_output_tokens,
+            "local_model": self.local_model,
             "notes": list(self.notes),
         }
 

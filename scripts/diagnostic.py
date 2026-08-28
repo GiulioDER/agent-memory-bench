@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -16,6 +17,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
+from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.oracle_memory.adapter import OracleMemoryAdapter
 from adapters.recall.adapter import RecallAdapter
@@ -29,6 +31,7 @@ from harness.claude_exec import (
 from harness.costs import ModelPricing, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.host_memory import free_memory_mb, wait_for_headroom
+from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.io import write_jsonl
 from harness.memory_bundles import MemoryBundleCatalog
 from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
@@ -37,7 +40,11 @@ from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 from scripts.pilot import recall_instruction
 
-ARMS = ("claude_md", "recall", "oracle_memory", "recall_prefetch")
+#: `bare` is FIRST and mandatory. It was dropped after `diagnostic-002` and preregistration 005
+#: then declared it mandatory ("without it, 'worse than no memory at all' cannot be
+#: expressed"), leaving the runner that supports retries and the diagnostic arms unable to run
+#: the suite that needs it. Damage is undefinable without a no-memory reference point.
+ARMS = ("bare", "claude_md", "recall", "oracle_memory", "recall_prefetch")
 BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
 DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
 RECALL_CONFIG = json.loads(
@@ -53,32 +60,6 @@ def build_static_prompt(task_path: Path, target: Path) -> Path:
     body = generic + (readme.read_text(encoding="utf-8") if readme.is_file() else "")
     target.write_text(body, encoding="utf-8", newline="\n")
     return target
-
-
-def refuse_shared_prompts(prompt_hashes: dict[str, dict[str, str]]) -> None:
-    """Refuse a grid in which any arm serves one task's static bundle to another task.
-
-    RecallAdapter cached one prompt per NAMESPACE and wrote it only when absent, so a grid, whose
-    namespace is constant across tasks, served the first task's bundle to all 24 with nothing
-    raising. Measured on `diagnostic-001`: one distinct prompt across 24 recall sessions against
-    24 for every other arm, which turned that arm's static half into misdirection about a
-    different repository and voided three of five preregistered contrasts.
-
-    This runs in `--dry-run` too, so the check that would have caught it costs nothing.
-    """
-
-    for arm, by_task in prompt_hashes.items():
-        if not by_task or len(set(by_task.values())) == len(by_task):
-            continue
-        shared: dict[str, list[str]] = {}
-        for task_id, digest in by_task.items():
-            shared.setdefault(digest, []).append(task_id)
-        worst = max(shared.values(), key=len)
-        raise SystemExit(
-            f"arm {arm!r} has {len(set(by_task.values()))} distinct prompts across "
-            f"{len(by_task)} tasks; {len(worst)} of them share one, starting {worst[:4]}. "
-            f"Every task must receive its own static bundle or the arm is not comparable."
-        )
 
 
 def synthetic_failure(row: dict, arm: str, error: str, diagnostic: dict | None = None):
@@ -108,7 +89,15 @@ async def main() -> int:
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--namespace", default="bench-recall-diagnostic")
     parser.add_argument("--arms", default=",".join(ARMS))
-    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="resolve arms, tasks, bundles and prompts, print the grid, and stop. It starts NO "
+        "MCP server and runs NO session. Before 2026-08-28 it did both: there was no early "
+        "return, so a dry run probed the live memory server and then executed the whole grid, "
+        "which only looked like a check because the CI runner has no `claude` binary and every "
+        "session failed fast.",
+    )
     parser.add_argument(
         "--min-free-mb",
         type=float,
@@ -150,6 +139,12 @@ async def main() -> int:
             "pilot-004's 85.7%%."
         ),
     )
+    parser.add_argument(
+        "--work-root",
+        default="",
+        help="where session sandboxes are built. Defaults OUTSIDE this repository, because a "
+        "sandbox under results/ can reach oracles/, tasks/*/reference/ and corpus/ with one `cd ..`.",
+    )
     parser.add_argument("--price-in", type=float, default=0.0826)
     parser.add_argument("--price-out", type=float, default=0.1652)
     parser.add_argument("--price-as-of", default="2026-08-25")
@@ -174,31 +169,65 @@ async def main() -> int:
     oracle_root = Path(
         os.environ.get("ORACLE_MEMORY_ROOT", str(REPO / "corpus" / "oracle_memory"))
     )
+
+    # The oracle arm needs a bundle per task, and a bundle is built from a task's recorded
+    # precursor. The six mid-band tasks added for the abstention suite have no precursor yet, so
+    # they have no bundle, and `MemoryBundleCatalog.load` refused the whole catalog: since those
+    # tasks landed, `python scripts/diagnostic.py --dry-run` in CI has failed with
+    # "references missing bundle". A task the diagnostic cannot serve is EXCLUDED and named, which
+    # is a different thing from the catalog being corrupt, and only the second deserves a refusal.
+    available = {
+        line_bundle["task_id"]
+        for line in (oracle_root / "bundles.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+        for line_bundle in [json.loads(line)]
+    }
+    skipped = [task.task_id for task in tasks if task.task_id not in available]
+    if skipped:
+        print(
+            f"[diagnostic] {len(skipped)} task(s) have no oracle bundle and are excluded from this "
+            f"run: {', '.join(skipped)}. Record their precursors and rebuild bundles "
+            f"(python -m scripts.build_oracle_bundles) to include them."
+        )
+        tasks = [task for task in tasks if task.task_id in available]
+    if not tasks:
+        raise SystemExit("no task has an oracle bundle; nothing this diagnostic can measure")
     catalog = MemoryBundleCatalog.load(oracle_root, corpus, tasks)
+    work_root = (
+        Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
+    )
     run_dir = REPO / "results" / args.run_id
     if (run_dir / "records.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records")
-    (run_dir / "streams").mkdir(parents=True, exist_ok=True)
+    # A dry run must touch NOTHING, including an empty run directory: a stray results/<id>/ is
+    # indistinguishable afterwards from a run that started and died, and the next real run with
+    # that id then refuses or, worse, appends to it.
+    if not args.dry_run:
+        (run_dir / "streams").mkdir(parents=True, exist_ok=True)
+    cfg_root = (
+        Path(tempfile.mkdtemp(prefix="amb-dryrun-")) if args.dry_run else run_dir / "cfg"
+    )
     base_prompts = {
-        task.task_id: build_static_prompt(task.path, run_dir / "cfg" / task.task_id / "static.md")
+        task.task_id: build_static_prompt(task.path, cfg_root / task.task_id / "static.md")
         for task in tasks
     }
     claude_adapter = ClaudeMdAdapter(base_prompts[tasks[0].task_id])
     instruction = recall_instruction(args.recall_instruction)
     recall_adapter = RecallAdapter(
-        run_dir / "adapter",
+        (cfg_root / "adapter"),
         REPO / "corpus" / "claude_md_bundle_smoke.md",
         instruction=instruction,
     )
-    oracle_adapter = OracleMemoryAdapter(run_dir / "adapter", base_prompts[tasks[0].task_id], catalog)
-    prefetch_adapter = RecallPrefetchAdapter(recall_adapter, run_dir / "adapter", base_prompts[tasks[0].task_id])
+    oracle_adapter = OracleMemoryAdapter((cfg_root / "adapter"), base_prompts[tasks[0].task_id], catalog)
+    prefetch_adapter = RecallPrefetchAdapter(recall_adapter, (cfg_root / "adapter"), base_prompts[tasks[0].task_id])
     adapters = {
         "claude_md": claude_adapter,
         "recall": recall_adapter,
         "oracle_memory": oracle_adapter,
         "recall_prefetch": prefetch_adapter,
     }
-    run_dir.mkdir(parents=True, exist_ok=True)
+    if not args.dry_run:
+        run_dir.mkdir(parents=True, exist_ok=True)
     if not args.dry_run:
         assert_preregistered(REPO)
         if not os.environ.get("OPENROUTER_API_KEY"):
@@ -217,7 +246,7 @@ async def main() -> int:
     if args.dry_run:
         prefetch_adapter = RecallPrefetchAdapter(
             recall_adapter,
-            run_dir / "adapter",
+            (cfg_root / "adapter"),
             base_prompts[tasks[0].task_id],
             prefetch_runner=fake_prefetch_runner,
         )
@@ -233,27 +262,29 @@ async def main() -> int:
         for arm in run_arms:
             namespace = f"{args.namespace}-{arm}"
             try:
-                if arm == "claude_md":
+                if arm == "bare":
+                    task_adapter = BareAdapter()
+                elif arm == "claude_md":
                     task_adapter = ClaudeMdAdapter(base_prompts[task.task_id])
                 elif arm == "recall":
                     task_adapter = RecallAdapter(
-                        run_dir / "adapter",
+                        (cfg_root / "adapter"),
                         base_prompts[task.task_id],
                         instruction=instruction,
                     )
                 elif arm == "oracle_memory":
                     task_adapter = OracleMemoryAdapter(
-                        run_dir / "adapter", base_prompts[task.task_id], catalog
+                        (cfg_root / "adapter"), base_prompts[task.task_id], catalog
                     )
                 else:
                     task_adapter = RecallPrefetchAdapter(
                         recall_adapter,
-                        run_dir / "adapter",
+                        (cfg_root / "adapter"),
                         base_prompts[task.task_id],
                         prefetch_runner=(fake_prefetch_runner if args.dry_run else __import__("subprocess").run),
                     )
                 spec = task_adapter.build_for_task(
-                    run_dir / "cfg" / task.task_id / arm,
+                    cfg_root / task.task_id / arm,
                     namespace,
                     task.task_id,
                     task.prompt,
@@ -276,7 +307,7 @@ async def main() -> int:
     refuse_shared_prompts(prompt_hashes)
 
     startup_probes: dict[str, list[dict]] = {}
-    for arm in run_arms:
+    for arm in run_arms if not args.dry_run else ():
         wired = [
             specs[(task.task_id, arm)]
             for task in tasks
@@ -304,6 +335,9 @@ async def main() -> int:
 
     signals = with_forbidden_prefixes(
         {
+            # `bare` is all-negative checks: the forbidden-prefix computation below is what
+            # verifies no other arm's tools leaked into it.
+            "bare": AdmissionSignal(arm="bare"),
             "claude_md": AdmissionSignal(arm="claude_md"),
             "recall": AdmissionSignal(arm="recall", mcp_tool_prefixes=(RECALL_PREFIX,)),
             "oracle_memory": oracle_adapter.admission_signal(),
@@ -323,6 +357,18 @@ async def main() -> int:
         )
         for arm, signal in signals.items()
     }
+    if args.dry_run:
+        sessions = len(tasks) * args.seeds * len(run_arms)
+        print(f"[dry-run] run-id {args.run_id}, model {args.model}, seeds {args.seeds}")
+        print(f"[dry-run] arms   {list(run_arms)}")
+        print(f"[dry-run] tasks  {len(tasks)}")
+        for arm in run_arms:
+            distinct = len(set(prompt_hashes.get(arm, {}).values()))
+            print(f"[dry-run]   {arm:<16} {distinct} distinct prompt(s) across {len(tasks)} tasks")
+        print(f"[dry-run] work root {work_root}")
+        print(f"[dry-run] would run {sessions} session(s); no server started, nothing executed")
+        return 0
+
     by_id = {task.task_id: task for task in tasks}
     env = {"ANTHROPIC_BASE_URL": args.base_url, "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"], "ANTHROPIC_API_KEY": ""}
 
@@ -389,6 +435,8 @@ async def main() -> int:
         "arm_concurrency": args.arm_concurrency or None,
         "arm_order_seed": args.run_id,
         "free_mb_at_start": free_memory_mb(),
+        "work_root": str(work_root),
+        "sandbox_inside_repo": False,
         "pricing": {
             "model": args.model,
             "usd_per_mtok_input": args.price_in,
@@ -409,7 +457,7 @@ async def main() -> int:
         # directory that already exists, and cleaning it in place would destroy the failed
         # attempt's tree, which is the evidence for what the retry recovered from.
         suffix = "" if attempt == 1 else f".attempt{attempt}"
-        return run_dir / "work" / task_id / f"s{seed}" / f"{arm}{suffix}"
+        return work_root / "work" / task_id / f"s{seed}" / f"{arm}{suffix}"
 
     async def runner(row, arm):
         task_id, seed = str(row["task_id"]), int(row["seed"])
