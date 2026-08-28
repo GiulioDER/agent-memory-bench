@@ -38,10 +38,63 @@ class ModelPricing:
     usd_per_mtok_output: float
     as_of: str
     source: str = ""
+    #: Rate for tokens served from the provider's prompt cache, which is the cheap class. Left
+    #: None when the provider publishes no separate rate, in which case cache reads are charged
+    #: at the fresh-input rate and `priced_cache_separately` reports False, so an artifact can
+    #: say which of the two it is rather than leaving the reader to assume.
+    usd_per_mtok_cache_read: float | None = None
+    #: Rate for writing the cache, which several providers charge at a PREMIUM over fresh input.
+    usd_per_mtok_cache_creation: float | None = None
 
-    def usd(self, input_tokens: int, output_tokens: int) -> float:
+    @property
+    def priced_cache_separately(self) -> bool:
         return (
-            input_tokens * self.usd_per_mtok_input
+            self.usd_per_mtok_cache_read is not None
+            or self.usd_per_mtok_cache_creation is not None
+        )
+
+    def usd(
+        self,
+        input_tokens: int,
+        output_tokens: int,
+        *,
+        cache_read_tokens: int = 0,
+        cache_creation_tokens: int = 0,
+    ) -> float:
+        """Dollars for one bundle of tokens.
+
+        ``input_tokens`` is the TOTAL input, the sum of the three classes, because that is what
+        `SessionRecord.input_tokens` holds. The two cache counts are subtracted back out and
+        repriced, so a caller that knows the split gets it charged correctly and a caller that
+        does not gets exactly the old answer.
+
+        This split is not cosmetic. Measured on `results/pilot-003-deepseek`, cache reads are
+        68.2% of the recall arm's input against 48.6% of claude_md's, so charging one rate for
+        all three both overstates the total and overstates it UNEVENLY between the arms being
+        compared. The harness has recorded the split per session since the beginning; only the
+        pricing ignored it.
+        """
+
+        fresh = input_tokens - cache_read_tokens - cache_creation_tokens
+        if fresh < 0:
+            raise ValueError(
+                f"cache tokens ({cache_read_tokens} read + {cache_creation_tokens} creation) "
+                f"exceed the total input {input_tokens}"
+            )
+        cache_read_rate = (
+            self.usd_per_mtok_input
+            if self.usd_per_mtok_cache_read is None
+            else self.usd_per_mtok_cache_read
+        )
+        cache_creation_rate = (
+            self.usd_per_mtok_input
+            if self.usd_per_mtok_cache_creation is None
+            else self.usd_per_mtok_cache_creation
+        )
+        return (
+            fresh * self.usd_per_mtok_input
+            + cache_read_tokens * cache_read_rate
+            + cache_creation_tokens * cache_creation_rate
             + output_tokens * self.usd_per_mtok_output
         ) / 1_000_000.0
 
@@ -56,6 +109,16 @@ def load_pricing(path: str | Path) -> dict[str, ModelPricing]:
             model=model,
             usd_per_mtok_input=float(entry["usd_per_mtok_input"]),
             usd_per_mtok_output=float(entry["usd_per_mtok_output"]),
+            usd_per_mtok_cache_read=(
+                float(entry["usd_per_mtok_cache_read"])
+                if entry.get("usd_per_mtok_cache_read") is not None
+                else None
+            ),
+            usd_per_mtok_cache_creation=(
+                float(entry["usd_per_mtok_cache_creation"])
+                if entry.get("usd_per_mtok_cache_creation") is not None
+                else None
+            ),
             as_of=str(entry["as_of"]),
             source=str(entry.get("source", "")),
         )
@@ -71,6 +134,10 @@ class ArmCosts:
     sessions_unmetered: int = 0
     session_input_tokens: int = 0
     session_output_tokens: int = 0
+    #: The input split, summed from each record's metadata where the provider reported it. These
+    #: are a PARTITION of session_input_tokens, not additions to it.
+    session_cache_read_tokens: int = 0
+    session_cache_creation_tokens: int = 0
     session_wall_time_ms: float = 0.0
     ingest_input_tokens: int = 0
     ingest_output_tokens: int = 0
@@ -95,7 +162,13 @@ class ArmCosts:
         return self.total_input_tokens + self.total_output_tokens
 
     def estimate_usd(self, pricing: ModelPricing) -> float:
-        return pricing.usd(self.total_input_tokens, self.total_output_tokens)
+        # Ingest tokens carry no cache split, so only the session half contributes cache counts.
+        return pricing.usd(
+            self.total_input_tokens,
+            self.total_output_tokens,
+            cache_read_tokens=self.session_cache_read_tokens,
+            cache_creation_tokens=self.session_cache_creation_tokens,
+        )
 
     def to_dict(self, pricing: ModelPricing | None = None) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -118,6 +191,16 @@ class ArmCosts:
             out["estimated_usd"] = round(self.estimate_usd(pricing), 4)
             out["pricing_as_of"] = pricing.as_of
             out["pricing_model"] = pricing.model
+            # The prices themselves, not just their date. Recovering which rates produced a
+            # published dollar figure previously meant reverse-solving a linear system from two
+            # arms' rounded totals, which is not a thing an artifact should require of a reader.
+            out["usd_per_mtok_input"] = pricing.usd_per_mtok_input
+            out["usd_per_mtok_output"] = pricing.usd_per_mtok_output
+            out["usd_per_mtok_cache_read"] = pricing.usd_per_mtok_cache_read
+            out["usd_per_mtok_cache_creation"] = pricing.usd_per_mtok_cache_creation
+            out["priced_cache_separately"] = pricing.priced_cache_separately
+            out["session_cache_read_tokens"] = self.session_cache_read_tokens
+            out["session_cache_creation_tokens"] = self.session_cache_creation_tokens
         return out
 
 
@@ -141,6 +224,13 @@ def tally(
         else:
             costs.session_input_tokens += record.input_tokens
             costs.session_output_tokens += record.output_tokens
+            usage = record.metadata.get("token_usage") or record.metadata or {}
+            costs.session_cache_read_tokens += int(
+                usage.get("cache_read_input_tokens") or 0
+            )
+            costs.session_cache_creation_tokens += int(
+                usage.get("cache_creation_input_tokens") or 0
+            )
         if record.wall_time_ms is not None:
             costs.session_wall_time_ms += record.wall_time_ms
 
