@@ -1,6 +1,10 @@
 {
   "task_id": "ts-semver-pin",
   "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
     "superseded": {
       "include_real": true,
       "plants": [

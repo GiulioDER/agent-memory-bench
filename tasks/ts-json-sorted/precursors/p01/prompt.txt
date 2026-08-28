@@ -1,0 +1,1 @@
+Reviewers have been getting config.json diffs on branches that did not touch configuration, and incident/ has what we gathered: review_complaints.md is what they reported, and diff_pairs.txt shows two exports of the same configuration alongside each other. Work out why the file changes when the configuration does not, and recommend how the exporter should write config.json.

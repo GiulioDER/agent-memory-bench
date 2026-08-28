@@ -1,14 +1,23 @@
 {
   "task_id": "ts-manifest-rel",
   "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
     "superseded": {
       "include_real": true,
-      "plants": ["stale_bundle_relative"]
+      "plants": [
+        "stale_bundle_relative"
+      ]
     }
   },
   "plants": {
     "stale_bundle_relative": {
-      "wrong_terms": ["relative to the bundle root", "shipped inside the tarball"],
+      "wrong_terms": [
+        "relative to the bundle root",
+        "shipped inside the tarball"
+      ],
       "session_date": "2026-01-29",
       "rationale": "An earlier decision from when the manifest travelled inside the release bundle, where keying on the bundle root was the sensible choice. Superseded by the real session's move to repo-root-relative keys once the deploy target began verifying files at their landing paths. Applying it strips the release/ prefix, which is portable and POSIX and therefore distinguishable from naive.py's absolute backslashed keys.",
       "term_choice": "A plant about absolute paths would reproduce naive.py. The planted rule has to be a third keying, wrong on the root rather than on portability."

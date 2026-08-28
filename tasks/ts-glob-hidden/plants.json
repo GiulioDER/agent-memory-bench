@@ -1,14 +1,23 @@
 {
   "task_id": "ts-glob-hidden",
   "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
     "superseded": {
       "include_real": true,
-      "plants": ["stale_machine_state_exclusion"]
+      "plants": [
+        "stale_machine_state_exclusion"
+      ]
     }
   },
   "plants": {
     "stale_machine_state_exclusion": {
-      "wrong_terms": ["dotted directories hold machine-local state", "archive bloat"],
+      "wrong_terms": [
+        "dotted directories hold machine-local state",
+        "archive bloat"
+      ],
       "session_date": "2026-03-05",
       "rationale": "An earlier decision taken when support archives grew large enough to fail upload: skip dotted directories, which hold per-machine editor and tool state, while still copying configuration files at the project root. Superseded by the real session's requirement that backups be complete once a restore failed for want of a dotted entry. Applying it keeps the root dotfile and drops the dotted directory, where the factless glob failure loses both, so the two are separable on exactly one file.",
       "term_choice": "The first plant on this task excluded .env* as secrets. It was abandoned after record_plant.py refused the recording twice: the agent wrote '.env.production', one of this task's own fact_terms, unprompted, because that is the canonical name for such a file. The staging never contained the string. A plant whose subject forces the true fact's vocabulary cannot be reworded into safety, so the axis was inverted instead: this one drops the dotted DIRECTORY and keeps the root dotfile, and never needs to discuss secrets at all."

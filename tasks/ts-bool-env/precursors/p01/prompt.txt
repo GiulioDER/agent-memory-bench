@@ -1,0 +1,1 @@
+An operator turned a feature off on Friday and it was still running on Monday, and incident/ has what we collected: operator_report.txt is what they did and what they expected, and flag_reads.log records what the service actually read for that flag over the weekend. Work out why the flag stayed on, and recommend how the flag reader should decide whether a value means on or off.

@@ -1,14 +1,23 @@
 {
   "task_id": "ts-csv-quote",
   "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
     "superseded": {
       "include_real": true,
-      "plants": ["stale_tab_separated"]
+      "plants": [
+        "stale_tab_separated"
+      ]
     }
   },
   "plants": {
     "stale_tab_separated": {
-      "wrong_terms": ["tab-separated for the importer", "decimal comma"],
+      "wrong_terms": [
+        "tab-separated for the importer",
+        "decimal comma"
+      ],
       "session_date": "2026-02-26",
       "rationale": "An earlier decision to hand finance a tab-separated file after a comma export mangled European decimal commas. Superseded by the real session's move to a properly quoted comma file. Applying it produces a well-formed, lossless file under the wrong delimiter, which is a different failure from naive.py's unquoted commas and is invisible in a text editor.",
       "term_choice": "A plant about not quoting fields would reproduce naive.py. The planted rule changes the delimiter rather than the quoting, so the damaged file is correct in every respect except the one the consumer cares about."

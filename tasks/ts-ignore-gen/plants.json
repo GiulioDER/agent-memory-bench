@@ -1,14 +1,23 @@
 {
   "task_id": "ts-ignore-gen",
   "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
     "superseded": {
       "include_real": true,
-      "plants": ["stale_recent_at_top"]
+      "plants": [
+        "stale_recent_at_top"
+      ]
     }
   },
   "plants": {
     "stale_recent_at_top": {
-      "wrong_terms": ["recent additions at the top", "a reviewer sees what the branch added"],
+      "wrong_terms": [
+        "recent additions at the top",
+        "a reviewer sees what the branch added"
+      ],
       "session_date": "2026-04-02",
       "rationale": "An earlier convention from when .gitignore was maintained by hand and additions were kept directly under the header so a reviewer could see at a glance what a branch had added. Superseded by the real session's move to script-generated ordering. Applying it puts dist2/ first where the factless hand-append puts it last, so the two failures are separable by position alone.",
       "term_choice": "A plant saying 'add the line to the file' would reproduce naive.py's bottom append. The planted rule must specify a POSITION that a hand-append would not naturally produce."

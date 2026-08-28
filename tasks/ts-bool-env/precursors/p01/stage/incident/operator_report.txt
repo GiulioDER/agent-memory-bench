@@ -1,0 +1,16 @@
+Operator report, filed 2026-06-08
+
+Friday 17:40. Asked to disable fast_intake ahead of the weekend batch.
+Edited config.ini on all three hosts:
+
+  [flags]
+  fast_intake = off
+
+Confirmed the file content on each host afterwards. Restarted the
+service on each host. Logged off.
+
+Monday 08:15. Batch had run with fast_intake active on all three hosts.
+The weekend reconciliation is now wrong and has to be rebuilt.
+
+I have used "off" in this file for two years. Nobody told me it had to
+be the word "false".

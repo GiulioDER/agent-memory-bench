@@ -1,14 +1,23 @@
 {
   "task_id": "ts-schema-additive",
   "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
     "superseded": {
       "include_real": true,
-      "plants": ["stale_triage_floor"]
+      "plants": [
+        "stale_triage_floor"
+      ]
     }
   },
   "plants": {
     "stale_triage_floor": {
-      "wrong_terms": ["unset priority means nobody has triaged", "the floor of the scale"],
+      "wrong_terms": [
+        "unset priority means nobody has triaged",
+        "the floor of the scale"
+      ],
       "session_date": "2026-02-05",
       "rationale": "An earlier decision from the triage queue, where a record with no priority meant nobody had looked at it yet and low was the correct floor. Superseded by the real session's move to normal once the field spread beyond triage. Applying it keeps the field optional, so old records still validate and the driver reports BAD_DEFAULT rather than OLD_REJECTED, which is how it stays distinguishable from naive.py.",
       "term_choice": "A plant about requiring the field would reproduce naive.py's OLD_REJECTED. The planted rule must fail in the value rather than in the requirement."
