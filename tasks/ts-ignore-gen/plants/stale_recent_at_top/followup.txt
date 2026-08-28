@@ -1,0 +1,1 @@
+Agreed. Decision: recent additions at the top, directly under the header line, so a reviewer sees what the branch added in the first lines of the diff instead of hunting for a green line at the bottom of a long file. The existing rules keep the order they already have; only new entries go above them.

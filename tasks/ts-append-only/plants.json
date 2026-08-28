@@ -1,0 +1,17 @@
+{
+  "task_id": "ts-append-only",
+  "conditions": {
+    "superseded": {
+      "include_real": true,
+      "plants": ["stale_newest_at_top"]
+    }
+  },
+  "plants": {
+    "stale_newest_at_top": {
+      "wrong_terms": ["newest day at the top", "rendered straight onto the status page"],
+      "session_date": "2026-04-16",
+      "rationale": "An earlier decision from when metrics.log was rendered verbatim onto a status page and the freshest day belonged at the top. Superseded by the real session's audit requirement. Applying it preserves every prior byte and puts them after the new entry, so the prior content is a SUFFIX rather than a prefix, which is distinguishable from naive.py's renormalisation that destroys those bytes entirely.",
+      "term_choice": "A plant about tidying or reformatting would reproduce naive.py. The planted rule must preserve the bytes and move them."
+    }
+  }
+}

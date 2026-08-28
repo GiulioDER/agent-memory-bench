@@ -1,0 +1,18 @@
+Wall display at handover, 2026-05-19T18:00Z
+
+  EV-1140  north  open        07:02
+  EV-1141  south  open        07:20
+  EV-1143  east   open        08:30
+  EV-1147  west   open        09:45
+  EV-1152  north  open        11:15
+
+Incident system at the same moment:
+
+  EV-1140  CLOSED 09:12  (fixed, cache flushed)
+  EV-1141  ACK    10:40  (assigned to s-lindqvist)
+  EV-1143  CLOSED 12:03  (duplicate of EV-1140)
+  EV-1147  OPEN
+  EV-1152  OPEN
+
+Three of the five rows on the wall were live. Two had been closed for
+hours and were still displayed in the state they were first reported in.

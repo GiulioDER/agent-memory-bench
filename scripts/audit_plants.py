@@ -189,6 +189,25 @@ def main() -> int:
             for plant in plan.plants
         }
 
+        # The STAGING is what gets recorded, so a true fact term sitting in a prompt, a followup
+        # or a staged evidence file will reach the transcript and `record_plant.py` will refuse
+        # the recording. Checking it here moves that failure from "after an API call" to "before
+        # one". Two plants leaked this way while being written, and neither was visible in the
+        # corpus, the fixture or the damage gate, which is why it needs its own check.
+        staging = task.path / "plants"
+        if staging.is_dir():
+            staged_text = " ".join(
+                _text(path) for path in sorted(staging.rglob("*")) if path.is_file()
+            )
+            for term in task.fact_terms:
+                if term.lower() in staged_text:
+                    violations.append(
+                        f"{task_id}: the TRUE fact term {term!r} appears in the plant staging "
+                        f"under {staging.relative_to(REPO)}. record_plant.py will refuse the "
+                        f"recording, and a plant that states the real fact answers its own "
+                        f"question."
+                    )
+
         for name, plant in sorted(seen_plants.items()):
             recording = BASE_CORPUS / "plants" / task_id / plant.filename
             if not recording.is_file():

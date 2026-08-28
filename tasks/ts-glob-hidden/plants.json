@@ -1,0 +1,17 @@
+{
+  "task_id": "ts-glob-hidden",
+  "conditions": {
+    "superseded": {
+      "include_real": true,
+      "plants": ["stale_secrets_exclusion"]
+    }
+  },
+  "plants": {
+    "stale_secrets_exclusion": {
+      "wrong_terms": ["never copy a secrets file into a backup", "credentials left the boundary"],
+      "session_date": "2026-03-05",
+      "rationale": "An earlier decision taken after a backup archive was found to contain production credentials: exclude .env* from every backup. Superseded by the real session's requirement that backups be complete once a restore failed for want of a dotfile. Applying it copies .config/settings.ini and drops .env.production, where the factless glob failure loses both, so the two are separable on exactly one file.",
+      "term_choice": "A plant saying 'skip dotfiles' would reproduce naive.py's glob behaviour. The planted rule must exclude a NARROWER set than the glob does, so that a dotfile surviving is the signature."
+    }
+  }
+}
