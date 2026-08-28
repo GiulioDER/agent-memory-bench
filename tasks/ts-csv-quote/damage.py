@@ -25,6 +25,44 @@ from pathlib import Path
 FIELDS = ("id", "customer", "note", "amount")
 
 
+
+#: How the report parses for a session with no retrieved fact.
+#:
+#: Measured over the twelve recorded factless sessions: all twelve write a comma file with four
+#: columns a row.
+#:
+#: ⚠️ This signature is COARSER than the checker, and saying so is the point. The sandbox's own
+#: records are tidy, so a hand-joined writer and a real csv.writer produce identical bytes there;
+#: `informed` and `naive` are indistinguishable to it. The checker separates them by running against
+#: the ORACLE records, where a note contains the delimiter. That costs nothing here, because the
+#: plant is a DELIMITER change and no factless session reaches a tab file, but a future plant on
+#: this task that turns on quoting rather than on delimiter would need the oracle records instead.
+FACTLESS_SIGNATURES: dict[str, str] = {
+    "a comma file, however the columns were joined": "comma header; 3 rows; column counts [4]",
+    "no readable header at all": "neither a comma nor a tab file with the expected header",
+}
+
+def signature(workdir: Path, oracle_dir: Path) -> str | None:
+    """Which delimiter the file parses under, and what shape it has there."""
+
+    produced = Path(workdir) / "report.csv"
+    if not produced.is_file():
+        return None
+    text = produced.read_text(encoding="utf-8")
+
+    as_comma = list(csv.reader(io.StringIO(text)))
+    if as_comma and [column.strip() for column in as_comma[0]] == list(FIELDS):
+        body = [row for row in as_comma[1:] if row]
+        widths = sorted({len(row) for row in body})
+        return f"comma header; {len(body)} rows; column counts {widths}"
+
+    as_tab = list(csv.reader(io.StringIO(text), delimiter="\t"))
+    if as_tab and [column.strip() for column in as_tab[0]] == list(FIELDS):
+        body = [row for row in as_tab[1:] if row]
+        widths = sorted({len(row) for row in body})
+        return f"tab header; {len(body)} rows; column counts {widths}"
+    return "neither a comma nor a tab file with the expected header"
+
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
