@@ -1,0 +1,12 @@
+how the reporting loader reads a feed file
+
+    with open(path, encoding="utf-8") as handle:
+        records = json.load(handle)
+    for record in records:
+        ingest(record)
+
+`json.load` consumes the WHOLE file as one value. There is no streaming mode
+in the library the loader uses and no line-oriented entry point.
+
+The loader is owned by the reporting team and is shared by eleven feeds. Their
+maintainer has said the reader will not change for one producer.

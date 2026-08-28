@@ -8,14 +8,34 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
-      - run: pip install pytest ruff
+      - run: pip install -r requirements-dev.txt
       - run: ruff check .
       - run: python -m pytest tests/ -q
+
+      # The leakage audits, which guard the claim the whole design rests on: the only route to a
+      # governing fact is memory. They existed and CI never ran them, so a task added with a term
+      # that collides with another task's corpus would have shipped green.
+      - run: python -m scripts.audit_corpus
+      - run: python -m scripts.audit_plants
+
+      # Both runners resolve their full grid without starting a server or spending a token. The
+      # diagnostic's dry run used to have no early return: it probed the live memory server and
+      # then executed the whole grid, and only looked like a check because this runner has no
+      # `claude` binary and every session failed fast.
       - run: python scripts/diagnostic.py --dry-run --run-id ci-diagnostic-dry-run --seeds 1
+      - run: |
+          OPENROUTER_API_KEY=ci-dry-run python -m scripts.pilot --dry-run \
+            --run-id ci-pilot-dry-run --arms bare,claude_md,protocol,fs_grep \
+            --memory-instruction protocol
+
+      # A dry run must leave the tree exactly as it found it. This caught two runners creating an
+      # empty results/<id>/ that the next real run with that id would then refuse.
+      - run: git diff --exit-code && test -z "$(git status --porcelain)"
+
   # An admission smoke (1 cheap task, every wired arm, gate must admit) joins this file at the
   # end of Phase 0. It needs the Claude CLI and per-arm credentials, so it runs on a schedule
   # with secrets, not on fork PRs.

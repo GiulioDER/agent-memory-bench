@@ -1,0 +1,7 @@
+shard=07
+queue_name=invoices
+retry_limit=3
+timeout_seconds=30
+service_name=billing
+log_level=info
+region=eu-west-1

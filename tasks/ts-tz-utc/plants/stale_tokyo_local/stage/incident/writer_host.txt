@@ -1,0 +1,11 @@
+log-writer-01 host configuration (captured 2026-04-08)
+
+  region          ap-northeast-1
+  zone            ap-northeast-1c
+  /etc/timezone   Asia/Tokyo
+  hostname        log-writer-01.tyo.internal
+  service         ordergen-logwriter 4.2.1
+
+Notes from the platform team: this box has written app.log since the
+service moved off the shared fleet in January. It formats each entry with
+the local wall clock and no offset field.

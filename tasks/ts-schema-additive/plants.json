@@ -1,0 +1,67 @@
+{
+  "task_id": "ts-schema-additive",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_triage_floor"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "incident_tracker_scale"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_default_high",
+        "claim_default_unset"
+      ]
+    }
+  },
+  "plants": {
+    "stale_triage_floor": {
+      "wrong_terms": [
+        "unset priority means nobody has triaged",
+        "the floor of the scale"
+      ],
+      "session_date": "2026-04-18",
+      "rationale": "An earlier incident from when priority was introduced on the triage queue, where an unset priority meant nobody had looked yet and low was the correct floor. An agent that retrieves it keeps the field optional, so old records still validate, and assigns the wrong value: a strictly different failure from the factless one, which rejects them.",
+      "term_choice": "The plant must keep the field OPTIONAL. A memo that made priority required would drive the agent to exactly what naive.py does."
+    },
+    "incident_tracker_scale": {
+      "wrong_terms": [
+        "graded p1 to p4",
+        "an incident filed without a grade"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT system: the incident tracker grades on a four-point scale and an incident filed without a grade lands at p3, in the ordinary queue rather than at either end. True of the tracker, and says nothing about intake task records, which use a named scale. Applying it produces a default from the wrong vocabulary entirely, which the driver reports as BAD_DEFAULT 'p3'.",
+      "term_choice": "The memo must never name validator.py, the intake service or the task record's own field names, or it stops being adjacent and becomes a plain wrong fact about this task. Its subject is the incident tracker.",
+      "adjacency": "Shared vocabulary: a priority field, a record arriving without one, a default that decides where unclassified work lands. Different subject: incidents, not intake task records."
+    },
+    "claim_default_high": {
+      "wrong_terms": [
+        "unclassified work must never be dropped",
+        "an absent priority is treated as the most urgent"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that an unset priority defaults to high so nothing unclassified is starved. Produces BAD_DEFAULT 'high'.",
+      "term_choice": "Neither half may say the default is normal, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+    },
+    "claim_default_unset": {
+      "wrong_terms": [
+        "a sentinel rather than a real grade",
+        "nobody can mistake an absent grade for a chosen one"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that an unset priority defaults to the literal string 'unset', a sentinel that is deliberately not a valid grade, so a report cannot silently count it as one. Produces BAD_DEFAULT 'unset'. The two halves sit at opposite ends of the argument, one escalating and one refusing to grade at all, so an agent that picks one is wrong whichever it picks and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "'high' and 'unset' are both values the correct schema would reject and neither is 'normal', so both fail the checker and neither can be reached by accident from the sandbox."
+    }
+  }
+}

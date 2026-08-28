@@ -1,0 +1,1 @@
+That accounts for the gap. Decision: never hand-roll the row. Every row goes through a real CSV writer, which will quote the field whenever a free-text field carries an embedded delimiter, so the record cannot split and the file survives a spreadsheet import unchanged. Joining values on a comma is banned in this codebase, however tidy the sample data happens to look.

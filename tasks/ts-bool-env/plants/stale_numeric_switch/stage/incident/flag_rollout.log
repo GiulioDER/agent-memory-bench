@@ -1,0 +1,8 @@
+2026-01-14T22:03:11Z host=app-01 flag=fast_intake raw="1"     reader=py  enabled=true
+2026-01-14T22:03:11Z host=app-02 flag=fast_intake raw="1"     reader=py  enabled=true
+2026-01-14T22:03:12Z host=app-03 flag=fast_intake raw="true"  reader=py  enabled=true
+2026-01-14T22:03:12Z host=app-03 flag=slow_path   raw="0"     reader=sh  enabled=false
+2026-01-14T22:41:55Z host=app-03 flag=fast_intake raw="1"     reader=sh  enabled=true
+2026-01-14T22:41:55Z host=app-01 flag=fast_intake raw="true"  reader=sh  enabled=FALSE  <-- disagreement
+2026-01-14T22:41:56Z host=app-02 flag=fast_intake raw="true"  reader=sh  enabled=FALSE  <-- disagreement
+2026-01-14T23:10:02Z host=app-01 flag=fast_intake raw=""      reader=py  enabled=true   <-- disagreement

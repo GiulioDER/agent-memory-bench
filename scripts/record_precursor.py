@@ -58,6 +58,7 @@ def conversation_to_corpus(
     lines: list[dict] = [{"role": "user", "content": prompt, "ts": _stamp(base, 0)}]
     index = 1
     pending: list[dict] = []
+    pending_by_id: dict[str, dict] = {}
     for turn in conversation:
         role = turn.get("role")
         if role == "user":
@@ -69,17 +70,35 @@ def conversation_to_corpus(
                 lines.append({"role": "assistant", "content": text, "ts": _stamp(base, index)})
                 index += 1
             for call in calls:
-                pending.append(
-                    {
-                        "role": "assistant",
-                        "content": text.strip(),
-                        "tool_name": str(call.get("name", "")),
-                        "tool_input": json.dumps(call.get("args", {}), ensure_ascii=False),
-                    }
-                )
+                entry = {
+                    "role": "assistant",
+                    "content": text.strip(),
+                    "tool_name": str(call.get("name", "")),
+                    "tool_input": json.dumps(call.get("args", {}), ensure_ascii=False),
+                }
+                pending.append(entry)
+                call_id = str(call.get("id", ""))
+                if call_id:
+                    pending_by_id[call_id] = entry
                 text = ""  # the text belongs to the first call of the turn only
         elif role == "tool":
-            entry = pending.pop(0) if pending else {"role": "assistant", "content": ""}
+            call_id = str(turn.get("tool_use_id", ""))
+            entry = pending_by_id.pop(call_id, None) if call_id else None
+            if entry is not None:
+                pending.remove(entry)
+            elif pending:
+                # Older captured conversations did not preserve the tool_use_id. Keep the
+                # historical fallback for those inputs, while ID-bearing streams pair safely
+                # even when results arrive out of order.
+                entry = pending.pop(0)
+                stale_ids = [
+                    pending_id for pending_id, pending_entry in pending_by_id.items()
+                    if pending_entry is entry
+                ]
+                for pending_id in stale_ids:
+                    pending_by_id.pop(pending_id, None)
+            else:
+                entry = {"role": "assistant", "content": ""}
             entry["tool_result"] = str(turn.get("content", ""))[:2000]
             entry["ts"] = _stamp(base, index)
             index += 1

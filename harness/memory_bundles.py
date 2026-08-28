@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .adapters.base import CorpusManifest
+from .adapters.base import CorpusManifest, resolve_corpus_path
 from .tasks import TaskSpec
 
 DEFAULT_FORBIDDEN_MARKERS = (
@@ -133,7 +133,7 @@ class MemoryBundleCatalog:
                 seen_ids.add(item.memory_id)
                 if item.source_path not in corpus.sessions:
                     raise ValueError(f"bundle {bundle.bundle_id!r} references unknown source {item.source_path!r}")
-                source = corpus.root / item.source_path
+                source = resolve_corpus_path(corpus.root, item.source_path)
                 raw = source.read_bytes()
                 actual_hash = sha256_bytes(raw)
                 if actual_hash != item.source_sha256:

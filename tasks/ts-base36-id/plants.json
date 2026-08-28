@@ -1,0 +1,31 @@
+{
+  "task_id": "ts-base36-id",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_lowercase"
+      ]
+    }
+  },
+  "plants": {
+    "stale_lowercase": {
+      "wrong_terms": [
+        "emitted lowercase",
+        "lowercases its input"
+      ],
+      "session_date": "2026-03-12",
+      "rationale": "An earlier, genuine-looking incident whose decision is that order ids are emitted lowercase. It is superseded by the real 2026-06 session, which switches to the restricted uppercase alphabet without ever naming the old rule, so nothing in the corpus marks the stale memo as stale. Applying it yields ord-24gj: the correct successor under the correct alphabet, wrongly cased, which is distinguishable from both the right answer and the factless ORD-24GI. That distinguishability is the whole reason this plant is measurable, and is asserted by tests/test_damage_detection.py.",
+      "term_choice": "The bare word 'lowercase' was rejected by scripts/audit_plants.py, which found it in ts-casefold-sort's sessions and in distractors d036 and d059. That collision is lexical rather than semantic: ts-casefold-sort governs roster NAME sorting and uses the word incidentally in an explanation, and nothing else in the corpus discusses the casing of emitted ids. The remedy is the one the audit prescribes, a more distinctive term, never a weaker audit."
+    }
+  },
+  "not_implemented": {
+    "adjacent": "An adjacent plant claiming some neighbouring id scheme uses full base36 would drive the agent to ORD-24GI, byte-identical to the factless naive answer. The damage would be real and unattributable, so the condition is left unimplemented rather than implemented badly. See tasks/ts-base36-id/damage.py.",
+    "contradictory": "Needs a second recorded memo disagreeing with the first on the alphabet, with neither marked. Not yet recorded.",
+    "absent": "Available for this task at any time: the condition needs no plant, only the real session withheld. Left undeclared until the task selection for preregistration 005 is frozen."
+  }
+}

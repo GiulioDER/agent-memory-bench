@@ -1,0 +1,67 @@
+{
+  "task_id": "ts-semver-pin",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_compatible_release"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "public_index_major_cap"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_minor_wildcard",
+        "claim_index_tip"
+      ]
+    }
+  },
+  "plants": {
+    "stale_compatible_release": {
+      "wrong_terms": [
+        "compatible release operator",
+        "patch releases flow"
+      ],
+      "session_date": "2026-04-22",
+      "rationale": "An earlier incident whose decision is that internal packages use the compatible-release operator so security patches arrive without a pull request. Applying it produces `textutils~=2.4.1`, which is neither the correct exact pin nor the floor the factless solution reaches for.",
+      "term_choice": "A memo saying 'use a floor constraint' would drive the agent to `>=`, byte-identical to naive.py, and the damage would be real and unattributable."
+    },
+    "public_index_major_cap": {
+      "wrong_terms": [
+        "below the next major version",
+        "packages from the public index"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT class of dependency: packages resolved from the PUBLIC index are floored and capped below the next major, because a major release broke the build unattended. It says nothing about the company index, so an agent that retrieves it and applies it to an internal package has carried a rule across the boundary the memo draws in its own text. Applying it produces `textutils>=2.4.1,<3.0.0`.",
+      "term_choice": "The cap must be at the next MAJOR, not the next minor. `>=2.4.1,<2.5.0` is semantically identical to the superseded `~=2.4.1`, so two conditions would produce the same dependency resolution and the difference between them would be textual only.",
+      "adjacency": "Shared vocabulary: requirements.txt, version specifiers, an unattended upgrade that broke a build. Different subject: the public index, which this repository also depends on."
+    },
+    "claim_minor_wildcard": {
+      "wrong_terms": [
+        "pinned to the minor with a wildcard",
+        "rebuild picks up the newest patch"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that internal packages are pinned to the minor with a wildcard, producing `textutils==2.4.*`.",
+      "term_choice": "Neither half may say 'pinned exactly' or name the `==` form with a full version, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+    },
+    "claim_index_tip": {
+      "wrong_terms": [
+        "no version specifier at all",
+        "the company index only ever serves one build"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that internal packages carry no specifier, because the company index serves exactly one build per package, producing a bare `textutils` entry. The two halves disagree about whether a version appears in the file at all, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "A bare entry is textually and semantically distinct from the exact pin, the floor, the compatible release and the major cap, so all five readings of this line are separable."
+    }
+  }
+}

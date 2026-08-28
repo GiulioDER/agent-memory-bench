@@ -1,0 +1,11 @@
+age of open task records at the point they were first opened by a human
+
+  records WITH a priority        median 4 hours    p95 1 day
+  records WITHOUT a priority     median 6 days     p95 11 days
+
+  worst case in the period:  T-1041, nine days
+                             T-1044, eight days
+                             T-1052, eight days
+
+The queue sorts on priority and then on age. A record without a priority sorts
+after every graded one, whatever its age.

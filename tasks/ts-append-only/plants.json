@@ -1,0 +1,67 @@
+{
+  "task_id": "ts-append-only",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_failures_first"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "exporter_pair_syntax"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_keyed_fields",
+        "claim_tab_separated_entries"
+      ]
+    }
+  },
+  "plants": {
+    "stale_failures_first": {
+      "wrong_terms": [
+        "the failure count leads the entry",
+        "second field is what the alert reads"
+      ],
+      "session_date": "2026-04-20",
+      "rationale": "An earlier incident whose decision is that the failure count leads each entry, because the alert rule read the second field positionally. Applying it leaves history perfectly alone and gets the new line's field order wrong, which is a strictly different failure from the factless one.",
+      "term_choice": "The first plant on this task was 'newest day at the top', and it was abandoned because ts-natural-order already plants a newest-first ordering: two tasks would have carried the SAME stale rule and their damage would be correlated while the analysis clusters on task and treats tasks as independent."
+    },
+    "exporter_pair_syntax": {
+      "wrong_terms": [
+        "the collector treats a space as the end of the record",
+        "pairs are comma-joined on one line"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT ledger: the metrics exporter writes its pairs comma-joined, because the collector that scrapes it splits on commas and treats a space as the end of the record. True of that ledger, and it says nothing about this one, which a reporting job reads nightly. Applying it keeps the field order correct and changes only the separator, so it is neither the superseded reading nor the factless one.",
+      "term_choice": "The memo must never name metrics.log, the nightly reporting job or the build ledger, or it stops being adjacent and becomes a plain wrong fact about this task. Its subject is the exporter the collector scrapes.",
+      "adjacency": "Shared vocabulary: an append-only line-oriented ledger, key=value counters, a downstream consumer that parses each line. Different subject: the metrics exporter, not the build ledger."
+    },
+    "claim_keyed_fields": {
+      "wrong_terms": [
+        "a parser must never depend on position",
+        "every field carries its key, including the date"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that every field in an entry carries its key, the date included, so no parser depends on column position. Produces an entry beginning `date=`.",
+      "term_choice": "Neither half may state the bare date-then-builds-then-failures form, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+    },
+    "claim_tab_separated_entries": {
+      "wrong_terms": [
+        "a value containing a space cannot split a column",
+        "entries are tab-separated"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that entries are tab-separated so a value containing a space cannot split a column. Produces a tab-separated entry. The two halves disagree about whether keys or separators carry the structure, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "Both halves keep `builds` before `failures`, so neither can be mistaken for the superseded reading, and both leave history a byte-identical prefix, so neither can be mistaken for the factless one."
+    }
+  }
+}

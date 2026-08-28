@@ -1,0 +1,67 @@
+{
+  "task_id": "ts-bool-env",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_numeric_switch"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "proxy_on_off_only"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_yes_no_strict",
+        "claim_permissive_parser"
+      ]
+    }
+  },
+  "plants": {
+    "stale_numeric_switch": {
+      "wrong_terms": [
+        "a flag is on when it is exactly 1",
+        "the deploy scripts only ever write 1"
+      ],
+      "session_date": "2026-04-11",
+      "rationale": "An earlier incident from when flags lived in an environment file a shell exported, where 1 was the only truthy spelling the deploy scripts wrote. Applying it lights `audit` alone, where the factless reading lights `verbose`.",
+      "term_choice": "The plant must not say 'accept the usual spellings', which is the correct answer, nor 'only true is true', which is what the factless solution already does."
+    },
+    "proxy_on_off_only": {
+      "wrong_terms": [
+        "the proxy accepts on and off and nothing else",
+        "an operator wrote yes and the site went down"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT configuration file: the upstream proxy's config accepts exactly `on` and `off` and treats anything else as a syntax error. True of that vendor's parser, and the incident behind it is real. It says nothing about this application's own flag file, which operators fill with `true`, `yes`, `1` and `on` interchangeably. Applying it lights `telemetry` alone.",
+      "term_choice": "The memo must never name flags.py, is_enabled or config.ini's [flags] section, or it stops being adjacent and becomes a plain wrong fact about this task. Its subject is the proxy's own config file.",
+      "adjacency": "Shared vocabulary: an operator-edited config file, boolean-looking values, a parser that disagrees with what a human wrote. Different subject: the upstream proxy, whose config this repository also ships."
+    },
+    "claim_yes_no_strict": {
+      "wrong_terms": [
+        "a strict yes/no file",
+        "only yes turns something on"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that the flag file is a strict yes/no file and only `yes` enables. Applying it lights `strict` alone.",
+      "term_choice": "Neither half may list the four spellings together, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+    },
+    "claim_permissive_parser": {
+      "wrong_terms": [
+        "anything that is not the word false",
+        "the reader was written to be permissive"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that any value other than the literal `false` enables. Applying it lights every flag but `cache`. The two halves are as far apart as this config allows, one enabling a single flag and the other seven of eight, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "The two readings light disjoint sets, so the choice is observable in the deliverable. A pair whose halves produced the same map would make endpoint 3 measure nothing."
+    }
+  }
+}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+from collections import Counter
 from pathlib import Path
 
 from harness.io import read_jsonl
@@ -21,6 +22,17 @@ def _cluster_ci(deltas: list[float], *, seed: int = 20260825, draws: int = 10000
 
 
 def compare(records, higher_is_better: bool = True) -> dict:
+    # One record per (task, seed, arm), or the per-arm totals below count a retried session twice.
+    # records.jsonl holds one line per ATTEMPT; records.final.jsonl holds one per cell and arm.
+    repeated = sorted(cell for cell, n in Counter(
+        (record.task_id, record.seed, record.arm) for record in records
+    ).items() if n > 1)
+    if repeated:
+        raise ValueError(
+            f"{len(repeated)} (task, seed, arm) key(s) appear more than once, first {repeated[0]}: "
+            f"this looks like records.jsonl, which holds one line per attempt. Pass "
+            f"records.final.jsonl, which holds one record per cell and arm."
+        )
     by_cell = {(record.task_id, record.seed, record.arm): record for record in records}
     tasks = sorted({record.task_id for record in records})
     per_task = []
@@ -92,12 +104,53 @@ def render_markdown(analysis: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def discarded_cells(admission_path: Path) -> set[tuple[str, int]]:
+    """The (task, seed) cells the admission gate refused, from a run's admission.json."""
+
+    report = json.loads(admission_path.read_text(encoding="utf-8"))
+    return {(str(cell[0]), int(cell[1])) for cell in report.get("discarded_cells", ())}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("records", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument(
+        "--admission",
+        type=Path,
+        default=None,
+        help="admission.json for this run; defaults to the one beside the records file",
+    )
+    parser.add_argument(
+        "--allow-unadmitted",
+        action="store_true",
+        help=(
+            "score every cell, including ones the gate discarded. Preregistration 003 carries an "
+            "exclusions list, so this is a deliberate departure from the frozen protocol and has "
+            "to be said out loud rather than reached by an absent file."
+        ),
+    )
     args = parser.parse_args()
-    analysis = compare(read_jsonl(args.records))
+
+    records = list(read_jsonl(args.records))
+    admission = args.admission or args.records.parent / "admission.json"
+    excluded: set[tuple[str, int]] = set()
+    if admission.is_file():
+        excluded = discarded_cells(admission)
+        records = [r for r in records if (r.task_id, r.seed) not in excluded]
+    elif not args.allow_unadmitted:
+        raise SystemExit(
+            f"no admission report at {admission}: refusing to score cells the gate never "
+            f"admitted. Point --admission at the run's admission.json, or pass "
+            f"--allow-unadmitted to score everything on purpose."
+        )
+
+    analysis = compare(records)
+    analysis["admission"] = {
+        "source": str(admission) if admission.is_file() else None,
+        "discarded_cells": sorted(list(cell) for cell in excluded),
+        "records_scored": len(records),
+    }
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "diagnostic_analysis.json").write_text(json.dumps(analysis, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (args.out_dir / "diagnostic_analysis.md").write_text(render_markdown(analysis), encoding="utf-8")

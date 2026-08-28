@@ -1,0 +1,1 @@
+The release register has a version listed twice and the audit report built from it is wrong, and incident/ has what we pulled: deploy_history.txt is what the pipeline did that afternoon, and register_extract.txt is the state of releases.log afterwards. Work out how the duplicate got there, and recommend what the register step must guarantee given how the pipeline behaves.

@@ -4,7 +4,7 @@
   "prompt": "Write invoice.py in the repository root. Reading items.csv (columns qty,unit_price) from the current directory, compute the invoice total and write it to TOTAL.txt as a plain number with two decimal places (for example 12.34). Then run it so TOTAL.txt exists.",
   "fact_terms": [
     "ROUND_HALF_UP",
-    "Decimal",
+    "computed with Decimal and rounded to cents",
     "rounded to cents",
     "never float"
   ],

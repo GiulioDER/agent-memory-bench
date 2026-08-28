@@ -1,0 +1,12 @@
+{
+  "task_id": "ts-bool-env",
+  "kind": "primary",
+  "prompt": "Add a function is_enabled(name) to flags.py in the repository root. It must read the named flag from the [flags] section of config.ini and return True or False. Leave the rest of flags.py unchanged. Demonstrate it by running python -c \"import flags; print(flags.is_enabled('verbose'))\" from the repository root.",
+  "fact_terms": [
+    "operators write off and no",
+    "any non-empty string is truthy",
+    "the full set of false spellings",
+    "a flag that cannot be turned off"
+  ],
+  "memory_bundle_id": "bundle_ts-bool-env"
+}

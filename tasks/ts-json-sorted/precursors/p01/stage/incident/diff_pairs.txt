@@ -1,0 +1,15 @@
+Two exports of the SAME configuration, taken an hour apart
+
+  export A                        export B
+  {                               {
+    "retry_limit": "3",             "region": "eu-west-1",
+    "service_name": "billing",      "log_level": "info",
+    "region": "eu-west-1",          "service_name": "billing",
+    "log_level": "info",            "timeout_seconds": "30",
+    "timeout_seconds": "30"         "retry_limit": "3"
+  }                               }
+
+Same five pairs. Same values. Every line differs.
+
+Between the two runs, somebody had added and then removed a key from
+entries.txt, which changed the order the remaining lines were read in.

@@ -1,0 +1,5 @@
+package,fix_published_in,fix_published_on,production_version,reported_on,lag_days
+textutils,2.3.7,2026-01-22,2.3.4,2026-02-12,21
+authkit,1.9.2,2026-01-30,1.9.0,2026-02-14,15
+schemachk,0.8.5,2026-02-02,0.8.1,2026-02-17,15
+metricsio,3.1.4,2026-01-18,3.1.1,2026-02-09,22

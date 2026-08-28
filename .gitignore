@@ -1,6 +1,8 @@
 # Secrets and local environment. Both halves of a server config are disclosure: tokens
 # obviously, host inventories too. Neither ever lives in this tree.
 .env
+.env.*
+!.env.example
 *.secrets.json
 pricing.json
 
@@ -14,3 +16,6 @@ staging/
 .venv/
 results/*/cfg/
 results/*.log
+
+# Assembled condition corpora: reproducible from the base corpus, plants.json and a seed.
+corpus/conditions/

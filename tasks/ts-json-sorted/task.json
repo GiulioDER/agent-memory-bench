@@ -1,0 +1,12 @@
+{
+  "task_id": "ts-json-sorted",
+  "kind": "primary",
+  "prompt": "Write export_config.py in the repository root. It must read entries.txt (one key=value per line, values are strings) and write config.json in the repository root: a JSON object mapping each key to its value. Then run it so config.json exists.",
+  "fact_terms": [
+    "byte-reproducible",
+    "keys are sorted on write",
+    "committed generated file",
+    "empty diff when nothing changed"
+  ],
+  "memory_bundle_id": "bundle_ts-json-sorted"
+}
