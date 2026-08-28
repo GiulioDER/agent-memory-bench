@@ -155,7 +155,15 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=1, help="corpus assembly seed")
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
     parser.add_argument("--namespace", default="bench-abstention")
-    parser.add_argument("--memory-instruction", default="protocol")
+    parser.add_argument(
+        "--memory-instruction",
+        default="skill",
+        help="the instruction each memory arm carries. Defaults to `skill`, meaning EACH ARM "
+        "SHIPS ITS OWN, because preregistration 006 requires every arm to be wired through its "
+        "own official integration and forbids prescribing the route. `protocol` equalises the "
+        "text across arms, which is a useful ablation and is NOT the product comparison: it "
+        "measures a common denominator none of the products actually ships.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 

@@ -5,18 +5,23 @@ tests that matter here are the ones asserting nothing changed for an ordinary in
 default task set is still every `ts-*` task, and a run including the recall arm still refuses to
 start without a corpus.
 
-## Every case passes --dry-run, and that is a safety property rather than a convenience
+## Most cases pass --dry-run, and that is a safety property rather than a convenience
 
 Mutation testing removes a guard on purpose. If the guarded action is "run the grid", removing the
 guard RUNS THE GRID: a mutation run of the DSN check did exactly that here, leaving 464 files under
-`results/unit-probe` whose read-only git objects then defeated its own cleanup. Every guard in
-`pilot.py` fires before the dry-run exit, so passing `--dry-run` everywhere keeps each refusal
-observable while making it impossible for any mutation of this file's subjects to execute a
-session.
+`results/unit-probe` whose read-only git objects then defeated its own cleanup. Passing `--dry-run`
+keeps each refusal observable while making it impossible for a mutation to execute a session.
 
-The one test that cannot use that protection is the dry-run test itself, since its mutation
-removes the exit being tested. It is therefore scoped to a single task and a single seed, so the
-worst case is one unauthenticated session rather than a full grid, and it cleans up after itself.
+TWO cases cannot use that protection, and both are scoped to one task and one seed so a mutated
+pilot runs a session or two rather than a full grid:
+
+* the dry-run test itself, whose mutation removes the exit being tested;
+* the DSN refusal, which by design no longer fires under `--dry-run`. A dry run stops before any
+  query, so requiring a database there defeats the point of a cheap check; that guard protects a
+  REAL run and can only be tested by one.
+
+Both clean up after themselves, because pilot writes per-task bundles under `results/<run-id>/cfg/`
+before either check is reached.
 """
 
 from __future__ import annotations
@@ -89,6 +94,17 @@ def _force_rmtree(target: Path) -> None:
 
 
 @pytest.fixture
+def clean_unit_probe():
+    """pilot builds bundles under results/<run-id>/cfg/ before the DSN check refuses, so a test
+    that reaches that refusal leaves files behind."""
+
+    target = REPO / "results" / "unit-probe"
+    _force_rmtree(target)
+    yield
+    _force_rmtree(target)
+
+
+@pytest.fixture
 def probe_run_dir():
     """Yield a run id and guarantee its directory is gone afterwards, mutated or not."""
 
@@ -120,12 +136,17 @@ def test_a_bare_only_run_does_not_require_a_database():
 
 
 @needs_clean_preregistration
-def test_a_run_with_the_recall_arm_still_refuses_without_a_corpus():
+def test_a_run_with_the_recall_arm_still_refuses_without_a_corpus(clean_unit_probe):
     """The half of the old check that must survive: a recall arm with no DSN is a run whose
     treatment is silently absent, which is what the admission gate exists to prevent."""
 
+    # NOT --dry-run, deliberately. A dry run resolves the grid and stops before any query, so the
+    # DSN requirement is skipped there on purpose; this guard protects a REAL run and can only be
+    # tested by one. It is safe: the check sits well before the runner, so an unmutated pilot exits
+    # without starting a session. Scoped to one task and one seed so that a MUTATED pilot, which
+    # would fall through to the grid, runs two unauthenticated sessions rather than a full grid.
     result = _run(
-        ["--arms", "bare,recall", "--run-id", "unit-probe", "--dry-run"],
+        ["--arms", "bare,recall", "--tasks", "ts-tz-utc", "--seeds", "1", "--run-id", "unit-probe"],
         {"RECALL_DSN": None, "OPENROUTER_API_KEY": "placeholder"},
     )
     assert "RECALL_DSN is not set" in result.stdout + result.stderr
