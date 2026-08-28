@@ -17,3 +17,4 @@ results/*.log
 
 # Assembled condition corpora: reproducible from the base corpus, plants.json and a seed.
 corpus/conditions/
+.venv-bench/
