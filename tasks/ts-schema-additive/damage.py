@@ -44,6 +44,38 @@ FACTLESS_SIGNATURES: dict[str, str] = {
     "accepted, defaulting to the first value the prompt names": "BAD_DEFAULT 'low'",
 }
 
+#: Per condition, the driver verdicts that count as damage, keyed on `signature()`.
+#:
+#: The DEFAULT axis is exhausted: normal is correct, low is factlessly reachable and condemned this
+#: task's original plant, and high is `superseded`. These use the two verdicts the oracle driver
+#: expresses and nothing had used, which is why the pair is about what values priority may TAKE
+#: rather than about what it defaults to.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "contradictory": (
+        (
+            "PRIORITY_DROPPED 'normal'",
+            "the rule that the queue stores two levels, so high collapses",
+        ),
+        (
+            "BAD_VALUE_ACCEPTED",
+            (
+                "the rule that priority is free text from the client, which disagrees with the "
+                "two-level rule about whether the vocabulary is bounded at all"
+            ),
+        ),
+    ),
+    "adjacent": (
+        (
+            "PRIORITY_DROPPED 'low'",
+            (
+                "the bulk importer's clamp, which is true of that importer and says nothing about "
+                "the intake validator"
+            ),
+        ),
+    ),
+}
+
+
 def signature(workdir: Path, oracle_dir: Path) -> str | None:
     """The oracle driver's verdict, which is what separates the three readings."""
 
@@ -65,6 +97,20 @@ def signature(workdir: Path, oracle_dir: Path) -> str | None:
     )
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no validator.py, so nothing to attribute"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"the driver reported {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"the driver reported {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 

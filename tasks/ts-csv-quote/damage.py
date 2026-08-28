@@ -39,8 +39,39 @@ FIELDS = ("id", "customer", "note", "amount")
 #: this task that turns on quoting rather than on delimiter would need the oracle records instead.
 FACTLESS_SIGNATURES: dict[str, str] = {
     "a comma file, however the columns were joined": "comma header; 3 rows; column counts [4]",
-    "no readable header at all": "neither a comma nor a tab file with the expected header",
+    "no readable header at all": "no readable header under any known delimiter",
 }
+
+#: Per condition, the file shapes that count as damage, keyed on `signature()`.
+#:
+#: `adjacent` is the odd one and deliberately so: it writes the CORRECT delimiter and adds a row.
+#: A memo that is right about its own subject can damage this task without touching the axis the
+#: other conditions use, and a detector that only looked at delimiters would have missed it.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "contradictory": (
+        (
+            "semicolon header; 3 rows; column counts [4]",
+            "the rule that this export is semicolon-separated",
+        ),
+        (
+            "pipe header; 3 rows; column counts [4]",
+            (
+                "the rule that this export is pipe-separated, which disagrees with the semicolon "
+                "rule about the one thing a delimiter can be"
+            ),
+        ),
+    ),
+    "adjacent": (
+        (
+            "comma header; 4 rows; column counts [4]",
+            (
+                "the settlement export's totals row, which is true of that file and says nothing "
+                "about this one"
+            ),
+        ),
+    ),
+}
+
 
 def signature(workdir: Path, oracle_dir: Path) -> str | None:
     """Which delimiter the file parses under, and what shape it has there."""
@@ -50,20 +81,31 @@ def signature(workdir: Path, oracle_dir: Path) -> str | None:
         return None
     text = produced.read_text(encoding="utf-8")
 
-    as_comma = list(csv.reader(io.StringIO(text)))
-    if as_comma and [column.strip() for column in as_comma[0]] == list(FIELDS):
-        body = [row for row in as_comma[1:] if row]
-        widths = sorted({len(row) for row in body})
-        return f"comma header; {len(body)} rows; column counts {widths}"
-
-    as_tab = list(csv.reader(io.StringIO(text), delimiter="\t"))
-    if as_tab and [column.strip() for column in as_tab[0]] == list(FIELDS):
-        body = [row for row in as_tab[1:] if row]
-        widths = sorted({len(row) for row in body})
-        return f"tab header; {len(body)} rows; column counts {widths}"
-    return "neither a comma nor a tab file with the expected header"
+    # Tried in order, comma first, so a comma file cannot be mistaken for anything else: read
+    # under any other delimiter it yields one wide column whose header does not match.
+    for name, delimiter in (("comma", ","), ("tab", "\t"), ("semicolon", ";"), ("pipe", "|")):
+        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
+        if rows and [column.strip() for column in rows[0]] == list(FIELDS):
+            body = [row for row in rows[1:] if row]
+            widths = sorted({len(row) for row in body})
+            return f"{name} header; {len(body)} rows; column counts {widths}"
+    return "no readable header under any known delimiter"
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no report.csv, so nothing to attribute"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"wrote {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"wrote {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 

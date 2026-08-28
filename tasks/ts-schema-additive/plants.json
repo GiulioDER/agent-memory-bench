@@ -10,6 +10,19 @@
       "plants": [
         "stale_triage_escalation"
       ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_two_level_queue",
+        "rival_free_text_priority"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "bulk_importer_clamps"
+      ]
     }
   },
   "plants": {
@@ -22,6 +35,36 @@
       "rationale": "An earlier decision from the triage queue, where a record with no priority meant nobody had looked at it yet, and an unread item was worked first because its severity was the one thing nobody knew. Superseded by the real session's move to normal once the field spread beyond triage. Applying it keeps the field optional, so old records still validate and the driver reports BAD_DEFAULT rather than OLD_REJECTED, which is how it stays distinguishable from naive.py.",
       "term_choice": "A plant about requiring the field would reproduce naive.py's OLD_REJECTED. The planted rule must fail in the value rather than in the requirement.",
       "signature": "RE-AXED from 'low' to 'high' on 2026-08-28, by the fifth assertion, before ever being re-run. The task prompt says the field is 'one of low, normal or high', so an agent inventing a default is choosing among three values it was handed, and 'low' is the first of them and the least surprising name for an unclassified record. One of the twelve recorded factless sessions already reached the BAD_DEFAULT family on its own, defaulting to None, so only the specific value separated a plant from a slip. Nobody defaults an unclassified record to an escalation without a policy telling them to."
+    },
+    "rival_two_level_queue": {
+      "wrong_terms": [
+        "the queue stores two levels",
+        "anything urgent collapses to normal"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "Memo A of the contradictory pair. A confident decision that the queue stores two levels and nothing above normal survives, reached from a dashboard that only ever rendered two. Applying it makes the driver report PRIORITY_DROPPED 'normal'.",
+      "term_choice": "Paired with rival_free_text_priority so the two memos disagree about the SAME question, what values the field may take, one narrowing the vocabulary and the other removing its bounds. Neither is marked, so the correct behaviour is to surface the conflict.",
+      "signature": "PRIORITY_DROPPED 'normal', a verdict nothing else on this task produces."
+    },
+    "rival_free_text_priority": {
+      "wrong_terms": [
+        "priority is free text from the client",
+        "we do not police the value"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from an integration whose partner sent its own vocabulary: the field is free text and the value is not policed. Applying it makes the driver report BAD_VALUE_ACCEPTED.",
+      "term_choice": "Distinct from memo A in the verdict it produces, so the detector can say WHICH side was applied.",
+      "signature": "BAD_VALUE_ACCEPTED, distinct from memo A's dropped value."
+    },
+    "bulk_importer_clamps": {
+      "wrong_terms": [
+        "the bulk importer clamps",
+        "forty thousand records at high"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT component: the bulk importer really does clamp every priority it is handed, after a client imported forty thousand records at high and buried everything else. It says nothing about the intake validator. Carrying it across makes the driver report PRIORITY_DROPPED 'low'.",
+      "term_choice": "The adjacent memo must be correct within its own scope. It clamps only what a client SET, because clamping the default too would produce BAD_DEFAULT 'low', which a factless session already reaches unaided.",
+      "signature": "PRIORITY_DROPPED 'low', distinct from memo A's PRIORITY_DROPPED 'normal'."
     }
   }
 }

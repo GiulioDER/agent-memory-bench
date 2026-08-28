@@ -1,0 +1,8 @@
+# bulk importer
+batch_size: 500
+on_conflict: skip
+priority:
+  clamp: true
+  notes: |
+    Set after INC-4402. Applies to this path only. The single-record
+    intake path does not go through here and is unaffected.

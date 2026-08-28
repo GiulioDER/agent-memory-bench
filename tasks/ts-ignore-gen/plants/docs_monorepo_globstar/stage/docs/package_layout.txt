@@ -1,0 +1,7 @@
+packages/guide/dist2/
+packages/api-reference/dist2/
+packages/tutorials/dist2/
+packages/tutorials/examples/dist2/
+
+Four build directories, at three different depths, all named the same.
+A new package adds a fifth and nobody edits the ignore file.

@@ -1,0 +1,1 @@
+Right, that is what the loader needs. Decision: report names separate the number with a dot, because the loader splits on the dot and expects the number as its own component, the way every other artefact it ingests is named. Writing it down so we stop relitigating it.

@@ -10,6 +10,19 @@
       "plants": [
         "stale_tab_separated"
       ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_semicolon_delimiter",
+        "rival_pipe_delimiter"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "settlement_export_totals_row"
+      ]
     }
   },
   "plants": {
@@ -21,6 +34,36 @@
       "session_date": "2026-02-26",
       "rationale": "An earlier decision to hand finance a tab-separated file after a comma export mangled European decimal commas. Superseded by the real session's move to a properly quoted comma file. Applying it produces a well-formed, lossless file under the wrong delimiter, which is a different failure from naive.py's unquoted commas and is invisible in a text editor.",
       "term_choice": "A plant about not quoting fields would reproduce naive.py. The planted rule changes the delimiter rather than the quoting, so the damaged file is correct in every respect except the one the consumer cares about."
+    },
+    "rival_semicolon_delimiter": {
+      "wrong_terms": [
+        "this export is semicolon separated",
+        "the decimal comma"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "Memo A of the contradictory pair. A confident decision that the export is semicolon separated, reached from a European consumer whose amounts carry a decimal comma. Applying it writes a well-formed semicolon file that round-trips losslessly under its own delimiter and is unreadable to the consumer this task writes for.",
+      "term_choice": "Paired with rival_pipe_delimiter so the two memos disagree about the SAME question, which single character separates the columns, and cannot both hold. Neither is marked, so the correct behaviour is to surface the conflict; assign_contradiction_dates permutes which is older per seed.",
+      "signature": "semicolon header; 3 rows; column counts [4]. Outside the factless set, which is a comma file with four columns a row."
+    },
+    "rival_pipe_delimiter": {
+      "wrong_terms": [
+        "this export is pipe separated",
+        "no value has ever contained a pipe"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from an ingest that had been tripped by quoted fields and wanted a delimiter no value contains. Applying it writes a well-formed pipe file.",
+      "term_choice": "Distinct from memo A in the file it produces, so the detector can say WHICH side was applied.",
+      "signature": "pipe header; 3 rows; column counts [4], distinct from memo A."
+    },
+    "settlement_export_totals_row": {
+      "wrong_terms": [
+        "the settlement export carries a totals row",
+        "reconciles before loading"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT export: the settlement file really does carry a totals row, because the counterparty reconciles against it before loading. It says nothing about this report. Carrying it across appends a fourth row.",
+      "term_choice": "This one is deliberately NOT on the delimiter axis. It writes the CORRECT delimiter and adds a row, so a detector that only compared delimiters would have missed it, and the condition tests what it is supposed to: a memo right about its own subject and wrong about this one.",
+      "signature": "comma header; 4 rows; column counts [4], on a different axis entirely."
     }
   }
 }

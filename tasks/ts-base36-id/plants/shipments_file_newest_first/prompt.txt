@@ -1,0 +1,1 @@
+The packing station's shipments.txt keeps confusing people who read it after the fact, and packing/ has why: station_notes.md is how the operators use the screen, and shipments_sample.txt is the file itself. Work out what order that file is written in, and write it down so the next consumer does not read it backwards.
