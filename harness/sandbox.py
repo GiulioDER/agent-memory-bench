@@ -166,9 +166,23 @@ def restore(
     # is only a meaningful instruction where there is an index to be clean against. `init.
     # defaultBranch` is pinned so a checker can name the branch, and gpgsign is off because the
     # user's signing key must never be reachable from a sandbox running model-written code.
-    git("init", "-q", "-b", "main", ".", cwd=destination)
-    git("add", "--", ".", cwd=destination)
-    git("commit", "-q", "-m", "fixture", cwd=destination)
+    # Each of these is checked. `checker_run.git` returns a Completed and never raises, so an
+    # unchecked call lets a failed init/add/commit hand back a sandbox with no baseline commit and
+    # a perfectly plausible digest: `tree_digest` hashes files, not git state, and `.git` is
+    # excluded from it, so nothing downstream can tell the difference. An unprovable starting
+    # state must refuse rather than proceed.
+    for step in (
+        ("init", "-q", "-b", "main", "."),
+        ("add", "--", "."),
+        ("commit", "-q", "-m", "fixture"),
+    ):
+        completed = git(*step, cwd=destination)
+        if not completed.ok:
+            raise RuntimeError(
+                f"git {step[0]} failed in sandbox {destination} "
+                f"(exit {completed.returncode}, timed_out={completed.timed_out}): "
+                f"{completed.stderr.strip() or completed.stdout.strip()}"
+            )
 
     dirty = fixture / "dirty"
     if dirty.is_dir():

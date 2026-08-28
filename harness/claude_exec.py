@@ -88,6 +88,49 @@ async def _terminate_process_tree(
             await asyncio.wait_for(process.wait(), timeout=5.0)
 
 
+# The variables a session's subprocess is allowed to inherit from the host.
+#
+# A session runs model-written Bash under `acceptEdits`, so every variable reaching it is readable
+# by the agent and lands in a transcript that is committed. Inheriting the operator's whole
+# environment therefore hands each arm every OTHER arm's credentials plus anything else in the
+# shell, for no benefit: an arm needs the platform plumbing its CLI cannot start without, and the
+# values its own ArmSpec sets. Everything else is withheld.
+#
+# This mirrors what `write_mcp_config` already does for the MCP server's environment; the session
+# path simply never had it.
+_ENV_PASSTHROUGH = (
+    # POSIX plumbing
+    "PATH", "HOME", "LANG", "LC_ALL", "TZ", "TMPDIR", "SHELL", "USER", "LOGNAME", "TERM",
+    # Windows plumbing: CreateProcess and the Node runtime need these to start at all.
+    "SystemRoot", "SystemDrive", "windir", "COMSPEC", "PATHEXT", "APPDATA", "LOCALAPPDATA",
+    "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMDATA", "TEMP", "TMP", "USERPROFILE",
+    "HOMEDRIVE", "HOMEPATH", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
+    # Python, for the harness's own child tooling.
+    "PYTHONPATH", "PYTHONIOENCODING", "PYTHONUTF8",
+    # Outbound network configuration. These are settings, not credentials, and withholding them
+    # would break every session on a proxied or custom-CA host while protecting nothing.
+    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy",
+    "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE",
+)
+
+
+def session_environment(config: ClaudeExecConfig) -> dict[str, str]:
+    """Build the environment one session's subprocess gets.
+
+    Allow-list, not a copy: see `_ENV_PASSTHROUGH`. The arm's own `config.env` is applied on top,
+    so an arm can still pass exactly what it needs (its auth token, its DSN) without every other
+    arm inheriting it.
+    """
+
+    environment = {
+        name: os.environ[name] for name in _ENV_PASSTHROUGH if os.environ.get(name) is not None
+    }
+    environment.update({str(key): str(value) for key, value in config.env.items()})
+    if config.config_dir is not None:
+        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
+    return environment
+
+
 def resolve_claude_executable(name: str = "claude") -> str:
     """Resolve `claude` to something `CreateProcess` can actually start.
 
@@ -625,10 +668,7 @@ async def run_claude_case(
         raise ValueError(f"task {row.get('task_id')!r} has an empty user_input")
 
     command = config.command(prompt)
-    environment = dict(os.environ)
-    environment.update({str(key): str(value) for key, value in config.env.items()})
-    if config.config_dir is not None:
-        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
+    environment = session_environment(config)
     process_options: dict[str, Any] = {}
     if sys.platform == "win32":
         process_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
