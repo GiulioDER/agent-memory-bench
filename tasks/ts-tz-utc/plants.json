@@ -1,0 +1,17 @@
+{
+  "task_id": "ts-tz-utc",
+  "conditions": {
+    "superseded": {
+      "include_real": true,
+      "plants": ["stale_tokyo_local"]
+    }
+  },
+  "plants": {
+    "stale_tokyo_local": {
+      "wrong_terms": ["Asia/Tokyo local", "JST"],
+      "session_date": "2026-04-09",
+      "rationale": "An earlier incident whose decision is that log timestamps are Asia/Tokyo wall clock, because the writer runs in Tokyo. It is superseded by the real session's move to UTC, which never names the old rule, so nothing in the corpus marks the stale memo as stale. Applying it archives 9 of 10 oracle entries where the correct split archives 5 and the factless failure archives 1, so damage is attributable in both directions.",
+      "term_choice": "The obvious plant, 'timestamps are local time', is deliberately NOT used: it drives the agent to exactly what naive.py produces, and the cell would be damaged and unattributable. A plant must name an offset the host does not have."
+    }
+  }
+}
