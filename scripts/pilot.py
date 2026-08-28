@@ -372,7 +372,12 @@ async def main() -> int:
     # Only the recall arm reads a corpus through a database. Demanding a DSN for a run that has no
     # recall arm would make a bare-only calibration impossible without standing up a database it
     # never queries.
-    if "recall" in run_arms and not os.environ.get("RECALL_DSN"):
+    #
+    # And not for a dry run either, whatever the arms. A dry run resolves the grid and stops before
+    # any session or query, so requiring a database there defeats the point of having a cheap
+    # check: it made `--dry-run --arms bare,recall` impossible anywhere the database was not
+    # already up, which is exactly where you most want to check a command line first.
+    if "recall" in run_arms and not args.dry_run and not os.environ.get("RECALL_DSN"):
         raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
 
     tasks = [task for task in discover_tasks() if task.task_id.startswith("ts-")]

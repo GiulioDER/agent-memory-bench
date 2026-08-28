@@ -70,6 +70,28 @@ def test_an_unknown_condition_is_refused():
     assert "unknown condition" in result.stdout + result.stderr
 
 
+@needs_clean_preregistration
+def test_each_arm_ships_its_own_instruction_by_default():
+    """Mutation: defaulting to `protocol`. That equalises the instruction across arms, which
+    preregistration 006 forbids in terms: every arm is wired through its own official integration
+    and the benchmark must not prescribe the route. `protocol` is a CONTROL arm that isolates
+    coaching from retrieval; using it as the default would measure a common denominator no product
+    ships, and would quietly answer a question 006 already answered.
+    """
+
+    result = _run(
+        ["--run-id", "unit-probe", "--conditions", "absent", "--arms", "bare,recall",
+         "--seeds", "1", "--dry-run"],
+        {"RECALL_DSN": None, "OPENROUTER_API_KEY": "placeholder"},
+    )
+    out = result.stdout + result.stderr
+    assert result.returncode == 0, out
+    assert "instruction variant 'skill'" in out, (
+        f"the suite must default to each arm's own instruction; it reported: "
+        f"{[line for line in out.splitlines() if 'instruction variant' in line]}"
+    )
+
+
 # ---------------------------------------------------------------------------------------
 # task selection is data, not a flag
 # ---------------------------------------------------------------------------------------
