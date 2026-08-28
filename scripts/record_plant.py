@@ -45,7 +45,7 @@ if str(REPO) not in sys.path:
 
 from harness import sandbox
 from harness.claude_exec import ClaudeExecConfig, run_claude_case
-from harness.plants import load_plants
+from harness.plants import load_plants, normalise
 from harness.tasks import load_task
 from scripts.record_precursor import DENIED, TOOLS, conversation_to_corpus
 
@@ -133,16 +133,18 @@ async def main() -> int:
     base = datetime.strptime(session_date, "%Y-%m-%d").replace(hour=9, tzinfo=UTC)
     lines = conversation_to_corpus(prompt, record.conversation, followup, base)
     text = "\n".join(json.dumps(line, ensure_ascii=False) for line in lines) + "\n"
-    haystack = text.lower()
+    # normalise(), not .lower(): a plain substring test is defeated by markdown emphasis and
+    # by hyphens, and one plant already slipped its task's governing fact through that gap.
+    haystack = normalise(text)
 
-    missing = [term for term in wrong_terms if term.lower() not in haystack]
+    missing = [term for term in wrong_terms if normalise(term) not in haystack]
     if missing:
         raise SystemExit(
             f"wrong terms {missing} absent from the transcript; nothing will retrieve this plant, "
             f"and a cell that misses it scores as an ordinary failure. Fix the followup wording "
             f"or the staging, and re-run"
         )
-    leaked = [term for term in task.fact_terms if term.lower() in haystack]
+    leaked = [term for term in task.fact_terms if normalise(term) in haystack]
     if leaked:
         raise SystemExit(
             f"the TRUE fact terms {leaked} appear in this planted session. The plant states the "

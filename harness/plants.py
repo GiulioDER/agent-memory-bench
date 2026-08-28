@@ -49,10 +49,36 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .damage import CONDITIONS
+
+#: Emphasis and word-joining characters that a substring test must not be fooled by.
+_NOISE = re.compile(r"[*_`~]+")
+_JOINERS = re.compile(r"[-‐-―/\\]+")
+_SPACE = re.compile(r"\s+")
+
+
+def normalise(text: str) -> str:
+    """Lowercase and strip the formatting a literal fact-term check is blind to.
+
+    A recorded agent writes prose, and prose carries emphasis. `ts-dedup-order`'s planted session
+    contained "the *first* occurrence" and "first-occurrence deduplication", which state this
+    task's governing fact outright, and BOTH passed a plain substring test for "first occurrence":
+    the asterisks and the hyphen broke the match. The plant therefore stated the very convention
+    it exists to withhold, and the condition would have answered its own question.
+
+    So every fact-term and wrong-term comparison goes through here. Markdown emphasis is removed,
+    hyphens and slashes become spaces, and runs of whitespace collapse, which makes the test see
+    what a reader sees rather than what the bytes happen to be.
+    """
+
+    lowered = text.lower()
+    lowered = _NOISE.sub("", lowered)
+    lowered = _JOINERS.sub(" ", lowered)
+    return _SPACE.sub(" ", lowered)
 
 #: The frozen table in preregistration 005, as a machine-checkable shape. ``include_real`` is
 #: whether the task's own true precursor stays in the corpus; a condition that gets this wrong is

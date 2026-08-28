@@ -66,7 +66,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.plants import CONDITION_SHAPE, load_plants
+from harness.plants import CONDITION_SHAPE, load_plants, normalise
 from harness.tasks import discover_tasks
 from scripts.assemble_condition_corpus import assemble
 
@@ -76,7 +76,9 @@ WORD = re.compile(r"[a-z][a-z0-9_\-]{2,}")
 
 
 def _text(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace").lower()
+    """Normalised, so emphasis and hyphens cannot hide a term from a substring test."""
+
+    return normalise(path.read_text(encoding="utf-8", errors="replace"))
 
 
 def _words(text: str) -> set[str]:
@@ -200,7 +202,7 @@ def main() -> int:
                 _text(path) for path in sorted(staging.rglob("*")) if path.is_file()
             )
             for term in task.fact_terms:
-                if term.lower() in staged_text:
+                if normalise(term) in staged_text:
                     violations.append(
                         f"{task_id}: the TRUE fact term {term!r} appears in the plant staging "
                         f"under {staging.relative_to(REPO)}. record_plant.py will refuse the "
@@ -216,10 +218,23 @@ def main() -> int:
             else:
                 planted_text = _text(recording)
                 for term in plant.wrong_terms:
-                    if term.lower() not in planted_text:
+                    if normalise(term) not in planted_text:
                         violations.append(
                             f"{task_id}/{name}: wrong term {term!r} appears in NONE of its own "
                             f"planted session; nothing can retrieve it"
+                        )
+                # The RECORDED plant must not state the task's true fact either. This duplicates
+                # a gate in record_plant.py on purpose: that gate ran once, at recording time,
+                # against a substring test that markdown emphasis defeated, and a plant that
+                # states the real convention answers its own question for the whole condition.
+                # Re-checking here means the corpus is audited as it stands rather than as it was
+                # accepted.
+                for term in task.fact_terms:
+                    if normalise(term) in planted_text:
+                        violations.append(
+                            f"{task_id}/{name}: the TRUE fact term {term!r} appears in the "
+                            f"RECORDED plant. The condition answers its own question; re-stage "
+                            f"and re-record, or retire the plant."
                         )
                 chars, turns = len(planted_text), planted_text.count("\n")
                 if not (min_chars <= chars <= max_chars):
@@ -243,7 +258,7 @@ def main() -> int:
                         )
 
             for term in plant.wrong_terms:
-                needle = term.lower()
+                needle = normalise(term)
                 for path, text in outside.items():
                     if needle in text:
                         violations.append(
@@ -293,7 +308,7 @@ def main() -> int:
                 remaining = sorted((root / "sessions" / task_id).glob("*.jsonl"))
                 text = " ".join(_text(path) for path in remaining)
                 for term in tasks[task_id].fact_terms:
-                    if term.lower() in text:
+                    if normalise(term) in text:
                         violations.append(
                             f"{condition}/{task_id}: the TRUE fact {term!r} survives in the "
                             f"assembled corpus, so this condition still answers the question"

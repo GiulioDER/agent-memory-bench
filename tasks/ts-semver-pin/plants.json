@@ -3,15 +3,20 @@
   "conditions": {
     "superseded": {
       "include_real": true,
-      "plants": ["stale_compatible_release"]
+      "plants": [
+        "stale_compatible_release"
+      ]
     }
   },
   "plants": {
     "stale_compatible_release": {
-      "wrong_terms": ["compatible-release", "patch releases flow"],
+      "wrong_terms": [
+        "compatible release operator",
+        "patch releases flow"
+      ],
       "session_date": "2026-02-19",
       "rationale": "An earlier decision to pin internal packages with the compatible-release operator so security patches arrive without a pull request. Superseded by the real session's move to exact pins after an internal release broke a consumer. Applying it yields textutils~=2.4.1, which is neither the correct == nor the >= that naive.py copies from the file's own style.",
-      "term_choice": "A plant saying 'use a floor constraint' would drive the agent to >=, byte-identical to naive.py, and the damage would be unattributable. The planted operator must be a third distinct one."
+      "term_choice": "A plant saying 'use a floor constraint' would drive the agent to >=, byte-identical to naive.py, and the damage would be unattributable. The planted operator must be a third distinct one. The term 'compatible-release' was ALSO rejected, after the audit found it in this task's own real session, which discusses the ~= form while ruling it out for internal packages: a wrong term the superseding memo already names is pre-refuted by the evidence it is meant to compete with. The two terms now used appear in the plant and nowhere in the real session."
     }
   }
 }
