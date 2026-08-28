@@ -118,3 +118,22 @@ and reached overall was `0.794`.
 
 The run used 9,386,264 metered tokens and had estimated session spend `$0.5836`. Full
 analysis and limitations are recorded in `reports/pilot-004-placebo-report.md`.
+
+
+## Protocol change, appended 2026-08-29 (nothing above the results marker edited)
+
+See `docs/audit/2026-08-29-protocol-change-record.md`. Two points bear on this run's reported
+figures, and neither changes a recorded number here:
+
+- This run's `estimated_usd` was computed at `scripts/pilot.py`'s argparse defaults
+  (0.05866 / 0.11732), not at the frozen preregistration 002 rates (0.0574 / 0.1148) that
+  `pilot-003-deepseek` used. Recomputing at the defaults reproduces this run's per-arm figures to
+  four decimal places, which is how the basis was identified: the artifact recorded
+  `pricing_as_of` but never the prices. **`pilot-003` and `pilot-004` dollar figures are therefore
+  not directly comparable.**
+- Cache reads were charged at the fresh-input rate. They are 68.2% of the recall arm's input here
+  against 55-58% for the three baselines, so the overstatement is uneven across arms. The
+  recomputation at several cache discount ratios is in the change document.
+
+Success rates, deltas, CIs and p-values in this record are unaffected: the cost model feeds no
+outcome.
