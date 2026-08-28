@@ -152,15 +152,52 @@ class RecallAdapter(MemoryAdapter):
         # tokens and real host compute, and a cost table that prints only the zero would read as
         # "this product ingests for free" beside a competitor's extraction bill.
         hosted = ":" in embedder
+        stored = self._rows_for_tenant(namespace)
+        if stored == 0:
+            raise RuntimeError(
+                f"recall index exited 0 for tenant {namespace!r} and the tenant holds no rows. "
+                f"{count} file(s) were rendered, which is what this report used to publish as "
+                f"`items_stored`: an ingest that writes nothing would have looked successful, and "
+                f"the arm would then have scored zero as though the PRODUCT had failed."
+            )
         return IngestReport(
             arm=self.name,
             namespace=namespace,
             sessions_offered=len(corpus.sessions),
-            items_stored=count,
+            # Rows actually in the tenant, not files rendered. See _rows_for_tenant.
+            items_stored=stored,
             wall_time_ms=elapsed_ms,
             local_model=None if hosted else embedder,
-            notes=("indexed via `python -m recall.cli index`, one tenant per namespace",),
+            notes=(
+                "indexed via `python -m recall.cli index`, one tenant per namespace",
+                f"{count} file(s) rendered, {stored} row(s) stored",
+            ),
         )
+
+    def _rows_for_tenant(self, namespace: str) -> int:
+        """How many chunk rows this tenant actually holds, verified after indexing.
+
+        `render_corpus` returns how many files it WROTE, and reporting that as `items_stored` says
+        nothing about whether the index has anything in it. The distinction matters most for an
+        arm that is not ours: a competitor whose ingest silently failed would be published at zero
+        as though their product could not answer, rather than as a wiring failure the gate should
+        have caught.
+
+        ⚠️ `recall.tenant_id` MUST be set. These tables carry row-level security, so a plain
+        `select count(*)` returns 0 for every tenant and reads exactly like an empty index. That
+        mistake has been made on this project before, on a healthy corpus that was then rebuilt
+        for no reason.
+        """
+
+        try:
+            import psycopg
+        except ImportError:  # pragma: no cover - environment without the driver
+            return -1
+        with psycopg.connect(self._dsn()) as connection, connection.cursor() as cursor:
+            cursor.execute("SET LOCAL recall.tenant_id = %s", (namespace,))
+            cursor.execute("SELECT count(*) FROM chunks")
+            row = cursor.fetchone()
+        return int(row[0]) if row else 0
 
     def build(
         self, session_dir: Path, namespace: str, *, prompt_path: Path | None = None
