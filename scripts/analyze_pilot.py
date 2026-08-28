@@ -35,9 +35,16 @@ SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "recall")
 #: harness.stats's 12345, and it computed every published headline interval.
 def cluster_bootstrap(per_task_deltas, iterations: int = 10_000, seed: int = 12345):
     interval = _cluster_bootstrap(per_task_deltas, iterations=iterations, seed=seed)
-    # A degenerate sample (every delta identical) has no interval; the old copy returned a
-    # zero-width one, which reads as precision and is the opposite of it.
-    return interval if interval is not None else (0.0, 0.0)
+    if interval is not None:
+        return interval
+    # Every delta identical, so every resample returns that same value. `harness.stats` answers
+    # None here because a zero-width interval reads as precision and is the opposite of it; this
+    # analyser still has to emit two numbers, so it emits the constant the sample actually holds.
+    # NOT (0.0, 0.0): for a survivor subset where every task moved by the same nonzero amount that
+    # would report an interval straddling zero for a sample that never touched it.
+    values = [float(d) for d in per_task_deltas]
+    constant = values[0] if values else 0.0
+    return (constant, constant)
 
 
 def main() -> int:
