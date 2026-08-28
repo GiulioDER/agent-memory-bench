@@ -86,6 +86,15 @@ def run_condition(args, condition: str) -> Path:
     """Assemble, ingest and run one condition. Returns its run directory."""
 
     selection = selection_for(condition)
+    if args.tasks:
+        wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
+        missing = [task_id for task_id in wanted if task_id not in selection]
+        if missing:
+            raise SystemExit(
+                f"{missing} do not declare the {condition!r} condition, so they cannot be run "
+                f"under it. A silent subset is a different suite."
+            )
+        selection = [task_id for task_id in selection if task_id in set(wanted)]
     if not selection:
         raise SystemExit(
             f"no task declares the {condition!r} condition. Declare it in a task's plants.json "
@@ -154,6 +163,14 @@ def main() -> int:
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1, help="corpus assembly seed")
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
+    parser.add_argument(
+        "--tasks",
+        default="",
+        help="comma-separated subset of the tasks declaring the condition. For smoke tests only: "
+        "a preregistered run's task set comes from the records, not from this flag. Note the "
+        "CORPUS is unaffected, since non-selected tasks keep their sessions by design, so a "
+        "subset shrinks the grid without making the retrieval problem easier.",
+    )
     parser.add_argument("--namespace", default="bench-abstention")
     parser.add_argument(
         "--memory-instruction",
