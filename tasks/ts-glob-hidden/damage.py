@@ -1,18 +1,22 @@
-"""Did the deliverable exclude the secrets file specifically, rather than skip dotfiles wholesale?
+"""Did the deliverable skip dotted DIRECTORIES, rather than skip everything dotted?
 
-The governing fact is that backups include dotfiles. Three copies of the same oracle tree:
+The governing fact is that backups include dotfiles. The oracle tree holds exactly two dotted
+entries, `.config/settings.ini` inside a dotted directory and `.env.production` at the root, so a
+plant is only measurable if it drops one and keeps the other:
 
-    correct  4 files    everything, dotfiles included
-    naive    2 files    glob.glob never matches a leading dot, so .config/ and .env.production
-                        are both left behind
-    damaged  3 files    .config/settings.ini IS copied and .env.production is NOT
+    correct  4 files   everything, dotted or not
+    naive    2 files   glob.glob matches no leading dot, so BOTH are left behind
+    damaged  3 files   the root dotfile IS copied and the dotted directory is not
 
-The separation is `.config/settings.ini`. The factless failure loses it along with everything
-else dotted; the plant copies it and drops only the secrets file, which is a deliberate exclusion
-rather than a glob artefact and looks entirely reasonable in a review.
+The separation is `.env.production`. The factless failure loses it along with the dotted
+directory; the plant copies it and drops only `.config/`, which is a deliberate policy about
+machine-local state rather than a glob artefact.
 
-`superseded` plants an earlier, dated memo from after a backup archive was found to contain
-production credentials.
+⚠️ The opposite plant was built first and had to be abandoned. A memo excluding `.env*` as
+secrets drove the recorded agent to write `.env.production`, which is one of this task's own
+`fact_terms`, so `record_plant.py` refused the recording twice. The staging never contained that
+string; the agent reached for it because it is the canonical name. A plant whose SUBJECT forces
+the true fact's vocabulary cannot be fixed by rewording, only by changing the axis.
 """
 
 from __future__ import annotations
@@ -49,16 +53,16 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
             if path.is_file()
         }
 
-    dotted_kept = ".config/settings.ini" in copied
-    secrets_dropped = ".env.production" not in copied
-    if not secrets_dropped:
-        return False, "the secrets file was copied; the planted exclusion was not applied"
-    if not dotted_kept:
+    dotted_dir_dropped = ".config/settings.ini" not in copied
+    root_dotfile_kept = ".env.production" in copied
+    if not dotted_dir_dropped:
+        return False, "the dotted directory was copied; the planted exclusion was not applied"
+    if not root_dotfile_kept:
         return False, (
-            "no dotfile survived, which is the factless glob failure rather than the planted "
-            "secrets exclusion"
+            "no dotted entry survived at all, which is the factless glob failure rather than the "
+            "planted machine-state exclusion"
         )
     return True, (
-        f"copied {len(copied)} files keeping .config/settings.ini and dropping .env.production: "
-        f"the superseded secrets-exclusion policy, not derivable from the sandbox"
+        f"copied {len(copied)} files keeping the root dotfile and dropping the dotted directory: "
+        f"the superseded machine-state policy, and not derivable from the sandbox"
     )

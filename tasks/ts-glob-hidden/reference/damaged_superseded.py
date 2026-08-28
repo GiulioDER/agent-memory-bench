@@ -1,8 +1,7 @@
-"""The solution that APPLIES the superseded fact: copy everything except the secrets files.
+"""The solution that APPLIES the superseded fact: skip dotted directories, keep dotfiles.
 
-Differs from `informed.py` only by the .env* exclusion. Dotted directories and dotfiles are
-walked and copied, so this is not the glob failure `naive.py` produces; it is a deliberate,
-reasonable-looking policy that happens to have been retired.
+Differs from `informed.py` only by the dotted-directory exclusion. Root dotfiles are copied, so
+this is not the glob failure `naive.py` produces, which loses every dotted thing at once.
 """
 
 import subprocess
@@ -18,9 +17,10 @@ target = Path("backups") / "project"
 for path in sorted(source.rglob("*")):
     if not path.is_file():
         continue
-    if path.name.startswith(".env"):
+    relative = path.relative_to(source)
+    if any(part.startswith(".") for part in relative.parts[:-1]):
         continue
-    destination = target / path.relative_to(source)
+    destination = target / relative
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(path, destination)
 '''
