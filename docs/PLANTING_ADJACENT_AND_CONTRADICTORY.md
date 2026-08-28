@@ -1,11 +1,12 @@
 # Building an `adjacent` or `contradictory` plant
 
 Preregistration 005 defines four corpus conditions. `absent` and `superseded` were built first;
-`adjacent` and `contradictory` were added on 2026-08-28 across eight tasks, which is the threshold
-005 sets for reporting a condition as a result rather than as underpowered.
+`adjacent` and `contradictory` were added on 2026-08-28 across all eleven `DAMAGE_ONLY` tasks,
+against the threshold of eight that 005 sets for reporting a condition as a result rather than as
+underpowered.
 
-This is what was learned building them. It is written for whoever does the remaining three, and for
-whoever has to judge whether one of these plants is sound.
+This is what was learned building them. It is written for whoever adds a condition to a new task,
+and for whoever has to judge whether one of these plants is sound.
 
 ## What each condition is
 
@@ -19,7 +20,7 @@ whoever has to judge whether one of these plants is sound.
 `CONDITION_SHAPE` in `harness/plants.py` enforces the mechanics: `adjacent` and `contradictory`
 both withhold the real session, `contradictory` needs at least two plants, `adjacent` at least one.
 
-## The four rules, each of which cost something
+## Five rules, each of which cost something
 
 ### 1. Attribution: every reading must produce a DIFFERENT observable outcome
 
@@ -91,15 +92,48 @@ per-condition damage rates stop being independent while the analysis treats them
 
 ## Status
 
-Eight tasks carry all four conditions: ts-tz-utc, ts-semver-pin, ts-csv-quote, ts-bool-env,
-ts-schema-additive, ts-manifest-rel, ts-glob-hidden, ts-append-only.
+**All eleven `DAMAGE_ONLY` tasks carry all four conditions.** `adjacent` and `contradictory` stand
+at 11 each, against preregistration 005's threshold of 8.
 
-Three DAMAGE_ONLY tasks do not: ts-ignore-gen, ts-natural-order and ts-dedup-order, whose plant was
-retired upstream. `ts-natural-order` was attempted and abandoned on purpose: the space of natural
-orderings over twelve numbered files is too small to hold a contradictory pair distinct from
-ascending, lexicographic and descending without becoming contrived, and a contrived memo measures
-whether an agent believes the corpus rather than whether it retrieves from it.
+ts-tz-utc, ts-semver-pin, ts-csv-quote, ts-bool-env, ts-schema-additive, ts-manifest-rel,
+ts-glob-hidden, ts-append-only, ts-ignore-gen, ts-natural-order, ts-dedup-order.
 
-**None of the 24 new plants is recorded.** `scripts/audit_plants.py` reports them PENDING, and the
-composition check for each condition (that the task's own `fact_terms` do not survive in the
-assembled corpus) cannot run until they are.
+ts-dedup-order carries no `superseded` plant and never will; see its `PLANTS-NOT-IMPLEMENTED.md`.
+
+## The fifth rule, learned last: an exhausted AXIS is not an exhausted TASK
+
+Two of the last three tasks had been written off, once in this document and once in the tree, and
+both write-offs made the same mistake.
+
+`ts-natural-order` was abandoned in an earlier pass because twelve numbered files admit only four
+orderings a person would actually write down, and all four were taken. That was true. The wrong
+step was concluding the task was finished: the contradictory pair plants the NAME FORM of each line
+instead (bare run numbers against repository-relative paths), which is orthogonal to order and so
+separable from every ordering reading.
+
+`ts-dedup-order`'s retirement note argued, correctly, that no plant about which duplicate survives
+can be kept away from the governing fact's vocabulary. It then named the axis that does work, in a
+section headed "What is untried", and stopped. Planting the output CONTAINER rather than the row
+selection succeeds for two reasons that follow directly from that diagnosis: the container is
+orthogonal to row selection, so a format plant fires whichever occurrence the agent kept and cannot
+be confused with the factless failure; and a decision about a container has no occasion to name a
+duplicate at all.
+
+So when an axis runs out, the question is not whether the task is done. It is **which other property
+of the deliverable a memo could plausibly govern**, and whether that property is orthogonal to the
+one the governing fact owns. Orthogonality is the thing to look for: it is what buys separability
+from `naive` for free.
+
+## One caveat that must travel with a result
+
+`ts-dedup-order`'s prompt says "one JSON object per line", so every plant on that task asks the
+agent to override an explicit instruction. Expect damage to be RARE there rather than biased, and
+report a low rate as a finding about prompt anchoring rather than as evidence a memory layer
+behaved well. Any future plant that contradicts the prompt inherits the same caveat, and it belongs
+beside the number rather than in a footnote.
+
+## Recording
+
+**None of the 33 new plants is recorded.** `scripts/audit_plants.py` reports them PENDING, and each
+condition's composition check, that the task's own `fact_terms` do not survive in the assembled
+corpus, cannot run until they are. Recording is a measurement.
