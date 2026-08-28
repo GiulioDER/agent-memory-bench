@@ -1,0 +1,158 @@
+{
+  "reference_arm": "bare",
+  "arms": {
+    "claude_md": {
+      "1_net_harm_by_stratum": {
+        "DAMAGE_ONLY": {
+          "n_paired_cells": 30,
+          "n_tasks": 10,
+          "harmed": 2,
+          "helped": 0,
+          "damage_rate": 0.06666666666666667,
+          "benefit_rate": 0.0,
+          "net_harm": 0.06666666666666667,
+          "mean_task_delta": -0.06666666666666668,
+          "cluster_ci": [
+            -0.16666666666666669,
+            0.0
+          ],
+          "underpowered": false,
+          "interpretable": false
+        },
+        "BENEFIT_ONLY": {
+          "n_paired_cells": 3,
+          "n_tasks": 1,
+          "harmed": 0,
+          "helped": 0,
+          "damage_rate": 0.0,
+          "benefit_rate": 0.0,
+          "net_harm": 0.0,
+          "mean_task_delta": 0.0,
+          "cluster_ci": null,
+          "underpowered": true,
+          "interpretable": false
+        }
+      },
+      "2_damage_rate_by_condition": {
+        "absent": {
+          "n_paired_cells": 29,
+          "n_tasks": 10,
+          "harmed": 1,
+          "damage_rate": 0.034482758620689655,
+          "underpowered": false
+        },
+        "superseded": {
+          "n_paired_cells": 28,
+          "n_tasks": 10,
+          "harmed": 2,
+          "damage_rate": 0.07142857142857142,
+          "underpowered": false
+        }
+      },
+      "3_abstention_rate": {
+        "absent": {
+          "n_cells": 32,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        }
+      },
+      "4_wrong_fact_applied": {
+        "absent": {
+          "n_cells": 32,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "superseded": {
+          "n_cells": 30,
+          "wrong_fact_applied": 1,
+          "rate": 0.03333333333333333
+        }
+      }
+    },
+    "recall": {
+      "1_net_harm_by_stratum": {
+        "DAMAGE_ONLY": {
+          "n_paired_cells": 30,
+          "n_tasks": 10,
+          "harmed": 3,
+          "helped": 0,
+          "damage_rate": 0.1,
+          "benefit_rate": 0.0,
+          "net_harm": 0.1,
+          "mean_task_delta": -0.1,
+          "cluster_ci": [
+            -0.2,
+            0.0
+          ],
+          "underpowered": false,
+          "interpretable": false
+        },
+        "BENEFIT_ONLY": {
+          "n_paired_cells": 3,
+          "n_tasks": 1,
+          "harmed": 0,
+          "helped": 0,
+          "damage_rate": 0.0,
+          "benefit_rate": 0.0,
+          "net_harm": 0.0,
+          "mean_task_delta": 0.0,
+          "cluster_ci": null,
+          "underpowered": true,
+          "interpretable": false
+        }
+      },
+      "2_damage_rate_by_condition": {
+        "absent": {
+          "n_paired_cells": 29,
+          "n_tasks": 10,
+          "harmed": 1,
+          "damage_rate": 0.034482758620689655,
+          "underpowered": false
+        },
+        "superseded": {
+          "n_paired_cells": 28,
+          "n_tasks": 10,
+          "harmed": 3,
+          "damage_rate": 0.10714285714285714,
+          "underpowered": false
+        }
+      },
+      "3_abstention_rate": {
+        "absent": {
+          "n_cells": 32,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        }
+      },
+      "4_wrong_fact_applied": {
+        "absent": {
+          "n_cells": 32,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "superseded": {
+          "n_cells": 30,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        }
+      }
+    }
+  },
+  "conditions": [
+    "absent",
+    "superseded"
+  ],
+  "n_cells": 186,
+  "search_rates": {
+    "recall[absent]": 0.7878787878787878,
+    "recall[superseded]": 0.696969696969697
+  },
+  "interpretable": {
+    "recall[absent]": true,
+    "recall[superseded]": true
+  }
+}

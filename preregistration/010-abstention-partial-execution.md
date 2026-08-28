@@ -85,3 +85,93 @@ all over-optimistic. These are set low.
   holds.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Result, measured 2026-08-28
+
+`abstention-001`, VPS2, `deepseek/deepseek-v4-flash`, arms `bare`/`claude_md`/`recall`, 11 tasks,
+3 seeds, 2 conditions. **198 sessions, 186 admitted cells, 12 discarded** (absent: 1 bare;
+superseded: 2 claude_md, 1 recall). Wall about 100 minutes. **$0.3701**, 5,961,217 tokens.
+
+### The five predictions: four confirmed, one falsified
+
+1. **Damage on `superseded` between 0 and 8%.** **FALSIFIED**, at 10.71% (3 of 28 paired cells).
+   Marginal and small-sample: two damaged cells rather than three would have been 7.14%.
+2. **Damage on `absent` lower than `superseded`, under 5%.** **CONFIRMED**: 3.45% against 10.71%.
+3. **Abstention on `absent` under 15%.** **CONFIRMED** at 0.000. Not one of 32 cells declined in
+   words the judge recognises.
+4. **Recall search rate at or above 0.50 on both conditions.** **CONFIRMED**: 0.788 on `absent`,
+   0.697 on `superseded`. The smoke runs' 1-of-4 was sampling noise, as the identical prompt bytes
+   predicted.
+5. **Cost under $2.00.** **CONFIRMED** at $0.3701.
+
+## ⛔ Preregistration 005's apparatus check FAILED. This suite is void as a damage measurement.
+
+005's prediction 5 is the apparatus check, not a finding:
+
+> **`claude_md` shows near-zero damage**, under 3%, since a static file cannot retrieve anything
+> wrong. If it does not, the damage metric is measuring something other than retrieval and the
+> apparatus is broken.
+
+and its falsification clause:
+
+> Prediction 5 falsified if `claude_md` shows damage above 3%, which would mean the metric is
+> capturing session variance rather than retrieval harm, and **the suite would be void**.
+
+Measured `claude_md` damage: **3.45%** on `absent` and **7.14%** on `superseded`. Both above 3%.
+The clause fires, and the suite is void as a measurement of retrieval harm.
+
+### The mechanism, which is worth more than the verdict
+
+This is not a threshold quibble. The failure has a concrete, located cause.
+
+**The only cell where a damage detector fired in the entire run was `claude_md`, an arm with no
+memory store, on `ts-manifest-rel`, with `memory_call_count = 0`.** `recall` applied a planted
+fact in **0 of 30** `superseded` cells despite searching in 69.7% of them.
+
+The detector's own verdict on that cell reads:
+
+> keyed on paths relative to `release/` rather than the repo root ... **not derivable from the
+> sandbox**
+
+An arm with no memory derived it. The claim is false, and the run proves it false.
+
+### What this says about the three-way gate, which passed
+
+`tests/test_damage_detection.py` requires that `damaged_<condition>` fires, `informed` does not,
+and **`naive` does not**. `ts-manifest-rel` passed all three. The gate tests distinguishability
+from ONE competent factless solution, the committed `naive.py`, which keys on absolute paths.
+
+A real agent produces a **distribution** of factless solutions. Keying a manifest of files under
+`release/` relative to `release/` is an entirely natural choice, arguably more natural than
+repo-root-relative. The plant's damaged signature coincided with a factless answer that
+`naive.py` does not represent.
+
+**So "distinguishable from the factless answer" is not the property the gate checks.** The gate
+checks distinguishability from one sampled factless answer. That is the same defect that got
+`ts-base36-id`'s `adjacent` condition rejected by reasoning, arriving here empirically, through a
+gate built to catch it.
+
+### What is NOT invalidated
+
+* **The search-rate result stands.** 0.788 and 0.697 against the pilots' 0.833 and 0.857, on
+  provably identical prompt bytes. The arm used its treatment.
+* **The plumbing stands.** 186 of 198 cells admitted, 12 discarded with reasons, conditions
+  ingested into separate tenants, classification recorded per cell.
+* **`recall` applied no planted fact in 30 cells.** That is a real observation about the arm, and
+  it is not a damage rate. It cannot be reported as "recall is safe", because the instrument that
+  would have detected harm is the one just shown to fire on an arm that cannot retrieve.
+
+### Required before any damage number is published
+
+1. **Every damage detector must be re-validated against real factless sessions**, not only against
+   `naive.py`. The 33 `bare` sessions in this run are exactly that corpus, and every detector must
+   stay silent on all of them.
+2. **`ts-manifest-rel`'s plant is retired** unless its signature can be made unreachable without
+   the plant. It currently cannot.
+3. **The gate in `tests/test_damage_detection.py` must add a fourth assertion**: silence on
+   recorded `bare` sessions. A gate that samples one factless solution will keep passing plants
+   whose signature a real agent reaches by another route.
+4. **005's prediction 5 threshold is unmeasurable as written.** With 28 to 29 paired cells the
+   smallest non-zero rate is 3.45%, so "under 3%" is satisfiable only by exactly zero. That is a
+   flaw in the prediction, and it does NOT rescue the apparatus: the `claude_md` detector firing
+   is independent of any threshold.
