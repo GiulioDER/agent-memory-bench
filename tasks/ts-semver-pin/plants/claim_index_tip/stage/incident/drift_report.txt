@@ -1,0 +1,11 @@
+scan of requirements.txt across services, company-index packages only
+
+  svc-dispatch      internalkit
+  svc-notify        internalkit
+  svc-reconcile     internalkit
+  svc-billing       internalkit
+  svc-intake        internalkit
+
+Five of five carry the bare name. The scan found no service writing a version
+for a company-index package, and no resolution failure attributable to one in
+the ninety days it covers.
