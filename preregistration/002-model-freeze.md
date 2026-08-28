@@ -136,3 +136,81 @@ met the recall mechanism thresholds but failed paired-cell admission because of 
 provider credit failure. DeepSeek is therefore the provisionally selected model under
 the frozen rule. A fair model head-to-head requires a complete GPT rerun after the
 provider capacity issue is fixed.
+
+## Correction, 2026-08-28: `reached-given-searched` does not measure what its name says
+
+Found by the adversarial audit on `claude/audit-fixes`, verified independently here before being
+written down. This is the most serious defect found in this benchmark so far, and its consequence
+for a competitor comparison is worse than its consequence for anything above.
+
+### The defect
+
+`scripts/analyze_pilot.py:87` counts a session as having reached the governing memo when the
+string `sessions__<task_id>__` appears in a retrieved context or an MCP tool output. That string
+is **our own rendered filename**. `harness/transcripts.py::render_corpus` flattens
+`sessions/<task>/p01.jsonl` into `sessions__<task>__p01.md`, and recall echoes the filename back
+in each hit's source field.
+
+So the metric asks "did a hit come from the right FILE", not "did the agent receive the governing
+decision". A chunk drawn from the correct precursor that contains only the opening investigation,
+and never the closing turn where the convention is stated, counts as reached.
+
+### Verified, and the replacement numbers disagree
+
+Recomputed here from `records.final.jsonl` for both published runs, over admitted `recall` cells
+with at least one memory call:
+
+| signal | pilot-003-deepseek | pilot-004-placebo |
+|---|---:|---:|
+| by filename (**the published metric**) | **0.850** (51/60) | **0.926** (50/54) |
+| by fact-term content in the retrieved text | 0.617 (37/60) | 0.704 (38/54) |
+| by overlap with the precursor's decision turn | 0.083 (5/60) | 0.111 (6/54) |
+
+The filename row reproduces the `0.850` published above exactly, which confirms the
+reimplementation is measuring the same thing the run did.
+
+⚠️ **The audit's independent implementation gives different replacement figures**: 0.550/0.648
+for fact content and 0.333/0.444 for decision overlap, against 0.617/0.704 and 0.083/0.111 here.
+The direction is identical and robust, the magnitudes are not. That disagreement is not noise to
+be averaged away, it is the finding: **there is no single obvious operationalisation of "reached",
+so the quantity must be reported as a bracket rather than as a point estimate**, and any single
+number published for it is a choice that has to be argued for.
+
+### What this does to the frozen eligibility rule
+
+The rule above requires `reached-given-searched` of at least `0.50`. DeepSeek clears it on the
+filename signal and on fact content, under both implementations, and fails it on decision overlap
+under both. So the threshold is met or missed depending on a definition the record never pinned
+down.
+
+**The selection outcome does not change.** GPT-5.3 Codex was excluded for failing paired-cell
+admission after a provider credit failure, which this defect does not touch, so DeepSeek remains
+the only candidate that passed admission and remains provisionally selected. What changes is the
+justification: one of the three eligibility criteria was evaluated with an instrument that does
+not measure the construct it names, and that must not be restated as though it had.
+
+### The consequence that matters more, and it is disqualifying
+
+**A filename match zeroes every extraction-based memory product by construction.** mem0,
+Supermemory, Zep and Cognee extract and re-express memories; they have no reason to echo our
+rendered filenames, and several cannot, because they do not store our files at all. Run as
+published, this metric would report those products at or near zero "reached" while recall scored
+0.85, and the gap would be an artefact of who happens to quote our path format.
+
+That is not a measurement error to disclose in a footnote. **Any competitor comparison using this
+metric as published would be indefensible**, and a competitor would be right to say so.
+
+### What must happen before any competitor arm runs
+
+1. The reached metric is reported as a **bracket over at least the three signals above**, with the
+   operationalisation of each stated, and never as a single number.
+2. The signal used for any **eligibility gate** must be content-based, since a filename signal is
+   not portable across products and an eligibility rule must mean the same thing for every arm.
+3. Preregistration 000's and this record's published `reached` figures are to be cited **only**
+   alongside this correction.
+4. The two implementations must be reconciled, or both reported with their difference stated. They
+   are not yet reconciled.
+
+Nothing above the results marker in this record has been edited. The eligibility rule, the
+predictions and the run results stand as written; this section corrects how one of the reported
+quantities may be read.
