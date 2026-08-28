@@ -71,7 +71,12 @@ def ingest_recall(corpus_root: Path, namespace: str, *, dry_run: bool) -> dict |
 
     corpus = CorpusManifest.load(corpus_root)
     corpus.verify()
-    adapter = RecallAdapter(corpus_root.parent, corpus_root / "manifest.json")
+    # `ingest` reads only `staging_root`; the prompt file and instruction belong to a SESSION and
+    # are inert here. It still gets a real file rather than a convenient one: passing the corpus
+    # manifest as a prompt worked only because nothing validated it, and that is the kind of thing
+    # that holds until someone adds a check.
+    staging = REPO / "results" / ".ingest-staging"
+    adapter = RecallAdapter(staging, REPO / "adapters" / "_shared" / "memory_protocol.md")
     report = adapter.ingest(corpus, namespace)
     print(f"[ingest] recall  {namespace}: {report.items_stored} item(s)")
     return report.to_dict()
