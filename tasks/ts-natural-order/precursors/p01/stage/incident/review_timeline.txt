@@ -1,0 +1,17 @@
+Timeline as presented (order taken from the report listing)
+
+  run 1    queue depth 4      nothing unusual
+  run 10   queue depth 812    SATURATED
+  run 11   queue depth 790    degraded
+  run 12   queue depth 803    degraded
+  run 2    queue depth 11     nothing unusual
+  run 3    queue depth 47     rising
+  run 4    queue depth 190    rising
+  run 5    queue depth 402    rising
+  run 6    queue depth 655    rising
+  run 7    queue depth 781    near saturation
+  run 8    queue depth 806    SATURATED
+  run 9    queue depth 810    SATURATED
+
+Read down the page, saturation appears at the second row and is never
+explained. Read by run number, it builds from row 5 onward.

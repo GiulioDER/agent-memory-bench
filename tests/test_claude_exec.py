@@ -25,7 +25,9 @@ from __future__ import annotations
 import gzip
 import json
 import shutil
+import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -124,6 +126,46 @@ def test_strict_mcp_config_without_a_config_must_be_stated_explicitly() -> None:
     assert ClaudeExecConfig(executable=EXECUTABLE, strict_mcp_config=False).command("x")
 
 
+def test_session_timeout_kills_descendants_and_closes_their_pipes() -> None:
+    """A descendant must not hold the captured stream open after the session times out."""
+
+    child = (
+        "import subprocess, sys, time; "
+        "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)']); "
+        "time.sleep(30)"
+    )
+    probe = textwrap.dedent(
+        f"""
+        import asyncio
+        import sys
+
+        from harness.claude_exec import ClaudeExecConfig, ClaudeSessionTimeout, run_claude_case
+
+        ClaudeExecConfig.command = lambda self, prompt: [sys.executable, "-c", {child!r}]
+
+        async def main():
+            config = ClaudeExecConfig(executable=sys.executable, strict_mcp_config=False, timeout_s=0.05)
+            try:
+                await run_claude_case({{"task_id": "timeout", "user_input": "run"}}, "bare", config)
+            except ClaudeSessionTimeout:
+                print("survived")
+
+        asyncio.run(main())
+        """
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", probe],
+        cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=5,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "survived"
+
+
 # --------------------------------------------------------------------------- stream parsing
 
 
@@ -207,6 +249,11 @@ def test_the_raw_stream_is_written_before_it_is_parsed(tmp_path: Path, monkeypat
 
     class _FakeProcess:
         returncode = 0
+        # Every real asyncio.subprocess.Process has a pid, and run_claude_case reads it to cache
+        # the process group. Without it the POSIX branch raises AttributeError on the Linux
+        # runner while passing on Windows, which is how this reached CI green locally and red
+        # in the workflow.
+        pid = 424242
 
         async def communicate(self) -> tuple[bytes, bytes]:
             return b"this is not json\n", b""

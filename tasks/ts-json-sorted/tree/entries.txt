@@ -1,0 +1,5 @@
+retry_limit=3
+service_name=billing
+region=eu-west-1
+log_level=info
+timeout_seconds=30

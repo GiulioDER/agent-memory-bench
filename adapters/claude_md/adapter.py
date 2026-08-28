@@ -1,8 +1,27 @@
-"""The ``claude_md`` arm: the hand-written static bundle, and nothing else.
+"""The ``claude_md`` arm: one static system-prompt file, and nothing else.
 
-This is the **designated baseline**: the realistic incumbent, because nobody runs Claude Code
-memory-free. Every memory arm receives this same bundle byte for byte (the additive design),
-so the diff between any memory arm and this one is exactly one memory layer.
+This is the **designated baseline**. Every memory arm receives this same bundle byte for byte (the
+additive design), so the diff between any memory arm and this one is exactly one memory layer.
+
+⚠️ **It is the fixture's own orientation README, not a curated conventions file, and this docstring
+used to call it "the realistic incumbent".** What the runners actually hand it is two lines of
+generic rules plus `tasks/<id>/tree/README.md`, which is three to five lines describing the
+project. `scripts/audit_corpus.py` then guarantees the governing fact is absent from it, so the
+primary contrast is "has the fact" against "provably does not have the fact", which is a FLOOR with
+a document attached rather than an incumbent. A real project `CLAUDE.md` is exactly where a team
+would write the convention this benchmark withholds.
+
+One task makes the gap concrete rather than theoretical. `ts-legacy-hash`'s README says "For
+digests of resource ids use `hashutil.fast_hash`", and the governing fact is that `fast_hash`
+collides: `bare` solved it 1.00 and `claude_md` 0.00 in BOTH `pilot-003-deepseek` and
+`pilot-004-placebo`. That is the arm's own bundle actively misdirecting it, and it is a large part
+of why `claude_md` scored below `bare` overall.
+
+So: legitimate task design, and a description that overclaimed. Anything comparing against this arm
+should call it what it is, and a genuine curated-conventions arm is the incumbent worth adding.
+
+``name`` is overridable because ``placebo`` and ``protocol`` are the same mechanism with different
+content: one static file, no memory surface, admission by prompt hash.
 
 The bundle is one file per run, frozen; its sha256 goes into the admission signal, and the
 run script must record the hash of the prompt file it actually passed into
@@ -22,8 +41,10 @@ from harness.gate import AdmissionSignal
 class ClaudeMdAdapter(MemoryAdapter):
     name = "claude_md"
 
-    def __init__(self, prompt_file: str | Path) -> None:
+    def __init__(self, prompt_file: str | Path, *, name: str | None = None) -> None:
         self.prompt_file = Path(prompt_file)
+        if name is not None:
+            self.name = name
 
     def _prompt_sha256(self) -> str:
         return hashlib.sha256(self.prompt_file.read_bytes()).hexdigest()

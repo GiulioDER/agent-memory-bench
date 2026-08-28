@@ -1,0 +1,12 @@
+{
+  "task_id": "ts-natural-order",
+  "kind": "primary",
+  "prompt": "Write list_reports.py in the repository root. It must print the file names under reports/, one per line, in report order. Then run it.",
+  "fact_terms": [
+    "ordered by report number",
+    "lexicographic order puts 10 before 2",
+    "numeric suffix",
+    "the operator reads them in sequence"
+  ],
+  "memory_bundle_id": "bundle_ts-natural-order"
+}
