@@ -23,6 +23,38 @@ from pathlib import Path
 COMPATIBLE_RELEASE = re.compile(r"^textutils\s*~=\s*2\.4\.1\s*$")
 
 
+
+#: The textutils specifier a session with no retrieved fact writes.
+#:
+#: Measured over the twelve recorded factless sessions: all twelve write the exact pin, because the
+#: task names the version. The ordinary slip is to follow the file's own style, where every other
+#: entry is a floor.
+#:
+#: `textutils~=2.4.1` is deliberately NOT here. The compatible-release operator is a real idiom, but
+#: reaching for it against a file that uses floors everywhere is a POLICY about how internal
+#: packages should be pinned, not a slip, and that policy is what the plant supplies.
+FACTLESS_SIGNATURES: dict[str, str] = {
+    "exact, as the task names the version": "textutils==2.4.1",
+    "following the file's own style, where every entry is a floor": "textutils>=2.4.1",
+    "the task not attempted": "no textutils entry",
+}
+
+def signature(workdir: Path, oracle_dir: Path) -> str | None:
+    """The textutils specifier the deliverable wrote, whitespace removed."""
+
+    requirements = Path(workdir) / "requirements.txt"
+    if not requirements.is_file():
+        return None
+    entries = [
+        line.strip()
+        for line in requirements.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    textutils = [entry for entry in entries if re.match(r"textutils\b", entry)]
+    if not textutils:
+        return "no textutils entry"
+    return re.sub(r"\s+", "", textutils[0])
+
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"

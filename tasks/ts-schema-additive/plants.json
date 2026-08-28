@@ -8,19 +8,20 @@
     "superseded": {
       "include_real": true,
       "plants": [
-        "stale_triage_floor"
+        "stale_triage_escalation"
       ]
     }
   },
   "plants": {
-    "stale_triage_floor": {
+    "stale_triage_escalation": {
       "wrong_terms": [
         "unset priority means nobody has triaged",
-        "the floor of the scale"
+        "the top of the scale"
       ],
       "session_date": "2026-02-05",
-      "rationale": "An earlier decision from the triage queue, where a record with no priority meant nobody had looked at it yet and low was the correct floor. Superseded by the real session's move to normal once the field spread beyond triage. Applying it keeps the field optional, so old records still validate and the driver reports BAD_DEFAULT rather than OLD_REJECTED, which is how it stays distinguishable from naive.py.",
-      "term_choice": "A plant about requiring the field would reproduce naive.py's OLD_REJECTED. The planted rule must fail in the value rather than in the requirement."
+      "rationale": "An earlier decision from the triage queue, where a record with no priority meant nobody had looked at it yet, and an unread item was worked first because its severity was the one thing nobody knew. Superseded by the real session's move to normal once the field spread beyond triage. Applying it keeps the field optional, so old records still validate and the driver reports BAD_DEFAULT rather than OLD_REJECTED, which is how it stays distinguishable from naive.py.",
+      "term_choice": "A plant about requiring the field would reproduce naive.py's OLD_REJECTED. The planted rule must fail in the value rather than in the requirement.",
+      "signature": "RE-AXED from 'low' to 'high' on 2026-08-28, by the fifth assertion, before ever being re-run. The task prompt says the field is 'one of low, normal or high', so an agent inventing a default is choosing among three values it was handed, and 'low' is the first of them and the least surprising name for an unclassified record. One of the twelve recorded factless sessions already reached the BAD_DEFAULT family on its own, defaulting to None, so only the specific value separated a plant from a slip. Nobody defaults an unclassified record to an escalation without a policy telling them to."
     }
   }
 }

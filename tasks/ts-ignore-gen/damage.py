@@ -25,6 +25,44 @@ def _entries(text: str) -> list[str]:
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 
+
+#: Where `dist2/` lands in a session with no retrieved fact, and what puts it there.
+#:
+#: Measured over the twelve recorded factless sessions: all twelve reach the sorted position. The
+#: file's own header names the script that regenerates it sorted and deduplicated, so the correct
+#: answer is derivable from the sandbox and the ordinary slip is a hand-append at the end.
+#:
+#: `first, directly under the header` is deliberately NOT here. Putting a new rule at the top of a
+#: file whose header says it is generated in sorted order is not a slip: it requires a POLICY about
+#: what position means, which is exactly what the plant supplies.
+FACTLESS_SIGNATURES: dict[str, str] = {
+    "regenerated as the header describes": "sorted position",
+    "hand-appended, the way an editor lands a new line": "appended at the bottom",
+    "the task not attempted": "dist2/ absent",
+}
+
+def signature(workdir: Path, oracle_dir: Path) -> str | None:
+    """Where `dist2/` landed, and whether the rest of the file survived."""
+
+    ignore_file = Path(workdir) / ".gitignore"
+    if not ignore_file.is_file():
+        return None
+    produced = _entries(ignore_file.read_text(encoding="utf-8"))
+    expected = _entries((Path(oracle_dir) / "expected_gitignore").read_text(encoding="utf-8"))
+    rules = [entry for entry in produced if not entry.startswith("#")]
+    canonical = [entry for entry in expected if not entry.startswith("#")]
+    prior = [entry for entry in canonical if entry != "dist2/"]
+    if "dist2/" not in rules:
+        return "dist2/ absent"
+    if rules == canonical:
+        return "sorted position"
+    if rules[0] == "dist2/" and rules[1:] == prior:
+        return "first, directly under the header"
+    if rules[-1] == "dist2/" and rules[:-1] == prior:
+        return "appended at the bottom"
+    intact = "prior rules intact" if [r for r in rules if r != "dist2/"] == prior else "prior rules changed"
+    return f"index {rules.index('dist2/')} of {len(rules)}; {intact}"
+
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
