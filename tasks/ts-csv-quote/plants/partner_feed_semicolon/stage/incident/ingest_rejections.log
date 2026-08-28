@@ -1,0 +1,8 @@
+partner ingest endpoint, response log
+
+2026-05-25T03:10:22Z  POST /ingest/feed  400  separator mismatch: expected ';' at offset 12 of the header row, found ','
+2026-05-26T03:10:19Z  POST /ingest/feed  400  separator mismatch: expected ';' at offset 12 of the header row, found ','
+2026-05-27T03:10:25Z  POST /ingest/feed  400  separator mismatch: expected ';' at offset 12 of the header row, found ','
+
+Last accepted transmission: 2026-05-24T03:10:20Z, 812 records.
+The generator has not been deployed since 2026-04-30.
