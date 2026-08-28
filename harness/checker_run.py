@@ -152,6 +152,7 @@ def run_bounded(
         encoding="utf-8",
         errors="replace",
         creationflags=creation_flags,
+        start_new_session=sys.platform != "win32",
     )
     timed_out = False
     try:

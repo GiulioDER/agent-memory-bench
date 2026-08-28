@@ -209,6 +209,15 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
+    if args.out is not None:
+        output = args.out.resolve()
+        conditions_root = CONDITIONS_ROOT.resolve()
+        if output == REPO.resolve() or conditions_root not in output.parents:
+            raise SystemExit(
+                f"--out must be inside {CONDITIONS_ROOT.relative_to(REPO)}; refusing to remove "
+                "an arbitrary existing directory"
+            )
+
     if args.tasks:
         selection = list(args.tasks)
     else:

@@ -2,3 +2,23 @@
 .env
 .env.*
 !.env.example
+
+# The image only needs source, fixtures, and the test harness. Never copy local history,
+# generated run data, caches, logs, or credential-bearing exports into image layers.
+.git
+.github
+results/
+staging/
+corpus/conditions/
+*.log
+*.secrets.json
+pricing.json
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+dist/
+build/
+*.egg-info/

@@ -6,7 +6,7 @@ import pytest
 from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FsGrepAdapter
-from harness.adapters.base import CorpusManifest
+from harness.adapters.base import CorpusManifest, resolve_corpus_path
 from harness.adapters.registry import AdapterRegistry
 
 
@@ -53,6 +53,12 @@ def test_corpus_manifest_verify_refuses_drifted_bytes(corpus):
     (corpus.root / "sessions" / "t1" / "s01.jsonl").write_text("tampered", "utf-8")
     with pytest.raises(ValueError, match="identical across arms"):
         corpus.verify()
+
+
+@pytest.mark.parametrize("relative_path", ["../outside.jsonl", "C:/outside.jsonl"])
+def test_corpus_manifest_rejects_paths_outside_root(tmp_path, relative_path):
+    with pytest.raises(ValueError, match="escapes its root"):
+        resolve_corpus_path(tmp_path / "corpus", relative_path)
 
 
 def test_bare_adapter_builds_a_memoryless_spec(tmp_path):
