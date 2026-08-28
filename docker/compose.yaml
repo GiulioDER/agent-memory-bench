@@ -12,6 +12,12 @@ services:
       - ../.env
     volumes:
       - ../results:/bench/results
+      # `.git` is excluded from the image (see .dockerignore: history and any nested checkout
+      # must not be baked into a layer), but the preregistration guard shells out to
+      # `git status -- preregistration` and refuses to run a measured session without it.
+      # Mounting it read-only keeps both properties: no history in the image, a working guard
+      # at run time.
+      - ../.git:/bench/.git:ro
     depends_on:
       - recall-db
 
