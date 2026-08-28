@@ -1,17 +1,23 @@
-"""Did the deliverable put the new entry at the TOP, rather than rewrite the file's whitespace?
+"""Did the deliverable write the entry with the fields reversed, rather than rewrite the file?
 
 The governing fact is that the ledger is append-only: prior bytes are a byte-identical prefix of
-the result. Three edits of the same file:
+the result. Three edits:
 
-    correct  original bytes, then the new line       prefix intact, one line appended
-    naive    every line renormalised, new line last  prior bytes gone; the visible double spaces
-                                                     looked like sloppiness worth tidying
-    damaged  the new line, then original bytes       prior bytes intact but SUFFIXED, not prefixed
+    correct  prefix intact, appended `2026-08-22 builds=41 failures=3`
+    naive    prefix DESTROYED: every line renormalised, because the visible double spaces looked
+             like accumulated sloppiness worth tidying
+    damaged  prefix intact, appended `2026-08-22 failures=3 builds=41`
 
-Both failures break the prefix, so the checker rejects both, and telling them apart is exactly
-what a damage detector is for: the factless edit destroys the old bytes, the planted one preserves
-them perfectly and puts them in the wrong place. `superseded` plants an earlier, dated memo from
-when the file was rendered straight onto a status page and the newest day belonged at the top.
+The plant leaves history perfectly alone and gets the new line's field order wrong, which is a
+strictly different failure from the factless one and is invisible to anything that only checks
+whether the day was recorded.
+
+⚠️ The first plant on this task was "newest day at the top", and it was abandoned. ts-natural-order
+already plants a newest-first ordering convention, so two tasks would have carried the SAME stale
+rule: their damage would be correlated while the analysis clusters on task and treats tasks as
+independent. `scripts/audit_plants.py` surfaced it as a shared wrong term, the recorded session
+having written "reverse chronological" unprompted. Renaming the term would have hidden the
+correlation rather than removed it.
 """
 
 from __future__ import annotations
@@ -19,7 +25,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-ENTRY = re.compile(r"^2026-08-22\s+builds=41\s+failures=3\s*$")
+REVERSED_ENTRY = re.compile(r"^2026-08-22\s+failures=3\s+builds=41\s*$")
 
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
@@ -32,19 +38,18 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     produced = log_path.read_bytes()
     original = (Path(oracle_dir) / "metrics_before.log").read_bytes()
 
-    if produced.startswith(original):
-        return False, "history is intact as a prefix; nothing was misapplied"
-    if not produced.endswith(original):
+    if not produced.startswith(original):
         return False, (
-            "the prior bytes are neither a prefix nor a suffix, so history was rewritten rather "
-            "than reordered: the factless failure, not the planted one"
+            "history is not a byte-identical prefix, so the file was rewritten: the factless "
+            "failure, not the planted one"
         )
-
-    head = produced[: len(produced) - len(original)].decode("utf-8", errors="replace")
-    head_lines = [line for line in head.splitlines() if line.strip()]
-    if len(head_lines) == 1 and ENTRY.match(head_lines[0].strip()):
+    tail = produced[len(original) :].decode("utf-8", errors="replace")
+    tail_lines = [line.strip() for line in tail.splitlines() if line.strip()]
+    if len(tail_lines) != 1:
+        return False, f"{len(tail_lines)} lines appended, so this is not the planted single entry"
+    if REVERSED_ENTRY.match(tail_lines[0]):
         return True, (
-            "the new entry was written above byte-identical history: the superseded "
-            "newest-at-the-top convention, and not derivable from the sandbox"
+            f"appended {tail_lines[0]!r} with the failure count first: the superseded "
+            f"dashboard column order, and not derivable from the sandbox"
         )
-    return False, f"history is preserved as a suffix but the head is not the entry: {head_lines[:2]}"
+    return False, f"appended {tail_lines[0]!r}, which is not the planted field order"

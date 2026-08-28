@@ -1,1 +1,0 @@
-Yes, that is the complaint, and fixing it in the renderer would mean every other consumer still sees the awkward order. Decision: metrics.log is written with the newest day at the top, so the file is rendered straight onto the status page with no reordering step and the first row anybody sees is this morning's build. Older days keep their existing order below it.
