@@ -146,12 +146,19 @@ class RecallAdapter(MemoryAdapter):
             raise RuntimeError(
                 f"recall index failed with exit {result.returncode}: {result.stderr[-2000:]}"
             )
+        embedder = str(self.config["embedder"])
+        # recall names a hosted embedder `provider:model` and a local one by bare name. The
+        # distinction decides how this arm's ingest cost is REPORTED: a local run spends no hosted
+        # tokens and real host compute, and a cost table that prints only the zero would read as
+        # "this product ingests for free" beside a competitor's extraction bill.
+        hosted = ":" in embedder
         return IngestReport(
             arm=self.name,
             namespace=namespace,
             sessions_offered=len(corpus.sessions),
             items_stored=count,
             wall_time_ms=elapsed_ms,
+            local_model=None if hosted else embedder,
             notes=("indexed via `python -m recall.cli index`, one tenant per namespace",),
         )
 

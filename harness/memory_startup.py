@@ -22,12 +22,21 @@ Two mechanisms, and the second one is the dangerous one to get wrong:
   that merged os.environ would be a different experiment), and it captures the server's own
   stderr, which is the thing the session record has never contained.
 
-- A bounded retry, triggered by wiring alone. infrastructure_failure NEVER reads record.success,
-  the checker verdict, or anything the model did. A retry rule that could see the outcome would be
-  a rule that reruns losses until they win, and the resulting rate would be an artefact of the
-  retry budget. It reads what the admission gate reads, through the gate's own helpers, so retry
-  and admission cannot drift into a state where the harness retries a session the gate would have
-  admitted, or leaves a discarded one unretried.
+- A bounded retry, triggered by wiring and transport, never by an outcome. `classify_failure` NEVER
+  reads record.success, the checker verdict, or anything the model produced. A retry rule that could
+  see the outcome would be a rule that reruns losses until they win, and the resulting rate would be
+  an artefact of the retry budget. It reads what the admission gate reads, through the gate's own
+  helpers, so retry and admission cannot drift into a state where the harness retries a session the
+  gate would have admitted, or leaves a discarded one unretried.
+
+  🔁 **Corrected 2026-08-28, and the paragraph above was wrong in exactly the way it warned about.**
+  It read "triggered by wiring alone", and the first line of `infrastructure_failure` retried any
+  `record.error`, including `claude exceeded timeout_s=600`. A timeout IS something the model did:
+  the session ran and did not finish inside a budget every arm was given. It is also arm-correlated,
+  because a memory arm's sessions are longer (`pilot-004-placebo`: recall 123.7s mean and 10.1 turns
+  against claude_md's 46.8s and 8.1), so the rule handed the slowest arm extra attempts on precisely
+  the hard tasks. `classify_failure` now returns a KIND, and `timeout` is outside
+  `DEFAULT_RETRYABLE`. The kind is recorded per attempt so the counts are publishable per arm.
 
 Every attempt is recorded under metadata["memory_startup"], and a failed attempt's raw stream is
 renamed rather than overwritten, so a recovered cell still carries the evidence of what it
@@ -46,7 +55,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from .claude_exec import ClaudeExecConfig, run_claude_case
+from .claude_exec import ClaudeExecConfig, ClaudeSessionTimeout, run_claude_case
 from .gate import CONNECTED_STATUSES, matching_tools, session_tools
 from .host_memory import free_memory_mb
 from .schema import SessionRecord
@@ -214,22 +223,59 @@ async def probe_mcp_config(config_path: str | Path, *, timeout_s: float = 30.0) 
     ]
 
 
-def infrastructure_failure(record: SessionRecord, tool_prefixes: Sequence[str] = ()) -> str | None:
-    """Why this session is not evidence, when the reason is wiring rather than the model.
+#: Failure kinds, and which of them a retry may act on.
+#:
+#: ⚠️ ``timeout`` is deliberately NOT retryable, and it used to be. This module's docstring said the
+#: retry was "triggered by wiring alone" and that it "NEVER reads record.success, the checker
+#: verdict, or anything the model did", while the first line of `infrastructure_failure` retried on
+#: any ``record.error`` at all, including `claude exceeded timeout_s=600`. A timeout is something
+#: the model did: it ran and did not finish inside the budget every arm was given. It is also not
+#: evenly distributed across arms, because a memory arm's sessions are longer, so a rule that
+#: retries it hands extra attempts to whichever arm is slowest, on exactly the hard tasks.
+WIRING = "wiring"
+TRANSPORT = "transport"
+TIMEOUT = "timeout"
+DEFAULT_RETRYABLE = frozenset({WIRING, TRANSPORT})
 
-    Returns None when the treatment was demonstrably applied, whatever the session then did.
 
-    This deliberately never reads record.success, metadata["checker"] or any other outcome.
-    Retrying on an outcome would rerun losses until they win. Retrying on wiring reruns only the
-    sessions in which the experiment did not happen at all.
+def classify_failure(
+    record: SessionRecord, tool_prefixes: Sequence[str] = ()
+) -> tuple[str | None, str | None]:
+    """``(kind, reason)`` for one finished session, or ``(None, None)`` when it is evidence.
+
+    Three kinds, because they deserve three different responses:
+
+    - ``wiring``: the arm's memory surface never appeared. The experiment did not happen. Retry.
+    - ``transport``: the provider refused or dropped the connection (HTTP 402, connection lost).
+      The experiment did not happen either, and it is arm-independent. Retry.
+    - ``timeout``: the session ran and did not finish. That is a RESULT. Do not retry it; the gate
+      still discards it, and the discard is published with this kind attached so a reader can see
+      which arm ran out of clock.
+
+    None of the three reads ``record.success``, ``metadata["checker"]``, or any tool call.
     """
 
     if record.error:
-        return f"the session did not complete: {record.error}"
+        if record.metadata.get("timed_out") or "ClaudeSessionTimeout" in record.error:
+            return TIMEOUT, f"the session ran out of its wall-clock budget: {record.error}"
+        return TRANSPORT, f"the session did not complete: {record.error}"
     if not record.metadata.get("init_present", True):
-        return "no system/init event: the session's tool surface was never observed"
+        return WIRING, "no system/init event: the session's tool surface was never observed"
     if not tool_prefixes:
-        return None
+        return None, None
+    return _wiring_reason(record, tool_prefixes)
+
+
+def infrastructure_failure(record: SessionRecord, tool_prefixes: Sequence[str] = ()) -> str | None:
+    """Why this session is not evidence. Kept for callers that do not need the kind."""
+
+    _kind, reason = classify_failure(record, tool_prefixes)
+    return reason
+
+
+def _wiring_reason(
+    record: SessionRecord, tool_prefixes: Sequence[str]
+) -> tuple[str | None, str | None]:
     tools = session_tools(record)
     raw_servers = record.metadata.get("mcp_servers")
     servers = (
@@ -245,15 +291,15 @@ def infrastructure_failure(record: SessionRecord, tool_prefixes: Sequence[str] =
     )
     for prefix in tool_prefixes:
         if not matching_tools(tools, prefix):
-            return f"no tool matching {prefix!r} in the session tool list"
+            return WIRING, f"no tool matching {prefix!r} in the session tool list"
     if errors:
-        return f"MCP servers were skipped at startup: {list(errors)}"
+        return WIRING, f"MCP servers were skipped at startup: {list(errors)}"
     for item in servers:
         if isinstance(item, Mapping):
             status = str(item.get("status", "")).lower()
             if status not in CONNECTED_STATUSES:
-                return f"MCP server {item.get('name')!r} was {status!r}, not connected"
-    return None
+                return WIRING, f"MCP server {item.get('name')!r} was {status!r}, not connected"
+    return None, None
 
 
 def _preserve_stream(stream_dir: str | Path | None, name: object, attempt: int) -> str | None:
@@ -281,6 +327,9 @@ def _failure_record(row: Mapping[str, Any], arm: str, error: BaseException) -> S
         success=False,
         user_input=str(row.get("user_input", "")),
         error=f"{type(error).__name__}: {error}",
+        # Read by classify_failure, so a timeout is recognised as an outcome rather than as
+        # infrastructure even when the error text is reformatted later.
+        metadata={"timed_out": isinstance(error, ClaudeSessionTimeout)},
     )
 
 
@@ -294,12 +343,18 @@ async def run_with_memory_startup_retry(
     backoff_s: float = 2.0,
     probe_config: str | Path | None = None,
     probe_min_free_mb: float = 0.0,
+    retryable: frozenset[str] = DEFAULT_RETRYABLE,
     runner: Callable[..., Awaitable[SessionRecord]] = run_claude_case,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> SessionRecord:
     """Run one session, retrying only while its treatment failed to wire up.
 
     attempts=1 is the pre-existing behaviour exactly: one session, no probe, no retry.
+
+    ``retryable`` names which failure KINDS earn another attempt. The default excludes ``timeout``,
+    which is an outcome rather than a wiring fault; pass ``DEFAULT_RETRYABLE | {TIMEOUT}`` only with
+    a preregistration that says so and an arm-by-arm count of how often it fired, because a session
+    budget binds the slowest arm first.
     """
 
     if attempts < 1:
@@ -309,13 +364,18 @@ async def run_with_memory_startup_retry(
     for attempt in range(1, attempts + 1):
         try:
             record = await runner(row, arm, config)
-            reason = infrastructure_failure(record, tool_prefixes)
-        except Exception as error:  # noqa: BLE001 - a crashed session is a retryable failure, and
-            # the gate, not the scheduler, decides what the final error means.
+            kind, reason = classify_failure(record, tool_prefixes)
+        except Exception as error:  # noqa: BLE001 - a crashed session becomes an error record; the
+            # gate, not the scheduler, decides what the final error means.
             record = _failure_record(row, arm, error)
-            reason = f"the session did not complete: {record.error}"
+            kind, reason = classify_failure(record, tool_prefixes)
         stream_name = record.metadata.get("stream_path")
-        entry: dict[str, Any] = {"attempt": attempt, "outcome": reason or "wired"}
+        entry: dict[str, Any] = {
+            "attempt": attempt,
+            "outcome": reason or "wired",
+            "kind": kind,
+            "retryable": kind in retryable if kind else False,
+        }
         if reason is None:
             if isinstance(stream_name, str):
                 entry["stream"] = stream_name
@@ -339,6 +399,10 @@ async def run_with_memory_startup_retry(
         last = record
         if reason is None:
             break
+        if kind not in retryable:
+            # Recorded and left alone. The gate still discards it; what changes is that the discard
+            # is not quietly converted into another draw of the same arm's dice.
+            break
         if attempt < attempts:
             await sleep(backoff_s * attempt)
     if last is None:  # pragma: no cover - the loop body runs at least once
@@ -351,6 +415,10 @@ async def run_with_memory_startup_retry(
                 "retry_limit": attempts,
                 "attempts_used": len(history),
                 "recovered": len(history) > 1 and history[-1]["outcome"] == "wired",
+                # Published per arm. An arm that draws extra attempts more often than another is
+                # being run under a condition the other is not, whatever the rule says.
+                "retryable_kinds": sorted(retryable),
+                "final_kind": history[-1]["kind"] if history else None,
                 "attempts": history,
             },
         },

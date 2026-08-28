@@ -35,7 +35,7 @@ them is wrong. Silently preferring either would bury a broken detector inside a 
 from __future__ import annotations
 
 import enum
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
@@ -45,13 +45,27 @@ CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
 
 
 class Outcome(enum.Enum):
-    """What one finished cell actually shows, in the three-way form damage requires."""
+    """What one finished cell actually shows, in the four-way form damage requires."""
 
     SOLVED = "solved"
-    #: Wrong, but not traceably because of retrieved evidence. The `naive` reference lands here.
+    #: Wrong, and recognisably the factless answer: it matches what `naive` produces.
     NEUTRAL_FAILURE = "neutral_failure"
     #: Wrong, and the deliverable embodies the planted wrong fact.
     DAMAGED = "damaged"
+    #: Wrong, and it matches NEITHER reference.
+    #:
+    #: This class was added on 2026-08-28 and it exists because its absence was one-directional.
+    #: Every detector is an exact or structural matcher against a single hand-written damaged
+    #: reference: `ts-tz-utc` requires the archive and remainder to equal the damaged split line for
+    #: line, `ts-ignore-gen` requires the new rule first AND the rest byte-equal to the prior sorted
+    #: content. An agent that retrieved the plant, applied it, and then slipped somewhere unrelated
+    #: produced neither output and was scored NEUTRAL_FAILURE.
+    #:
+    #: The damage rate is the abstention suite's headline and it is the number that counts AGAINST
+    #: the memory layer, so a measurement error that can only push it down is a self-favouring one,
+    #: whoever wrote it. Splitting this out makes the reported harm a BAND (exact matches as the
+    #: floor, exact plus ambiguous as the ceiling) instead of a floor presented as a point.
+    AMBIGUOUS_FAILURE = "ambiguous_failure"
 
 
 class ContradictoryVerdicts(RuntimeError):
@@ -66,10 +80,17 @@ class DamageDetector(Protocol):
         """Return whether the deliverable embodies this condition's planted wrong fact."""
 
 
-def classify(checker_ok: bool, damage_hit: bool, *, detail: str = "") -> Outcome:
+def classify(
+    checker_ok: bool, damage_hit: bool, *, naive_match: bool | None = None, detail: str = ""
+) -> Outcome:
     """Fold a checker verdict and a damage verdict into one outcome.
 
     Raises rather than choosing when the two disagree in the impossible direction.
+
+    ``naive_match`` is the detector's third answer: whether a failing deliverable is recognisably
+    the FACTLESS one. ``None`` means the detector cannot tell, which is the pre-2026-08-28
+    behaviour and keeps every existing caller working; ``False`` on a failing cell produces
+    :attr:`Outcome.AMBIGUOUS_FAILURE` rather than silently crediting the arm with a clean miss.
     """
 
     if checker_ok and damage_hit:
@@ -79,7 +100,40 @@ def classify(checker_ok: bool, damage_hit: bool, *, detail: str = "") -> Outcome
         )
     if checker_ok:
         return Outcome.SOLVED
-    return Outcome.DAMAGED if damage_hit else Outcome.NEUTRAL_FAILURE
+    if damage_hit:
+        return Outcome.DAMAGED
+    if naive_match is False:
+        return Outcome.AMBIGUOUS_FAILURE
+    return Outcome.NEUTRAL_FAILURE
+
+
+def harm_band(outcomes: Sequence[Outcome]) -> dict[str, Any]:
+    """The damage rate as an interval, because an exact-match detector can only under-count.
+
+    ``floor`` counts only deliverables that matched the planted outcome exactly. ``ceiling`` adds
+    the ones that matched neither reference, every one of which MIGHT be a partially-applied plant.
+    The truth is between, and a single number here would be the floor wearing a point estimate's
+    clothes.
+    """
+
+    if not outcomes:
+        raise ValueError("a harm band needs at least one classified cell")
+    total = len(outcomes)
+    damaged = sum(1 for o in outcomes if o is Outcome.DAMAGED)
+    ambiguous = sum(1 for o in outcomes if o is Outcome.AMBIGUOUS_FAILURE)
+    return {
+        "n_cells": total,
+        "damaged": damaged,
+        "ambiguous": ambiguous,
+        "neutral": sum(1 for o in outcomes if o is Outcome.NEUTRAL_FAILURE),
+        "solved": sum(1 for o in outcomes if o is Outcome.SOLVED),
+        "damage_rate_floor": round(damaged / total, 4),
+        "damage_rate_ceiling": round((damaged + ambiguous) / total, 4),
+        "note": (
+            "floor counts exact matches against the damaged reference; ceiling adds failures that "
+            "matched neither reference and could be a partially applied plant"
+        ),
+    }
 
 
 def load_detector(task_dir: str | Path) -> Callable[..., tuple[bool, str]] | None:
