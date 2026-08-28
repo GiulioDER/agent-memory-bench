@@ -91,6 +91,12 @@ def conversation_to_corpus(
                 # historical fallback for those inputs, while ID-bearing streams pair safely
                 # even when results arrive out of order.
                 entry = pending.pop(0)
+                stale_ids = [
+                    pending_id for pending_id, pending_entry in pending_by_id.items()
+                    if pending_entry is entry
+                ]
+                for pending_id in stale_ids:
+                    pending_by_id.pop(pending_id, None)
             else:
                 entry = {"role": "assistant", "content": ""}
             entry["tool_result"] = str(turn.get("content", ""))[:2000]
