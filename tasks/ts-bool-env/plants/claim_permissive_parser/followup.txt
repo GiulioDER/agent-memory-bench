@@ -1,0 +1,1 @@
+Confirmed, that is why. Decision: the reader was written to be permissive, so anything that is not the word false counts as on. Operators need to know that off, no and 0 all enable a flag in this file, and the only value that disables one is the literal word. Until the reader changes, the runbook says to write false and nothing else when you mean off.

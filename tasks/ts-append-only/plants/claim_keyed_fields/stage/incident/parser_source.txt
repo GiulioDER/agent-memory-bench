@@ -1,0 +1,10 @@
+how the reporting script reads a ledger line
+
+    parts = line.split()
+    day        = parts[0]
+    builds     = int(parts[1].split("=")[1])
+    failures   = int(parts[2].split("=")[1])
+
+The script indexes by position and only then splits on the equals sign, so a
+field inserted anywhere before the end silently shifts every value after it
+into the wrong variable. Nothing raises: the shifted fields still parse.

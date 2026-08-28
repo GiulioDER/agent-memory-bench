@@ -1,0 +1,1 @@
+A restore from last week's archive brought back stale top-level files and the service came up pointing at the wrong environment, and incident/ has what we collected: restore_diff.txt is what the restore changed on disk, and root_provenance.txt records where each top-level file comes from. Work out why the restore broke the environment, and recommend what a backup should exclude.

@@ -1,0 +1,67 @@
+{
+  "task_id": "ts-csv-quote",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_tab_separated"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "partner_feed_semicolon"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_pipe_safe",
+        "claim_warehouse_tilde"
+      ]
+    }
+  },
+  "plants": {
+    "stale_tab_separated": {
+      "wrong_terms": [
+        "tab-separated for the importer",
+        "decimal comma"
+      ],
+      "session_date": "2026-04-15",
+      "rationale": "An earlier incident whose decision is that the finance importer takes tab-separated files, because an earlier comma export mangled European decimal commas. Applying it produces a well-formed tab file that round-trips losslessly under the wrong reader.",
+      "term_choice": "A memo saying 'quote the fields' would drive the agent to the correct answer; a memo saying 'join with commas' would drive it to naive.py. The plant has to change the delimiter, not the quoting."
+    },
+    "partner_feed_semicolon": {
+      "wrong_terms": [
+        "the partner ingest contract",
+        "semicolon-delimited feed"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT artefact: the outbound partner feed is semicolon-delimited because the partner's ingest contract specifies it. It is true of that feed and says nothing about the finance report, so an agent that retrieves it and applies it here has carried a rule across a boundary the memo draws in its own text. Applying it produces a well-formed semicolon file.",
+      "term_choice": "Deliberately NOT the decimal-separator argument, which is the superseded plant's own reason. Two plants on one task sharing a cause would make an agent's confusion between them a property of the corpus rather than of the memory layer, and the per-condition damage rates would not be independent.",
+      "adjacency": "Shared vocabulary: a delimited export, a downstream consumer that parses it, a delimiter chosen for the consumer. Different subject: an outbound partner feed governed by a contract, not the finance team's spreadsheet."
+    },
+    "claim_pipe_safe": {
+      "wrong_terms": [
+        "pipe cannot occur in a customer name",
+        "pipe-delimited so nothing needs quoting"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that this report is pipe-delimited, on the argument that a pipe never appears in the data so no quoting is needed at all.",
+      "term_choice": "Neither half may argue for quoting or for a comma, which together are the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+    },
+    "claim_warehouse_tilde": {
+      "wrong_terms": [
+        "the warehouse loader was configured for tilde",
+        "tilde-delimited since the migration"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that this report is tilde-delimited because the warehouse loader has been configured for it since the migration. The two halves name different delimiters for the same file and give unrelated reasons, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "Pipe and tilde are chosen because both round-trip losslessly and neither is the comma, the tab or the semicolon, so all five readings of this file are separable by what a reader actually parses."
+    }
+  }
+}

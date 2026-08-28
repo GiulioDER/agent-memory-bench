@@ -1,0 +1,1 @@
+Yes, and the validator was working perfectly by its own lights. Decision: for anything a pipeline runs, the exit status is the contract. A validator that finds problems exits non-zero on failure, always. Printing is not reporting: a pipeline step that prints and succeeds is a step that has told nobody, because ci.sh runs under set -e and reads only the status.

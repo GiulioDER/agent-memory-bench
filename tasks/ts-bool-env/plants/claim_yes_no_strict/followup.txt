@@ -1,0 +1,1 @@
+That matches every value we tried. Decision: this is a strict yes/no file, and only yes turns something on. Anything else, whatever it looks like to a reader, leaves the flag off. Operators write yes or no and nothing else, and the runbook is being updated to say so in those words.

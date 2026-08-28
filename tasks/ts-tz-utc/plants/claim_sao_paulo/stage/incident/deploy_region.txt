@@ -1,0 +1,10 @@
+deploy record for ordergen-logwriter (captured by the deploy tooling)
+
+  service         ordergen-logwriter 4.2.1
+  rollout         southern region, primary
+  /etc/timezone   America/Sao_Paulo
+  hostname        log-writer-sp1.internal
+
+The logging service writes each entry with the local wall clock and no offset
+field. The deploy tooling records the region it rolled out to and nothing about
+what any other rollout may have used.

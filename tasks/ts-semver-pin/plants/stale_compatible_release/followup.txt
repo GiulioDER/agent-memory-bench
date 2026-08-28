@@ -1,0 +1,1 @@
+Agreed, that is the lag. Decision: internal packages move to the compatible-release operator, so patch releases flow to a service on its next build without anyone editing a file or opening a pull request. Same minor series, patch level free. External dependencies keep their existing floor constraints; this changes only packages we publish ourselves.

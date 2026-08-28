@@ -10,13 +10,34 @@ pass or they do not. No judge anywhere in the primary endpoint.
 
 ## Status
 
+Phase 0: harness bring-up. The first preregistered multi-product run will be announced before it
+happens, not after.
+
+**Four limits that bound every number published so far.** They are here rather than in a footnote
+because a reader who does not know them will over-read the results.
+
+1. **Only the READ path is measured.** `corpus/` is 125 pre-authored transcripts, bulk ingested
+   once before the grid and never written to again. The agent never forms a memory from its own
+   work, so half of every product under test is unmeasured, and it is the half products whose value
+   is extraction and consolidation actually sell.
+   [`preregistration/006`](preregistration/006-longitudinal-suite.md) is the design that would
+   measure it; it has not run.
+2. **`claude_md` is the fixture's orientation README, not a curated conventions file.** It is a
+   floor with a document attached, not the realistic incumbent, and on `ts-legacy-hash` it actively
+   names the wrong helper (`bare` 1.00 against `claude_md` 0.00 in two runs).
+3. **The memory arm is not budget-matched.** On `pilot-004-placebo` the recall arm used 4.5x the
+   input tokens and 2.6x the wall time of every other arm. `costs.json` now carries
+   success-per-million-tokens per arm; there is still no arm run at a matched budget.
+4. **One model, and it is a cheap one.** Everything is `deepseek/deepseek-v4-flash`. The one
+   attempt at a stronger model failed on provider credit and has not been rerun.
+
 The benchmark includes a preregistered oracle and proactive retrieval diagnostic. See
 [`docs/ORACLE_PREFETCH_DIAGNOSTIC.md`](docs/ORACLE_PREFETCH_DIAGNOSTIC.md) and
 [`preregistration/003-oracle-prefetch-diagnostic.md`](preregistration/003-oracle-prefetch-diagnostic.md).
 The two diagnostic arms are reference tracks and are not ranked as products.
 
-Phase 0: harness bring-up. Nothing here is a result yet. The first preregistered run will be
-announced before it happens, not after.
+An adversarial audit of this benchmark, written against it rather than for it, is in
+[`docs/audit/2026-08-28-adversarial-benchmark-audit.md`](docs/audit/2026-08-28-adversarial-benchmark-audit.md).
 
 ## Design in six decisions
 
@@ -25,8 +46,12 @@ announced before it happens, not after.
    config is hash-pinned in `adapters/<name>/config.frozen.json`, and each vendor is publicly
    invited to review it before the run (`adapters/<name>/VENDOR_REVIEW.md` records the
    invitation, the response, or the documented silence).
-2. **Additive design.** Every memory arm is the same CLAUDE.md bundle plus that product. The
-   baseline is `claude_md`, not `bare`: nobody runs a coding agent memory-free.
+2. **Additive design, with the instruction controlled too.** Every memory arm is the same
+   CLAUDE.md bundle plus that product, plus `adapters/_shared/memory_protocol.md` **byte-identical
+   across arms**, plus that product's own result-schema appendix capped at 1,200 bytes. The
+   instruction is a treatment: until 2026-08-28 the recall arm carried 5,428 characters of it and
+   `fs_grep` 231, and most of the difference was generic coaching that would have helped any arm.
+   Per-arm instruction sizes are published in every run's `environment.json`.
 3. **One neutral experience feed, each product's own write path.** The corpus is verbatim
    recorded agent session transcripts. Every adapter ingests identical bytes; what its
    extraction pipeline keeps is part of what is measured.
@@ -35,21 +60,36 @@ announced before it happens, not after.
    that must fail and an informed one that must pass, asserted in CI.
 5. **The admission gate.** A grid cell is discarded, not scored, unless every arm can PROVE its
    treatment was applied: MCP tools listed at session init, lifecycle hooks demonstrably fired
-   with output, sandbox files digest-verified, and no arm holding another arm's tools. Discard
-   counts are published per arm.
+   with output, every arm's sandbox digest equal to every other's, and no arm holding another
+   arm's tools. Discard counts are published per arm.
+
+   Two disclosures the gate cannot make for itself. Only an arm with a memory surface can FAIL to
+   wire, so the discard rule protects one class of arm's worst outcome and no other's; run
+   `scripts/discard_sensitivity.py` for the intention-to-treat column beside every headline. And a
+   timeout is an outcome, not a wiring fault: it is never retried, and the retry kind is recorded
+   per attempt so the counts are publishable per arm.
 6. **Costs are end-to-end.** Ingestion tokens and session tokens land in one per-arm ledger
-   (`harness/costs.py`), alongside wall time and negative-transfer counts. Deltas below the
-   preregistered minimum effect are reported as noise.
+   (`harness/costs.py`), alongside wall time, success-per-million-tokens, and negative-transfer
+   counts. An arm that ingests with a model on the benchmark host reports zero hosted tokens and
+   names the model, so its zero is never read as a zero cost beside a competitor's extraction
+   bill. Deltas below the preregistered minimum effect are reported as noise.
 
 ## Arms
 
-`bare`, `claude_md` (designated baseline), `fs_grep` (transcripts on disk plus grep),
-`recall`, and four third-party memory products.
+Implemented and runnable today: `bare`, `claude_md` (designated baseline), `placebo`
+(length-matched neutral prose), `protocol` (the memory instruction with no memory layer, which is
+what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep), and
+`recall`.
 
-Those four are not named yet. Every vendor is invited to review its own adapter and frozen
-config before any measured run, no invitation has gone out, and naming a product first would
-enter it into a benchmark nobody has told it about. They are named when the first
-preregistered run is announced, which is before the run rather than after it.
+**Not built yet:** four third-party memory products. Those four are not named yet. Every
+vendor is invited to review its own adapter and frozen config before any measured run, no
+invitation has gone out, and naming a product first would enter it into a benchmark nobody
+has told it about. They are named when the first preregistered run is announced, which is
+before the run rather than after it.
+
+Their `adapters/<name>/` directories currently hold a docstring and no `adapter.py`, no
+`VENDOR_REVIEW.md` exists for any adapter including `recall`, and no `versions.lock` exists
+either. Nothing here is a multi-product comparison until those land.
 
 Disclosure: this benchmark is built by the authors of recall, which competes in it. That is
 exactly why the methodology is preregistered, the harness is open, every adapter config is
@@ -76,7 +116,26 @@ starts.
 python -m pytest tests/ -q
 ```
 
+Static checks, no credentials and no model calls:
+
+```bash
+python -m scripts.audit_corpus && python -m scripts.audit_plants
+python -m scripts.pilot --dry-run --arms bare,claude_md,recall
+```
+
 Real runs need a Claude Code CLI of at least 2.1.221 (below that, a pending MCP server runs
 the session without its tools while reporting success; the gate exists because that happened)
-and the arm-specific credentials listed in `.env.example`. Docker one-command reproduction is
-part of Phase 0 and lands in `docker/`.
+and the arm-specific credentials listed in `.env.example`.
+
+For the local Docker stack, copy `.env.example` to `.env`, set a unique `POSTGRES_PASSWORD`, and
+run `docker compose --env-file .env -f docker/compose.yaml up --build`. Compose requires that
+password instead of using a repository default.
+
+⚠️ **A third party cannot currently reproduce the `recall` arm.**
+`adapters/recall/config.frozen.json` carries `"package_pin": "TBD"`, and the published runs
+resolved `recall` from a local checkout through `PYTHONPATH`, so the exact version that produced
+the numbers is not recorded. `docker/compose.yaml` brings up a pgvector database and the harness
+image; it does not install or start a memory server. Both are Phase 3 work and neither is done.
+Sandboxes are built outside this repository (`harness.sandbox.default_work_root`, override with
+`AGENT_MEMORY_BENCH_WORK_ROOT`), because a sandbox under `results/` can reach `oracles/` with one
+`cd ..`.

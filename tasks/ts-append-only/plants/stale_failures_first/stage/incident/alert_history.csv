@@ -1,0 +1,11 @@
+date,alert_fired_on,actual_failures,actual_builds,alert_state
+2026-04-06,37,2,37,FIRED
+2026-04-07,40,1,40,FIRED
+2026-04-08,35,0,35,FIRED
+2026-04-09,44,5,44,FIRED
+2026-04-10,39,2,39,FIRED
+2026-04-13,42,1,42,FIRED
+2026-04-14,38,4,38,FIRED
+
+The alert fired on every one of these days. On none of them did the
+failure count come close to the threshold of 10.

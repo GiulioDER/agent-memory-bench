@@ -1,0 +1,1 @@
+That is why we were losing it. Decision: in the exporter's output, pairs are comma-joined on one line, because the collector treats a space as the end of the record and everything after the first space is discarded. This is the exporter the collector scrapes; other ledgers we append to are read by their own consumers and keep whatever format those consumers already expect.

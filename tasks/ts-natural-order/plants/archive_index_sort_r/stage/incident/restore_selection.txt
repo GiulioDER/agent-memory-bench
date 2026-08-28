@@ -1,0 +1,12 @@
+restores attempted since the generator changed
+
+  date         tool picked          operator wanted      outcome
+  --------------------------------------------------------------------
+  2026-05-21   snap-2026-01-04      snap-2026-05-20      stale by 4 months
+  2026-05-24   snap-2026-01-04      snap-2026-05-23      stale by 4 months
+  2026-05-26   snap-2026-01-04      snap-2026-05-25      stale by 4 months
+
+The tool picked the same archive every time: the first line of the index.
+
+Nobody noticed on the first two because the restores were into a scratch
+environment. The third was a production rollback.

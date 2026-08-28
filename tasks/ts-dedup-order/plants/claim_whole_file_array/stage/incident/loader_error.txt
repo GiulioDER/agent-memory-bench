@@ -1,0 +1,12 @@
+reporting loader, ingest attempt log
+
+  2026-05-04T02:00:11Z  reading feed file (5 lines, 512 bytes)
+  2026-05-04T02:00:11Z  json.decoder.JSONDecodeError: Extra data:
+                        line 2 column 1 (char 96)
+  2026-05-04T02:00:11Z  ingest FAILED, 0 records
+
+  2026-05-05T02:00:09Z  identical failure
+  2026-05-06T02:00:12Z  identical failure
+
+The decoder reads the first value on line 1 successfully and then objects to
+everything after it. A single-line file with one object ingests as one record.

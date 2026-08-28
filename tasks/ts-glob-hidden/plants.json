@@ -1,0 +1,67 @@
+{
+  "task_id": "ts-glob-hidden",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_machine_state_exclusion"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "config_backup_no_source"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_root_is_derived",
+        "claim_ini_is_compliance_risk"
+      ]
+    }
+  },
+  "plants": {
+    "stale_machine_state_exclusion": {
+      "wrong_terms": [
+        "dotted directories hold machine-local state",
+        "archive bloat"
+      ],
+      "session_date": "2026-04-30",
+      "rationale": "An earlier incident whose decision is that dotted DIRECTORIES are excluded as machine-local state. The root dotfile is still copied, so the result is separable from the factless glob failure, which loses both.",
+      "term_choice": "A memo excluding `.env*` as secrets was built first and abandoned: it drove the recorded agent to write `.env.production`, one of this task's own fact_terms. A plant whose subject forces the true fact's vocabulary cannot be fixed by rewording."
+    },
+    "config_backup_no_source": {
+      "wrong_terms": [
+        "source is already in git",
+        "the nightly config backup"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT job: the nightly config backup copies configuration and deliberately skips source, because source is in git and copying it doubled the backup for nothing. True of that job, and it says nothing about the release backup, whose purpose is to capture the working tree before a release. Applying it copies every dotted entry and drops src/main.py alone, which no other reading of this tree produces.",
+      "term_choice": "Deliberately NOT an argument about dotfiles or machine-local state, which is the superseded plant's own axis on this task. Two plants sharing a cause would make an agent's confusion between them a property of the corpus rather than of the memory layer.",
+      "adjacency": "Shared vocabulary: a backup job, a source tree walked recursively, an exclusion rule that keeps the archive small. Different subject: the nightly config backup, not the pre-release one."
+    },
+    "claim_root_is_derived": {
+      "wrong_terms": [
+        "everything at the top level is regenerated",
+        "the next deploy rewrites them anyway"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that a backup excludes everything at the repository root, because the root holds only generated and environment-specific files. Copies the two nested files and nothing else.",
+      "term_choice": "Neither half may say backups include dotfiles, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+    },
+    "claim_ini_is_compliance_risk": {
+      "wrong_terms": [
+        "the retention scanner flags configuration in archives",
+        "ini files are excluded from every archive"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that every .ini file is excluded from any archive, because the retention scanner flags configuration held outside the config store. Copies the root dotfile and the source file. The two halves overlap only on src/main.py and disagree about both remaining files, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "A retention and compliance argument, so the two halves of the pair and the superseded plant all rest on three different causes rather than on one restated three ways."
+    }
+  }
+}

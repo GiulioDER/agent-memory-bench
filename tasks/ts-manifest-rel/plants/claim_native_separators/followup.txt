@@ -1,0 +1,1 @@
+Agreed, and it is on our side rather than theirs. Decision: manifest keys use native separators for the Windows target, because the key is compared against a path the target built itself with its own path library and that library emits backslashes. The target is a signed binary we cannot patch this quarter, so the generator matches it rather than the other way round.

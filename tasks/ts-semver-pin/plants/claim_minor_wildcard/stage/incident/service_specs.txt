@@ -1,0 +1,7 @@
+constraint on the internal package, per service, at the time of the fix
+
+  svc-dispatch      internalkit==3.2.0
+  svc-notify        internalkit==3.2.*
+  svc-reconcile     internalkit==3.2.*
+
+The fix shipped as internalkit 3.2.4 on 2026-05-05 at 11:20.

@@ -1,0 +1,11 @@
+Appliance unpack layout (ap-0442, and the fleet generally)
+
+  /opt/ordergen/releases/1.2.9/          <- unpack directory, chosen by the appliance
+      app/main.py
+      assets/banner.txt
+      VERSION
+      manifest.json
+
+The appliance picks the unpack directory from its own configuration; it is
+different on ap-0442, ap-0501 and the staging fleet. Nothing on the appliance
+knows anything about the machine the bundle was built on.

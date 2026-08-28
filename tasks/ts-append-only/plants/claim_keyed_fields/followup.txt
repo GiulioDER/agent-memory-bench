@@ -1,0 +1,1 @@
+Agreed, and the lesson is general. Decision: every field carries its key, including the date, so a parser must never depend on position. An entry that names what each value is can absorb a new field in the middle without any reader noticing, and the two days we just spent reconciling numbers is what positional parsing costs the first time somebody inserts a column.

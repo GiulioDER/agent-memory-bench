@@ -1,0 +1,13 @@
+what our exporter currently writes, and what the collector stored
+
+  written:  1747094400 queue_depth=18 retries=4
+  stored:   queue_depth=18
+
+  written:  1747098000 queue_depth=22 retries=7
+  stored:   queue_depth=22
+
+  written:  1747101600 queue_depth=15 retries=2
+  stored:   queue_depth=15
+
+The retries counter was added on 2026-05-19. It has never appeared in the
+collector. No error was logged on either side.

@@ -1,0 +1,1 @@
+Right, that is how the queue works. Decision: priority is optional and an unset priority means nobody has triaged the record yet, so it defaults to the floor of the scale. An untriaged item must never outrank something a human has already looked at and marked, and defaulting anywhere above the bottom would do exactly that.

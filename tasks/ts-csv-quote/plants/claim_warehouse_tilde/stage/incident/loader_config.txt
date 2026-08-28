@@ -1,0 +1,13 @@
+warehouse loader configuration, reporting ingest job
+(managed by the warehouse team; captured after the platform migration)
+
+  source            s3://reporting/report.csv
+  field_separator   ~
+  quote_char        none
+  on_parse_error    skip_row
+  header            expected
+
+Notes: field_separator was set during the migration and has not changed
+since. on_parse_error=skip_row means a line the parser cannot split into the
+expected column count is discarded without failing the load, which is why
+the job has been reporting success throughout.

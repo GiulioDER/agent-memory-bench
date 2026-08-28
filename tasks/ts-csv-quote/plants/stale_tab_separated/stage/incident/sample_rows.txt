@@ -1,0 +1,9 @@
+What arrived (as finance's importer split it):
+
+  R-1902 | Contoso |  Ltd | prorated after the March credit | 88 | 50
+  R-1903 | Fabrikam | split: 60% licence |  40% support | 310 | 25
+
+What it should have been:
+
+  R-1902 | Contoso, Ltd | prorated after the March credit | 88,50
+  R-1903 | Fabrikam | split: 60% licence, 40% support | 310,25

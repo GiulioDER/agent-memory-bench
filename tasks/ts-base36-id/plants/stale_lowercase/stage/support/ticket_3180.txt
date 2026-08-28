@@ -1,0 +1,10 @@
+Support ticket 3180, 2026-03-12
+
+Customer reports that the order id printed on their packing slip returns
+"order not found" in the self-service portal, but the same order opens fine
+when an agent searches for it in the admin console. The customer pasted the
+id into chat and it matched the record the agent was already looking at.
+
+This is the fourth report of this shape this month. In every one, the order
+exists and the customer supplied a genuine id. The portal team and the
+fulfilment team have each said the problem is on the other side.
