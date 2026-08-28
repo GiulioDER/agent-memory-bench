@@ -1,0 +1,1 @@
+That closes all three findings. Decision: ini files are excluded from every archive, because the retention scanner flags configuration in archives and configuration belongs in the config store where it has a review trail and an expiry. An archive is for things with no other home; anything the store owns is the store's to keep.
