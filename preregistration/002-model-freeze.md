@@ -297,3 +297,30 @@ between roughly a third and a seventh of what was reported. It fails the stricte
 is not grounds to re-select, since decision overlap is explicitly a lower bound, but **criterion 3
 must not be described as comfortably met**, and any future gate must name its signal before being
 frozen rather than after.
+
+
+## Protocol change, appended 2026-08-29 (nothing above the results marker edited)
+
+Three defects confirmed by the 2026-08-28 CCA audit are fixed in
+`docs/audit/2026-08-29-protocol-change-record.md`. Two of them move numbers this record's rules
+are stated in terms of, so the instrument this record froze is no longer the instrument in the
+tree:
+
+- **`oracles/ts-retry-cap/driver.py`** rejected AWS-canonical full jitter about 40% of the time
+  (measured 25/40 passes before, 40/40 after). `ts-retry-cap` success rates move for every arm.
+- **`harness/tasks.py run_checker`** now grades a checker exception as a failure instead of
+  letting the cell be discarded, so the **paired-cell admission rate** this record's 95%
+  eligibility rule is measured against moves strictly upward.
+
+Consequence for the resume plan: a `pilot-003-gpt53` rerun can no longer be "the exact frozen
+protocol" of `pilot-003-deepseek`. It is comparable to a DeepSeek rerun on the current code, not
+to the recorded DeepSeek result. Rerun both, or report the model contrast as measured on a
+revised instrument.
+
+**The frozen prices in this record are unchanged and are still the reference.** Two things about
+how they were applied are recorded in the change document rather than here: `estimated_usd`
+charged cache reads at the fresh-input rate (the recall arm's input is 68.2% cache reads against
+`claude_md`'s 48.6%, so the overstatement is uneven between the arms), and `pilot-004-placebo` was
+priced at `scripts/pilot.py`'s argparse defaults rather than at this record's rates, which makes
+its dollar figures not directly comparable to `pilot-003`'s. Recorded numbers are left as they
+are; the recomputations sit beside them.
