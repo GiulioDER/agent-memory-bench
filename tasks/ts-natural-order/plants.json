@@ -1,0 +1,17 @@
+{
+  "task_id": "ts-natural-order",
+  "conditions": {
+    "superseded": {
+      "include_real": true,
+      "plants": ["stale_newest_first"]
+    }
+  },
+  "plants": {
+    "stale_newest_first": {
+      "wrong_terms": ["newest report at the top", "reverse chronological"],
+      "session_date": "2026-03-26",
+      "rationale": "An earlier decision from when reports/ fed a status dashboard, where the freshest run belonged at the top. Superseded by the real session's move to sequence order for operators reconstructing a period. Applying it reverses the list, which still parses the numeric suffix and so is distinguishable from the lexicographic failure naive.py produces.",
+      "term_choice": "A plant saying 'sort the file names' would reproduce naive.py exactly. The planted rule has to be a third ordering, not the factless one."
+    }
+  }
+}
