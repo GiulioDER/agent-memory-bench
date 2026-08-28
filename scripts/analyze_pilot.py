@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -22,21 +21,30 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.io import read_jsonl
-from harness.stats import mcnemar_exact
+from harness.reached import mechanism, reached_by_content, reached_by_path
+from harness.stats import cluster_bootstrap as _cluster_bootstrap
+from harness.stats import effect_concentration, mcnemar_exact
+from harness.tasks import discover_tasks
 
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "recall")
 
 
-def cluster_bootstrap(per_task_deltas: list[float], iterations: int = 10_000, seed: int = 42):
-    rng = random.Random(seed)
-    n = len(per_task_deltas)
-    means = []
-    for _ in range(iterations):
-        sample = [per_task_deltas[rng.randrange(n)] for _ in range(n)]
-        means.append(sum(sample) / n)
-    means.sort()
-    return means[int(0.025 * iterations)], means[int(0.975 * iterations)]
+#: Re-exported so `scripts/discard_sensitivity.py` keeps importing it from here, while there is
+#: only ONE implementation. This module used to carry a second copy with seed=42 against
+#: harness.stats's 12345, and it computed every published headline interval.
+def cluster_bootstrap(per_task_deltas, iterations: int = 10_000, seed: int = 12345):
+    interval = _cluster_bootstrap(per_task_deltas, iterations=iterations, seed=seed)
+    if interval is not None:
+        return interval
+    # Every delta identical, so every resample returns that same value. `harness.stats` answers
+    # None here because a zero-width interval reads as precision and is the opposite of it; this
+    # analyser still has to emit two numbers, so it emits the constant the sample actually holds.
+    # NOT (0.0, 0.0): for a survivor subset where every task moved by the same nonzero amount that
+    # would report an interval straddling zero for a sample that never touched it.
+    values = [float(d) for d in per_task_deltas]
+    constant = values[0] if values else 0.0
+    return (constant, constant)
 
 
 def main() -> int:
@@ -53,6 +61,21 @@ def main() -> int:
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {SUPPORTED_ARMS}")
     run_dir = REPO / "results" / args.run_id
+
+    # The governing fact, from the two places it is already written down: the audited fact_terms,
+    # and the authored decision turn that `scripts/build_oracle_bundles.py` extracts. Neither is a
+    # new hand-maintained list, which is what keeps the mechanism metric honest.
+    fact_terms = {task.task_id: task.fact_terms for task in discover_tasks()}
+    evidence: dict[str, str] = {}
+    bundles_path = REPO / "corpus" / "oracle_memory" / "bundles.jsonl"
+    if bundles_path.is_file():
+        for line in bundles_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            bundle = json.loads(line)
+            items = bundle.get("items") or []
+            if items:
+                evidence[str(bundle["task_id"])] = str(items[0].get("evidence_text", ""))
 
     records = read_jsonl(run_dir / "records.final.jsonl")
     admission = json.loads((run_dir / "admission.json").read_text(encoding="utf-8"))
@@ -85,15 +108,9 @@ def main() -> int:
             if r.task_id == task and r.arm == "recall" and r.memory_call_count > 0
         ]
         reached = [
-            r
-            for r in mech
-            if any(f"sessions__{task}__" in c for c in r.retrieved_contexts)
-            or any(
-                f"sessions__{task}__" in str(call.get("output", ""))
-                for call in r.tool_calls
-                if str(call.get("name", "")).startswith("mcp__")
-            )
+            r for r in mech if reached_by_content(r, fact_terms.get(task, ()))[0]
         ]
+        reached_path = [r for r in mech if reached_by_path(r)]
         floor = not any(
             per_task[task][arm][i]
             for arm in run_arms
@@ -104,6 +121,7 @@ def main() -> int:
             "screen": "ceiling" if ceiling else ("floor" if floor else "keep"),
             "recall_searched": len(mech),
             "recall_reached": len(reached),
+            "recall_reached_by_path": len(reached_path),
         }
 
     survivors = [task for task in tasks if screening[task]["screen"] == "keep"]
@@ -127,21 +145,19 @@ def main() -> int:
             "discordant": {"only_" + arm_a: only_a, "only_" + arm_b: only_b},
             "n_tasks": len(task_set),
             "n_cells": len(cells_a),
+            # How few tasks carry the mean. A headline delta over 24 tasks that lives on 9 of them
+            # is a different claim from one spread across all 24, and the mean cannot tell them
+            # apart.
+            "concentration": effect_concentration(dict(zip(task_set, deltas, strict=True))),
+            "ci_note": (
+                "resamples tasks within THIS run; it does not include run-to-run variance, which "
+                "the pilot-003/pilot-004 replication measures at r=0.625 across per-task deltas"
+            ),
         }
 
-    # (3) mechanism, overall
+    # (3) mechanism, overall. Three bracketing signals rather than the filename match alone;
+    # see harness/reached.py for why the published figure was the loosest of them.
     recall_records = [r for r in admitted if r.arm == "recall"]
-    searched = [r for r in recall_records if r.memory_call_count > 0]
-    reached_all = [
-        r
-        for r in searched
-        if any(f"sessions__{r.task_id}__" in c for c in r.retrieved_contexts)
-        or any(
-            f"sessions__{r.task_id}__" in str(call.get("output", ""))
-            for call in r.tool_calls
-            if str(call.get("name", "")).startswith("mcp__")
-        )
-    ]
 
     analysis = {
         "run_id": args.run_id,
@@ -156,13 +172,7 @@ def main() -> int:
             contrast("recall", "claude_md", survivors) if survivors else None
         ),
         "exploratory_bare_vs_claude_md": contrast("bare", "claude_md", tasks),
-        "mechanism": {
-            "search_rate": round(len(searched) / len(recall_records), 3),
-            "reached_given_searched": (
-                round(len(reached_all) / len(searched), 3) if searched else None
-            ),
-            "reached_overall": round(len(reached_all) / len(recall_records), 3),
-        },
+        "mechanism": mechanism(recall_records, fact_terms, evidence_by_task=evidence),
         "screening": screening,
         "survivors": survivors,
         "n_survivors": len(survivors),
