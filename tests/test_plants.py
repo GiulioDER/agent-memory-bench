@@ -216,6 +216,31 @@ def test_a_condition_corpus_keeps_every_untouched_session(fake_corpus, tmp_path)
     assert provenance["sessions_total"] == 4
 
 
+def test_a_session_directory_that_is_not_a_task_survives(fake_corpus, tmp_path):
+    """Mutation: iterating discovered tasks instead of the directories on disk.
+
+    `corpus/sessions/smoke/` holds two sessions belonging to no task, and CorpusManifest globs
+    `sessions/**/*.jsonl`, so the published runs ingested them. Iterating tasks alone dropped both,
+    and the loss was invisible in the count because the same pass added two plants and the total
+    came back to exactly 125. That is the shape of bug this whole file exists for: the feed silently
+    stops being the one every published run used, and nothing looks wrong.
+    """
+
+    orphan = fake_corpus / "sessions" / "smoke"
+    orphan.mkdir(parents=True)
+    (orphan / "s01.jsonl").write_text(
+        json.dumps({"role": "user", "content": "a smoke session", "ts": "2026-01-01T09:00:00Z"})
+        + "\n",
+        encoding="utf-8",
+    )
+
+    out = tmp_path / "out"
+    assemble("superseded", 1, ["ts-base36-id"], out)
+    assert (out / "sessions" / "smoke" / "s01.jsonl").is_file(), (
+        "a session directory that is not a task was dropped from the feed"
+    )
+
+
 def test_superseded_keeps_the_real_session_beside_the_plant(fake_corpus, tmp_path):
     out = tmp_path / "out"
     assemble("superseded", 1, ["ts-base36-id"], out)

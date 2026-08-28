@@ -123,7 +123,13 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
     planted: dict[str, dict] = {}
     untouched: list[str] = []
 
-    for task_id in sorted(tasks):
+    # Every directory under sessions/, not just the ones that are tasks. `corpus/sessions/smoke/`
+    # holds two sessions that belong to no task, and `CorpusManifest.build` globs
+    # `sessions/**/*.jsonl`, so the published runs ingested them. Iterating discovered tasks alone
+    # dropped both, and the loss was invisible because two plants were added in the same pass and
+    # the total came back to 125.
+    session_dirs = {p.name for p in (BASE_CORPUS / "sessions").iterdir() if p.is_dir()}
+    for task_id in sorted(session_dirs | set(tasks)):
         real = sorted((BASE_CORPUS / "sessions" / task_id).glob("*.jsonl"))
         if task_id not in selection:
             # Every non-selected task keeps its real sessions, so the feed stays the size the
