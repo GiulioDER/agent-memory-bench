@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -107,11 +108,32 @@ def _load_callable(py_file: Path, name: str):
 
 
 def run_checker(task: TaskSpec, workdir: Path) -> tuple[bool, str]:
-    """Execute the task's checker against one finished sandbox."""
+    """Execute the task's checker against one finished sandbox.
+
+    A checker that RAISES grades the session as a failure, with the traceback as its verdict. It
+    does not propagate.
+
+    The distinction matters because of where the exception used to land: `harness.runner` turned it
+    into an error record, and `harness.gate` then discarded the cell for "the session did not
+    complete" — taking every OTHER arm's paid session in that cell with it. The trigger is
+    agent-controlled, which is what makes it a scoring hole rather than an infrastructure one:
+    several checkers read an agent-written file with a strict UTF-8 decode (for example
+    `tasks/ts-nfc-count/checker.py`), so an artifact written in cp1252 on Windows raised, and a
+    task whose deliverable the grader cannot read is a task that was not solved. Scoring it as a
+    discard let a bad deliverable delete the evidence for its own cell.
+
+    A genuine harness fault (a missing checker file, a syntax error in one) still raises, because
+    `_load_callable` runs outside this guard: that is a defect in the instrument, not an outcome,
+    and it must stop the run rather than score every session as a failure.
+    """
 
     check = _load_callable(task.checker_path, "check")
-    result = check(Path(workdir), task.oracle_dir)
-    ok, verdict = result
+    try:
+        result = check(Path(workdir), task.oracle_dir)
+        ok, verdict = result
+    except Exception as error:  # noqa: BLE001 - an unreadable deliverable is a failed task
+        detail = "".join(traceback.format_exception_only(type(error), error)).strip()
+        return False, f"checker raised: {detail}"
     return bool(ok), str(verdict)
 
 
