@@ -1,0 +1,5 @@
+[
+  {"id": "R-1001", "customer": "Northwind", "note": "renewal", "amount": "420.00"},
+  {"id": "R-1002", "customer": "Contoso", "note": "prorated", "amount": "88.50"},
+  {"id": "R-1003", "customer": "Fabrikam", "note": "annual", "amount": "1200.00"}
+]

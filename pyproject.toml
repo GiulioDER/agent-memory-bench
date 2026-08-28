@@ -19,6 +19,11 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 99
 target-version = "py312"
+# Recorded agent output, kept verbatim as evidence of what a session with no memory produces.
+# Linting it would be meaningless, and `ruff --fix` would EDIT the artefact a damage detector is
+# tested against, silently changing what the fourth assertion in tests/test_damage_detection.py
+# has seen.
+extend-exclude = ["tests/fixtures/factless-sessions"]
 
 [tool.ruff.lint]
 ignore = ["E402"]

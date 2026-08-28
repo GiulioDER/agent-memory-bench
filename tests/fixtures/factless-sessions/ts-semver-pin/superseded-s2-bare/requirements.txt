@@ -1,0 +1,4 @@
+click>=8.1
+requests>=2.31
+rich>=13.7
+textutils==2.4.1
