@@ -213,3 +213,38 @@ fitted on that generation (`threshold_was_measured_here: true`) against the same
 queries in every condition. `RecallAdapter.ingest` verifies all of that at run time and refuses a
 tenant whose recorded corpus fingerprint does not equal the corpus the run assembled; that refusal
 was exercised deliberately against a mismatched tenant and fired.
+
+## 🔁 Correction, appended before the first session: how the run is actually detached
+
+The frozen text says the run is launched with `setsid nohup`. **Neither is available in Git Bash on
+this host**, so the detachment is done with PowerShell's `Start-Process`, in
+`scripts/launch_official.ps1`. The property that matters is the one the frozen text was reaching
+for and it holds: the launched process is independent of the shell that started it, so an
+interactive session ending cannot kill it, which is the failure that cost `abstention-002` 86
+sessions. A PowerShell background *job* would not have this property, and is deliberately not used.
+
+Two consequences worth recording, because both are load bearing and neither is obvious:
+
+1. **A detached process inherits only what the launcher sets.** MemPalace's adapter requires
+   `MEMPALACE_VENV` and `MEMPALACE_PALACE_ROOT` and never guesses either, so the launcher passes
+   both explicitly and refuses to start if the venv, the palace root or `OPENROUTER_API_KEY` is
+   missing. Omitting them would have failed the `mempalace` arm at its first cell while every
+   other arm ran normally, which is the shape of failure this benchmark is least able to see.
+2. **Restarting after a mid-condition stop takes one extra command, on purpose.** `--resume` skips
+   a condition that wrote `admission.json` and REFUSES one that did not, because resuming a partial
+   condition would mix two runs' sessions inside it. `scripts/archive_partial.py` moves such a
+   condition, both its results directory and its temp work root, into `results/archive/` with a
+   README saying it is not a result. Nothing is deleted: a partial condition is the only surviving
+   trace of what an aborted attempt did.
+
+## Readiness, measured 2026-08-29 before the first session
+
+| check | result |
+|---|---|
+| recall corpora | four tenants, each serving a promoted generation with a certified published calibration |
+| corpus identity | `ingest` verifies the fingerprint and refuses a mismatch; the refusal was exercised deliberately and fired |
+| recall reranker | provably OFF: server startup reports `reranker False`, Voyage fallback events 0 |
+| MemPalace | 3.8.0, server serves 44 tools with all 20 allow-listed present; ingest filed 26 drawers from 4 sessions in 7.1 s and retrieved the signal session |
+| grid | dry run at 630 sessions, 165 / 150 / 150 / 165, five arms, clean |
+| instruction | each product carries its own shipped skill: recall 5,430 bytes, MemPalace 4,325 bytes |
+| suite | 587 passed, 4 skipped; `ruff check` clean |
