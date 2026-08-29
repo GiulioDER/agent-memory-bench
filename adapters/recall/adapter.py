@@ -34,6 +34,23 @@ from harness.transcripts import render_corpus
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 
 
+
+def corpus_fingerprint(corpus: CorpusManifest) -> str:
+    """A deterministic identity for the corpus CONTENT this run assembled.
+
+    `CorpusManifest` carries `sessions`, a mapping of transcript path to sha256, so hashing its
+    canonical form identifies the feed exactly: a changed transcript, an added session or a
+    withheld one all move it. The remote build records the same value beside the tenant it built,
+    which is what lets `ingest` refuse a tenant serving an older corpus.
+
+    Sorted and separator-pinned because a fingerprint that depends on dict ordering or on
+    json.dumps' default spacing is a fingerprint that changes for no reason.
+    """
+
+    payload = json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 class RecallAdapter(MemoryAdapter):
     name = "recall"
 
@@ -105,8 +122,149 @@ class RecallAdapter(MemoryAdapter):
         )
         return prompt
 
+    def _remote_rows(self, namespace: str) -> int:
+        """How many chunk rows the remote tenant actually holds.
+
+        ⛔ Counted with an EXPLICIT `where tenant_id = ...` rather than by setting the
+        `recall.tenant_id` GUC and trusting row-level security, which is what `_rows_for_tenant`
+        does. Measured 2026-08-29: the benchmark role bypasses RLS (the server warns about exactly
+        this at startup), so the policy never applies and the count silently returns EVERY
+        tenant's rows. It read 1544 for a tenant holding 683, because 683 + 861 is 1544, and that
+        number was printed into a run log as the corpus size.
+
+        Reported as provenance, so it has to be the real number rather than a plausible one.
+        """
+
+        import subprocess
+
+        sql = (
+            "select count(*) from recall_chunks_v1 where tenant_id = "
+            f"{self._sql_literal(namespace)}"
+        )
+        remote = (
+            f"psql {shlex.quote(str(self.config['dsn']))} -tAc {shlex.quote(sql)}"
+        )
+        result = subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", str(self.config["ssh_host"]), remote],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"could not count rows for tenant {namespace!r}: {result.stderr.strip()[-300:]}"
+            )
+        return int(result.stdout.strip() or 0)
+
+    @staticmethod
+    def _sql_literal(value: str) -> str:
+        """A single-quoted SQL literal. Tenant names are ours, but this is a query built by
+        concatenation and an unescaped quote would be a syntax error at best."""
+
+        escaped = value.replace("'", "''")
+        return f"'{escaped}'"
+
+
+    def _verify_remote_generation(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
+        """Confirm the remote tenant serves a promoted, certified generation of THIS corpus.
+
+        The corpus is built and calibrated by `scripts/prepare_recall_corpora.py`, deliberately as
+        a separate step rather than here. Two reasons, and the second is the one that matters:
+
+        1. A generation build embeds the whole corpus and a calibration fits a threshold to it.
+           Doing that inside a run means a remote failure kills the run mid-flight, which is how
+           `abstention-002` lost 86 sessions to an unrelated interruption.
+        2. The corpus must be FROZEN across arms and cells. A step that can build is a step that
+           can silently rebuild, and a rebuilt corpus mid-run is a different experiment.
+
+        So this asserts rather than acts, and what it asserts is the thing that would otherwise
+        fail silently: that an ACTIVE generation exists, that its calibration is CERTIFIED, and
+        that the corpus fingerprint it was built from equals the manifest this run is about to
+        serve. A tenant carrying last week's corpus answers every query happily.
+        """
+
+        import subprocess
+
+        expected = corpus_fingerprint(corpus)
+        remote = (
+            f"cd {shlex.quote(str(self.config['remote_root']))} && "
+            f"set -a && . {shlex.quote(str(self.config['remote_env_file']))} && set +a && "
+            f"export RECALL_DSN={shlex.quote(str(self.config['dsn']))} "
+            f"RECALL_EMBEDDER={shlex.quote(str(self.config['embedder']))} "
+            f"RECALL_ENV={shlex.quote(str(self.config['environment']))} && "
+            f"{shlex.quote(str(self.config['remote_python']))} -m recall.cli "
+            f"--tenant {shlex.quote(namespace)} generation list"
+        )
+        result = subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", str(self.config["ssh_host"]), remote],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"cannot list generations for tenant {namespace!r} on "
+                f"{self.config['ssh_host']}: {result.stderr.strip()[-500:]}"
+            )
+        active = [line for line in result.stdout.splitlines() if " active " in f" {line} "]
+        if not active:
+            raise RuntimeError(
+                f"tenant {namespace!r} has no ACTIVE generation on {self.config['ssh_host']}. "
+                f"Run scripts/prepare_recall_corpora.py before the suite: a tenant with no active "
+                f"generation raises NoActiveGeneration under production rather than refusing "
+                f"politely, and one carrying an older corpus would answer every query happily."
+            )
+        line = active[0]
+
+        # The corpus the remote build actually used, recorded beside the tenant by
+        # `scripts/prepare_recall_corpora.py`. Compared rather than trusted: a tenant carrying an
+        # older corpus answers every query happily and nothing in a session record would say so.
+        stamp = subprocess.run(
+            [
+                "ssh",
+                "-o",
+                "BatchMode=yes",
+                str(self.config["ssh_host"]),
+                f"cat {shlex.quote(str(self.config['remote_root']))}/{shlex.quote(namespace)}.corpus",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        recorded = stamp.stdout.strip()
+        if stamp.returncode != 0 or not recorded:
+            raise RuntimeError(
+                f"tenant {namespace!r} has an active generation but no corpus stamp on "
+                f"{self.config['ssh_host']}, so nothing proves WHICH corpus it was built from. "
+                f"Rebuild with scripts/prepare_recall_corpora.py, which writes the stamp."
+            )
+        if recorded != expected:
+            raise RuntimeError(
+                f"tenant {namespace!r} serves a generation built from a DIFFERENT corpus than this "
+                f"run assembled.\n  active:   {line.strip()}\n  recorded: {recorded}\n"
+                f"  expected: {expected}\nRebuild with scripts/prepare_recall_corpora.py."
+            )
+        stored = self._remote_rows(namespace)
+        return IngestReport(
+            arm=self.name,
+            namespace=namespace,
+            sessions_offered=len(corpus.sessions),
+            items_stored=stored,
+            wall_time_ms=0.0,
+            notes=(
+                f"verified remote generation {line.strip()[:80]}",
+                f"corpus fingerprint {expected}",
+            ),
+        )
+
+
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
+        if str(self.config.get("transport", "local")) == "ssh":
+            return self._verify_remote_generation(corpus, namespace)
         staged = self.staging_root / namespace / "feed"
         # Fresh render: leftovers from an earlier feed layout must not survive into the
         # index (and the subsequent re-index prunes what is no longer on disk).

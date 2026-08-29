@@ -173,3 +173,43 @@ in `abstention-002` and cost 86 sessions.
   would mean a blend of two rerankers was measured instead of one configuration.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## 🔁 Correction, appended before the first session: `protocol` is dropped, and why
+
+**Five arms, not six: `bare`, `placebo`, `claude_md`, `recall`, `mempalace`. 630 sessions, not
+702.**
+
+The frozen text above lists `protocol` as an arm. That was a mistake I made recommending it, and
+the runner refused it outright:
+
+> the `protocol` arm is the instruction-only control for the shared memory protocol, so it is only
+> meaningful with `--memory-instruction protocol`. With `skill` or `oneliner` it would carry a
+> different instruction from the memory arms it exists to be compared against.
+
+`protocol` is not an arm you can add alongside the others: selecting it forces the WHOLE grid onto
+the equalised instruction, and this record specifies `--memory-instruction skill`, meaning each
+product carries its own official integration, per preregistration 006. Equalising the text measures
+a common denominator neither product ships, which is a useful ablation and is emphatically not the
+product comparison this run exists to make.
+
+So `protocol` becomes a separate, labelled ablation if it is wanted, and the official run keeps the
+instruction each vendor actually ships. `placebo` stays: it needs no instruction variant and is the
+control that separates "memory helped" from "any extra context helped".
+
+Prediction 5 is unaffected. Predictions 3 and 4 now range over five arms rather than six, and
+prediction 7's budget is if anything looser at 630 sessions.
+
+## Grid as actually prepared, measured 2026-08-29
+
+| condition | tasks | sessions in feed | chunks | sessions to run |
+|---|---:|---:|---:|---:|
+| absent | 11 | 184 | 951 | 165 |
+| superseded | 10 | 205 | 1129 | 150 |
+| contradictory | 10 | 205 | 1078 | 150 |
+| adjacent | 11 | 195 | 1033 | 165 |
+
+Each tenant serves a promoted generation whose published calibration certified, with the threshold
+fitted on that generation (`threshold_was_measured_here: true`) against the same 46 held-out
+queries in every condition. `RecallAdapter.ingest` verifies all of that at run time and refuses a
+tenant whose recorded corpus fingerprint does not equal the corpus the run assembled; that refusal
+was exercised deliberately against a mismatched tenant and fired.
