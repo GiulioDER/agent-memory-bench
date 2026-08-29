@@ -19,20 +19,26 @@ def _generator():
 
 
 # The INTERNAL names: what a run summary carries, what the harness and the adapters use.
-ARMS = ["recall", "mem0", "supermemory", "zep", "cognee", "fs_grep", "claude_md", "bare"]
+# DERIVED from the generator, not restated. Both lists below were literals until 2026-08-29, and
+# adding one arm to PRODUCT_ARMS then failed seven tests here for no reason connected to what any
+# of them asserts. A fixture that has to be edited in step with the source is a fixture that will
+# one day be edited to match a bug.
+ARMS = [name for name, *_ in _generator().PRODUCT_ARMS]
 
 # What the PAGE is allowed to print. The third-party arms are unannounced, so they reach the
 # site as neutral placeholders; the mapping lives in the generator's PRODUCT_ARMS.
-PUBLIC_ARMS = [
-    "recall",
-    "product_a",
-    "product_b",
-    "product_c",
-    "product_d",
-    "fs_grep",
-    "claude_md",
-    "bare",
-]
+def _public_arms() -> list[str]:
+    names, anonymous = [], 0
+    for *_, public in _generator().PRODUCT_ARMS:
+        if public is None:
+            names.append("product_" + chr(ord("a") + anonymous))
+            anonymous += 1
+        else:
+            names.append(public)
+    return names
+
+
+PUBLIC_ARMS = _public_arms()
 
 
 def _run(*args, root=None):

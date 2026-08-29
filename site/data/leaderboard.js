@@ -64,6 +64,16 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
+      "name": "product_e",
+      "type": "third-party product, not yet named",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null
+    },
+    {
       "name": "fs_grep",
       "type": "transcripts on disk",
       "role": "control",

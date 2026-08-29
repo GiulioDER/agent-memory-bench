@@ -141,10 +141,10 @@ python -m scripts.audit_plants
 
 ## Arms
 
-**Runnable today, six:** `bare`, `placebo` (length-matched neutral prose), `claude_md`
+**Runnable today, seven:** `bare`, `placebo` (length-matched neutral prose), `claude_md`
 (designated baseline), `protocol` (the shared memory instruction with no memory layer),
-`fs_grep` (transcripts on disk plus grep), and `recall`. The registry is `ARMS` in
-`scripts/pilot.py`.
+`fs_grep` (transcripts on disk plus grep), `recall`, and, since 2026-08-29, the first
+third-party product. The registry is `ARMS` in `scripts/pilot.py`.
 
 `protocol` is the arm that separates the coaching from the retrieval, and it exists because the
 recall arm's treatment was not only the memory layer. Until 2026-08-28 the recall arm carried
@@ -168,10 +168,37 @@ measuring it needs a preregistration first.
 python -m pytest tests/test_instruction_fairness.py -q
 ```
 
-**Not built, four:** the third-party memory products. They are not named yet, here or on the
-site. Every vendor is invited to review its own adapter and frozen config before any measured
-run, no invitation has gone out, and naming a product first would enter it into a benchmark
-nobody has told it about.
+**Not built, four:** the remaining third-party memory products. They are not named yet, here
+or on the site. Every vendor is invited to review its own adapter and frozen config before any
+measured run, no invitation has gone out, and naming a product first would enter it into a
+benchmark nobody has told it about.
+
+**Built and never run, one:** `mempalace` landed on 2026-08-29, wired through MemPalace's own
+published MCP server (`mempalace-mcp`) and its own published ingest CLI (`mempalace mine --mode
+convos`), pinned to `mempalace==3.8.0`.
+
+The name appears here and nowhere on the site, and that is the rule rather than an inconsistency:
+this repository is where a vendor reads what it is being asked to review, so
+`adapters/mempalace/` and its `VENDOR_REVIEW.md` are public on purpose. `site/` is what enters a
+product into a benchmark it was never told about, and there the arm is `product_e` with every
+number null until its maintainers have had the review window.
+
+⚠️ **It has measured nothing.** What is verified is the wiring, end to end and on this host: the
+pinned version installs, its embedder loads, its MCP server serves all 20 tools the frozen config
+allows out of the 44 it ships, and the adapter's own ingest path filed 56 drawers from 8 real
+corpus sessions in 30.7 s and then retrieved the signal session for `ts-append-only`. That is a
+proof that the arm can run. It is not a number about the product.
+
+One environment fact is load-bearing and cost a measurement to find: **the palace path must be
+short.** MemPalace embeds through onnxruntime, whose DLL fails to load from a deep path on Windows
+with "The filename or extension is too long", and chromadb catches that and re-raises it as "The
+onnxruntime python package is not installed" when it is installed. Under the harness's own staging
+root the arm would have scored zero with nothing in the record naming why. The adapter refuses a
+path over 120 characters instead, and the preflight checks it before a run starts.
+
+```bash
+MEMPALACE_VENV=C:/mpb/v MEMPALACE_PALACE_ROOT=C:/mpb/palaces python scripts/mempalace_preflight.py --ingest-smoke
+```
 
 Two diagnostic reference tracks, `oracle_memory` and `recall_prefetch`, have adapters and tests.
 `results/diagnostic-010/` is published as an artifact, with its own analysis, and like the
