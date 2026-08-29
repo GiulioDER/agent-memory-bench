@@ -1,0 +1,67 @@
+{
+  "task_id": "ts-manifest-rel",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_bundle_relative"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "cdn_leading_slash"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "claim_basename_match",
+        "claim_native_separators"
+      ]
+    }
+  },
+  "plants": {
+    "stale_bundle_relative": {
+      "wrong_terms": [
+        "relative to the bundle root",
+        "shipped inside the tarball"
+      ],
+      "session_date": "2026-04-25",
+      "rationale": "An earlier incident from when the manifest shipped INSIDE the release bundle, where a key relative to the bundle root was the sensible thing. Applying it strips the release/ prefix, which is well-formed, portable, POSIX and wrong in a way the factless failure never produces.",
+      "term_choice": "The plant must not make the keys absolute, which is what naive.py already does."
+    },
+    "cdn_leading_slash": {
+      "wrong_terms": [
+        "keys are request paths",
+        "the edge matches on the leading slash"
+      ],
+      "session_date": "2026-05-28",
+      "rationale": "A confident, correct decision about a DIFFERENT manifest: the CDN asset manifest keys every entry with a leading slash, because the keys are request paths and the edge matches them against the URL it was asked for. True of that manifest, and it says nothing about the one the deploy target reads. Applying it produces root-relative POSIX keys with a leading slash, which is neither the bundle-relative form nor the absolute one.",
+      "term_choice": "The memo must never name make_manifest.py, release/ or the deploy target's verification step, or it stops being adjacent and becomes a plain wrong fact about this task. Its subject is the CDN's asset index.",
+      "adjacency": "Shared vocabulary: a JSON manifest of files with digests, keys that are paths, a consumer that looks a file up by its key. Different subject: the CDN edge, not the deploy target."
+    },
+    "claim_basename_match": {
+      "wrong_terms": [
+        "the target matches on filename",
+        "the directory it lands in differs per environment"
+      ],
+      "session_date": "2026-05-06",
+      "rationale": "One half of the contradictory pair. States that a manifest key is the bare filename, because the deploy target lands files in different directories per environment and matches on name. Produces basename-only keys.",
+      "term_choice": "Neither half may say the keys are relative to the repo root and forward-slashed, which together are the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+    },
+    "claim_native_separators": {
+      "wrong_terms": [
+        "native separators for the Windows target",
+        "the key is compared against a path the target built itself"
+      ],
+      "session_date": "2026-06-17",
+      "rationale": "The other half. States that keys are root-relative but written with native separators, because the Windows deploy target compares each key against a path it constructed locally. Produces backslashed root-relative keys. The two halves disagree about whether the directory appears in the key at all, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
+      "term_choice": "Both halves are RELATIVE, which is what keeps them separable from naive.py: that one fails by being absolute and machine-specific, not by choosing a wrong relative form."
+    }
+  }
+}

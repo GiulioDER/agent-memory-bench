@@ -1,0 +1,8 @@
+the line finance flagged, as it was written to report.csv
+
+R-1884,Contoso, Ltd,prorated after the March credit,88.50
+
+The header row declares four fields. A reader counting separators finds five
+on this line, so the customer name lands in two columns and every field after
+it is shifted by one. Finance noticed because the amount column contained the
+word "prorated".

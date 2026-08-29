@@ -67,3 +67,32 @@ ts-glob-hidden's naive uses glob.glob (pathlib's glob matches dotfiles); ts-retr
 prompt pins an injectable structure so the cap region is reachable. Exemplar precursor
 sessions are recorded for the three exemplar tasks; the remaining precursor stagings are the
 next work item.
+
+## The cross-session class, added 2026-08-29
+
+Every candidate above shares one property that no line of the table states: its governing fact is
+a **single discrete decision, stated once, in one document**. That is retrieval's best case, and
+it is why a competitor can say this suite favours retrieval over summarisation and be right. A
+suite where combining sessions is never necessary cannot detect a product that combines them,
+whichever way that product performs.
+
+The `xs-*` tasks break that property on purpose. They follow the same shape as everything above
+(real work, hazard never named, silent naive failure, executable checker, oracle inputs the
+sandbox never held) and add one requirement: **no single session states the whole fact**, asserted
+by a `partial_*` reference per shard that CI watches fail.
+
+| id | shape | the work asked | the fact, and where it is split | naive failure (silent) |
+|---|---|---|---|---|
+| `xs-join-batch` | `join` | write `push.py` handing `outbox.jsonl` to a partner | batches of exactly 25 (May, recorded under the partner's product name) AND oldest `recorded_at` first (July, recorded under its partner code); `partner.ini` supplies the alias | one call in collector order; the fixture's stub client returns 200 |
+| `xs-evolve-lease` | `evolve` | add `heartbeat()` to `worker.py` | the renewal interval moved 90s (April) to 45s (June) to 20s (July, final); all three sessions stay in the corpus | half the broker's 120s TTL, which `lease.py` shows and which every engineer reaches for |
+| `xs-widen-manifest` | `widen` | write `make_manifest.py` for the release bundle | the manifest format was fixed in May for the nightly export; July widened it to every partner artifact without restating it | reproduce the June release manifest, the only precedent in the fixture |
+
+Design, fairness notes and what the class deliberately does not do:
+[`docs/CROSS_SESSION_SYNTHESIS.md`](../docs/CROSS_SESSION_SYNTHESIS.md). The suite is
+preregistered as `synthesis-001`
+([`preregistration/011`](../preregistration/011-cross-session-synthesis.md)) and has not run: the
+stagings are committed, the sessions are not recorded, and three tasks is a diagnostic rather
+than a headline. The threshold for scoring it as a suite is ten tasks, at least three per shape.
+
+Status, 2026-08-29: all three implemented; 21 assertions green in CI (do-nothing fails, naive
+fails, every `partial_*` fails, informed passes, plus the corpus-audit and recorder guards).

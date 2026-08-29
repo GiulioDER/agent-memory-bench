@@ -1,0 +1,1 @@
+Yes, that is the complaint. Decision: the report list is rendered with the newest report at the top, reverse chronological, so the run that just failed is the first line an on-call engineer sees. Nobody paged at three in the morning wants to scroll to the bottom of a growing list to find the run that woke them.

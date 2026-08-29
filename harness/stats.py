@@ -25,7 +25,7 @@ from __future__ import annotations
 import math
 import random
 import statistics
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -178,6 +178,72 @@ class TaskRate:
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "delta": self.delta}
+
+
+def cluster_bootstrap(
+    per_task_deltas: Sequence[float],
+    *,
+    iterations: int = 10_000,
+    confidence: float = 0.95,
+    seed: int = 12345,
+) -> tuple[float, float] | None:
+    """Percentile interval on the mean per-task delta, resampling TASKS.
+
+    THE single implementation. `scripts/analyze_pilot.py` carried a second one with a different
+    seed (42 against 12345) and a different index clamp, and it computed every published headline
+    interval, so the repository had two answers to "what is the CI" and no test that they agreed.
+
+    ⚠️ **This interval does not include run-to-run variance, and the two published replications
+    measure how much that omits.** `pilot-003-deepseek` and `pilot-004-placebo` ran the same
+    protocol, model, tasks and seeds; their per-task recall-minus-claude_md deltas correlate at
+    r = 0.625, the mean absolute difference is 0.146, and 5 of 24 tasks flip sign or move by at
+    least 0.50. Resampling tasks within one run treats each task's delta as measured without error.
+    It is not. Quote this interval with that stated, or report both runs.
+    """
+
+    usable = [float(d) for d in per_task_deltas if d is not None and math.isfinite(float(d))]
+    if len(usable) < 2 or len(set(usable)) == 1:
+        return None
+    rng = random.Random(seed)
+    size = len(usable)
+    means = sorted(
+        sum(usable[rng.randrange(size)] for _ in range(size)) / size for _ in range(iterations)
+    )
+    lo_q = (1.0 - confidence) / 2.0
+    lo = means[min(len(means) - 1, int(lo_q * len(means)))]
+    hi = means[min(len(means) - 1, int((1.0 - lo_q) * len(means)))]
+    return (lo, hi)
+
+
+def effect_concentration(per_task_deltas: Mapping[str, float]) -> dict[str, Any]:
+    """How much of a headline delta comes from how few tasks.
+
+    A mean over 24 tasks reads as a broad improvement. Measured on `pilot-004-placebo`, 9 of 24
+    tasks contributed a nonzero recall-minus-claude_md delta and the top three carried 64% of the
+    total; on `pilot-003-deepseek`, 11 of 24 and 38%. Both are real results and neither is "the
+    memory layer helps across the board", so the counts belong beside the mean rather than in a
+    reader's head.
+    """
+
+    deltas = {task: float(value) for task, value in per_task_deltas.items()}
+    if not deltas:
+        return {"n_tasks": 0}
+    nonzero = {t: d for t, d in deltas.items() if abs(d) > 1e-12}
+    positive = sorted((d for d in deltas.values() if d > 0), reverse=True)
+    total_positive = sum(positive)
+    return {
+        "n_tasks": len(deltas),
+        "n_contributing": len(nonzero),
+        "n_zero": len(deltas) - len(nonzero),
+        "n_helped": sum(1 for d in deltas.values() if d > 0),
+        "n_hurt": sum(1 for d in deltas.values() if d < 0),
+        "top3_share_of_positive": (
+            round(sum(positive[:3]) / total_positive, 3) if total_positive else None
+        ),
+        "largest_contributors": [
+            task for task, _ in sorted(nonzero.items(), key=lambda kv: -abs(kv[1]))[:3]
+        ],
+    }
 
 
 def summarize_by_task(

@@ -1,0 +1,2 @@
+ok: that is the plan. The worker will renew every 90 seconds while a drain is running, since
+90 seconds sits comfortably inside the lease and costs the broker almost nothing.

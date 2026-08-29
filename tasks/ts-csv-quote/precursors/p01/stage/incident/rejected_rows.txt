@@ -1,0 +1,12 @@
+Rows the sheet could not match, exactly as they arrived
+
+  R-3311,Halvorsen, Riis og Sønn,annual renewal,1180.00
+  R-3318,Meridian,split: 40% licence, 60% support,842.50
+  R-3324,Okonkwo & Sons, Ltd,prorated after the May credit,495.00
+
+Header row was:
+
+  id,customer,note,amount
+
+The first row arrives with five fields, the second with five, the third
+with five. The header promises four.

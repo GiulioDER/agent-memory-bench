@@ -1,0 +1,9 @@
+value held for the shadow_writes flag, from the file's own history
+
+  2026-04-18   shadow_writes = off
+  2026-05-02   shadow_writes = 0
+  2026-05-19   shadow_writes = no
+  2026-06-11   shadow_writes = off
+
+Four edits, every one of them intended to keep the flag disabled. The metric
+for shadow writes has been non-zero throughout the period.

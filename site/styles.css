@@ -564,6 +564,31 @@ td .m, th .m { font-size: 13px; }
 
 @keyframes blink { 50% { opacity: 0.15; } }
 
+/* What the ranking is a ranking OF. Filled by site.js from the generated data; it sits above
+   the table on purpose, because a qualification a reader has to scroll for is a footnote. */
+.scope-note:empty { display: none; }
+
+.scope-note {
+  display: block;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--ink);
+  background: var(--paper-soft, transparent);
+  font-size: 14px;
+}
+
+.scope-note strong {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scope-note p {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+}
+
 /* ---------- footer ---------- */
 
 footer {

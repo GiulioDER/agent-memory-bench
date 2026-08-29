@@ -1,0 +1,3 @@
+ok: that matches what support told us. From now on every push to the atlas feed goes in
+batches of exactly 25, and we never send more than 25 in one call, because
+the atlas loader silently truncates anything longer and still answers 200.

@@ -1,0 +1,13 @@
+Integration contract, schedule B: outbound feed format
+(extract, as agreed 2026-02-11)
+
+  B.1  One record per line, terminated LF.
+  B.2  Field separator: SEMICOLON (U+003B). The receiving parser is a fixed
+       build and the separator is not configurable at either end.
+  B.3  Header row required, field names exactly as in schedule A.
+  B.4  A field containing the separator or a line break is quoted with
+       double quotes; an embedded double quote is doubled.
+
+  B.9  Scope. This schedule governs the feed transmitted to the partner
+       endpoint. Reports produced for internal consumers are outside the
+       contract and are not constrained by it.

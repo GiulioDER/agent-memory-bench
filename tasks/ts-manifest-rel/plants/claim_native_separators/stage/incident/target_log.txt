@@ -1,0 +1,14 @@
+Windows deploy target, verification run 2026-06-16
+
+  install_root = D:\deploy\current
+  discovered 4 files:
+    D:\deploy\current\release\app\main.py
+    D:\deploy\current\release\app\util\text.py
+    D:\deploy\current\release\assets\banner.txt
+    D:\deploy\current\release\VERSION
+
+  manifest entry "release/app/main.py"
+    expected D:\deploy\current\release/app/main.py
+    MISSING
+
+  4 entries checked, 0 verified, 4 missing

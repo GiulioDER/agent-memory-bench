@@ -1,0 +1,11 @@
+the change that caused it, 2026-06-02
+
+  +target
+
+Commit message: "ignore the rust build output at the top level".
+
+The author's intent was the target directory produced by the workspace build
+at the repository root. There is exactly one such directory.
+
+There are also nine directories named target nested under vendor/, each one
+checked in on purpose because the vendored crates ship their own fixtures.

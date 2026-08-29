@@ -1,0 +1,15 @@
+breakdown of the 2026-05-23 archive
+
+  path prefix          files      bytes
+  ---------------------------------------
+  src/                 6,142    471 MB
+  vendor/              1,208     18 MB
+  config/                 44    1.2 MB
+  .config/                12    0.4 MB
+  (root files)             9    0.2 MB
+  ---------------------------------------
+                       7,415    894 MB
+
+The job's change on 2026-05-21 was to walk the whole working tree rather than
+the configuration directories. Every path under src/ is tracked in git and
+present in the remote.

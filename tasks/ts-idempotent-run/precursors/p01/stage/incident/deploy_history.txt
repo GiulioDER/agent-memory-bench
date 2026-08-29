@@ -1,0 +1,16 @@
+Deploy pipeline, 2026-06-24, release 3.2.0
+
+  14:02:11  build            ok        48s
+  14:03:01  artefact upload  TIMEOUT   180s   (artefact store slow)
+  14:06:02  register         ok        1s
+  14:06:03  pipeline         FAILED    (upload step)
+
+  operator re-ran the pipeline
+
+  14:11:40  build            ok        44s
+  14:12:26  artefact upload  ok        62s
+  14:13:29  register         ok        1s
+  14:13:30  pipeline         SUCCESS
+
+The register step ran twice because it sits after the step that timed
+out, and the pipeline restarts from the beginning.

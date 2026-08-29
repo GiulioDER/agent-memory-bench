@@ -1,0 +1,13 @@
+nightly-verify 2.1 - analytics ingest
+input: nightly/manifest.txt
+
+  line 1   parse ok    path=orders.parquet
+  line 2   parse ok    path=customers.parquet
+  line 3   ERROR       expected the digest field to be a fixed-width token; got a bare
+                       hex string the same shape as a filename fragment
+  line 4   ERROR       out of order: 'accounts.parquet' after 'customers.parquet'
+  summary  aborted after 2 of an unknown number of entries; this file declares no count,
+           so a truncated download and a complete one look identical to us.
+
+We stream these files and stop at the first surprise. We cannot tell a short manifest from a
+short download.

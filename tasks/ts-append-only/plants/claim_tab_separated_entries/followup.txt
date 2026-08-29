@@ -1,0 +1,1 @@
+Confirmed, it is the labels with spaces in them. Decision: entries are tab-separated, so a value containing a space cannot split a column. Tabs never occur in anything we write and spaces occur constantly, which makes the tab the only separator here that a value cannot forge. The loader is being switched over in the same change.

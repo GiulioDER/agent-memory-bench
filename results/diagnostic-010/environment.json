@@ -1,0 +1,129 @@
+{
+  "run_id": "diagnostic-010",
+  "arms": [
+    "claude_md",
+    "recall",
+    "oracle_memory",
+    "recall_prefetch"
+  ],
+  "model": "deepseek/deepseek-v4-flash",
+  "provider_base_url": "https://openrouter.ai/api",
+  "claude_code_version": "2.1.238 (Claude Code)",
+  "timeout_s": 600.0,
+  "permission_mode": "acceptEdits",
+  "seeds": 3,
+  "repetitions_per_cell": 1,
+  "tasks": [
+    "ts-append-only",
+    "ts-atomic-write",
+    "ts-base36-id",
+    "ts-bom-merge",
+    "ts-casefold-sort",
+    "ts-config-layer",
+    "ts-crlf-export",
+    "ts-dedup-order",
+    "ts-empty-input",
+    "ts-glob-hidden",
+    "ts-golden-regen",
+    "ts-ignore-gen",
+    "ts-legacy-hash",
+    "ts-log-mask",
+    "ts-manifest-rel",
+    "ts-mig-name",
+    "ts-nfc-count",
+    "ts-quote-shell",
+    "ts-retry-cap",
+    "ts-round-money",
+    "ts-schema-additive",
+    "ts-semver-pin",
+    "ts-stable-sort",
+    "ts-tz-utc"
+  ],
+  "namespace": "bench-recall-diag010",
+  "catalog_sha256": "646b21671d32ec3d3e3113ca5f15882df9995ad91875983cc48bbd7f81318c43",
+  "corpus_sessions": 125,
+  "recall_pythonpath": "/home/sentiment/amb-recall-pin",
+  "startup_attempts": 3,
+  "startup_preflight": {
+    "recall": [
+      {
+        "server": "recall",
+        "ok": true,
+        "tools": [
+          "recall_search",
+          "recall_evidence",
+          "recall_related",
+          "recall_current_state",
+          "recall_reasoning_query",
+          "recall_reasoning_projection",
+          "recall_reasoning_proposals",
+          "recall_rewrite_plan",
+          "recall_reasoning_audit",
+          "recall_index",
+          "recall_tenants",
+          "recall_ingest",
+          "recall_job_status",
+          "recall_calibration_status",
+          "recall_calibration_run",
+          "recall_calibration_publish",
+          "recall_forget",
+          "recall_stats"
+        ],
+        "elapsed_ms": 7216.3,
+        "stderr_tail": "RECALL_TRUST_MODE=development: the trust gate is RELAXED for this server. Uncalibrated and unbound corpora will be served instead of refused. Local work only; unset it for anything anyone relies on.\n2026-08-27 14:32:49,428 INFO recall.mcp: starting stdio server\n2026-08-27 14:32:49,439 INFO recall.mcp: retrieval profile legacy (candidates 20/leg, returns 5, reranker False, budget 2147483647 ms, 4 concurrent + 16 queued)\nIgnoring corrupted tree cache file /tmp/fastembed_cache/models--qdrant--bge-small-en-v1.5-onnx-q/trees/52398278842ec682c6f32300af41344b1c0b0bb2.json: [Errno 13] Permission denied: '/tmp/fastembed_cache/models--qdrant--bge-small-en-v1.5-onnx-q/trees/52398278842ec682c6f32300af41344b1c0b0bb2.json'\n[08/27/26 14:32:50] WARNING  Ignoring corrupted tree cache    _tree_cache.py:123\n                             file                                               \n                             /tmp/fastembed_cache/models--qdr                   \n                             ant--bge-small-en-v1.5-onnx-q/tr                   \n                             ees/52398278842ec682c6f32300af41                   \n                             344b1c0b0bb2.json: [Errno 13]                      \n                             Permission denied:                                 \n                             '/tmp/fastembed_cache/models--qd                   \n                             rant--bge-small-en-v1.5-onnx-q/t                   \n                             rees/52398278842ec682c6f32300af4                   \n                             1344b1c0b0bb2.json'                                \n",
+        "error": null
+      }
+    ]
+  },
+  "min_free_mb": 3000.0,
+  "recall_instruction": "skill",
+  "recall_instruction_sha256": "1fdc9e85a556c2cc5404b7b036ae4cf4962ff41ea088860b6380660862fe47c1",
+  "arm_concurrency": null,
+  "arm_order_seed": "diagnostic-010",
+  "free_mb_at_start": 22958.8203125,
+  "pricing": {
+    "model": "deepseek/deepseek-v4-flash",
+    "usd_per_mtok_input": 0.0826,
+    "usd_per_mtok_output": 0.1652,
+    "as_of": "2026-08-25",
+    "source": "https://openrouter.ai/api/v1/models"
+  },
+  "recovered_sessions": [
+    [
+      "ts-base36-id",
+      0,
+      "claude_md"
+    ],
+    [
+      "ts-casefold-sort",
+      0,
+      "recall"
+    ],
+    [
+      "ts-golden-regen",
+      2,
+      "recall"
+    ],
+    [
+      "ts-mig-name",
+      1,
+      "oracle_memory"
+    ],
+    [
+      "ts-nfc-count",
+      1,
+      "oracle_memory"
+    ],
+    [
+      "ts-retry-cap",
+      1,
+      "oracle_memory"
+    ],
+    [
+      "ts-tz-utc",
+      0,
+      "recall_prefetch"
+    ]
+  ],
+  "wall_minutes": 139.3
+}

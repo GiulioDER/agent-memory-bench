@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = ["pytest==9.1.1", "ruff==0.16.2"]
 # Each product arm's dependencies are installed only when that arm runs, and are pinned in
 # adapters/<name>/versions.lock at the preregistration freeze. Nothing here, on purpose:
 # the harness itself is stdlib-only so a reviewer can read it without an environment.

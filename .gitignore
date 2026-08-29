@@ -1,8 +1,19 @@
 # Secrets and local environment. Both halves of a server config are disclosure: tokens
 # obviously, host inventories too. Neither ever lives in this tree.
 .env
+# Variants too: .env.local and .env.production are the same disclosure as .env, and only the
+# bare name was covered. The two tracked .env.production files under oracles/ and tasks/ are
+# ts-glob-hidden FIXTURES (that task is about globbing dotfiles), so they are re-included.
+.env.*
+!.env.example
+!oracles/**/.env.production
+!tasks/**/.env.production
 *.secrets.json
 pricing.json
+
+# Agent session state, project-scoped MCP config and audit bookkeeping. Local to a machine,
+# and on a developer box this can hold whole worktree checkouts.
+.claude/
 
 # Run artifacts are published deliberately, per run, after review; work dirs never.
 results/*/work/
@@ -14,3 +25,6 @@ staging/
 .venv/
 results/*/cfg/
 results/*.log
+
+# Assembled condition corpora: reproducible from the base corpus, plants.json and a seed.
+corpus/conditions/

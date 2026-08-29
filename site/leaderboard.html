@@ -43,6 +43,11 @@
 
   <div class="status-line" id="run-meta" role="status"></div>
 
+  <!-- What this ranking is a ranking OF. Written by scripts/build_leaderboard.py from
+       leaderboard.config.json, never by hand: while the write path is unmeasured the page
+       must say so here, beside the table rather than in a footnote. -->
+  <aside class="scope-note" id="scope-note"></aside>
+
   <section class="pad-y-s" id="products">
     <div class="section-head">
       <span class="no">01</span>
@@ -129,9 +134,30 @@
     <div class="callout mt-l">
       <span class="kicker">Pilot and diagnostic runs</span>
       <div class="prose">
-        <p>Smoke tests, pilots and diagnostic runs exist in the repository's
-        <code>results/</code> tree and are exactly what their names say: bring-up. They are not
-        rankings, they are not previews of rankings, and they will not be quoted as either.</p>
+        <p>Smoke tests and pilots exist in the repository's <code>results/</code> tree and are
+        exactly what their names say: bring-up. They are not rankings, they are not previews of
+        rankings, and they will not be quoted as either.</p>
+        <p>As of 2026-08-29 that tree holds four published pilot runs and one repair record, with
+        one product arm and no third-party arm. Three ran on one cheap model; the fourth, on a
+        stronger one, ran out of provider credit at 40 of its 72 cells and is incomplete rather
+        than negative. Their per-session logs, admission verdicts and cost ledgers are published
+        because the benchmark publishes what it runs, not because any of it is a result about the
+        field.</p>
+        <p>The tree also carries the harm suite's first run, a task calibration and one
+        diagnostic, published as artifacts on 2026-08-29. <strong>None of those three is written
+        up under its preregistration</strong>, which is the step that turns a run into a result,
+        so nothing from them is quoted here or anywhere else. Some incomplete and void runs are
+        still held back, each for a reason recorded beside it, and the accounting is in
+        <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md">docs/STATUS.md</a>.</p>
+        <p>One caveat that outlives them. Three graded-outcome defects were fixed on 2026-08-29:
+        a grader that rejected correct solutions about 40% of the time, a checker crash that
+        discarded a whole paired cell instead of failing one arm, and cost estimates that priced
+        cache reads as fresh input. A run measured after those fixes is <strong>not</strong>
+        protocol-identical to the pilots in this tree, so the two must not be differenced. The
+        break is recorded, with the arithmetic, in
+        <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/audit/2026-08-29-protocol-change-record.md">the protocol change record</a>,
+        and where the benchmark stands overall is in
+        <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md">docs/STATUS.md</a>.</p>
       </div>
     </div>
   </section>

@@ -1,0 +1,9 @@
+{"record_id": "r-4100", "recorded_at": "2026-08-10T00:10:00Z", "kind": "reading", "value": 100}
+{"record_id": "r-4101", "recorded_at": "2026-08-11T01:11:00Z", "kind": "alarm", "value": 107}
+{"record_id": "r-4108", "recorded_at": "2026-08-12T00:12:00Z", "kind": "status", "value": 156}
+{"record_id": "r-4103", "recorded_at": "2026-08-10T03:13:00Z", "kind": "reading", "value": 121}
+{"record_id": "r-4106", "recorded_at": "2026-08-10T06:10:00Z", "kind": "reading", "value": 142}
+{"record_id": "r-4104", "recorded_at": "2026-08-11T04:14:00Z", "kind": "alarm", "value": 128}
+{"record_id": "r-4107", "recorded_at": "2026-08-11T07:11:00Z", "kind": "alarm", "value": 149}
+{"record_id": "r-4105", "recorded_at": "2026-08-12T05:15:00Z", "kind": "status", "value": 135}
+{"record_id": "r-4102", "recorded_at": "2026-08-12T02:12:00Z", "kind": "status", "value": 114}

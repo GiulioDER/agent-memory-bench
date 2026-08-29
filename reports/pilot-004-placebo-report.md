@@ -164,3 +164,130 @@ The full analysis command was:
 ```bash
 python -m scripts.analyze_pilot --run-id pilot-004-placebo --arms bare,placebo,claude_md,recall
 ```
+
+## Correction and robustness appendix, added 2026-08-25
+
+This section was appended after the report was published. Nothing above it has been edited, and
+`preregistration/004-claude-md-placebo.md` has not been touched at all: its results section stands
+as written, including the discard sentence corrected below. A preregistration is evidence of what
+was believed at the time, and correcting it in place would destroy the more useful artifact.
+
+### The discard accounting above is imprecise
+
+The Data quality section says eight cells were recall MCP startup failures and one cell was
+discarded because its placebo arm did not pass admission. Rechecked against
+`results/pilot-004-placebo/admission.json`, the true accounting is nine discarded cells covering
+ten non-admitted arm sessions:
+
+| Cell | Arm | Reason |
+|---|---|---|
+| ts-atomic-write seed 1 | placebo | provider `api_error`, session did not complete |
+| ts-atomic-write seed 1 | recall | MCP server `recall` reported status `failed` |
+| ts-atomic-write seed 2 | recall | MCP server `recall` reported status `failed` |
+| ts-base36-id seed 1 | recall | MCP server `recall` reported status `failed` |
+| ts-bom-merge seed 0 | recall | MCP server `recall` reported status `failed` |
+| ts-casefold-sort seed 1 | recall | MCP server `recall` reported status `failed` |
+| ts-empty-input seed 1 | recall | provider `api_error`, session did not complete |
+| ts-ignore-gen seed 1 | recall | MCP server `recall` reported status `failed` |
+| ts-legacy-hash seed 0 | recall | MCP server `recall` reported status `failed` |
+| ts-legacy-hash seed 1 | recall | MCP server `recall` reported status `failed` |
+
+Two things the original sentence obscured. No cell was discarded solely because of the placebo:
+ts-atomic-write seed 1 also lost its recall session, so it would have been discarded anyway. And
+one recall session was lost to a provider `api_error` rather than to MCP startup, which the
+original sentence does not mention at all. The count of eight MCP startup failures is correct.
+
+### Every discarded cell was discarded because a recall session failed
+
+`bare` and `claude_md` never lost a cell in this run. That is a structural asymmetry rather than
+bad luck: the recall arm is the only one carrying an MCP server, so it is the only arm that can
+fail to wire up, and a cell dies whenever any arm does. The published recall rate is therefore
+conditional on the recall wiring having worked, and the honest reading is that it measures recall
+when recall is running, not recall including the times it does not start.
+
+### Intention-to-treat sensitivity, exploratory and not preregistered
+
+To see how much of the headline the discard rule is carrying, the same contrasts were recomputed
+with the same estimator over all 72 complete cells, scoring the dropped sessions exactly as they
+were recorded. This is a robustness check reported beside the preregistered analysis, not a
+replacement for it, and the selection rule was not changed: the preregistered contrast remains the
+per-protocol one over 63 admitted cells.
+
+| Contrast | Per-protocol, 63 cells (preregistered) | Intention-to-treat, 72 cells |
+|---|---|---|
+| Recall minus `CLAUDE.md` | +0.1736 [+0.0486, +0.3125], p=.00183 | +0.1667 [+0.0417, +0.3056], p=.00183 |
+| Recall minus bare | +0.1806 [+0.0139, +0.3472], p=.00098 | +0.1528 [-0.0000, +0.3056], p=.01273 |
+| Placebo minus bare | +0.0556 [-0.0278, +0.1528], p=.21875 | +0.0417 [-0.0417, +0.1528], p=.45313 |
+| `CLAUDE.md` minus placebo | -0.0486 [-0.1875, +0.0903], p=.45313 | -0.0556 [-0.1528, +0.0278], p=.28906 |
+
+Arm rates under intention-to-treat: bare `30/72` (41.7%), placebo `33/72` (45.8%), `CLAUDE.md`
+`29/72` (40.3%), recall `41/72` (56.9%).
+
+Three readings follow. The primary recall versus `CLAUDE.md` result is robust to the discard rule:
+the point estimate moves by 0.7 points, the interval still excludes zero, and the discordant counts
+are identical at 13 to 1, because recall and `CLAUDE.md` both lose cells to the same nine
+discarded pairs. The recall versus bare result is the fragile one: its interval lower bound falls
+to zero and its p-value moves by an order of magnitude, so it should be quoted with that caveat.
+And this is not a zero-filling artefact: two of the eight MCP-failed recall sessions succeeded at
+the task anyway, so the intention-to-treat recall arm is not simply the admitted arm plus nine
+losses.
+
+Reproduce both columns, and note that the per-protocol column is expected to match `analysis.json`
+exactly, which is what makes the script trustworthy:
+
+```bash
+python -m scripts.discard_sensitivity --run-id pilot-004-placebo --arms bare,placebo,claude_md,recall
+```
+
+### The MCP failures were a transient, and the harness now retries them
+
+In run order across the seventy-two recall sessions, the eight startup failures sit at positions 4,
+5, 7, 9, 13, 34, 36 and 37. There are none in the last thirty-four. A failure clustered in time and
+uncorrelated with tasks is a transient, not a property of any task, and `mcp_server_errors` was
+empty in all eight, so the run recorded that the server had failed without recording why.
+
+Eight of seventy-two is an 11.1% per-session startup failure rate, and that number is what blocks
+the competitor comparison rather than merely annoying it. A paired cell is admitted only when every
+arm is wired, so an eight arm grid carrying five memory servers would admit a cell with probability
+0.889 to the fifth power, about 0.55, if that rate held and the failures were independent. Against
+an admission rule of 95%, the grid cannot be widened until the rate moves. The projection is
+illustrative and its assumptions are stated; the direction is not in doubt.
+
+`harness/memory_startup.py` was added in response, with two mechanisms:
+
+1. A preflight probe that speaks MCP to the configured server over stdio before any session is
+   paid for, using the exact command, arguments and environment block the session will use, and
+   capturing the server's own stderr, which no session record has ever contained.
+2. A bounded retry of a session whose treatment failed to wire up. The retry predicate reads the
+   admission surface through the gate's own helpers and never reads `success`, the checker verdict,
+   or anything the model did, because a retry rule that could see the outcome would be a rule for
+   rerunning losses until they win. Every attempt, its outcome and its raw stream are recorded, and
+   a failed attempt's stream and sandbox are renamed rather than overwritten.
+
+A recovered cell is a cell this protocol would previously have discarded, so runs using the retry
+publish a `recovered_sessions` list in `environment.json` beside the discard count. Reporting the
+discard count alone would quietly change what that count means.
+
+### Two disclosures appended 2026-08-29, nothing above them edited
+
+**The artifacts this report names are not committed to the repository.** The Reproducibility
+section above lists four paths under `results/pilot-004-placebo/`, and `git ls-files results`
+does not return any of them. Every number in this report was computed from those files, and a
+reader cannot currently check a single one. Either the run directory is committed, or the
+documents citing it say plainly that it cannot be checked. This is the saying so. The same holds
+for `midband-001`, cited by preregistration 008.
+
+**This run's dollar figures are not comparable with `pilot-003-deepseek`'s.** It was priced at
+`scripts/pilot.py`'s argparse defaults, 0.05866 / 0.11732, while `pilot-003-deepseek` used the
+frozen preregistration 002 rates, 0.0574 / 0.1148, and neither artifact recorded which basis it
+had used. The token counts are unaffected and reproduce exactly, so compare the two runs on
+tokens. The arithmetic, and the separate question of cache reads priced as fresh input, are in
+the [protocol change record](../docs/audit/2026-08-29-protocol-change-record.md). Prices are
+required rather than defaulted from 2026-08-29, so this cannot recur silently.
+
+**The grader that produced these outcomes has since changed.** Three protocol-sensitive fixes
+landed on 2026-08-29: `ts-retry-cap` rejected correct solutions about 40% of the time, a checker
+crash discarded a whole paired cell instead of failing one arm, and cache reads were priced as
+fresh input. The recorded numbers above are left exactly as they are, and the retry-cap error was
+symmetric across arms, so it inflated variance rather than biasing any contrast. A **new** run is
+not protocol-identical to this one and the two must not be differenced.

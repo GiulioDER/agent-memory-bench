@@ -1,0 +1,1 @@
+Confirmed, and it nearly changed the conclusion of the review. Decision: report files are ordered by report number, never by file name, because lexicographic order puts 10 before 2 and the operator reads them in sequence when reconstructing what happened across a night. Anything that lists them parses the numeric suffix and sorts on that.

@@ -1,0 +1,4 @@
+ok: that settles it. The nightly export manifest lists each file's
+uppercase hex behind a SHA256: prefix, two spaces, then the path relative to the export root,
+sorted by path with an entries count on the last line, so their verifier can stream it and stop
+when the count disagrees.

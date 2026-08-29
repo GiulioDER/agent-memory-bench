@@ -1,0 +1,10 @@
+CI log excerpt, reporting service, nightly rebuild
+
+  02:00:04  scheduled rebuild started, no commits since 2026-05-26
+  02:00:31  resolving dependencies from the public index
+  02:00:58  collected tabledraw 5.0.0
+  02:01:22  installed 41 packages
+  02:03:47  ImportError: cannot import name 'render_table' from 'tabledraw'
+  02:03:47  build FAILED
+  08:15:00  on-call confirmed no code change; the tree is identical to the
+            last green build at 2026-05-26 21:40

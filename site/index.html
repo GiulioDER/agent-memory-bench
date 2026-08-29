@@ -50,16 +50,17 @@
   <section class="stat-band" aria-label="Benchmark at a glance">
     <div class="stat-grid">
       <div><div class="n">8</div><div class="l">memory arms</div></div>
-      <div><div class="n">24</div><div class="l">executable tasks</div></div>
-      <div><div class="n">2</div><div class="l">reference tracks, unranked</div></div>
+      <div><div class="n">30</div><div class="l">executable tasks</div></div>
+      <div><div class="n">4</div><div class="l">corpus conditions for harm</div></div>
       <div><div class="n">0</div><div class="l">LLM judges in the endpoint</div></div>
     </div>
   </section>
 
   <div class="status-line" role="status">
-    <span class="live">Phase 0 · harness bring-up</span>
-    <span>Nothing here is a result yet.</span>
-    <span>The first preregistered run will be announced before it happens, not after.</span>
+    <span class="live">Phase 0 · harness bring-up and internal pilots</span>
+    <span>No multi-product run has happened; the leaderboard is empty by construction.</span>
+    <span>The first preregistered run is announced before it happens, not after.</span>
+    <span><a href="#progress">What has been built, and what has not &#8594;</a></span>
   </div>
 
   <section class="pad-y" id="decisions">
@@ -84,10 +85,16 @@
       <div class="decision">
         <span class="idx">D2</span>
         <div>
-          <h3>Additive design</h3>
-          <p>Every memory arm is the same CLAUDE.md bundle plus that product. The baseline is
-          <code>claude_md</code>, not <code>bare</code>: nobody runs a coding agent memory-free,
-          so nothing is measured against a strawman.</p>
+          <h3>Additive design, with the instruction controlled too</h3>
+          <p>Every memory arm is the same CLAUDE.md bundle plus that product, plus one shared
+          memory protocol that is byte-identical across arms, plus that product's own
+          result-schema appendix capped at 1,200 bytes. The baseline is <code>claude_md</code>,
+          not <code>bare</code>: nobody runs a coding agent memory-free, so nothing is measured
+          against a strawman.</p>
+          <p>The instruction is a treatment, not scaffolding. Until 2026-08-28 one arm carried
+          5,428 characters of it and another 231, and most of the difference was generic agent
+          coaching that would have helped any arm. Per-arm instruction sizes are published in
+          every run's <code>environment.json</code>.</p>
         </div>
       </div>
       <div class="decision">
@@ -115,6 +122,11 @@
           applied: MCP tools listed at session init, lifecycle hooks demonstrably fired with
           output, sandbox files digest-verified, and no arm holding another arm's tools. Discard
           counts are published per arm.</p>
+          <p>Two disclosures the gate cannot make for itself. Only an arm with a memory surface
+          can fail to wire, so the discard rule protects one class of arm's worst outcome and no
+          other's, and an intention-to-treat column is published beside every headline. And a
+          timeout is an outcome, not a wiring fault: it is never retried, and the retry kind is
+          recorded per attempt so the counts are publishable per arm.</p>
         </div>
       </div>
       <div class="decision">
@@ -141,16 +153,95 @@
       <div class="arm-cell"><div class="arm-name">claude_md</div><div class="arm-type">curated CLAUDE.md bundle</div><span class="badge">baseline</span></div>
       <div class="arm-cell"><div class="arm-name">fs_grep</div><div class="arm-type">transcripts on disk + grep</div><span class="badge">control</span></div>
       <div class="arm-cell"><div class="arm-name">recall</div><div class="arm-type">MCP server</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">mem0</div><div class="arm-type">SaaS API</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">supermemory</div><div class="arm-type">SaaS API</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">zep</div><div class="arm-type">Graphiti, local via docker</div><span class="badge">product</span></div>
-      <div class="arm-cell"><div class="arm-name">cognee</div><div class="arm-type">local via docker</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_a</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_b</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_c</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">product_d</div><div class="arm-type">third-party, not yet named</div><span class="badge">product</span></div>
     </div>
+
+    <p class="prose mt-m dim">Two further control arms run today and are never ranked.
+    <code>placebo</code> is neutral project-shaped prose matched to the baseline bundle on line
+    count and whitespace tokens, and <code>protocol</code> is the shared memory instruction with
+    no memory layer behind it. Between them they separate the coaching from the retrieval: if
+    <code>protocol</code> moves the number, the instruction was the treatment.</p>
+
+    <p class="prose mt-m dim">The four third-party arms are unnamed on purpose. Every vendor
+    is invited to review its own adapter and frozen config before any measured run, no
+    invitation has gone out yet, and naming a product first would enter it into a benchmark
+    nobody has told it about. They are named when the first preregistered run is announced,
+    which is before the run rather than after it.</p>
 
     <p class="prose mt-m dim">Two additional reference tracks, <code>oracle_memory</code> and
     <code>recall_prefetch</code>, isolate <em>where</em> the memory path succeeds or fails. They
     are diagnostics, not competitors, and are never ranked as products.
     <a href="method.html#diagnostic">How they decompose the problem&nbsp;&#8594;</a></p>
+  </section>
+
+  <section class="pad-y-s" id="progress">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>Where this actually stands</h2>
+      <span class="aside">2026-08-29</span>
+    </div>
+
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr><th>piece</th><th>state</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">harness</span></td>
+              <td>runs; sandbox, admission gate, paired statistics, cost ledger, MCP preflight and bounded retry</td></tr>
+          <tr><td><span class="m">tasks</span></td>
+              <td><strong>30</strong> executable tasks with naive and informed references asserted in CI; six added and calibrated on 2026-08-27</td></tr>
+          <tr><td><span class="m">harm suite</span></td>
+              <td>four corpus conditions built; <strong>11 tasks carry all four</strong>, above the threshold of eight for reporting a condition as a result</td></tr>
+          <tr><td><span class="m">arms</span></td>
+              <td><strong>six run today:</strong> the floor, the baseline, two instruction controls, a filesystem control, and one product. The four third-party arms have no adapter yet</td></tr>
+          <tr><td><span class="m">runs</span></td>
+              <td>five internal pilots, four on one cheap model and one incomplete on a stronger one, plus the harm suite's first run, a task calibration and one diagnostic. <strong>All published as artifacts; none of the last three is written up under its preregistration, so no number from them is quoted.</strong> Some incomplete and void runs are still held back. No multi-product run</td></tr>
+          <tr><td><span class="m">leaderboard</span></td>
+              <td>empty, and empty by construction: a number reaches it only from a published run summary</td></tr>
+          <tr><td><span class="m">reproducibility</span></td>
+              <td><strong>not there yet.</strong> One arm's package pin is still <code>TBD</code> and the compose stack starts no memory server</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="prose mt-l">
+      <p>Three things landed in the week to 2026-08-29, and each changes how the earlier numbers
+      have to be read.</p>
+      <p><strong>The instruction stopped being a confound.</strong> Until 2026-08-28 the product
+      arm carried 5,428 characters of behavioural instruction where the filesystem control
+      carried 231 and the static arms carried none, and most of that difference was generic agent
+      coaching that would have helped any arm. The treatment was therefore not the memory layer,
+      and no pilot in this repository measured what its headline says it measured. Every memory
+      arm now receives one shared memory protocol byte-identical, plus its own result-schema
+      appendix capped at 1,200 bytes, and a <code>protocol</code> arm exists to separate the
+      coaching from the retrieval. This is the single strongest reason not to read the pilots as
+      a product ranking.</p>
+      <p><strong>Three protocol-sensitive fixes</strong> landed together, deliberately, with the
+      break stated rather than absorbed: a grader that rejected correct solutions about 40% of
+      the time, a checker crash that discarded a whole paired cell instead of failing one arm,
+      and cost estimates that charged cache reads at the fresh-input rate. The consequence is
+      stated plainly, because it costs something: <strong>a rerun is no longer
+      protocol-identical to the frozen runs</strong>, so a model comparison reruns both arms or
+      says it was measured on a revised instrument.</p>
+      <p><strong>Run prices are required rather than defaulted.</strong> Three runners carried
+      three different defaults and none matched the frozen rates, so any run launched without
+      the flags was priced on a basis nobody chose, and two published runs turned out not to be
+      comparable in dollars at all. Compare runs on tokens.</p>
+    </div>
+
+    <div class="callout mt-l">
+      <span class="kicker">The long version</span>
+      <div class="prose">
+        <p>The dated status page in the repository carries the run-by-run table, the open
+        blockers in the order they have to be cleared, and the command that re-derives every
+        claim on this page:
+        <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md">docs/STATUS.md</a>.
+        Every change to the instrument that moves a published number is recorded in
+        <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/docs/audit">docs/audit/</a>.</p>
+      </div>
+    </div>
   </section>
 
   <section class="pad-y-s" id="disclosure">

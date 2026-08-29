@@ -1,5 +1,6 @@
 """The leaderboard page promises no number is typed in by hand. This is the enforcement."""
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -8,7 +9,30 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "build_leaderboard.py"
 
+
+def _generator():
+    """The script, imported by path: ``scripts/`` is not a package."""
+    spec = importlib.util.spec_from_file_location("build_leaderboard", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+# The INTERNAL names: what a run summary carries, what the harness and the adapters use.
 ARMS = ["recall", "mem0", "supermemory", "zep", "cognee", "fs_grep", "claude_md", "bare"]
+
+# What the PAGE is allowed to print. The third-party arms are unannounced, so they reach the
+# site as neutral placeholders; the mapping lives in the generator's PRODUCT_ARMS.
+PUBLIC_ARMS = [
+    "recall",
+    "product_a",
+    "product_b",
+    "product_c",
+    "product_d",
+    "fs_grep",
+    "claude_md",
+    "bare",
+]
 
 
 def _run(*args, root=None):
@@ -91,7 +115,7 @@ def test_phase0_emits_null_run_and_pending_numbers(tmp_path):
     assert _run(root=root).returncode == 0
     data = _payload(root)
     assert data["run"] is None
-    assert [a["name"] for a in data["arms"]] == ARMS
+    assert [a["name"] for a in data["arms"]] == PUBLIC_ARMS
     baseline = next(a for a in data["arms"] if a["name"] == "claude_md")
     assert baseline["delta"] == 0 and baseline["success"] is None
 
@@ -122,3 +146,80 @@ def test_a_moved_baseline_is_refused(tmp_path):
     result = _run(root=root)
     assert result.returncode != 0
     assert "baseline" in result.stderr
+
+
+def test_an_undisclosed_arm_never_reaches_the_page(tmp_path):
+    """The point of the disclosure layer, asserted with numbers present.
+
+    An arm is easy to anonymise while it is empty. This fills every arm from a summary, so
+    a generator that passed the internal name through anywhere - the label, the type, a
+    stray key - is caught with the page in the state it will actually ship in.
+    """
+    generator = _generator()
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    assert _run(root=root).returncode == 0
+    text = (root / "site" / "data" / "leaderboard.js").read_text(encoding="utf-8")
+
+    undisclosed = [
+        internal
+        for internal, public, _, _ in generator.public_arms()
+        if public.startswith(generator.UNDISCLOSED_PREFIX)
+    ]
+    assert undisclosed, "nothing is undisclosed; delete this test rather than passing it vacuously"
+    for internal in undisclosed:
+        assert internal not in text, f"{internal!r} leaked into the generated page"
+
+    data = _payload(root)
+    assert [a["name"] for a in data["arms"]] == PUBLIC_ARMS
+    anonymous = next(a for a in data["arms"] if a["name"] == "product_a")
+    assert anonymous["success"] == 0.5, "an undisclosed arm still carries its real numbers"
+
+
+def _config(root, **extra):
+    path = root / "site" / "data" / "leaderboard.config.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    config.update(extra)
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+
+def test_a_ranking_is_titled_for_the_path_it_measured(tmp_path):
+    """F2's second remedy, as a build step rather than as a promise.
+
+    The corpus is bulk ingested once and never written to again, so a ranking built from it ranks
+    retrieval: a product that sells extraction and consolidation at write time is credited for
+    neither. The page has to say that itself, next to the table, and the generator is what puts
+    it there. A README paragraph is the first thing a launch edits.
+    """
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    assert _run(root=root).returncode == 0
+    scope = _payload(root)["scope"]
+    assert scope["writePathMeasured"] is False
+    assert scope["title"] == "Retrieval over a bulk-ingested corpus"
+    assert "write path is not measured" in scope["qualification"].lower()
+
+
+def test_dropping_the_qualification_requires_naming_the_run_that_earned_it(tmp_path):
+    """The switch and its evidence move together. Setting the flag alone fails the build rather
+    than quietly retitling the page."""
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    _config(root, write_path_measured=True)
+    result = _run(root=root)
+    assert result.returncode != 0
+    assert "longitudinal_run" in (result.stdout + result.stderr)
+
+    _config(root, longitudinal_run="longitudinal-001")
+    assert _run(root=root).returncode == 0
+    scope = _payload(root)["scope"]
+    assert scope["writePathMeasured"] is True
+    assert scope["longitudinalRun"] == "longitudinal-001"
+
+
+def test_the_scope_note_is_rendered_by_the_page(tmp_path):
+    """A generated qualification nothing renders is a qualification nobody reads."""
+
+    html = (REPO_ROOT / "site" / "leaderboard.html").read_text(encoding="utf-8")
+    js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
+    assert 'id="scope-note"' in html
+    assert "scope-note" in js and "D.scope.qualification" in js

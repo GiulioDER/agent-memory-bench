@@ -1,0 +1,17 @@
+How PR 830 appeared in the review tool
+
+  --- a/.gitignore
+  +++ b/.gitignore
+  @@ -1,7 +1,8 @@
+   # managed ignore rules
+   *.pyc
+   .venv/
+   __pycache__/
+   build/
+   dist/
+   logs/
+   node_modules/
+  +*.log
+
+The added line is the ninth row of a nine-row hunk, below eight rows of
+unchanged context. On the reviewer's screen it sat under the fold.

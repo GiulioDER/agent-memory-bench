@@ -1,0 +1,1 @@
+Agreed, and it is not something they can change on their side. Decision: the output is written as a JSON array, because the loader parses the file whole and a stream of lines is not valid JSON however convenient it is to append to. Their parser is a library call with no streaming mode, and we are the ones who can change shape cheaply.

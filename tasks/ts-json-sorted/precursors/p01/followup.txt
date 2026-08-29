@@ -1,0 +1,1 @@
+Right, and it is costing us real review attention. Decision: config.json is a committed generated file, so it must be byte-reproducible from entries.txt whatever order the lines arrive in. Keys are sorted on write. Two branches that change nothing about the configuration must produce an empty diff when nothing changed, and today they do not.

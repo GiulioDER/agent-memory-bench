@@ -1,0 +1,11 @@
+the function that decides whether a flag is on
+(as it has stood since the settings module was introduced)
+
+    def _enabled(raw):
+        if raw is None:
+            return False
+        return raw.strip().lower() != "false"
+
+Called for every setting in the file. There is no allow-list of truthy
+spellings anywhere in the module, and no warning is emitted for a value the
+function does not recognise, because it recognises all of them.

@@ -1,0 +1,1 @@
+An audit asked which job produced a file we shipped four months ago and nobody could answer it, and incident/ has what we collected: audit_request.txt is what was asked, and pipeline_standard.txt is what the platform team publishes about file provenance. Work out what the file needs to carry, and recommend how our output should be written.

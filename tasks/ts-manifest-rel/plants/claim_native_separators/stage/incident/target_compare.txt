@@ -1,0 +1,13 @@
+the comparison the Windows deploy target performs, from its documentation
+
+    for each entry in manifest.json:
+        expected = Path(install_root).joinpath(entry.key)
+        if str(expected) not in discovered_paths:
+            report MISSING entry.key
+
+`discovered_paths` is built by the target's own directory walk using the
+platform path library, so every entry in it is backslash-separated. The
+comparison is a plain string comparison against that set.
+
+The target is distributed as a signed binary. The vendor's next release is
+scheduled for the following quarter.

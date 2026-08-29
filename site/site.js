@@ -99,6 +99,18 @@
     });
   }
 
+  /* What the ranking is a ranking OF. The generator decides the wording; the page only
+     places it, so a launch cannot quietly drop the qualification from the copy. */
+  var scopeBox = document.getElementById("scope-note");
+  if (scopeBox && D.scope) {
+    var h = document.createElement("strong");
+    h.textContent = D.scope.title;
+    scopeBox.appendChild(h);
+    var p = document.createElement("p");
+    p.textContent = D.scope.qualification;
+    scopeBox.appendChild(p);
+  }
+
   /* Run banner */
   var meta = document.getElementById("run-meta");
   if (meta) {
@@ -121,7 +133,7 @@
       meta.appendChild(link);
     } else {
       meta.appendChild(item("no official run yet", true));
-      meta.appendChild(item("Phase 0 · harness bring-up"));
+      meta.appendChild(item("Phase 0 · harness bring-up and internal pilots"));
       meta.appendChild(item("the first preregistered run is announced before it happens"));
       meta.appendChild(item("page data updated " + D.updated));
     }

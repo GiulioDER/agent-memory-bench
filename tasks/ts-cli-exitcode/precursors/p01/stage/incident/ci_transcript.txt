@@ -1,0 +1,15 @@
+Nightly pipeline, 2026-06-16, host build-02
+
+  ==> validating order intake
+  order C-2041 has a non-positive amount: -18.0
+  order with amount 96.0 has an empty id
+  order C-2049 has a non-positive amount: 0.0
+  checked 512 orders, 3 problem(s)
+  ==> nightly billing
+  billed 512 orders, 244188.50 total
+  ==> done
+
+  pipeline result: SUCCESS
+
+Every problem the validator found is in this transcript. The pipeline
+went on to bill all 512 orders anyway, including the three.
