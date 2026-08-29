@@ -146,7 +146,7 @@ def _load_synthesis(
     if raw is None:
         return None
     if not isinstance(raw, dict):
-        raise ValueError(f"{task_id}: synthesis must be an object")
+        raise TypeError(f"{task_id}: synthesis must be an object")
     shape = str(raw.get("shape", ""))
     if shape not in SYNTHESIS_SHAPES:
         raise ValueError(f"{task_id}: synthesis.shape must be one of {SYNTHESIS_SHAPES}")

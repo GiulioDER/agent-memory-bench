@@ -26,11 +26,10 @@ import json
 
 import pytest
 
-from scripts.audit_corpus import audit_shards
-from scripts.record_precursor import _required_terms
-
 from harness.sandbox import restore
 from harness.tasks import SYNTHESIS_SHAPES, apply_reference, discover_tasks, run_checker
+from scripts.audit_corpus import audit_shards
+from scripts.record_precursor import _required_terms
 
 SYNTHESIS_TASKS = [task for task in discover_tasks() if task.synthesis is not None]
 

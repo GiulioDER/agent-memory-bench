@@ -28,7 +28,7 @@ def main() -> int:
         return 200
 
     sys.path.insert(0, ".")
-    import push  # noqa: PLC0415 - the artifact under test
+    import push  # the artifact under test
 
     push.push(list(records), send)
 
