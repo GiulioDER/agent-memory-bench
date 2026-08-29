@@ -26,8 +26,11 @@ The first preregistered multi-product run is announced before it happens, not af
 | `pilot-002-repair` | `deepseek-v4-flash` | recall | re-roll only | superseded by `pilot-003-deepseek` | records only |
 | `pilot-003-deepseek` | `deepseek-v4-flash` | bare, claude_md, recall | 72 admitted, 0 discarded | recall +22.2 points on claude_md, CI `[+11.1, +33.3]`, McNemar `p = 0.000145` | yes |
 | `pilot-003-gpt53` | `gpt-5.3-codex` | bare, claude_md, recall | **40 admitted, 32 discarded** | incomplete, not a negative result | yes |
-| `pilot-004-placebo` | `deepseek-v4-flash` | bare, placebo, claude_md, recall | 63 admitted, 9 discarded | recall +17.4 points, CI `[+4.9, +31.3]`; the pilot-003 bare-over-claude_md gap did **not** replicate | **no** |
-| `midband-001` | `deepseek-v4-flash` | bare | 36 admitted, 0 discarded | six candidate tasks calibrated, one landed mid-band | **no** |
+| `pilot-004-placebo` | `deepseek-v4-flash` | bare, placebo, claude_md, recall | 63 admitted, 9 discarded | recall +17.4 points, CI `[+4.9, +31.3]`; the pilot-003 bare-over-claude_md gap did **not** replicate | yes |
+| `midband-001` | `deepseek-v4-flash` | bare | 36 admitted, 0 discarded | six candidate tasks calibrated, one landed mid-band | yes |
+| `resolution-001` | `deepseek-v4-flash` | bare | 30 tasks x 12 seeds | the stratification preregistrations 007 and 009 rest on | yes |
+| `abstention-001` | `deepseek-v4-flash` | bare, claude_md, recall | 32 and 30 admitted | harm suite, two of four conditions; **not written up, do not quote** | yes |
+| `diagnostic-010` | `deepseek-v4-flash` | claude_md, recall, oracle_memory, recall_prefetch | 70 admitted | reference tracks; **not written up, do not quote** | yes |
 | `smoke-002`, `smoke-abstention-absent`, `smoke-sup2-superseded` | mixed | mixed | bring-up | wiring only, never a result | partial |
 
 Four things this table carries that a reader should not have to reconstruct.
@@ -37,12 +40,14 @@ Four things this table carries that a reader should not have to reconstruct.
 2. **`pilot-003-gpt53` is incomplete, not negative.** 32 of 72 cells were lost to provider credit
    exhaustion partway through the grid. It must never be pooled with the DeepSeek run, and its
    arm rates must never be quoted as a model comparison.
-3. **The committed `results/` tree is a small subset of the runs that exist.**
-   `reports/pilot-004-placebo-report.md` and preregistration 008 both cite `results/<run_id>/`
-   paths that `git ls-files` does not return, and they are not the only ones. The full
-   accounting is in [Runs that exist but are not in this
-   repository](#runs-that-exist-but-are-not-in-this-repository) below. Either those directories
-   are committed, or the documents citing them say plainly that they cannot be checked.
+3. **Committed is not the same as written up, and five of these rows are only the first.**
+   As of 2026-08-29 every run a committed document cites is in the tree, so
+   `reports/pilot-004-placebo-report.md` and preregistrations 007, 008 and 009 can now be
+   checked against their artifacts. `abstention-001` and `diagnostic-010` cannot: their numbers
+   exist in the tree and nowhere in any preregistration, so they are evidence awaiting an
+   analysis rather than results. The full accounting, including what is still held back and
+   why, is in [What is published, and what is still held
+   back](#what-is-published-and-what-is-still-held-back) below.
 4. **The two published dollar figures were priced on different bases.** `pilot-003-deepseek` used
    the frozen preregistration 002 rates, `pilot-004-placebo` used `scripts/pilot.py`'s argparse
    defaults, and neither artifact recorded which. Compare runs on tokens. The arithmetic is in
@@ -114,12 +119,14 @@ rather than as underpowered. What building them cost, and the five rules each of
 something, is in
 [`docs/PLANTING_ADJACENT_AND_CONTRADICTORY.md`](PLANTING_ADJACENT_AND_CONTRADICTORY.md).
 
-**The repository publishes no abstention result**, and that is not the same as no run having
-happened. `results/` holds two smoke runs against the conditions and nothing else, and neither
-preregistration 005 nor 010 carries an appended results section, so nothing about an abstention
-run can be checked from this repository. Runs do exist uncommitted; see the section below.
-Preregistration 010 records, before any number existed, that `abstention-001` as scoped covers
-two of the four conditions, and states what that costs each endpoint.
+**`abstention-001` is published as an artifact, and it is still not a result.** Since 2026-08-29
+`results/abstention-001-absent/` and `results/abstention-001-superseded/` are committed, with
+their records and `abstention-001-endpoints.json` carrying all four preregistered endpoints for
+`claude_md` and `recall` against the `bare` reference. The other half is missing: neither
+preregistration 005 nor 010 carries an appended results section, so no number from that run has
+been written up, defended or interpreted, and **none should be quoted**. Preregistration 010
+records, before any number existed, that `abstention-001` as scoped covers two of the four
+conditions, and states what that costs each endpoint.
 
 ```bash
 python -m scripts.audit_plants
@@ -160,41 +167,55 @@ run, no invitation has gone out, and naming a product first would enter it into 
 nobody has told it about.
 
 Two diagnostic reference tracks, `oracle_memory` and `recall_prefetch`, have adapters and tests.
-**The repository publishes no diagnostic result**, though diagnostic runs exist uncommitted; see
-below.
+`results/diagnostic-010/` is published as an artifact, with its own analysis, and like the
+abstention run it is **not a result**: nothing is appended under preregistration 003.
+
+⚠️ **Do not difference `diagnostic-010` against the earlier diagnostics.** Diagnostics 003 through
+009 gave the recall arm the 615-byte one-liner rather than the 5,817-byte skill the pilots froze,
+so they measure a different treatment. The consequence was recorded when it was found: a 16%
+search rate against `pilot-004-placebo`'s 85.7%. `diagnostic-010` is the only diagnostic
+comparable to the published pilots, which is why it is the only one committed so far.
 
 ```bash
 grep -n '^ARMS' scripts/pilot.py
 ```
 
-## Runs that exist but are not in this repository
+## What is published, and what is still held back
 
-⚠️ **Corrected 2026-08-29, the same day this file was written, and the correction is larger than
-the error.** This page first said that no abstention run and no diagnostic run had happened. That
-was a claim about the world, inferred from a `results/` tree that only ever showed what had been
-committed. The author's working tree holds substantially more, and the honest statement is not
-"no run happened" but **"this repository cannot show you any of them"**.
+⚠️ **Corrected twice on 2026-08-29, and the second correction is the useful one.** This page first
+said that no abstention run and no diagnostic run had happened. That was a claim about the world
+inferred from a `results/` tree that only ever showed what had been committed. The runs existed.
+Six complete ones are now committed, so the honest statement has moved again, from "this
+repository cannot show you any of them" to the list below.
 
-What is on the author's machine and not here, by directory name:
+**Published as artifacts**, 620 files and 26 MB, added 2026-08-29:
 
 | run | what is there |
 |---|---|
-| `abstention-001-absent`, `abstention-001-superseded` | admission, costs and 99 records each; 32 and 30 admitted cells against 1 and 3 discards |
-| `abstention-001-endpoints.json` | all four preregistered endpoints computed for `claude_md` and `recall` against the `bare` reference |
-| `abstention-002-*` | one run directory, plus two marked `VOID` and two marked `PARTIAL`, with a note beside them recording why each was abandoned |
-| `diagnostic-001` … `diagnostic-010` | eight directories, numbered with gaps; the earliest is named for the shared-prompt defect that invalidated it |
-| `midband-001`, `pilot-004-placebo`, `resolution-001` | all three cited by committed documents, the last by preregistrations 007 and 009 |
-| several `*-invalid-*` directories | launches abandoned for a stated reason, kept as evidence |
+| `abstention-001-absent`, `abstention-001-superseded` | admission, costs and 99 records each; 32 and 30 admitted cells against 1 and 3 discards, plus `abstention-001-endpoints.json` |
+| `midband-001` | the six-task calibration preregistration 008 reports |
+| `resolution-001` | the 30-task, 12-seed re-measurement preregistrations 007 and 009 rest on |
+| `pilot-004-placebo` | the placebo ablation its report in `reports/` has always cited |
+| `diagnostic-010` | the oracle and prefetch diagnostic, with its analysis |
 
-**Their validity is not assessed here, and no number from any of them appears on this page or on
-the site.** Two things have to happen before one can: the run directory is committed, and the
-result is appended below its preregistration's results marker, which is where a result becomes a
-result rather than a file. Neither preregistration 005 nor 010 carries an appended section today.
+**Still held back**, each for a stated reason rather than by omission:
 
-The gap matters more than the missing bytes. A benchmark whose stated rule is that results publish
-in full, win or lose, currently keeps most of what it has measured on one laptop. Committing them
-is real work, since some are large and some are void, but the alternative is a `results/` tree
-that quietly reads as "this is everything".
+| run | why |
+|---|---|
+| `diagnostic-002`, `-003`, `-005` | carry their own `RESUME.md` or `INCOMPLETE.md` |
+| `diagnostic-004` | aborted, no records at all |
+| `diagnostic-006`, `diagnostic-009` | complete, but they gave the recall arm the one-liner rather than the frozen skill, so they measure a different treatment and would be misread as a null for memory |
+| `abstention-002-*` | one run beside two `VOID` and two `PARTIAL` directories, documented in a note kept with them |
+| the `*-invalid-*` directories | launches abandoned for a stated reason, kept as evidence |
+
+Publishing those is a second step, not a decision against them: a void run kept with its reason is
+worth more than a gap, and `diagnostic-009` in particular should go in only with its instruction
+difference stated beside it.
+
+**Committed is half of what makes a result.** The other half is an outcome appended below the
+preregistration's results marker, which is where a run stops being a file. Neither preregistration
+003, 005 nor 010 carries an appended section today, so **no number from any newly published run
+appears on this page or on the site, and none should be quoted from them.**
 
 ## What changed in the last week
 

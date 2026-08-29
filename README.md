@@ -17,9 +17,10 @@ announced before it happens, not after.
 [`docs/STATUS.md`](docs/STATUS.md).** As of 2026-08-29: six arms run and four do not, the suite
 holds 30 executable tasks, eleven of them carry all four harm conditions, five internal pilots
 have run (four on one cheap model, one incomplete on a stronger one), and no multi-product run
-has happened. Abstention and diagnostic runs exist but are **not committed**, so this repository
-cannot show them and nothing from them is quoted anywhere; `docs/STATUS.md` accounts for what is
-missing.
+has happened. Every run a committed document cites is now in `results/`, along with the harm
+suite's first run and one diagnostic; **none of those is written up under its preregistration
+yet, so no number from them is quoted anywhere.** `docs/STATUS.md` lists what is published and
+what is still held back.
 
 Three things landed in the week to 2026-08-29, and each changes how the earlier numbers must be
 read.
@@ -102,11 +103,11 @@ As of 2026-08-29, 12 tasks carry plants and **11 of them carry all four conditio
 threshold of eight that 005 sets for reporting a condition as a result rather than as
 underpowered. What building the last two conditions cost is in
 [`docs/PLANTING_ADJACENT_AND_CONTRADICTORY.md`](docs/PLANTING_ADJACENT_AND_CONTRADICTORY.md).
-**The repository publishes no abstention result.** `results/` holds two smoke runs against the
-conditions and nothing else, and neither preregistration 005 nor 010 carries an appended results
-section. Abstention runs do exist on the author's machine, uncommitted; see
-[`docs/STATUS.md`](docs/STATUS.md) for the full list of runs that exist but cannot be checked from
-here. Until they land, no abstention number should be quoted from anywhere.
+**`abstention-001` is published as an artifact and is still not a result.** Its two conditions,
+their records and all four computed endpoints are committed under `results/`. Neither
+preregistration 005 nor 010 carries an appended results section, so nothing has been written up,
+defended or interpreted, and **no abstention number should be quoted from anywhere.** The suite's
+other two conditions have not been run at all.
 
 ## Design in six decisions
 
