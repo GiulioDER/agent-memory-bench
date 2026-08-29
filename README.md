@@ -232,11 +232,36 @@ For the local Docker stack, copy `.env.example` to `.env`, set a unique `POSTGRE
 run `docker compose --env-file .env -f docker/compose.yaml up --build`. Compose requires that
 password instead of using a repository default.
 
-⚠️ **A third party cannot currently reproduce the `recall` arm.**
-`adapters/recall/config.frozen.json` carries `"package_pin": "TBD"`, and the published runs
-resolved `recall` from a local checkout through `PYTHONPATH`, so the exact version that produced
-the numbers is not recorded. `docker/compose.yaml` brings up a pgvector database and the harness
-image; it does not install or start a memory server. Both are Phase 3 work and neither is done.
+### What a third party can reproduce today, and what they cannot
+
+**Three arms reproduce completely**: `bare`, `placebo` and `claude_md` need only the Claude Code
+CLI and a model key. That is the whole accessibility floor of this benchmark and it works, for
+roughly the price of a coffee across the full grid.
+
+**`mempalace` reproduces** with `pip install mempalace==3.8.0` and the two variables in
+`.env.example`, which is where they were missing until 2026-08-30.
+
+⚠️ **`recall` does not reproduce, and the reason changed on 2026-08-30.** The old blocker here
+was that its `package_pin` read `TBD` and published runs resolved recall from a local checkout
+through `PYTHONPATH`. Both are fixed: the arm is pinned to a released
+`recall-rag[fastembed,mcp,voyage]==0.11.0` from PyPI, installed into an isolated environment.
+
+The blocker now is that `adapters/recall/config.frozen.json` encodes **one specific host**. Its
+`ssh_host`, `remote_root`, `remote_python`, `remote_env_file` and `dsn` all name paths on the
+machine the official run executes on, because the corpus and the serving database live there.
+Nothing about that is portable, and moving the harness onto the serving host made it less
+portable rather than more.
+
+Reproducing the recall arm therefore currently means supplying your own Postgres with pgvector,
+your own Voyage key, building and calibrating your own generation with
+`scripts/prepare_recall_corpora.py`, and rewriting five fields of a config that is deliberately
+frozen. That is not a reproduction path, it is a rebuild. `docker/compose.yaml` brings up a
+pgvector database and the harness image but installs and starts no memory server, so it does not
+close the gap either.
+
+**This is the honest state and it is the top of the Phase 3 list.** A benchmark whose own arm
+cannot be re-run by a reader is asking for trust it has not earned, and this section exists so
+nobody discovers that after spending money.
 Sandboxes are built outside this repository (`harness.sandbox.default_work_root`, override with
 `AGENT_MEMORY_BENCH_WORK_ROOT`), because a sandbox under `results/` can reach `oracles/` with one
 `cd ..`.
