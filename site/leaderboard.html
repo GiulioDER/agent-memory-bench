@@ -129,15 +129,20 @@
     <div class="callout mt-l">
       <span class="kicker">Pilot and diagnostic runs</span>
       <div class="prose">
-        <p>Smoke tests, pilots and diagnostic runs exist in the repository's
-        <code>results/</code> tree and are exactly what their names say: bring-up. They are not
-        rankings, they are not previews of rankings, and they will not be quoted as either.</p>
+        <p>Smoke tests and pilots exist in the repository's <code>results/</code> tree and are
+        exactly what their names say: bring-up. They are not rankings, they are not previews of
+        rankings, and they will not be quoted as either.</p>
         <p>As of 2026-08-29 that tree holds four published pilot runs and one repair record, with
         one product arm and no third-party arm. Three ran on one cheap model; the fourth, on a
         stronger one, ran out of provider credit at 40 of its 72 cells and is incomplete rather
         than negative. Their per-session logs, admission verdicts and cost ledgers are published
         because the benchmark publishes what it runs, not because any of it is a result about the
         field.</p>
+        <p>It is also less than has been run. Abstention and diagnostic runs exist and are not
+        committed, so nothing about them can be checked here and nothing from them is quoted. A
+        benchmark whose rule is that results publish in full, win or lose, does not currently
+        meet it, and the accounting of what is missing is in
+        <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md">docs/STATUS.md</a>.</p>
         <p>One caveat that outlives them. Three graded-outcome defects were fixed on 2026-08-29:
         a grader that rejected correct solutions about 40% of the time, a checker crash that
         discarded a whole paired cell instead of failing one arm, and cost estimates that priced
