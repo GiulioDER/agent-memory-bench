@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -49,7 +50,7 @@ def adapter(tmp_path, base_prompt, monkeypatch):
 def test_the_arm_is_registered_everywhere_a_run_reads_it():
     """An arm listed in ARMS but missing from MEMORY_ARMS carries no memory protocol."""
 
-    import scripts.pilot as pilot
+    from scripts import pilot
 
     assert "mempalace" in pilot.ARMS
     assert "mempalace" in pilot.MEMORY_ARMS
@@ -59,7 +60,7 @@ def test_the_arm_is_registered_everywhere_a_run_reads_it():
 
 
 def test_adapter_for_builds_a_mempalace_adapter(tmp_path, base_prompt):
-    import scripts.pilot as pilot
+    from scripts import pilot
 
     built = pilot.adapter_for(
         "mempalace", {"claude_md": base_prompt}, tmp_path, {"mempalace": ""}
@@ -75,7 +76,7 @@ def test_build_bundles_writes_a_bundle_for_every_instructed_arm(tmp_path, base_p
     it, and the run would have measured an arm that was never told it had a memory.
     """
 
-    import scripts.pilot as pilot
+    from scripts import pilot
 
     task = type("T", (), {"path": tmp_path / "nonexistent-fixture"})()
     texts = {"bare": "", "claude_md": "", "mempalace": "SEARCH THE PALACE"}
@@ -102,7 +103,7 @@ def test_the_arm_carries_the_shared_protocol_verbatim():
 
 
 def test_it_shares_the_protocol_with_the_other_memory_arms():
-    from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
+    from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE
 
     texts = {
         "mempalace": MemPalaceAdapter.shared_instruction(),
@@ -216,7 +217,7 @@ def test_an_ingest_that_filed_nothing_is_a_failure_not_an_empty_store(monkeypatc
 
     class Corpus:
         root = Path(".")
-        sessions: dict[str, str] = {}
+        sessions: ClassVar[dict[str, str]] = {}
 
         def verify(self):
             return None
