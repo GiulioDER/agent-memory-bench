@@ -58,7 +58,15 @@ def archive(run_id: str, conditions: list[str], *, dry_run: bool) -> int:
         destination.mkdir(parents=True, exist_ok=True)
         records = 0
         if run_dir.is_dir():
-            records = len(list((run_dir / "records").glob("*.json"))) if (run_dir / "records").is_dir() else 0
+            # `records.jsonl`, a FILE, one JSON object per session. Counted by lines rather
+            # than by globbing a `records/` directory, which does not exist: that glob returned
+            # 0 for every archive and the README would have understated every one of them.
+            jsonl = run_dir / "records.jsonl"
+            records = (
+                sum(1 for line in jsonl.read_text(encoding="utf-8").splitlines() if line.strip())
+                if jsonl.is_file()
+                else 0
+            )
             shutil.move(str(run_dir), str(destination / "results"))
             print(f"    moved results ({records} record(s))")
         if work_dir.is_dir():
