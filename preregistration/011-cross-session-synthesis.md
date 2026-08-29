@@ -141,3 +141,44 @@ of them. `pilot-003-deepseek` measured `recall` `+22.2` over `claude_md` on the 
 suite; that number is the thing this suite exists to put in context, not to confirm.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+
+## Recording log, 2026-08-29
+
+**This is not the suite's results.** No session of the grid has run and no endpoint above has a
+number. What follows is the corpus precondition being met, and the one prediction that was about
+recording rather than about arms.
+
+Seven shard sessions recorded with `scripts/record_precursor.py` against
+`deepseek/deepseek-v4-flash`, in ascending `session_date` per task, on branch
+`claude/record-xs-corpus` at `ea33b37`. Roughly 324k input and 54k output tokens including the two
+re-recordings below.
+
+⚠️ **They were recorded on the Windows workstation, so they are PIPELINE-VALIDATION recordings,
+not the run corpus.** `corpus/README.md` requires the corpus for a preregistered run to be
+recorded inside the Docker harness, where paths and users are neutral by construction; the first
+recording's opening `ls` carries this machine's username, which is exactly the reason that rule
+exists. Re-record inside the harness before any measured run.
+
+**Prediction 8 was falsified as stated, and right about the outcome.** It said at least one of the
+seven recordings would be refused by the cross-shard gate or the term gate. Neither of those ever
+fired: every recording surfaced its own shard's terms and none strayed into another shard's. Two
+recordings WERE refused, by a gate the prediction did not name, `scripts/audit_corpus.py`
+containment:
+
+| session | phrase it wrote | whose fact term that is |
+|---|---|---|
+| `xs-join-batch/p01` | "exponential backoff" | `ts-retry-cap` |
+| `xs-evolve-lease/p02` | "jitter" | `ts-retry-cap` |
+
+Both are generic reliability advice an agent volunteers when it is asked what to change after an
+incident, which is what makes this the interesting failure: the risk to containment is not a task
+author reusing a phrase, it is a RECORDED AGENT reaching for common vocabulary that another task
+has claimed. It scales with the number of tasks whose fact terms are ordinary engineering words.
+Both sessions were re-recorded unchanged, never edited, and the audit is clean across 150 corpus
+files.
+
+**Still undone, and deliberately so:** `corpus/manifest.json` has NOT been rebuilt, so no arm
+ingests these seven files yet. Rebuilding it changes the feed every arm receives, and it would
+also sweep in six `ts-*` sessions that are on disk and unlisted today, so it is a protocol
+decision that belongs with the run, not with the recording.

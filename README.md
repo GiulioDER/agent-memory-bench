@@ -70,8 +70,9 @@ because a reader who does not know them will over-read the results.
    (two halves joined, a value revised across three dated sessions, a rule widened later by a
    session that restates none of it):
    [`docs/CROSS_SESSION_SYNTHESIS.md`](docs/CROSS_SESSION_SYNTHESIS.md) and
-   [`preregistration/011`](preregistration/011-cross-session-synthesis.md). Their sessions are not
-   recorded and the suite has not run, so this limit is answered structurally and not yet
+   [`preregistration/011`](preregistration/011-cross-session-synthesis.md). Their sessions were
+   recorded on 2026-08-29 as pipeline validation rather than as run corpus, no arm ingests them
+   yet, and the suite has not run, so this limit is answered structurally and not yet
    empirically.
 3. **`claude_md` is the fixture's orientation README, not a curated conventions file.** It is a
    floor with a document attached, not the realistic incumbent, and on `ts-legacy-hash` it actively
