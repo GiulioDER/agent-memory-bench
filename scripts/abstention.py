@@ -122,6 +122,59 @@ def preflight_recall(namespace: str, *, dry_run: bool) -> None:
     print(f"[preflight] recall MCP server up for {namespace}: {len(tools)} tool(s), {required} present")
 
 
+
+def condition_state(run_dir: Path) -> str:
+    """`complete`, `partial`, or `absent`, for one condition's run directory.
+
+    A condition is COMPLETE only when it wrote `admission.json`, because that file is the last
+    thing a finished condition produces: it exists if and only if every cell was run and judged.
+    Records alone are not enough, and that distinction is the whole point of this function.
+    `abstention-002` was killed mid-condition and left 86 of 90 records with no admission file, so
+    a resume keyed on "has records" would have treated a truncated condition as done and published
+    it.
+    """
+
+    if not run_dir.is_dir():
+        return "absent"
+    if (run_dir / "admission.json").is_file():
+        return "complete"
+    return "partial" if any(run_dir.iterdir()) else "absent"
+
+
+def plan_conditions(run_id: str, conditions: list[str], *, resume: bool) -> list[str]:
+    """Which conditions this invocation should actually run.
+
+    ⛔ A PARTIAL condition is refused rather than resumed or overwritten, and it is refused even
+    with `--resume`. Re-running it would hit the results guard; silently continuing it would mix
+    two runs' sessions inside one condition, which no admission report could later separate. The
+    operator archives it deliberately, exactly as `abstention-002`'s partials were archived with a
+    README saying what they are.
+    """
+
+    todo, done, blocked = [], [], []
+    for condition in conditions:
+        state = condition_state(REPO / "results" / f"{run_id}-{condition}")
+        if state == "complete" and resume:
+            done.append(condition)
+        elif state == "partial":
+            blocked.append(condition)
+        else:
+            todo.append(condition)
+    if blocked:
+        raise SystemExit(
+            f"{blocked} already hold a PARTIAL run: records were written but no admission.json, "
+            f"so the condition was interrupted mid-flight. Archive each directory (and its work "
+            f"root under the temp work area) before re-running it. Resuming a partial condition "
+            f"would mix two runs' sessions inside one condition and no later report could "
+            f"separate them."
+        )
+    if done:
+        print(f"[resume] already complete, skipping: {done}")
+    if not todo:
+        raise SystemExit("[resume] every requested condition is already complete; nothing to do")
+    return todo
+
+
 def run_condition(args, condition: str) -> Path:
     """Assemble, ingest and run one condition. Returns its run directory."""
 
@@ -267,6 +320,13 @@ def main() -> int:
         "text across arms, which is a useful ablation and is NOT the product comparison: it "
         "measures a common denominator none of the products actually ships.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="skip conditions that already wrote admission.json. A PARTIAL condition is "
+        "refused either way: it must be archived by hand, because resuming one would mix "
+        "two runs' sessions inside a single condition.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     add_pricing_arguments(parser)
     args = parser.parse_args()
@@ -292,6 +352,7 @@ def main() -> int:
         )
 
     cells = []
+    conditions = plan_conditions(args.run_id, list(conditions), resume=args.resume)
     run_dirs = {}
     search_rates: dict[str, float | None] = {}
     for condition in conditions:

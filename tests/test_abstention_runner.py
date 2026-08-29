@@ -182,6 +182,69 @@ def test_a_fresh_work_root_is_allowed(tmp_path):
 
 
 # ---------------------------------------------------------------------------------------
+# resume: a stopped official run must restart without inventing or losing a condition
+# ---------------------------------------------------------------------------------------
+
+
+def test_a_condition_is_complete_only_when_it_wrote_admission(tmp_path):
+    """Records are not enough, and that distinction is the whole point.
+
+    `abstention-002` was killed mid-condition and left 86 of 90 records with NO admission.json. A
+    resume keyed on "has records" would have called that condition finished and published a
+    truncated one.
+    """
+
+    from scripts.abstention import condition_state
+
+    assert condition_state(tmp_path / "never-ran") == "absent"
+
+    partial = tmp_path / "partial"
+    partial.mkdir()
+    (partial / "records.jsonl").write_text("{}\n", encoding="utf-8")
+    assert condition_state(partial) == "partial"
+
+    complete = tmp_path / "complete"
+    complete.mkdir()
+    (complete / "records.jsonl").write_text("{}\n", encoding="utf-8")
+    (complete / "admission.json").write_text("{}", encoding="utf-8")
+    assert condition_state(complete) == "complete"
+
+
+def test_resume_skips_complete_conditions_and_refuses_partial_ones(tmp_path, monkeypatch):
+    """Mutation: treating `partial` as resumable. Two runs' sessions then land in one condition
+    and no admission report can separate them afterwards."""
+
+    from scripts import abstention
+
+    monkeypatch.setattr(abstention, "REPO", tmp_path)
+    results = tmp_path / "results"
+    (results / "run-absent").mkdir(parents=True)
+    (results / "run-absent" / "admission.json").write_text("{}", encoding="utf-8")
+    (results / "run-superseded").mkdir(parents=True)
+    (results / "run-superseded" / "records.jsonl").write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="PARTIAL"):
+        abstention.plan_conditions("run", ["absent", "superseded"], resume=True)
+
+    # With the partial one archived, the complete one is skipped and the fresh one runs.
+    import shutil
+
+    shutil.rmtree(results / "run-superseded")
+    assert abstention.plan_conditions("run", ["absent", "superseded"], resume=True) == ["superseded"]
+
+
+def test_resume_refuses_when_there_is_nothing_left_to_do(tmp_path, monkeypatch):
+    from scripts import abstention
+
+    monkeypatch.setattr(abstention, "REPO", tmp_path)
+    done = tmp_path / "results" / "run-absent"
+    done.mkdir(parents=True)
+    (done / "admission.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(SystemExit, match="nothing to do"):
+        abstention.plan_conditions("run", ["absent"], resume=True)
+
+
+# ---------------------------------------------------------------------------------------
 # the classification hook in pilot.py
 # ---------------------------------------------------------------------------------------
 

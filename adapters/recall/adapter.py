@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -204,6 +205,46 @@ class RecallAdapter(MemoryAdapter):
             row = cursor.fetchone()
         return int(row[0]) if row else 0
 
+    def _remote_command(self, namespace: str) -> str:
+        """The single shell command SSH runs on the remote host.
+
+        ⛔ The environment is INLINED here rather than passed through the MCP config's `env` block,
+        because SSH forwards no arbitrary environment: an `env` block would be applied to the local
+        `ssh` process and never reach the server. This is the shape recall's own production servers
+        are deployed with.
+
+        `RECALL_TRUST_MODE` is UNSET rather than set to a value. Strict is the shipped default and
+        is expressed by absence; setting it to any string is how a corpus ends up served relaxed
+        while the config claims otherwise.
+        """
+
+        exports = {
+            "RECALL_DSN": str(self.config["dsn"]),
+            "RECALL_EMBEDDER": str(self.config["embedder"]),
+            "RECALL_TENANT": namespace,
+            "RECALL_ENV": str(self.config["environment"]),
+        }
+        assignments = " ".join(f"{k}={shlex.quote(v)}" for k, v in exports.items())
+        return (
+            f"cd {shlex.quote(str(self.config['remote_root']))} && "
+            f"set -a && . {shlex.quote(str(self.config['remote_env_file']))} && set +a && "
+            f"export {assignments} && unset RECALL_TRUST_MODE && "
+            f"exec {shlex.quote(str(self.config['remote_python']))} -m recall_mcp.server"
+        )
+
+    def _remote_server_argv(self, namespace: str) -> tuple[str, list[str]]:
+        """`(command, args)` for an SSH-transported server."""
+
+        return "ssh", [
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ServerAliveInterval=30",
+            str(self.config["ssh_host"]),
+            self._remote_command(namespace),
+        ]
+
+
     def _server_command(self) -> str:
         """The interpreter that starts the MCP server, resolved rather than passed through.
 
@@ -244,12 +285,24 @@ class RecallAdapter(MemoryAdapter):
         # A file path, not inline JSON: the config may carry credentials, and an inline
         # --mcp-config would copy them into every recorded command line.
         mcp_config_path = session_dir / "recall.mcp.json"
+        if str(self.config.get("transport", "local")) == "ssh":
+            command, args = self._remote_server_argv(namespace)
+            # Only what the LOCAL ssh client needs. The server's own environment travels inside
+            # the remote command, because ssh forwards none of this.
+            env = {
+                key: value
+                for key in ("PATH", "SystemRoot", "USERPROFILE", "HOME", "APPDATA")
+                if (value := os.environ.get(key))
+            }
+        else:
+            command, args = self._server_command(), list(self.config["args"])
+            env = self._server_env(namespace)
         mcp_config = {
             "mcpServers": {
                 str(self.config["server_name"]): {
-                    "command": self._server_command(),
-                    "args": list(self.config["args"]),
-                    "env": self._server_env(namespace),
+                    "command": command,
+                    "args": args,
+                    "env": env,
                 }
             }
         }
