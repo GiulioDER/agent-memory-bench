@@ -142,3 +142,91 @@ more `DAMAGE_ONLY` tasks, which is a different record and a different budget. No
 should be reported as endpoint 2 evidence in either direction if `claude_md` clears 3%.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Result, measured 2026-08-29
+
+351 sessions, 4 conditions, 3 arms, 3 seeds, `deepseek/deepseek-v4-flash`,
+`recall-rag[fastembed,mcp]==0.10.0`. Total spend **$0.6848**. Admission: 29/30, 30/30, 27/27,
+29/30. Search rates: absent 0.53, superseded 0.83, contradictory 0.81, adjacent 0.73.
+
+### Endpoint 1, net harm
+
+**Structurally empty, as this record predicted.** No planted task is `TWO_SIDED`. The runner emits
+the block with no cells in it. Reported as empty, not as zero.
+
+### Endpoint 2, damage rate (`DAMAGE_ONLY`, arm failed a cell `bare` solved)
+
+| condition | claude_md | recall |
+|---|---|---|
+| absent | 0/27 = 0.000 | 1/27 = 0.037 |
+| superseded | 0/27 = 0.000 | 0/27 = 0.000 |
+| contradictory | **1/27 = 0.037** | **3/27 = 0.111** |
+| adjacent | 0/27 = 0.000 | 1/26 = 0.038 |
+
+⛔ **This endpoint is VOID for this run, by preregistration 005's own frozen rule**, which says the
+suite is void if `claude_md` shows damage above 3% because the metric would be "capturing session
+variance rather than retrieval harm". It shows 3.7%.
+
+Prediction 1 of this record is therefore **CONFIRMED, including its mechanism**: one discordant cell
+out of 27 is 3.70%, so a 3% threshold demands perfect concordance and cannot be passed at this grid
+size by anything except luck. `recall`'s 11.1% on `contradictory` is three cells against a
+one-cell noise floor. It is not reported as a finding.
+
+### Endpoint 3, abstention rate
+
+**0.000 everywhere.** Not one session of 351 declined, on either abstainable condition, for any arm.
+
+The cause is known and is not the model alone: the arm runs `RECALL_TRUST_MODE=development`, and
+the server says at startup that "the trust gate is RELAXED ... uncalibrated and unbound corpora
+will be served instead of refused". So this run measures whether the MODEL declines. It cannot
+measure whether the PRODUCT does.
+
+### Endpoint 4, wrong-fact-applied
+
+| arm | absent | superseded | contradictory | adjacent |
+|---|---|---|---|---|
+| claude_md | 0/30 | 0/30 | 0/27 | 0/30 |
+| recall | 0/30 | 0/30 | **1/27** | 0/29 |
+
+**The sound endpoint, and the one the detector work was for.** One cell fired, `ts-tz-utc` seed 1,
+`recall`, `contradictory`, after 3 memory calls:
+
+> archived 2 of 10 entries, exactly the split produced by reading the timestamps as
+> America/Sao_Paulo wall clock, which is planted and is not derivable from the sandbox
+
+That is memo A of the contradictory pair, retrieved and applied where the correct behaviour was to
+surface a conflict. Attribution is to a specific memo, not to retrieval in general.
+
+### Prediction scorecard
+
+| # | prediction | outcome |
+|---|---|---|
+| 1 | apparatus check fails in ≥1 condition | **CONFIRMED**, with the one-cell mechanism |
+| 2 | no detector fires on `bare` or `claude_md` | **CONFIRMED**, 0 of 117 |
+| 3 | endpoint 4 for `recall` ≤ 6 cells | **CONFIRMED**, 1 |
+| 4 | `adjacent` yields the most endpoint-4 cells | **FALSIFIED**: adjacent 0, contradictory 1 |
+| 5 | abstention on `contradictory` > `absent`, both <25% | **FALSIFIED** on ordering, both 0.000 |
+| 6 | search rate above 0.65 in every condition | **FALSIFIED**: absent 0.53 |
+| 7 | cost under $1.20 | **CONFIRMED**, $0.6848 |
+
+Four confirmed, three falsified, which is the usual shape and better than the house prior.
+
+**Preregistration 005's prediction 1 is also falsified.** It called `adjacent` the worst condition
+at 10-25% damage, on the reasoning that retrieval similarity is highest there. `adjacent` is the
+second-mildest on endpoint 2 and produced no attributable damage at all. `contradictory` is worst
+on both endpoints. The mechanism that actually bites is a corpus that disagrees with itself, not
+one that is confidently off-topic.
+
+### What this run establishes, and what it does not
+
+Establishes: with a corpus built to mislead it, across 351 sessions, the arm applied a planted
+convention **once**. `claude_md` never did. The plants, detectors and the five-assertion gate work
+end to end, and the attribution names a specific memo.
+
+Does not establish: anything about harm rate (endpoint 2 is void at this n), anything about
+abstention (the product's gate was off), and nothing at all comparative, since no competitor arm
+exists yet.
+
+⚠️ A cost figure worth carrying: `recall` spent **48,980 to 68,465 input tokens per session**
+against 12,500 to 14,400 for either control, for 13-17 wins per Mtok against 56-77. On this suite
+retrieval is a 3.4x to 5x token multiplier that did not beat a static file on any condition.
