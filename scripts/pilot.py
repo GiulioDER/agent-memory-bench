@@ -58,7 +58,12 @@ from harness.abstention import declines
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
 from harness.adapters.registry import AdapterRegistry
 from harness.claude_exec import ClaudeExecConfig, run_claude_case
-from harness.costs import ModelPricing, efficiency, summarize
+from harness.costs import (
+    add_pricing_arguments,
+    efficiency,
+    pricing_from_args,
+    summarize,
+)
 from harness.damage import CONDITIONS, outcome_for
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
@@ -345,9 +350,7 @@ async def main() -> int:
         "executing anything. This is how you check a command line; running it with a "
         "placeholder API key instead executes the whole grid and burns the run id.",
     )
-    parser.add_argument("--price-in", type=float, default=0.05866)
-    parser.add_argument("--price-out", type=float, default=0.11732)
-    parser.add_argument("--price-as-of", default="2026-08-22")
+    add_pricing_arguments(parser)
     args = parser.parse_args()
 
     # Before the dry-run return, deliberately: a dry run is how you check a command line, so it has
@@ -617,15 +620,7 @@ async def main() -> int:
     (run_dir / "admission.json").write_text(
         json.dumps(report.summary(), indent=2), encoding="utf-8"
     )
-    pricing = {
-        args.model: ModelPricing(
-            model=args.model,
-            usd_per_mtok_input=args.price_in,
-            usd_per_mtok_output=args.price_out,
-            as_of=args.price_as_of,
-            source="https://openrouter.ai/api/v1/models",
-        )
-    }
+    pricing = pricing_from_args(args, model=args.model, source="https://openrouter.ai/api/v1/models")
     costs = summarize(records, ingest_reports, pricing=pricing, model=args.model)
     admitted_cells = {record.cell: True for record in report.admitted}
     costs["efficiency"] = efficiency(records, admitted_cells=admitted_cells)

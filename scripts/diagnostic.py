@@ -28,7 +28,7 @@ from harness.claude_exec import (
     resolve_claude_executable,
     run_claude_case,
 )
-from harness.costs import ModelPricing, summarize
+from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.host_memory import free_memory_mb, wait_for_headroom
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
@@ -145,9 +145,7 @@ async def main() -> int:
         help="where session sandboxes are built. Defaults OUTSIDE this repository, because a "
         "sandbox under results/ can reach oracles/, tasks/*/reference/ and corpus/ with one `cd ..`.",
     )
-    parser.add_argument("--price-in", type=float, default=0.0826)
-    parser.add_argument("--price-out", type=float, default=0.1652)
-    parser.add_argument("--price-as-of", default="2026-08-25")
+    add_pricing_arguments(parser)
     parser.add_argument(
         "--startup-attempts",
         type=int,
@@ -410,6 +408,12 @@ async def main() -> int:
     # Preregistration 003: the environment artifact is written BEFORE the first session, not
     # after it. An artifact written at the end describes a run that already happened, and cannot
     # be the record the run was committed to.
+    # Built before environment.json, which records it: one construction means the two
+    # artifacts cannot disagree about what the run was priced at. Refuses when the flags
+    # are absent, which is deliberate; dry runs return long before this line.
+    pricing = pricing_from_args(
+        args, model=args.model, source="https://openrouter.ai/api/v1/models"
+    )
     environment = {
         "run_id": args.run_id,
         "arms": list(run_arms),
@@ -437,12 +441,16 @@ async def main() -> int:
         "free_mb_at_start": free_memory_mb(),
         "work_root": str(work_root),
         "sandbox_inside_repo": False,
+        # One construction, so environment.json and costs.json cannot disagree about what
+        # the run was priced at.
         "pricing": {
             "model": args.model,
-            "usd_per_mtok_input": args.price_in,
-            "usd_per_mtok_output": args.price_out,
-            "as_of": args.price_as_of,
-            "source": "https://openrouter.ai/api/v1/models",
+            "usd_per_mtok_input": pricing[args.model].usd_per_mtok_input,
+            "usd_per_mtok_output": pricing[args.model].usd_per_mtok_output,
+            "usd_per_mtok_cache_read": pricing[args.model].usd_per_mtok_cache_read,
+            "usd_per_mtok_cache_creation": pricing[args.model].usd_per_mtok_cache_creation,
+            "as_of": pricing[args.model].as_of,
+            "source": pricing[args.model].source,
         },
     }
     (run_dir / "environment.json").write_text(
@@ -542,15 +550,6 @@ async def main() -> int:
         for record in records
         if (record.metadata.get("memory_startup") or {}).get("recovered")
     ]
-    pricing = {
-        args.model: ModelPricing(
-            model=args.model,
-            usd_per_mtok_input=args.price_in,
-            usd_per_mtok_output=args.price_out,
-            as_of=args.price_as_of,
-            source="https://openrouter.ai/api/v1/models",
-        )
-    }
     (run_dir / "costs.json").write_text(
         json.dumps(summarize(records, pricing=pricing, model=args.model), indent=2),
         encoding="utf-8",
