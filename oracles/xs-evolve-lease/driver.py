@@ -15,7 +15,7 @@ ITERATIONS = 12
 
 def main() -> int:
     sys.path.insert(0, ".")
-    import worker  # noqa: PLC0415 - the artifact under test
+    import worker  # the artifact under test
 
     heartbeat = getattr(worker, "heartbeat", None)
     if heartbeat is None:
