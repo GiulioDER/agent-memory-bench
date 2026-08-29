@@ -81,9 +81,9 @@ write is the only one that can prevent it. In particular:
 - **`low_confidence`** and an **abstention**: the store is saying it does not know. Treat that as
   no answer, not as a weak yes. It is not evidence that no memo exists, only that this query did
   not find one, so try the hazard's vocabulary before concluding the corpus is silent.
-- **`ok` with a calibrated confidence** means this corpus carries a certified
-  calibration bound to an immutable generation, so its verdicts and its
-  abstentions are both measurements rather than placeholders.
+- **`DEGRADED:INDEX_NOT_READY`** on every result means the corpus has no calibration fitted to it,
+  so its threshold is a placeholder rather than a measurement. Weigh its verdicts accordingly and
+  mention it if a decision turns on one.
 
 ## What not to do
 

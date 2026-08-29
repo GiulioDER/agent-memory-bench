@@ -8,7 +8,7 @@ platform team, file provenance standard (extract)
     - how many records it should contain
 
   A file that cannot answer these is not auditable, and the platform team will
-  not accept it as evidence in a retention or compliance response.
+  not accept it as evidence in a retention or audit response.
 
   The standard does not mandate a mechanism. Teams that stream records have
   generally satisfied it with a first line carrying the metadata, since a
