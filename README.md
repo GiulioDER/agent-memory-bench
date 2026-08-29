@@ -10,8 +10,38 @@ pass or they do not. No judge anywhere in the primary endpoint.
 
 ## Status
 
-Phase 0: harness bring-up. The first preregistered multi-product run will be announced before it
-happens, not after.
+Phase 0: harness bring-up and internal pilots. The first preregistered multi-product run will be
+announced before it happens, not after.
+
+**Where the benchmark actually stands, dated, with the command that re-derives each claim, is
+[`docs/STATUS.md`](docs/STATUS.md).** As of 2026-08-29: six arms run and four do not, the suite
+holds 30 executable tasks, eleven of them carry all four harm conditions, five internal pilots
+have run (four on one cheap model, one incomplete on a stronger one), and neither an abstention
+run nor a multi-product run has happened.
+
+Three things landed in the week to 2026-08-29, and each changes how the earlier numbers must be
+read.
+
+1. **The instruction stopped being a confound.** Until 2026-08-28 the recall arm carried 5,428
+   characters of behavioural instruction while `fs_grep` carried 231 and the static arms carried
+   none, and most of that difference was generic agent coaching that would have helped any arm.
+   Every memory arm now receives `adapters/_shared/memory_protocol.md` byte-identical, plus its
+   own result-schema appendix capped at 1,200 bytes, and the `protocol` arm exists to separate
+   the coaching from the retrieval. Per-arm instruction sizes are published in every run's
+   `environment.json`. **Every published number predates this change**, so every result in this
+   repository was measured under the old instruction budget.
+2. **Three protocol-sensitive fixes**, each of which moves a number a frozen preregistration
+   rests on, landed together with the break stated rather than absorbed: a grader that rejected
+   correct solutions about 40% of the time, a checker crash that discarded the whole paired cell
+   instead of failing one arm, and cost estimates that charged cache reads at the fresh-input
+   rate.
+   ⚠️ **A rerun is therefore no longer protocol-identical to the frozen runs.** Rerun both arms
+   of any model comparison, or say in the report that the contrast is measured on a revised
+   instrument.
+   [`docs/audit/2026-08-29-protocol-change-record.md`](docs/audit/2026-08-29-protocol-change-record.md).
+3. **Run prices are required, not defaulted.** Three runners carried three different defaults and
+   none matched the frozen rates, so any run launched without the flags was priced on a basis
+   nobody chose. Compare runs on tokens, never on the dollars of two runs priced differently.
 
 **Four limits that bound every number published so far.** They are here rather than in a footnote
 because a reader who does not know them will over-read the results.
@@ -36,8 +66,24 @@ The benchmark includes a preregistered oracle and proactive retrieval diagnostic
 [`preregistration/003-oracle-prefetch-diagnostic.md`](preregistration/003-oracle-prefetch-diagnostic.md).
 The two diagnostic arms are reference tracks and are not ranked as products.
 
-An adversarial audit of this benchmark, written against it rather than for it, is in
-[`docs/audit/2026-08-28-adversarial-benchmark-audit.md`](docs/audit/2026-08-28-adversarial-benchmark-audit.md).
+### The harm suite, because helping and not harming are different questions
+
+Every one of the original 24 tasks places its governing fact **in** the corpus, so the suite as
+it stood could only ask whether memory helps. It was structurally incapable of detecting harm,
+and an arm that helps 20% of cells while harming 15% reported the same headline as one that
+helps 20% and harms 2%.
+
+[`preregistration/005-abstention-suite.md`](preregistration/005-abstention-suite.md) adds four
+corpus conditions, each defined by **what the planted corpus contains** and never by what any
+system does about it: `absent`, `superseded`, `contradictory`, and `adjacent`. Damage is failing
+a cell the `bare` arm solved.
+
+As of 2026-08-29, 12 tasks carry plants and **11 of them carry all four conditions**, above the
+threshold of eight that 005 sets for reporting a condition as a result rather than as
+underpowered. What building the last two conditions cost is in
+[`docs/PLANTING_ADJACENT_AND_CONTRADICTORY.md`](docs/PLANTING_ADJACENT_AND_CONTRADICTORY.md).
+No abstention run has happened yet; `results/` holds two smoke runs against the conditions and
+nothing else.
 
 ## Design in six decisions
 
@@ -74,6 +120,20 @@ An adversarial audit of this benchmark, written against it rather than for it, i
    names the model, so its zero is never read as a zero cost beside a competitor's extraction
    bill. Deltas below the preregistered minimum effect are reported as noise.
 
+## Tasks
+
+**30 executable `ts-*` tasks.** The frozen pilot grid used 24 of them; six more were added by
+[`preregistration/008-midband-task-calibration.md`](preregistration/008-midband-task-calibration.md)
+and calibrated against the `bare` arm on 2026-08-27.
+
+That calibration is worth reading for its result rather than its output. It was designed to
+produce tasks in the mid-band, where both help and harm are visible, and one of six landed there
+against a prediction of three. The record scores the miss: agent convention-following turned out
+to be close to deterministic per convention, and what separates a convention the model gets right
+from one it gets wrong is whether the convention is visible in the output of a **single run**.
+Cross-invocation properties are the blind spot, and that was not derivable from the tasks the
+design rule came from.
+
 ## Arms
 
 Implemented and runnable today: `bare`, `claude_md` (designated baseline), `placebo`
@@ -109,6 +169,9 @@ starts.
 | `oracles/<id>/` | checker inputs the sandbox never contains |
 | `preregistration/` | committed before measuring; a guard blocks runs while it is dirty |
 | `results/<run_id>/` | full per-session logs, streams, admission verdicts, costs |
+| `docs/` | design notes and dated records; [`docs/STATUS.md`](docs/STATUS.md) is the state of the benchmark, `docs/audit/` the record of changes to the instrument |
+| `reports/` | the written report for a completed run |
+| `site/` | the published pages, deployed verbatim with no build step |
 
 ## Running
 
@@ -126,6 +189,16 @@ python -m scripts.pilot --dry-run --arms bare,claude_md,recall
 Real runs need a Claude Code CLI of at least 2.1.221 (below that, a pending MCP server runs
 the session without its tools while reporting success; the gate exists because that happened)
 and the arm-specific credentials listed in `.env.example`.
+
+They also need the prices stated explicitly. Since 2026-08-29 every live run refuses without
+them, because three runners carried three different defaults and none matched the frozen rates,
+so a run launched without the flags was priced on a basis nobody chose. Dry runs need none, and
+the refusal names the frozen rates so a run that means to match preregistration 002 copies one
+line rather than hunting for it:
+
+```bash
+python -m scripts.pilot --run-id my-run --price-in 0.0574 --price-out 0.1148 --price-as-of 2026-08-22
+```
 
 For the local Docker stack, copy `.env.example` to `.env`, set a unique `POSTGRES_PASSWORD`, and
 run `docker compose --env-file .env -f docker/compose.yaml up --build`. Compose requires that

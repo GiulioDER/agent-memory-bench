@@ -267,3 +267,27 @@ illustrative and its assumptions are stated; the direction is not in doubt.
 A recovered cell is a cell this protocol would previously have discarded, so runs using the retry
 publish a `recovered_sessions` list in `environment.json` beside the discard count. Reporting the
 discard count alone would quietly change what that count means.
+
+### Two disclosures appended 2026-08-29, nothing above them edited
+
+**The artifacts this report names are not committed to the repository.** The Reproducibility
+section above lists four paths under `results/pilot-004-placebo/`, and `git ls-files results`
+does not return any of them. Every number in this report was computed from those files, and a
+reader cannot currently check a single one. Either the run directory is committed, or the
+documents citing it say plainly that it cannot be checked. This is the saying so. The same holds
+for `midband-001`, cited by preregistration 008.
+
+**This run's dollar figures are not comparable with `pilot-003-deepseek`'s.** It was priced at
+`scripts/pilot.py`'s argparse defaults, 0.05866 / 0.11732, while `pilot-003-deepseek` used the
+frozen preregistration 002 rates, 0.0574 / 0.1148, and neither artifact recorded which basis it
+had used. The token counts are unaffected and reproduce exactly, so compare the two runs on
+tokens. The arithmetic, and the separate question of cache reads priced as fresh input, are in
+the [protocol change record](../docs/audit/2026-08-29-protocol-change-record.md). Prices are
+required rather than defaulted from 2026-08-29, so this cannot recur silently.
+
+**The grader that produced these outcomes has since changed.** Three protocol-sensitive fixes
+landed on 2026-08-29: `ts-retry-cap` rejected correct solutions about 40% of the time, a checker
+crash discarded a whole paired cell instead of failing one arm, and cache reads were priced as
+fresh input. The recorded numbers above are left exactly as they are, and the retry-cap error was
+symmetric across arms, so it inflated variance rather than biasing any contrast. A **new** run is
+not protocol-identical to this one and the two must not be differenced.
