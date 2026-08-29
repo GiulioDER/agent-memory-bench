@@ -1,5 +1,10 @@
 # One prompt per line; chosen by index in scripts/record_distractor.py. Mundane work that
 # establishes no governing fact. Keep each answerable from any task fixture.
+# ⚠ Index 3 (the DATA.md prompt) has twice produced another task's fact term in a
+# recorded session ('NO DATA' from ts-empty-input, 'never logged' from ts-log-mask).
+# A distractor that states a governing fact is refused by scripts/audit_corpus.py; if a
+# slot keeps failing on this prompt, re-stage it onto a mechanical one (2, 6) rather than
+# re-recording it again.
 Summarise what this project does and what each file in the repository is for, in a short OVERVIEW.md.
 Add a "Getting started" section to the README explaining how to run the tools in this repository.
 Check every file in the repository for trailing whitespace and fix any you find.
