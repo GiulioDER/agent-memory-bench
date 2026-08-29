@@ -185,8 +185,10 @@ python -m pytest tests/ -q</code></pre>
               <td>per-arm keys from <code>.env.example</code>; a missing key refuses that arm rather than faking it</td></tr>
           <tr><td><span class="m">clean preregistration/</span></td>
               <td>the run scripts refuse to start while the preregistration directory is dirty</td></tr>
+          <tr><td><span class="m">explicit prices</span></td>
+              <td><code>--price-in</code>, <code>--price-out</code> and <code>--price-as-of</code> are required for a live run and have no defaults anywhere, because three runners once carried three different ones and none matched the frozen rates. Dry runs need none</td></tr>
           <tr><td><span class="m">docker</span></td>
-              <td>for the self-hosted arms and the one-command full reproduction, landing in <code>docker/</code> as part of Phase 0</td></tr>
+              <td>for the self-hosted arms. <code>docker/compose.yaml</code> brings up the vector database and the harness image today; it does not yet install or start a memory server, so the one-command full reproduction is not there yet</td></tr>
         </tbody>
       </table>
     </div>
@@ -199,6 +201,13 @@ python -m pytest tests/ -q</code></pre>
         the benchmark and should be filed as one. Disagreement with a result starts with
         <code>results/&lt;run_id&gt;/</code>, which contains every session's logs, admission
         verdicts and costs.</p>
+        <p>By that standard the benchmark currently fails its own rule, and says so here rather
+        than in a footnote: the one product arm that has run carries <code>"package_pin":
+        "TBD"</code> in its frozen config, and the published runs resolved it from a local
+        checkout, so the exact version that produced those numbers is not recorded. No
+        third-party arm has run at all. Both are open work, tracked in
+        <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md">docs/STATUS.md</a>,
+        and neither is a reason to trust the pilots more than they deserve.</p>
       </div>
     </div>
   </section>

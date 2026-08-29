@@ -121,7 +121,7 @@
       meta.appendChild(link);
     } else {
       meta.appendChild(item("no official run yet", true));
-      meta.appendChild(item("Phase 0 · harness bring-up"));
+      meta.appendChild(item("Phase 0 · harness bring-up and internal pilots"));
       meta.appendChild(item("the first preregistered run is announced before it happens"));
       meta.appendChild(item("page data updated " + D.updated));
     }
