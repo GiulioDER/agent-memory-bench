@@ -1,0 +1,14 @@
+atlas reconciliation - 2026-05-19
+sender: feeds-ops@atlas.example.invalid
+
+We reconciled the readings you sent on 19 May against what landed in our warehouse.
+
+  submitted (your log):   40
+  accepted (our loader):  25
+  rejected:                0
+  errors returned:         0
+
+The 25 we hold are r-4001 through r-4025 in the order you sent them. We have no trace of
+r-4026 onward. Our loader did not report an error and your request was answered 200.
+
+Please confirm what you sent so we can close the ticket.

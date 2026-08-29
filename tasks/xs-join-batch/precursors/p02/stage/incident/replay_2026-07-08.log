@@ -1,0 +1,5 @@
+2026-07-08T05:00:03Z replay.start window=2026-07-01..2026-07-07 rows=1184
+2026-07-08T05:00:03Z replay.source order=collector_write_order
+2026-07-08T05:00:04Z replay.batch first=r-8801 last=r-8825
+2026-07-08T05:00:05Z replay.batch first=r-8826 last=r-8850
+2026-07-08T05:00:41Z replay.done batches=48 rows=1184 failed=0
