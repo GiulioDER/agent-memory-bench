@@ -30,3 +30,6 @@ results/*.log
 corpus/conditions/
 .venv-bench/
 results/logs/
+
+# Produced by `pip install -e .`, which is now possible. CI asserts a clean tree.
+*.egg-info/
