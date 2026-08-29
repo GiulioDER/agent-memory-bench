@@ -1,0 +1,6 @@
+line 4  "Acme, Inc"          split into two fields
+line 9  "see note, urgent"   split into two fields
+line 11 "Baker, Wilson & Co" split into two fields
+
+Three of eleven rows. Every one of them a value containing the
+delimiter, and every one correctly quoted by the writer.

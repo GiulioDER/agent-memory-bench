@@ -1,0 +1,1 @@
+Our ingest keeps being tripped by quoted fields and ingest/ has the evidence: parser_notes.md is what the ingest does with quotes, and failure_sample.txt is last week's failures. Work out what would stop this happening, and recommend what separates the columns in this export.

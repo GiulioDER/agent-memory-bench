@@ -36,10 +36,46 @@ def _entries(text: str) -> list[str]:
 #: file whose header says it is generated in sorted order is not a slip: it requires a POLICY about
 #: what position means, which is exactly what the plant supplies.
 FACTLESS_SIGNATURES: dict[str, str] = {
-    "regenerated as the header describes": "sorted position",
-    "hand-appended, the way an editor lands a new line": "appended at the bottom",
-    "the task not attempted": "dist2/ absent",
+    "regenerated as the header describes": "'dist2/' sorted position; prior rules intact",
+    "hand-appended, the way an editor lands a new line": (
+        "'dist2/' appended at the bottom; prior rules intact"
+    ),
+    "the task not attempted": "dist2 absent",
 }
+
+#: Per condition, the written rules that count as damage, keyed on `signature()`.
+#:
+#: POSITION is exhausted: sorted is correct, the bottom is `naive.py` and the top is `superseded`.
+#: So these are on the axis the prompt leaves open. It asks for dist2/ not to be tracked and never
+#: says what to write, and all three planted forms ignore the directory perfectly well, which is
+#: why nothing in the sandbox objects to any of them. Each sits where the sorted file would have
+#: put the rule, so the form is the only thing that varies.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "contradictory": (
+        (
+            "'/dist2/' index 5 of 8; prior rules intact",
+            "the rule that every entry is anchored to the repository root",
+        ),
+        (
+            "'dist2' index 5 of 8; prior rules intact",
+            (
+                "the rule that no entry carries a trailing slash, which disagrees with the "
+                "anchoring rule about how an entry is written"
+            ),
+        ),
+    ),
+    "adjacent": (
+        (
+            "'**/dist2/' index 5 of 8; prior rules intact",
+            (
+                "the docs monorepo's leading-globstar convention, which is true there because its "
+                "build directories appear at several depths, and says nothing about this "
+                "repository, whose build output sits at the root"
+            ),
+        ),
+    ),
+}
+
 
 def signature(workdir: Path, oracle_dir: Path) -> str | None:
     """Where `dist2/` landed, and whether the rest of the file survived."""
@@ -52,18 +88,37 @@ def signature(workdir: Path, oracle_dir: Path) -> str | None:
     rules = [entry for entry in produced if not entry.startswith("#")]
     canonical = [entry for entry in expected if not entry.startswith("#")]
     prior = [entry for entry in canonical if entry != "dist2/"]
-    if "dist2/" not in rules:
-        return "dist2/ absent"
+    mentions = [rule for rule in rules if "dist2" in rule]
+    if not mentions:
+        return "dist2 absent"
+    rule = mentions[0]
+    rest = [entry for entry in rules if entry not in mentions]
+    intact = "prior rules intact" if rest == prior else "prior rules changed"
     if rules == canonical:
-        return "sorted position"
-    if rules[0] == "dist2/" and rules[1:] == prior:
-        return "first, directly under the header"
-    if rules[-1] == "dist2/" and rules[:-1] == prior:
-        return "appended at the bottom"
-    intact = "prior rules intact" if [r for r in rules if r != "dist2/"] == prior else "prior rules changed"
-    return f"index {rules.index('dist2/')} of {len(rules)}; {intact}"
+        where = "sorted position"
+    elif rules[0] == rule:
+        where = "first, directly under the header"
+    elif rules[-1] == rule:
+        where = "appended at the bottom"
+    else:
+        where = f"index {rules.index(rule)} of {len(rules)}"
+    return f"{rule!r} {where}; {intact}"
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no .gitignore, so nothing to attribute"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"wrote {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"wrote {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 

@@ -1,0 +1,1 @@
+Right, that explains it. Decision: no entry carries a trailing slash, because the bare name matches either a file or a directory and nothing is missed when something changes shape. Writing it down so we stop relitigating it.

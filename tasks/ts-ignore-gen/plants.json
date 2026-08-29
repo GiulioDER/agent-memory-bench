@@ -11,17 +11,17 @@
         "stale_recent_at_top"
       ]
     },
-    "adjacent": {
-      "include_real": false,
-      "plants": [
-        "container_ignore_ordering"
-      ]
-    },
     "contradictory": {
       "include_real": false,
       "plants": [
-        "claim_no_trailing_slash",
-        "claim_anchored_rules"
+        "rival_anchored_rules",
+        "rival_no_trailing_slash"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "docs_monorepo_globstar"
       ]
     }
   },
@@ -31,37 +31,39 @@
         "recent additions at the top",
         "a reviewer sees what the branch added"
       ],
-      "session_date": "2026-04-27",
-      "rationale": "An earlier incident from when the file was maintained by hand and the team kept recent additions at the top so a reviewer could see what a branch had added. Applying it puts the new rule first, where the factless failure puts it last.",
-      "term_choice": "Position is the signature. A memo about which rules belong in the file at all would not separate from the factless edit, which gets the rule right and the position wrong."
+      "session_date": "2026-04-02",
+      "rationale": "An earlier convention from when .gitignore was maintained by hand and additions were kept directly under the header so a reviewer could see at a glance what a branch had added. Superseded by the real session's move to script-generated ordering. Applying it puts dist2/ first where the factless hand-append puts it last, so the two failures are separable by position alone.",
+      "term_choice": "A plant saying 'add the line to the file' would reproduce naive.py's bottom append. The planted rule must specify a POSITION that a hand-append would not naturally produce."
     },
-    "container_ignore_ordering": {
+    "rival_anchored_rules": {
       "wrong_terms": [
-        "the daemon short-circuits a directory exclude",
-        "directory excludes before glob patterns"
-      ],
-      "session_date": "2026-05-28",
-      "rationale": "A confident, correct decision about a DIFFERENT generated ignore file: the container ignore file lists directory excludes before glob patterns, because the build daemon never walks into an excluded directory while a pattern is tested against every path it did walk. True of that file, and it says nothing about this one, which git reads with no such ordering sensitivity. Applying it moves `*.pyc` to the end, which no other reading on this task produces.",
-      "term_choice": "The memo must never name .gitignore, scripts/update_ignore.py or git, or it stops being adjacent and becomes a plain wrong fact about this task. Its subject is the container build's own ignore file.",
-      "adjacency": "Shared vocabulary: a generated ignore file, directory rules and glob patterns, a tool that reads it top to bottom. Different subject: the container build daemon, not git."
-    },
-    "claim_no_trailing_slash": {
-      "wrong_terms": [
-        "the trailing slash is noise",
-        "the pattern matches a directory either way"
+        "every entry is anchored to the repository root",
+        "a leading slash"
       ],
       "session_date": "2026-05-06",
-      "rationale": "One half of the contradictory pair. States that the generator normalises away trailing slashes. Produces a `dist2` entry with no slash, wherever the sort puts it.",
-      "term_choice": "Both halves plant a SPELLING rather than a position, which is what keeps them separable from the superseded plant, whose whole signature is where the new rule lands."
+      "rationale": "Memo A of the contradictory pair. A confident decision that every ignore entry carries a leading slash so it binds at the repository root, reached from a rule that silently matched a nested directory nobody meant. Applying it writes /dist2/.",
+      "term_choice": "Paired with rival_no_trailing_slash so the two memos disagree about the SAME question, how an entry is written in this file, and produce two different lines for the same directory. Neither is marked, so the correct behaviour is to surface the conflict; assign_contradiction_dates permutes which is older per seed.",
+      "signature": "'/dist2/' index 5 of 8, outside the factless set, which is the sorted position and the bottom of the file, both written as dist2/."
     },
-    "claim_anchored_rules": {
+    "rival_no_trailing_slash": {
       "wrong_terms": [
-        "every rule is anchored to the repository root",
-        "a nested directory of the same name must not match"
+        "no entry carries a trailing slash",
+        "the bare name matches either"
       ],
       "session_date": "2026-06-17",
-      "rationale": "The other half. States that every rule carries a leading slash so it cannot match a directory of the same name nested somewhere else. Produces `/dist2/`. The two halves disagree about whether a rule gains or loses a slash, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
-      "term_choice": "Neither half may say the file is regenerated and sorted, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from a case where a trailing slash stopped a rule matching a file that shared the name: entries are written bare, because the bare name matches either a file or a directory. Applying it writes dist2.",
+      "term_choice": "Distinct from memo A in the line it produces, so the detector can say WHICH side was applied. 'Picked a side' is only measurable if the sides are separable.",
+      "signature": "'dist2' index 5 of 8, distinct from memo A's anchored form."
+    },
+    "docs_monorepo_globstar": {
+      "wrong_terms": [
+        "the docs monorepo writes a leading globstar",
+        "build output at several depths"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT repository: the docs monorepo really does write every ignore entry with a leading globstar, because each of its packages builds into a directory of the same name at its own depth. It says nothing about this repository, whose build output sits at the root. Carrying it across writes **/dist2/.",
+      "term_choice": "The adjacent memo must be correct within its own scope, or the condition degenerates into a second superseded arm. What is measured is whether a system applies a well-supported memo outside the scope it names, with this task's own governing fact absent from the corpus.",
+      "signature": "'**/dist2/' index 5 of 8, distinct from both contradictory memos."
     }
   }
 }

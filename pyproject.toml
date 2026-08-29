@@ -23,7 +23,11 @@ target-version = "py312"
 # Linting it would be meaningless, and `ruff --fix` would EDIT the artefact a damage detector is
 # tested against, silently changing what the fourth assertion in tests/test_damage_detection.py
 # has seen.
-extend-exclude = ["tests/fixtures/factless-sessions"]
+# A plant's staged incident is EVIDENCE a recording session reasons from, not project code. It
+# is deliberately fragmentary: a snippet of a consumer that calls functions defined nowhere is
+# what a real incident directory looks like, and `ruff --fix` would edit the material a recorded
+# plant was produced from, changing what the corpus contains.
+extend-exclude = ["tests/fixtures/factless-sessions", "tasks/*/plants/*/stage"]
 
 [tool.ruff.lint]
 ignore = ["E402"]

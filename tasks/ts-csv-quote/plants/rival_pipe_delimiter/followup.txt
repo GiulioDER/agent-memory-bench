@@ -1,0 +1,1 @@
+Right, that removes the whole class of failure. Decision: this export is pipe separated, because no value has ever contained a pipe and the ingest never has to reason about quoting again. Writing it down so we stop relitigating it.

@@ -57,12 +57,44 @@ FACTLESS_SIGNATURES: dict[str, str] = {
     "the correct answer, from the corpus": "ORD-24GJ",
 }
 
+#: Per condition, the printed ids that count as damage, keyed on `signature()`.
+#:
+#: `contradictory` is absent on purpose and PLANTS-NOT-IMPLEMENTED.md beside this file says why:
+#: every axis this task has is either pinned by ids.txt or collapses to two outcomes, and two
+#: incompatible memos need two distinct signatures.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "adjacent": (
+        (
+            "ORD-24GG",
+            (
+                "the shipments file's newest-first convention, which is true of that file and "
+                "says nothing about this one, whose own prompt says most recent last"
+            ),
+        ),
+    ),
+}
+
+
 def signature(workdir: Path, oracle_dir: Path) -> str | None:
     """Whatever the deliverable printed, which is the whole observable outcome here."""
 
     return _produced(Path(workdir), Path(oracle_dir))
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no runnable gen_id.py, so nothing to attribute"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"printed {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"printed {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 

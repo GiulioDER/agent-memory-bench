@@ -1,0 +1,1 @@
+A file slipped into a commit that an ignore rule should have caught, and ops/ has the evidence: missed_file.txt is what got through, and rule_forms.md is what was tried. Work out why the rule did not match, and recommend how an entry should be written so this cannot happen again.
