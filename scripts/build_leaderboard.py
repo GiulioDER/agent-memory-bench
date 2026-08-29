@@ -53,6 +53,10 @@ from pathlib import Path
 PRODUCT_ARMS = [
     # internal name, integration, role, public name (None while undisclosed)
     ("recall", "MCP server", None, "recall"),
+    # Undisclosed until its maintainers have had the review window that every vendor gets.
+    # The adapter is public in this repository; the SITE is what enters a product into a
+    # benchmark it was never told about, and that is the thing a name cannot be recalled from.
+    ("mempalace", "MCP server, local", None, None),
     ("mem0", "SaaS API", None, None),
     ("supermemory", "SaaS API", None, None),
     ("zep", "Graphiti, local docker", None, None),
