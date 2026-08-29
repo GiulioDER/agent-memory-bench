@@ -71,6 +71,25 @@ failed.
 ls tasks | grep -c '^ts-'
 ```
 
+**Three `xs-*` tasks, whose governing fact no single session states.** Added 2026-08-29. Every
+`ts-*` task states one discrete fact in one document, which is retrieval's best case and leaves a
+product that extracts and consolidates at write time no way to win: a suite where combining
+sessions is never necessary cannot detect a product that combines them. `xs-join-batch` splits one
+rule into two halves recorded under two names for one partner, `xs-evolve-lease` revises one value
+across three dated sessions where only the last is correct, and `xs-widen-manifest` puts a rule in
+one session and widens its scope in a later one.
+
+Each ships a `partial_<shard>.py` reference per shard that CI asserts **fails**, which is what
+makes "no single session suffices" a checked property rather than a design note.
+⚠️ **Their corpus sessions are not recorded**, so these tasks currently measure nothing, and the
+suite is preregistered as `synthesis-001` (`preregistration/011-cross-session-synthesis.md`) with
+three tasks called a diagnostic rather than a headline. Design and limits:
+`docs/CROSS_SESSION_SYNTHESIS.md`.
+
+```bash
+ls tasks | grep -c '^xs-' && ls corpus/sessions | grep -c '^xs-'
+```
+
 ## The harm suite
 
 The 24 original tasks all place their governing fact **in** the corpus, so the suite could only
@@ -229,7 +248,10 @@ Ordered by what has to happen first, not by size.
    40 of 72 cells and has not been rerun, and after the protocol change a rerun needs both arms.
 7. **Only the read path is measured.** The corpus is bulk ingested once and never written to
    again, so the extraction and consolidation half of every product under test is unmeasured.
-   Preregistration 006 is the design that would measure it, and it has not run.
+   Preregistration 006 is the design that would measure it, and it has not run. Until it does, no
+   multi-product ranking is published; a ranking that ships first is titled for the retrieval it
+   measured, and `scripts/build_leaderboard.py` writes that title onto the page rather than
+   leaving it to whoever writes the copy.
 
 ## Verifying this file
 

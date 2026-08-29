@@ -45,22 +45,40 @@ read.
    none matched the frozen rates, so any run launched without the flags was priced on a basis
    nobody chose. Compare runs on tokens, never on the dollars of two runs priced differently.
 
-**Four limits that bound every number published so far.** They are here rather than in a footnote
+**Five limits that bound every number published so far.** They are here rather than in a footnote
 because a reader who does not know them will over-read the results.
 
-1. **Only the READ path is measured.** `corpus/` is 125 pre-authored transcripts, bulk ingested
-   once before the grid and never written to again. The agent never forms a memory from its own
-   work, so half of every product under test is unmeasured, and it is the half products whose value
-   is extraction and consolidation actually sell.
+1. **Only the READ path is measured. Half of every product under test is unmeasured, and it is the
+   half that extraction and consolidation products sell.** `corpus/` is 125 pre-authored
+   transcripts, bulk ingested once before the grid and never written to again. The agent never
+   forms a memory from its own work, so nothing here says whether a product captures what an agent
+   learns, or whether what it captured survives to the next session.
    [`preregistration/006`](preregistration/006-longitudinal-suite.md) is the design that would
    measure it; it has not run.
-2. **`claude_md` is the fixture's orientation README, not a curated conventions file.** It is a
+
+   **Consequence for how results are titled:** no multi-product ranking will be published until
+   that suite has run. A ranking of memory products measured on read-only bulk ingest is a ranking
+   of retrieval engines, and if one ships before the longitudinal suite it will say so in its
+   title.
+2. **The suite favoured retrieval over summarisation, and a competitor saying so would be right.**
+   All 30 `ts-*` tasks put one discrete governing fact in one document, which is retrieval at its
+   best case and gives a product that extracts and consolidates at write time no way to win and
+   every way to lose: every fact it drops at write time is an unrecoverable loss, while a verbatim
+   index keeps everything retrievable. The single discrete governing fact is the mechanism.
+   Three `xs-*` tasks now exist whose governing fact no single session states, in three shapes
+   (two halves joined, a value revised across three dated sessions, a rule widened later by a
+   session that restates none of it):
+   [`docs/CROSS_SESSION_SYNTHESIS.md`](docs/CROSS_SESSION_SYNTHESIS.md) and
+   [`preregistration/011`](preregistration/011-cross-session-synthesis.md). Their sessions are not
+   recorded and the suite has not run, so this limit is answered structurally and not yet
+   empirically.
+3. **`claude_md` is the fixture's orientation README, not a curated conventions file.** It is a
    floor with a document attached, not the realistic incumbent, and on `ts-legacy-hash` it actively
    names the wrong helper (`bare` 1.00 against `claude_md` 0.00 in two runs).
-3. **The memory arm is not budget-matched.** On `pilot-004-placebo` the recall arm used 4.5x the
+4. **The memory arm is not budget-matched.** On `pilot-004-placebo` the recall arm used 4.5x the
    input tokens and 2.6x the wall time of every other arm. `costs.json` now carries
    success-per-million-tokens per arm; there is still no arm run at a matched budget.
-4. **One model, and it is a cheap one.** Everything is `deepseek/deepseek-v4-flash`. The one
+5. **One model, and it is a cheap one.** Everything is `deepseek/deepseek-v4-flash`. The one
    attempt at a stronger model failed on provider credit and has not been rerun.
 
 The benchmark includes a preregistered oracle and proactive retrieval diagnostic. See
@@ -108,7 +126,10 @@ here. Until they land, no abstention number should be quoted from anywhere.
    extraction pipeline keeps is part of what is measured.
 4. **Executable endpoints only.** Checkers run the artifact against oracles the sandbox never
    contained. A do-nothing session scores zero. Every task ships a naive reference solution
-   that must fail and an informed one that must pass, asserted in CI.
+   that must fail and an informed one that must pass, asserted in CI. A task whose fact is
+   distributed across sessions ships one more per shard, holding that shard alone, and CI asserts
+   each of those fails too: that is what makes "no single session suffices" a checked property
+   rather than a design note.
 5. **The admission gate.** A grid cell is discarded, not scored, unless every arm can PROVE its
    treatment was applied: MCP tools listed at session init, lifecycle hooks demonstrably fired
    with output, every arm's sandbox digest equal to every other's, and no arm holding another
@@ -170,7 +191,7 @@ starts.
 | `harness/adapters/base.py` | the `MemoryAdapter` contract every arm implements |
 | `adapters/<name>/` | one product: adapter code, frozen config, vendor-review record, version pins |
 | `corpus/` | the neutral experience feed: verbatim session transcripts, sha256 manifest |
-| `tasks/<id>/` | fixture tree, task spec, executable checker, naive and informed references |
+| `tasks/<id>/` | fixture tree, task spec, executable checker, naive and informed references (plus `partial_*` for a distributed fact) |
 | `oracles/<id>/` | checker inputs the sandbox never contains |
 | `preregistration/` | committed before measuring; a guard blocks runs while it is dirty |
 | `results/<run_id>/` | full per-session logs, streams, admission verdicts, costs |

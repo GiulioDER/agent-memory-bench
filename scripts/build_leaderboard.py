@@ -68,6 +68,25 @@ PRODUCT_ARMS = [
 UNDISCLOSED_TYPE = "third-party product, not yet named"
 UNDISCLOSED_PREFIX = "product_"
 
+# What the page is allowed to call itself while the write path is unmeasured.
+#
+# The corpus is bulk ingested once, before the grid, and never written to again, so a ranking built
+# from it ranks retrieval and nothing else: a product whose value is extraction and consolidation
+# at write time gets no credit for either and full exposure to the lossiness of the first. So no
+# multi-product ranking ships until `preregistration/006` has run, or it ships titled for what it
+# actually measured.
+#
+# It is enforced here rather than promised in a README because a promise about a title is exactly
+# the kind of thing a launch deadline edits. `write_path_measured` in the config is the only switch,
+# and flipping it without naming the longitudinal run that justifies it is refused below.
+RETRIEVAL_ONLY_TITLE = "Retrieval over a bulk-ingested corpus"
+RETRIEVAL_ONLY_QUALIFICATION = (
+    "The write path is not measured. Every arm was handed the same 125 pre-authored transcripts "
+    "before the grid and never wrote to its own store, so this ranks retrieval, not memory "
+    "formation, and it gives no credit to extraction or consolidation at write time."
+)
+FULL_TITLE = "Memory layers, read and write path"
+
 REFERENCE_TRACKS = [
     ("oracle_memory", "exact evidence injected; ceiling control"),
     ("recall_prefetch", "harness-side retrieval with the exact task prompt"),
@@ -143,6 +162,35 @@ def public_arms() -> list[tuple[str, str, str, str | None]]:
     return out
 
 
+def _scope(config: dict) -> dict:
+    """What this page is a ranking OF, decided by the config and not by the person writing copy.
+
+    Default is the honest one. Claiming the write path was measured requires naming the run that
+    measured it, so the claim and its evidence move together or not at all.
+    """
+
+    measured = bool(config.get("write_path_measured", False))
+    if not measured:
+        return {
+            "writePathMeasured": False,
+            "title": RETRIEVAL_ONLY_TITLE,
+            "qualification": RETRIEVAL_ONLY_QUALIFICATION,
+            "longitudinalRun": None,
+        }
+    run_id = config.get("longitudinal_run")
+    if not run_id:
+        raise SummaryInvalid(
+            "write_path_measured is true but no longitudinal_run is named; a ranking may only "
+            "drop the retrieval-only title once the run that measured the write path exists"
+        )
+    return {
+        "writePathMeasured": True,
+        "title": FULL_TITLE,
+        "qualification": f"Write path measured by {run_id}.",
+        "longitudinalRun": str(run_id),
+    }
+
+
 def build(repo_root: str | Path) -> str:
     repo_root = Path(repo_root)
     config = json.loads(
@@ -178,6 +226,7 @@ def build(repo_root: str | Path) -> str:
     data = {
         "updated": config["updated"],
         "baseline": "claude_md",
+        "scope": _scope(config),
         "run": summary["run"] if summary else None,
         "arms": arms,
         "reference": reference,
