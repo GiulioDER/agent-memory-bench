@@ -86,9 +86,13 @@ one session and widens its scope in a later one.
 
 Each ships a `partial_<shard>.py` reference per shard that CI asserts **fails**, which is what
 makes "no single session suffices" a checked property rather than a design note.
-⚠️ **Their corpus sessions are not recorded**, so these tasks currently measure nothing, and the
-suite is preregistered as `synthesis-001` (`preregistration/011-cross-session-synthesis.md`) with
-three tasks called a diagnostic rather than a headline. Design and limits:
+⚠️ **The seven shard sessions were recorded on 2026-08-29 and they are pipeline-validation
+recordings, not the run corpus**: they were made on the Windows workstation, whose paths and
+usernames reach the transcripts, and `corpus/manifest.json` has not been rebuilt, so no arm
+ingests them. The corpus audit is clean across them, including the shard-locus assertions. These
+tasks still measure nothing. The suite is preregistered as `synthesis-001`
+(`preregistration/011-cross-session-synthesis.md`) with three tasks called a diagnostic rather
+than a headline; its recording log is appended there. Design and limits:
 `docs/CROSS_SESSION_SYNTHESIS.md`.
 
 ```bash
