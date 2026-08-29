@@ -1,0 +1,351 @@
+{
+  "run_id": "pilot-004-placebo",
+  "admitted_cells": 63,
+  "discarded_cells": [
+    [
+      "ts-atomic-write",
+      1
+    ],
+    [
+      "ts-atomic-write",
+      2
+    ],
+    [
+      "ts-base36-id",
+      1
+    ],
+    [
+      "ts-bom-merge",
+      0
+    ],
+    [
+      "ts-casefold-sort",
+      1
+    ],
+    [
+      "ts-empty-input",
+      1
+    ],
+    [
+      "ts-ignore-gen",
+      1
+    ],
+    [
+      "ts-legacy-hash",
+      0
+    ],
+    [
+      "ts-legacy-hash",
+      1
+    ]
+  ],
+  "arm_success": {
+    "bare": 0.413,
+    "placebo": 0.476,
+    "claude_md": 0.429,
+    "recall": 0.619
+  },
+  "primary_recall_vs_claude_md_all_tasks": {
+    "per_task_mean_delta": 0.1736,
+    "cluster_ci95": [
+      0.0486,
+      0.3125
+    ],
+    "mcnemar_p": 0.0018310546875,
+    "discordant": {
+      "only_recall": 13,
+      "only_claude_md": 1
+    },
+    "n_tasks": 24,
+    "n_cells": 63
+  },
+  "primary_recall_vs_claude_md_survivors": {
+    "per_task_mean_delta": 0.4286,
+    "cluster_ci95": [
+      0.1429,
+      0.7143
+    ],
+    "mcnemar_p": 0.00390625,
+    "discordant": {
+      "only_recall": 9,
+      "only_claude_md": 0
+    },
+    "n_tasks": 7,
+    "n_cells": 19
+  },
+  "exploratory_bare_vs_claude_md": {
+    "per_task_mean_delta": -0.0069,
+    "cluster_ci95": [
+      -0.1667,
+      0.1458
+    ],
+    "mcnemar_p": 1.0,
+    "discordant": {
+      "only_bare": 5,
+      "only_claude_md": 6
+    },
+    "n_tasks": 24,
+    "n_cells": 63
+  },
+  "mechanism": {
+    "search_rate": 0.857,
+    "reached_given_searched": 0.926,
+    "reached_overall": 0.794
+  },
+  "screening": {
+    "ts-append-only": {
+      "bare": 1.0,
+      "placebo": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-atomic-write": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-base36-id": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 2,
+      "recall_reached": 1
+    },
+    "ts-bom-merge": {
+      "bare": 1.0,
+      "placebo": 1.0,
+      "claude_md": 0.5,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-casefold-sort": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "keep",
+      "recall_searched": 2,
+      "recall_reached": 1
+    },
+    "ts-config-layer": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-crlf-export": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 2,
+      "recall_reached": 1
+    },
+    "ts-dedup-order": {
+      "bare": 0.667,
+      "placebo": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-empty-input": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-glob-hidden": {
+      "bare": 1.0,
+      "placebo": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-golden-regen": {
+      "bare": 0.667,
+      "placebo": 0.667,
+      "claude_md": 0.0,
+      "recall": 0.667,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-ignore-gen": {
+      "bare": 1.0,
+      "placebo": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-legacy-hash": {
+      "bare": 1.0,
+      "placebo": 1.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "ceiling",
+      "recall_searched": 0,
+      "recall_reached": 0
+    },
+    "ts-log-mask": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-manifest-rel": {
+      "bare": 0.0,
+      "placebo": 1.0,
+      "claude_md": 1.0,
+      "recall": 0.667,
+      "screen": "ceiling",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-mig-name": {
+      "bare": 0.667,
+      "placebo": 1.0,
+      "claude_md": 0.667,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-nfc-count": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 1.0,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-quote-shell": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 1,
+      "recall_reached": 1
+    },
+    "ts-retry-cap": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.0,
+      "screen": "floor",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-round-money": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 1.0,
+      "screen": "keep",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-schema-additive": {
+      "bare": 1.0,
+      "placebo": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-semver-pin": {
+      "bare": 1.0,
+      "placebo": 0.667,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 3
+    },
+    "ts-stable-sort": {
+      "bare": 0.0,
+      "placebo": 0.0,
+      "claude_md": 0.0,
+      "recall": 0.333,
+      "screen": "keep",
+      "recall_searched": 2,
+      "recall_reached": 2
+    },
+    "ts-tz-utc": {
+      "bare": 1.0,
+      "placebo": 1.0,
+      "claude_md": 1.0,
+      "recall": 1.0,
+      "screen": "ceiling",
+      "recall_searched": 3,
+      "recall_reached": 2
+    }
+  },
+  "survivors": [
+    "ts-base36-id",
+    "ts-casefold-sort",
+    "ts-crlf-export",
+    "ts-nfc-count",
+    "ts-quote-shell",
+    "ts-round-money",
+    "ts-stable-sort"
+  ],
+  "n_survivors": 7,
+  "placebo_vs_bare": {
+    "per_task_mean_delta": 0.0556,
+    "cluster_ci95": [
+      -0.0278,
+      0.1528
+    ],
+    "mcnemar_p": 0.21875,
+    "discordant": {
+      "only_placebo": 5,
+      "only_bare": 1
+    },
+    "n_tasks": 24,
+    "n_cells": 63
+  },
+  "claude_md_vs_placebo": {
+    "per_task_mean_delta": -0.0486,
+    "cluster_ci95": [
+      -0.1875,
+      0.0903
+    ],
+    "mcnemar_p": 0.453125,
+    "discordant": {
+      "only_claude_md": 2,
+      "only_placebo": 5
+    },
+    "n_tasks": 24,
+    "n_cells": 63
+  }
+}

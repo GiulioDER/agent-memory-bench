@@ -1,0 +1,298 @@
+{
+  "required_arms": [
+    "bare"
+  ],
+  "admitted_cells": 36,
+  "discarded_cells": [],
+  "discarded_by_arm": {},
+  "verdicts": [
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    }
+  ]
+}
