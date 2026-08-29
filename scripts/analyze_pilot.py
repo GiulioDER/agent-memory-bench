@@ -5,6 +5,13 @@ cluster bootstrap CI plus cell McNemar; (2) per-task screening (ceiling and floo
 (3) mechanism (search rate, governing-session-reached); (4) costs; (5) exploratory
 bare vs claude_md. Nothing here chooses thresholds: they were committed before the run.
 
+Added afterwards, and not part of that preregistration: (6) the instruction decomposition. Where
+the roster carries the `protocol` arm (the baseline bundle plus the shared memory protocol, no
+memory layer), `protocol - claude_md` is reported as what the coaching alone bought and
+`recall - protocol` as what the store bought on top of it. Every arm's instruction size is reported
+beside its success rate, because the two were confounded from `pilot-002` to `pilot-004` and no
+results table showed it.
+
     python -m scripts.analyze_pilot --run-id pilot-001
 """
 
@@ -27,7 +34,11 @@ from harness.stats import effect_concentration, mcnemar_exact
 from harness.tasks import discover_tasks
 
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
-SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "recall")
+
+#: Every arm `scripts/pilot.py` can run. `protocol` and `fs_grep` were missing here long after
+#: the runner grew them, so the arm that exists to separate the instruction from the store could
+#: be run and then not analysed: `--arms bare,claude_md,protocol,recall` exited `unknown arms`.
+SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall")
 
 
 #: Re-exported so `scripts/discard_sensitivity.py` keeps importing it from here, while there is
@@ -47,6 +58,43 @@ def cluster_bootstrap(per_task_deltas, iterations: int = 10_000, seed: int = 123
     return (constant, constant)
 
 
+def instruction_budget(
+    run_dir: Path, records, arms: tuple[str, ...]
+) -> dict[str, int | None]:
+    """Bytes of memory instruction each arm carried, for publication beside its success rate.
+
+    A success rate is not interpretable without it. Every run from `pilot-002` onward gave `recall`
+    5,428 characters, `fs_grep` 231 and `claude_md` none, and no results table said so, so a reader
+    comparing the three arms was comparing a memory layer and an instruction budget at once.
+
+    Read from `environment.json`'s manifest where the run wrote one, else from the records, else
+    ``None``. Absent is reported as absent rather than as zero: "this arm was told nothing" and
+    "nobody wrote it down" are different claims, and runs before 2026-08-29 recorded neither.
+    """
+
+    manifest: dict = {}
+    env_path = run_dir / "environment.json"
+    if env_path.is_file():
+        env = json.loads(env_path.read_text(encoding="utf-8"))
+        manifest = env.get("instruction_manifest") or {}
+
+    budget: dict[str, int | None] = {}
+    for arm in arms:
+        entry = manifest.get(arm)
+        if isinstance(entry, dict) and entry.get("bytes") is not None:
+            budget[arm] = int(entry["bytes"])
+            continue
+        sizes = {
+            int(record.metadata["instruction_bytes"])
+            for record in records
+            if record.arm == arm and record.metadata.get("instruction_bytes") is not None
+        }
+        # More than one size within an arm is itself worth seeing, so report the largest rather
+        # than picking one silently; the manifest above is the authoritative source.
+        budget[arm] = max(sizes) if sizes else None
+    return budget
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="pilot-001")
@@ -55,12 +103,23 @@ def main() -> int:
         default=",".join(DEFAULT_ARMS),
         help="comma-separated arms in the run; pilot-004 adds placebo",
     )
+    parser.add_argument(
+        "--results-root",
+        default=str(REPO / "results"),
+        help="where run directories live; only the tests point this away from results/",
+    )
     args = parser.parse_args()
     run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
     unknown = [arm for arm in run_arms if arm not in SUPPORTED_ARMS]
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {SUPPORTED_ARMS}")
-    run_dir = REPO / "results" / args.run_id
+    # Every contrast here is against the designated baseline, and the screens read its rate.
+    if "claude_md" not in run_arms:
+        raise SystemExit(
+            "claude_md is the designated baseline; a roster without it has nothing to contrast "
+            "against and no rate to screen tasks on"
+        )
+    run_dir = Path(args.results_root) / args.run_id
 
     # The governing fact, from the two places it is already written down: the audited fact_terms,
     # and the authored decision turn that `scripts/build_oracle_bundles.py` extracts. Neither is a
@@ -100,8 +159,13 @@ def main() -> int:
     # (2) preregistered screens
     screening = {}
     for task in tasks:
-        bare_r, cmd_r = rate(per_task[task]["bare"]), rate(per_task[task]["claude_md"])
-        ceiling = cmd_r >= 0.7 or bare_r >= 0.5
+        cmd_r = rate(per_task[task]["claude_md"])
+        # `bare` is the floor half of the ceiling screen. A roster without it screens on the
+        # baseline alone rather than raising KeyError, which is what an instruction-only roster
+        # (`claude_md,protocol,recall`) used to do here.
+        has_bare = "bare" in run_arms
+        bare_r = rate(per_task[task]["bare"]) if has_bare else float("nan")
+        ceiling = cmd_r >= 0.7 or (has_bare and bare_r >= 0.5)
         mech = [
             r
             for r in admitted
@@ -167,16 +231,35 @@ def main() -> int:
             arm: round(rate([bool(a[arm].success) for a in by_cell.values()]), 3)
             for arm in run_arms
         },
-        "primary_recall_vs_claude_md_all_tasks": contrast("recall", "claude_md", tasks),
-        "primary_recall_vs_claude_md_survivors": (
-            contrast("recall", "claude_md", survivors) if survivors else None
-        ),
-        "exploratory_bare_vs_claude_md": contrast("bare", "claude_md", tasks),
+        # Beside the success rate, never in a separate file.
+        "arm_instruction_bytes": instruction_budget(run_dir, admitted, run_arms),
         "mechanism": mechanism(recall_records, fact_terms, evidence_by_task=evidence),
         "screening": screening,
         "survivors": survivors,
         "n_survivors": len(survivors),
     }
+    if "recall" in run_arms:
+        analysis["primary_recall_vs_claude_md_all_tasks"] = contrast(
+            "recall", "claude_md", tasks
+        )
+        analysis["primary_recall_vs_claude_md_survivors"] = (
+            contrast("recall", "claude_md", survivors) if survivors else None
+        )
+    if "bare" in run_arms:
+        analysis["exploratory_bare_vs_claude_md"] = contrast("bare", "claude_md", tasks)
+    # The decomposition of the headline. `protocol` is the baseline bundle plus the shared memory
+    # protocol and no memory layer, so this pair separates what the coaching bought from what the
+    # store bought; `recall - claude_md` is their sum and cannot tell them apart.
+    if "protocol" in run_arms:
+        analysis["instruction_only_protocol_vs_claude_md"] = contrast(
+            "protocol", "claude_md", tasks
+        )
+        if "recall" in run_arms:
+            analysis["store_net_of_instruction_recall_vs_protocol"] = contrast(
+                "recall", "protocol", tasks
+            )
+    if "fs_grep" in run_arms:
+        analysis["fs_grep_vs_claude_md"] = contrast("fs_grep", "claude_md", tasks)
     if "placebo" in run_arms:
         analysis["placebo_vs_bare"] = contrast("placebo", "bare", tasks)
         analysis["claude_md_vs_placebo"] = contrast("claude_md", "placebo", tasks)

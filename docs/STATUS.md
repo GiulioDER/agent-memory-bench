@@ -119,7 +119,21 @@ recall arm's treatment was not only the memory layer. Until 2026-08-28 the recal
 being generic agent hygiene that would have helped any arm. Under
 `--memory-instruction protocol` every memory arm now gets `adapters/_shared/memory_protocol.md`
 byte-identical, plus its own result-schema appendix capped at 1,200 bytes. Per-arm instruction
-sizes are published in every run's `environment.json`.
+sizes are published in every run's `environment.json`, and since 2026-08-29 in its `analysis.json`
+too, beside the arm's success rate: a rate is not interpretable without the size of the instruction
+that produced it.
+
+⚠️ **`protocol` has never been run.** Until 2026-08-29 it could not even have been read:
+`scripts/pilot.py` accepted the arm and `scripts/analyze_pilot.py` refused it, so a run of the
+control could have been spent and then not analysed. The analyser now reports
+`instruction_only_protocol_vs_claude_md` (what the coaching alone bought) and
+`store_net_of_instruction_recall_vs_protocol` (what the store bought on top of it) whenever the
+roster carries the arm. **How much of the published lift is coaching is still unmeasured**, and
+measuring it needs a preregistration first.
+
+```bash
+python -m pytest tests/test_instruction_fairness.py -q
+```
 
 **Not built, four:** the third-party memory products. They are not named yet, here or on the
 site. Every vendor is invited to review its own adapter and frozen config before any measured
