@@ -275,6 +275,45 @@ def classify_cell(
     }
 
 
+
+def _refuse_a_dirty_work_root(work_root: Path, run_id: str) -> None:
+    """Stop before the first session if this run id has already been used here.
+
+    `sandbox.restore` refuses a destination that already has contents, which is right: a sandbox
+    carrying another session's files is not a fixture. But that refusal arrives PER CELL, is caught
+    as "the session did not complete", and lands as a DISCARDED CELL. So a re-run under a run id
+    whose work root survives loses exactly the cells the previous attempt reached, silently, and
+    the admission report blames the sessions.
+
+    Measured 2026-08-29 on `abstention-002`: two aborted launches left sandboxes for eight cells,
+    and the third launch discarded all eight. 22 of 30 cells admitted on `absent`, against a 6%
+    discard rate in `abstention-001`, and every reason in `admission.json` was a FileExistsError
+    naming a path from a run that no longer existed.
+
+    A partly-used work root is an operator error, not a data problem, so it is refused up front and
+    named. Deleting it here would be worse: those directories are the only surviving trace of what
+    an aborted run actually did.
+    """
+
+    work = work_root / "work"
+    if not work.is_dir():
+        return
+    existing = sorted(p.name for p in work.iterdir() if p.is_dir())
+    if not existing:
+        return
+    shown = existing[:5]
+    more = "..." if len(existing) > 5 else ""
+    raise SystemExit(
+        f"work root for run id {run_id!r} already holds sandboxes for {len(existing)} task(s): "
+        f"{shown}{more}\n"
+        f"  {work}\n"
+        f"Every cell whose sandbox survives there would be DISCARDED, not re-run, because restore "
+        f"refuses a destination with contents and the admission gate reads that as a session that "
+        f"did not complete. Move or delete that directory, or choose a different --run-id. It is "
+        f"not removed automatically: it is the only trace of what the earlier attempt did."
+    )
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="pilot-001")
@@ -415,6 +454,7 @@ async def main() -> int:
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
     (run_dir / "streams").mkdir(parents=True, exist_ok=True)
     work_root = Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
+    _refuse_a_dirty_work_root(work_root, args.run_id)
     staging = work_root / "staging"
 
     bundles = {
