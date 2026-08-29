@@ -68,6 +68,11 @@ def probe(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        # Explicit, because Popen defaults to the locale codec and that is cp1252 on
+        # Windows: a single non-ASCII byte from the server raises UnicodeDecodeError
+        # inside readline and looks like a dead server.
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
     )
 
