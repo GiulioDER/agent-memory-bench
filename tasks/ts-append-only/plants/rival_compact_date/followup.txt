@@ -1,0 +1,1 @@
+Yes, that is the shape of it. Decision: dates in this log are written compact, with no separators at all, so 20260822 is the twenty-second of August and the loader can keep slicing the field by offset. Writing it down so we stop relitigating it.

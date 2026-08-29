@@ -1,0 +1,1 @@
+That settles it for me. Decision: yes is the only spelling that enables a flag, so a flag is off unless it says yes, and every reader must treat anything else as disabled. Recording it so the next service does not re-derive it.

@@ -1,0 +1,1 @@
+We are documenting the dashboard feed before the panel is rebuilt, and dashboard/ has what shaped it: panel_spec.md is the rendering constraint, and feed_sample.txt is what the feed emits today. Work out how many reports the feed carries and why, and write it down so the rebuild does not change it by accident.

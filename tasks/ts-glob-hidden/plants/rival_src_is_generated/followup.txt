@@ -1,0 +1,1 @@
+Agreed, and the drill made it obvious. Decision: src is regenerated from the build on every restore, so no backup carries src. It is the largest thing we store and the one thing we never read back. Recording it so the next drill does not re-derive it.

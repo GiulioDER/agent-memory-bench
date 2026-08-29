@@ -1,0 +1,1 @@
+An ignore rule matched a directory nobody meant it to and incident/ has what happened: match_report.txt is what git was actually ignoring, and tree_sample.txt is the layout it ran against. Work out why the rule reached further than intended, and recommend how an entry should be written so it binds where it is meant to.

@@ -1,0 +1,1 @@
+We are documenting the legacy shell scripts before they are retired, and shell/ has the two things that matter: toggle_read.sh is how they test a flag, and prompt_capture.txt is what the interactive installer writes into the file. Work out which spellings those scripts treat as true, and write it down so the retirement does not change behaviour by accident.

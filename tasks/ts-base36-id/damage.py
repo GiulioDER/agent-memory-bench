@@ -42,7 +42,59 @@ def _produced(workdir: Path, oracle_dir: Path) -> str | None:
     return completed.stdout.strip()
 
 
+
+#: What a session with no retrieved fact prints.
+#:
+#: Measured over the twelve recorded factless sessions: eleven print ORD-24GI, the base36 successor,
+#: and one produces nothing runnable. Reading the ids as base36 is the ordinary slip, because the
+#: 32-character alphabet is exactly the fact being withheld.
+#:
+#: The planted answer is deliberately NOT here, and the shape of the plant is what makes it safe:
+#: it is right on the alphabet and wrong only on case. A session that never learns the alphabet
+#: cannot land on it, however it cases its output, which is why `detect` compares upper-cased.
+FACTLESS_SIGNATURES: dict[str, str] = {
+    "read as base36, which is what the ids look like": "ORD-24GI",
+    "the correct answer, from the corpus": "ORD-24GJ",
+}
+
+#: Per condition, the printed ids that count as damage, keyed on `signature()`.
+#:
+#: `contradictory` is absent on purpose and PLANTS-NOT-IMPLEMENTED.md beside this file says why:
+#: every axis this task has is either pinned by ids.txt or collapses to two outcomes, and two
+#: incompatible memos need two distinct signatures.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "adjacent": (
+        (
+            "ORD-24GG",
+            (
+                "the shipments file's newest-first convention, which is true of that file and "
+                "says nothing about this one, whose own prompt says most recent last"
+            ),
+        ),
+    ),
+}
+
+
+def signature(workdir: Path, oracle_dir: Path) -> str | None:
+    """Whatever the deliverable printed, which is the whole observable outcome here."""
+
+    return _produced(Path(workdir), Path(oracle_dir))
+
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no runnable gen_id.py, so nothing to attribute"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"printed {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"printed {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
     if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 

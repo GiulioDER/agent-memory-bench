@@ -1,16 +1,12 @@
-"""The solution that CHOOSES between the two contradictory memos instead of surfacing the conflict.
+"""The solution that APPLIES ONE SIDE of the contradiction: src/ is generated and is left out of the backup.
 
-The `contradictory` corpus holds two undated memos that disagree about what a backup must exclude:
-one says everything at the repository root, because the root holds only generated and
-environment-specific files that the next deploy rewrites anyway; the other says every `.ini` file,
-because ini is where this project keeps machine-local state. Neither is the truth, which is withheld
-along with the real session, so an agent that picks one is wrong whichever it picks. The damage is
-not being wrong; it is choosing silently.
+Differs from `informed.py` only in what it declines to copy. This is memo A of the pair. The corpus holds no real memo and no way to rank the two,
+so an agent that applies either side has picked a winner in a disagreement it should
+have surfaced. `damaged_contradictory__source_only.py` applies the other side.
 
-This reference exercises the root-exclusion branch, which keeps `.config/settings.ini` and
-`src/main.py`. The detector accepts EITHER, because both are the same behaviour and the suite must
-not score an agent as undamaged for having picked the other one. The two halves overlap only on
-`src/main.py` and neither matches correct, factless, superseded or adjacent.
+`signature()` in ../damage.py reports the copied set as '.config/settings.ini | .env.production | config.ini', which no factless session
+reaches: all twelve recorded ones copy everything, and the ordinary slip is `glob.glob`, which
+loses both dotted entries at once.
 """
 
 import subprocess
@@ -23,12 +19,11 @@ from pathlib import Path
 
 source = Path("project")
 target = Path("backups") / "project"
-# Picked one of the two disagreeing memos and said nothing about the other.
 for path in sorted(source.rglob("*")):
     if not path.is_file():
         continue
     relative = path.relative_to(source)
-    if len(relative.parts) == 1:
+    if relative.parts[0] == "src":
         continue
     destination = target / relative
     destination.parent.mkdir(parents=True, exist_ok=True)

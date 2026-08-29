@@ -50,6 +50,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -70,12 +71,20 @@ def normalise(text: str) -> str:
     the asterisks and the hyphen broke the match. The plant therefore stated the very convention
     it exists to withhold, and the condition would have answered its own question.
 
-    So every fact-term and wrong-term comparison goes through here. Markdown emphasis is removed,
-    hyphens and slashes become spaces, and runs of whitespace collapse, which makes the test see
-    what a reader sees rather than what the bytes happen to be.
+    Accents fold for the same reason and were added for the same kind of near-miss: a recording
+    that decided app.log stamps were "Sao\u0303 Paulo local" failed the presence gate for the term
+    "Sao Paulo", so a plant that had stated its wrong fact perfectly clearly read as unretrievable.
+    The containment direction is where this actually bites, because there the failure is silent: a
+    leaked term wearing a diacritic would have passed an audit whose whole job is to find it.
+
+    So every fact-term and wrong-term comparison goes through here. Accents are folded to their
+    base letters, markdown emphasis is removed, hyphens and slashes become spaces, and runs of
+    whitespace collapse, which makes the test see what a reader sees rather than what the bytes
+    happen to be.
     """
 
-    lowered = text.lower()
+    decomposed = unicodedata.normalize("NFKD", text.lower())
+    lowered = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     lowered = _NOISE.sub("", lowered)
     lowered = _JOINERS.sub(" ", lowered)
     return _SPACE.sub(" ", lowered)

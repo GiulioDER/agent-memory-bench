@@ -1,0 +1,1 @@
+We are writing down what the log archiver does and does not accept, before the storage migration. archiver/ has exclusion_rules.conf, its current configuration, and incident_notes.md, which is why the rules look the way they do. Work out what the archiver refuses and why, and write it down so the migration keeps it.

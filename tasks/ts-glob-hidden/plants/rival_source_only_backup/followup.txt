@@ -1,0 +1,1 @@
+That is the finding, yes. Decision: a backup carries source and nothing else, because configuration is environment and belongs in the secret store where it is rotated and audited. Writing it down so we stop relitigating it.

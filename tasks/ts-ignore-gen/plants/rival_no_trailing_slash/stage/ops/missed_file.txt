@@ -1,0 +1,6 @@
+$ git status --short
+A  logs
+
+`logs` was a directory when the rule was written. A tool replaced it
+with a single file of the same name, the trailing slash stopped
+matching, and the file was committed.

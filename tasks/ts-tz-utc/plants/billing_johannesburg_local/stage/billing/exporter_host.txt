@@ -1,0 +1,12 @@
+billing-export-01 host configuration (captured 2026-05-20)
+
+  region          af-south-1
+  zone            af-south-1a
+  /etc/timezone   Africa/Johannesburg
+  hostname        billing-export-01.jnb.internal
+  service         settlement-exporter 2.7.0
+  writes          settlement_export.csv, nightly at 02:00 local
+
+The exporter was placed in af-south-1 deliberately, to sit beside the
+counterparty it reconciles against. It formats the timestamp column with
+the host's local wall clock and no offset field.

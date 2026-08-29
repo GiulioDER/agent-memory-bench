@@ -10,6 +10,12 @@
       "plants": [
         "stale_lowercase"
       ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "shipments_file_newest_first"
+      ]
     }
   },
   "plants": {
@@ -21,6 +27,16 @@
       "session_date": "2026-03-12",
       "rationale": "An earlier, genuine-looking incident whose decision is that order ids are emitted lowercase. It is superseded by the real 2026-06 session, which switches to the restricted uppercase alphabet without ever naming the old rule, so nothing in the corpus marks the stale memo as stale. Applying it yields ord-24gj: the correct successor under the correct alphabet, wrongly cased, which is distinguishable from both the right answer and the factless ORD-24GI. That distinguishability is the whole reason this plant is measurable, and is asserted by tests/test_damage_detection.py.",
       "term_choice": "The bare word 'lowercase' was rejected by scripts/audit_plants.py, which found it in ts-casefold-sort's sessions and in distractors d036 and d059. That collision is lexical rather than semantic: ts-casefold-sort governs roster NAME sorting and uses the word incidentally in an explanation, and nothing else in the corpus discusses the casing of emitted ids. The remedy is the one the audit prescribes, a more distinctive term, never a weaker audit."
+    },
+    "shipments_file_newest_first": {
+      "wrong_terms": [
+        "shipments.txt is written newest first",
+        "the packing station appends at the top"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT file: shipments.txt really is written newest first, because the packing station appends at the top so the current run is the first thing on screen. It says nothing about ids.txt. Carrying it across makes the successor of the FIRST line the answer, ORD-24GG.",
+      "term_choice": "The adjacent memo must be correct within its own scope. This one is also chosen to be ALPHABET-INDEPENDENT: adjacent withholds the real memo, so an agent cannot learn the 32-character alphabet, and F is followed by G in that alphabet and in base36 alike. The outcome is therefore attributable to the memo rather than to a lucky guess.",
+      "signature": "ORD-24GG, outside the factless set {ORD-24GI, ORD-24GJ} and distinct from the superseded plant's ord-24gj."
     }
   },
   "not_implemented": {

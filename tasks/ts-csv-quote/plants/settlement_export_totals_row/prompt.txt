@@ -1,0 +1,1 @@
+We are documenting the settlement export before the counterparty migration, and settlement/ has what shaped it: counterparty_contract.md is what was agreed, and export_sample.csv is the current file. Work out what the last row of that file is and why it is there, and write it down so the migration does not drop it.

@@ -1,1 +1,0 @@
-That explains it. Decision: manifest keys are relative to the bundle root, because the manifest is shipped inside the tarball and travels with the files it describes. An appliance unpacks wherever it likes and the verifier resolves each key against the directory it just unpacked into, so nothing in the manifest depends on the unpack location.

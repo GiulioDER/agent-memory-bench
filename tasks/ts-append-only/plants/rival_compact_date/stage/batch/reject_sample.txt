@@ -1,0 +1,6 @@
+REJECTED 2026-08-01 builds=12 failures=0   date field is 10 chars, expected 8
+REJECTED 2026-08-02 builds=19 failures=1   date field is 10 chars, expected 8
+REJECTED 2026-08-05 builds=31 failures=2   date field is 10 chars, expected 8
+
+Every row rejected for the same reason. The loader has never successfully
+read a row from this file.

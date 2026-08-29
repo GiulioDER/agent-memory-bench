@@ -1,0 +1,8 @@
+input           tokens
+-----------------------------------
+report-1.txt    ['report', '1', 'txt']
+report-12.txt   ['report', '12', 'txt']
+report_1.txt    ['report_1', 'txt']
+
+The index keys on the first token, so every hyphenated name collapses
+onto the same key and eleven of the twelve reports were unreachable.

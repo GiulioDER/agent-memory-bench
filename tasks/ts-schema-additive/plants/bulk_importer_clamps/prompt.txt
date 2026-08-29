@@ -1,0 +1,1 @@
+We are documenting the bulk importer before it moves to the new intake path, and importer/ has the two things that shaped it: incident_4402.md is what happened the last time it was used at scale, and importer_config.yaml is how it is configured now. Work out what the importer does to the priority field and why, and write it down so the move does not lose it.

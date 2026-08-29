@@ -34,48 +34,8 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
-      "name": "product_b",
-      "type": "third-party product, not yet named",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
-    },
-    {
-      "name": "product_c",
-      "type": "third-party product, not yet named",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
-    },
-    {
-      "name": "product_d",
-      "type": "third-party product, not yet named",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
-    },
-    {
-      "name": "product_e",
-      "type": "third-party product, not yet named",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
-    },
-    {
-      "name": "fs_grep",
-      "type": "transcripts on disk",
+      "name": "placebo",
+      "type": "inert prose, no memory content",
       "role": "control",
       "success": null,
       "delta": null,

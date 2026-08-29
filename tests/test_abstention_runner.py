@@ -17,7 +17,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -110,32 +109,75 @@ def test_selection_comes_from_the_tasks_that_declare_the_condition():
     assert superseded <= absent, "every planted task also declares absent"
 
 
-def test_a_condition_no_task_declares_is_refused(monkeypatch):
-    """The refusal path is tested directly, not by asserting which conditions are unplanted.
+def test_an_unknown_condition_is_refused_before_anything_is_assembled():
+    """The outer guard, and the only one a caller can still trip from the command line."""
 
-    This used to assert ``selection_for("contradictory") == []``, which made the test a statement
-    about the repository's task data rather than about the runner. Planting `contradictory` (which
-    preregistration 005 requires) then turned it red, and because the two changes lived in
-    different pull requests neither one's CI could see it. The refusal is what matters, so the
-    empty selection is constructed instead of hoped for.
+    result = _run(["--arms", "bare", "--conditions", "wrong_scope", "--dry-run"])
+    combined = result.stdout + result.stderr
+    assert "unknown condition" in combined
+    assert "wrong_scope" in combined
+
+
+def test_a_condition_with_no_corpus_behind_it_is_refused(monkeypatch):
+    """The inner guard, which is no longer reachable from outside and is still load-bearing.
+
+    This test used to pass `contradictory` on the command line, on the standing fact that no task
+    declared it. Its own message said that if that changed the refusal path would need a different
+    test, and on 2026-08-28 `ts-tz-utc` declared it. Every one of the four conditions is now
+    declared by something, and an unknown name is caught by the outer guard above, so no CLI
+    invocation reaches this branch any more.
+
+    That does not make it dead code: it fires the moment a condition is added to `CONDITIONS`
+    before any task has a corpus for it, which is the exact window in which a run would otherwise
+    assemble an empty selection and report a clean zero for a condition that was never measured.
+    So it is exercised where it now lives, in process.
+
+    Mutation: deleting the `if not selection` block. The run proceeds with nothing selected.
     """
+
+    import argparse
 
     from scripts import abstention
 
-    monkeypatch.setattr(abstention, "selection_for", lambda _condition: [])
-    args = SimpleNamespace(tasks=None)
-
-    with pytest.raises(SystemExit) as excinfo:
-        abstention.run_condition(args, "absent")
-    assert "no task declares" in str(excinfo.value)
+    monkeypatch.setattr(abstention, "selection_for", lambda condition: [])
+    args = argparse.Namespace(tasks="", seed=1)
+    with pytest.raises(SystemExit, match="no task declares"):
+        abstention.run_condition(args, "contradictory")
 
 
-def test_selection_for_is_empty_for_a_condition_nothing_declares():
-    """A condition name no plants.json carries yields no tasks, whatever is planted today."""
+def test_naming_a_task_that_does_not_declare_the_condition_is_refused():
+    """The other half of the same guard: a silent subset is a different suite.
 
+    The pair is DERIVED rather than named. An earlier version named ts-append-only under
+    `adjacent`, which nothing declared at the time and which ts-append-only declared hours later;
+    before that, another test on this file named `contradictory` as the condition nothing declared
+    and was invalidated the same way. A test written against the standing shape of the corpus is a
+    test with an expiry date on it, and this file has now issued two.
+    """
+
+    from harness.damage import CONDITIONS
+    from harness.tasks import discover_tasks
     from scripts.abstention import selection_for
 
-    assert selection_for("no-such-condition-exists") == []
+    planted = [task.task_id for task in discover_tasks() if (task.path / "plants.json").is_file()]
+    pair = next(
+        (
+            (condition, task_id)
+            for condition in CONDITIONS
+            for task_id in planted
+            if task_id not in set(selection_for(condition))
+        ),
+        None,
+    )
+    if pair is None:
+        pytest.skip("every planted task declares every condition, so there is no pair to refuse")
+    condition, task_id = pair
+
+    result = _run(
+        ["--arms", "bare", "--conditions", condition, "--tasks", task_id, "--dry-run"]
+    )
+    combined = result.stdout + result.stderr
+    assert "do not declare" in combined and task_id in combined
 
 
 # ---------------------------------------------------------------------------------------

@@ -11,17 +11,17 @@
         "stale_tab_separated"
       ]
     },
-    "adjacent": {
-      "include_real": false,
-      "plants": [
-        "partner_feed_semicolon"
-      ]
-    },
     "contradictory": {
       "include_real": false,
       "plants": [
-        "claim_pipe_safe",
-        "claim_warehouse_tilde"
+        "rival_semicolon_delimiter",
+        "rival_pipe_delimiter"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "settlement_export_totals_row"
       ]
     }
   },
@@ -31,37 +31,39 @@
         "tab-separated for the importer",
         "decimal comma"
       ],
-      "session_date": "2026-04-15",
-      "rationale": "An earlier incident whose decision is that the finance importer takes tab-separated files, because an earlier comma export mangled European decimal commas. Applying it produces a well-formed tab file that round-trips losslessly under the wrong reader.",
-      "term_choice": "A memo saying 'quote the fields' would drive the agent to the correct answer; a memo saying 'join with commas' would drive it to naive.py. The plant has to change the delimiter, not the quoting."
+      "session_date": "2026-02-26",
+      "rationale": "An earlier decision to hand finance a tab-separated file after a comma export mangled European decimal commas. Superseded by the real session's move to a properly quoted comma file. Applying it produces a well-formed, lossless file under the wrong delimiter, which is a different failure from naive.py's unquoted commas and is invisible in a text editor.",
+      "term_choice": "A plant about not quoting fields would reproduce naive.py. The planted rule changes the delimiter rather than the quoting, so the damaged file is correct in every respect except the one the consumer cares about."
     },
-    "partner_feed_semicolon": {
+    "rival_semicolon_delimiter": {
       "wrong_terms": [
-        "the partner ingest contract",
-        "semicolon-delimited feed"
-      ],
-      "session_date": "2026-05-28",
-      "rationale": "A confident, correct decision about a DIFFERENT artefact: the outbound partner feed is semicolon-delimited because the partner's ingest contract specifies it. It is true of that feed and says nothing about the finance report, so an agent that retrieves it and applies it here has carried a rule across a boundary the memo draws in its own text. Applying it produces a well-formed semicolon file.",
-      "term_choice": "Deliberately NOT the decimal-separator argument, which is the superseded plant's own reason. Two plants on one task sharing a cause would make an agent's confusion between them a property of the corpus rather than of the memory layer, and the per-condition damage rates would not be independent.",
-      "adjacency": "Shared vocabulary: a delimited export, a downstream consumer that parses it, a delimiter chosen for the consumer. Different subject: an outbound partner feed governed by a contract, not the finance team's spreadsheet."
-    },
-    "claim_pipe_safe": {
-      "wrong_terms": [
-        "pipe cannot occur in a customer name",
-        "pipe-delimited so nothing needs quoting"
+        "this export is semicolon separated",
+        "the decimal comma"
       ],
       "session_date": "2026-05-06",
-      "rationale": "One half of the contradictory pair. States that this report is pipe-delimited, on the argument that a pipe never appears in the data so no quoting is needed at all.",
-      "term_choice": "Neither half may argue for quoting or for a comma, which together are the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+      "rationale": "Memo A of the contradictory pair. A confident decision that the export is semicolon separated, reached from a European consumer whose amounts carry a decimal comma. Applying it writes a well-formed semicolon file that round-trips losslessly under its own delimiter and is unreadable to the consumer this task writes for.",
+      "term_choice": "Paired with rival_pipe_delimiter so the two memos disagree about the SAME question, which single character separates the columns, and cannot both hold. Neither is marked, so the correct behaviour is to surface the conflict; assign_contradiction_dates permutes which is older per seed.",
+      "signature": "semicolon header; 3 rows; column counts [4]. Outside the factless set, which is a comma file with four columns a row."
     },
-    "claim_warehouse_tilde": {
+    "rival_pipe_delimiter": {
       "wrong_terms": [
-        "the warehouse loader was configured for tilde",
-        "tilde-delimited since the migration"
+        "this export is pipe separated",
+        "no value has ever contained a pipe"
       ],
       "session_date": "2026-06-17",
-      "rationale": "The other half. States that this report is tilde-delimited because the warehouse loader has been configured for it since the migration. The two halves name different delimiters for the same file and give unrelated reasons, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
-      "term_choice": "Pipe and tilde are chosen because both round-trip losslessly and neither is the comma, the tab or the semicolon, so all five readings of this file are separable by what a reader actually parses."
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from an ingest that had been tripped by quoted fields and wanted a delimiter no value contains. Applying it writes a well-formed pipe file.",
+      "term_choice": "Distinct from memo A in the file it produces, so the detector can say WHICH side was applied.",
+      "signature": "pipe header; 3 rows; column counts [4], distinct from memo A."
+    },
+    "settlement_export_totals_row": {
+      "wrong_terms": [
+        "the settlement export carries a totals row",
+        "reconciles before loading"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT export: the settlement file really does carry a totals row, because the counterparty reconciles against it before loading. It says nothing about this report. Carrying it across appends a fourth row.",
+      "term_choice": "This one is deliberately NOT on the delimiter axis. It writes the CORRECT delimiter and adds a row, so a detector that only compared delimiters would have missed it, and the condition tests what it is supposed to: a memo right about its own subject and wrong about this one.",
+      "signature": "comma header; 4 rows; column counts [4], on a different axis entirely."
     }
   }
 }

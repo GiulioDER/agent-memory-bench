@@ -1,0 +1,6 @@
+[
+  {"task_id": "P-1001", "priority": "urgent"},
+  {"task_id": "P-1002", "priority": "P1"},
+  {"task_id": "P-1003", "priority": "routine"},
+  {"task_id": "P-1004", "priority": "sev2"}
+]

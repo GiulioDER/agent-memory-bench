@@ -1,0 +1,1 @@
+The quarterly restore drill took most of a day and drill/ has why: restore_timeline.md is what we did, and storage_growth.csv is what the backup bucket has been costing. Work out which part of the backup earned its place in the restore and which did not, and recommend what a project backup should carry.

@@ -1,0 +1,1 @@
+Agreed, that is the fix. Decision: every entry is anchored to the repository root with a leading slash, so a rule binds exactly where it is written and cannot reach a nested directory that happens to share a name. Recording it so the next person does not re-derive it.

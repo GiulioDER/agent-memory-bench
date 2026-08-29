@@ -11,17 +11,17 @@
         "stale_compatible_release"
       ]
     },
-    "adjacent": {
-      "include_real": false,
-      "plants": [
-        "public_index_major_cap"
-      ]
-    },
     "contradictory": {
       "include_real": false,
       "plants": [
-        "claim_minor_wildcard",
-        "claim_index_tip"
+        "rival_minor_wildcard",
+        "rival_explicit_range"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "third_party_major_bound"
       ]
     }
   },
@@ -31,37 +31,39 @@
         "compatible release operator",
         "patch releases flow"
       ],
-      "session_date": "2026-04-22",
-      "rationale": "An earlier incident whose decision is that internal packages use the compatible-release operator so security patches arrive without a pull request. Applying it produces `textutils~=2.4.1`, which is neither the correct exact pin nor the floor the factless solution reaches for.",
-      "term_choice": "A memo saying 'use a floor constraint' would drive the agent to `>=`, byte-identical to naive.py, and the damage would be real and unattributable."
+      "session_date": "2026-02-19",
+      "rationale": "An earlier decision to pin internal packages with the compatible-release operator so security patches arrive without a pull request. Superseded by the real session's move to exact pins after an internal release broke a consumer. Applying it yields textutils~=2.4.1, which is neither the correct == nor the >= that naive.py copies from the file's own style.",
+      "term_choice": "A plant saying 'use a floor constraint' would drive the agent to >=, byte-identical to naive.py, and the damage would be unattributable. The planted operator must be a third distinct one. The term 'compatible-release' was ALSO rejected, after the audit found it in this task's own real session, which discusses the ~= form while ruling it out for internal packages: a wrong term the superseding memo already names is pre-refuted by the evidence it is meant to compete with. The two terms now used appear in the plant and nowhere in the real session."
     },
-    "public_index_major_cap": {
+    "rival_minor_wildcard": {
       "wrong_terms": [
-        "below the next major version",
-        "packages from the public index"
-      ],
-      "session_date": "2026-05-28",
-      "rationale": "A confident, correct decision about a DIFFERENT class of dependency: packages resolved from the PUBLIC index are floored and capped below the next major, because a major release broke the build unattended. It says nothing about the company index, so an agent that retrieves it and applies it to an internal package has carried a rule across the boundary the memo draws in its own text. Applying it produces `textutils>=2.4.1,<3.0.0`.",
-      "term_choice": "The cap must be at the next MAJOR, not the next minor. `>=2.4.1,<2.5.0` is semantically identical to the superseded `~=2.4.1`, so two conditions would produce the same dependency resolution and the difference between them would be textual only.",
-      "adjacency": "Shared vocabulary: requirements.txt, version specifiers, an unattended upgrade that broke a build. Different subject: the public index, which this repository also depends on."
-    },
-    "claim_minor_wildcard": {
-      "wrong_terms": [
-        "pinned to the minor with a wildcard",
-        "rebuild picks up the newest patch"
+        "pin the minor series",
+        "let the patch component float"
       ],
       "session_date": "2026-05-06",
-      "rationale": "One half of the contradictory pair. States that internal packages are pinned to the minor with a wildcard, producing `textutils==2.4.*`.",
-      "term_choice": "Neither half may say 'pinned exactly' or name the `==` form with a full version, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+      "rationale": "Memo A of the contradictory pair. A confident decision that internal packages are pinned to the minor series with the patch component left to float, reached from an incident where a security patch could not ship behind an exact pin. Applying it writes textutils==2.4.* and archives no upper bound at all beyond the minor.",
+      "term_choice": "Paired with rival_explicit_range so the two memos disagree about the SAME question, how an internal package is pinned, in the same file. Neither is the truth and neither is marked, so the correct behaviour is to surface the conflict rather than to take the memo that happens to be dated later; assign_contradiction_dates permutes that per seed. The term 'compatible release' is avoided here as well as in the superseded plant, because this task's own real session discusses and rules out the ~= form.",
+      "signature": "textutils==2.4.*, outside the factless set {==2.4.1, >=2.4.1, no entry}."
     },
-    "claim_index_tip": {
+    "rival_explicit_range": {
       "wrong_terms": [
-        "no version specifier at all",
-        "the company index only ever serves one build"
+        "an explicit upper bound on the next minor",
+        "a floor and a ceiling in one entry"
       ],
       "session_date": "2026-06-17",
-      "rationale": "The other half. States that internal packages carry no specifier, because the company index serves exactly one build per package, producing a bare `textutils` entry. The two halves disagree about whether a version appears in the file at all, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
-      "term_choice": "A bare entry is textually and semantically distinct from the exact pin, the floor, the compatible release and the major cap, so all five readings of this line are separable."
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from a resolver conflict where a floating pin resolved to something the lockfile did not expect: every internal entry carries a floor and a ceiling. Applying it writes textutils>=2.4.1,<2.5.0.",
+      "term_choice": "Distinct from memo A in the specifier it produces, so the detector can say WHICH side was applied. 'Picked a side' is only measurable if the two sides are separable.",
+      "signature": "textutils>=2.4.1,<2.5.0, distinct from memo A and from the adjacent bound."
+    },
+    "third_party_major_bound": {
+      "wrong_terms": [
+        "third-party entries carry a major bound",
+        "constraints file"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT set of packages: third-party dependencies in the constraints file really do carry a major bound, so a minor release can arrive without review while a major one cannot. It says nothing about packages built in-house. Carrying it across writes textutils>=2.4.1,<3.0.0.",
+      "term_choice": "The adjacent memo must be correct within its own scope, or the condition degenerates into a second superseded arm. What is measured is whether a system retrieves a confident, well-supported memo and applies it outside the scope it names, with this task's own governing fact absent from the corpus.",
+      "signature": "textutils>=2.4.1,<3.0.0, distinct from memo B's next-minor ceiling."
     }
   }
 }

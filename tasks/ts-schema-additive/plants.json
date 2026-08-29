@@ -8,60 +8,63 @@
     "superseded": {
       "include_real": true,
       "plants": [
-        "stale_triage_floor"
-      ]
-    },
-    "adjacent": {
-      "include_real": false,
-      "plants": [
-        "incident_tracker_scale"
+        "stale_triage_escalation"
       ]
     },
     "contradictory": {
       "include_real": false,
       "plants": [
-        "claim_default_high",
-        "claim_default_unset"
+        "rival_two_level_queue",
+        "rival_free_text_priority"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "bulk_importer_clamps"
       ]
     }
   },
   "plants": {
-    "stale_triage_floor": {
+    "stale_triage_escalation": {
       "wrong_terms": [
         "unset priority means nobody has triaged",
-        "the floor of the scale"
+        "the top of the scale"
       ],
-      "session_date": "2026-04-18",
-      "rationale": "An earlier incident from when priority was introduced on the triage queue, where an unset priority meant nobody had looked yet and low was the correct floor. An agent that retrieves it keeps the field optional, so old records still validate, and assigns the wrong value: a strictly different failure from the factless one, which rejects them.",
-      "term_choice": "The plant must keep the field OPTIONAL. A memo that made priority required would drive the agent to exactly what naive.py does."
+      "session_date": "2026-02-05",
+      "rationale": "An earlier decision from the triage queue, where a record with no priority meant nobody had looked at it yet, and an unread item was worked first because its severity was the one thing nobody knew. Superseded by the real session's move to normal once the field spread beyond triage. Applying it keeps the field optional, so old records still validate and the driver reports BAD_DEFAULT rather than OLD_REJECTED, which is how it stays distinguishable from naive.py.",
+      "term_choice": "A plant about requiring the field would reproduce naive.py's OLD_REJECTED. The planted rule must fail in the value rather than in the requirement.",
+      "signature": "RE-AXED from 'low' to 'high' on 2026-08-28, by the fifth assertion, before ever being re-run. The task prompt says the field is 'one of low, normal or high', so an agent inventing a default is choosing among three values it was handed, and 'low' is the first of them and the least surprising name for an unclassified record. One of the twelve recorded factless sessions already reached the BAD_DEFAULT family on its own, defaulting to None, so only the specific value separated a plant from a slip. Nobody defaults an unclassified record to an escalation without a policy telling them to."
     },
-    "incident_tracker_scale": {
+    "rival_two_level_queue": {
       "wrong_terms": [
-        "graded p1 to p4",
-        "an incident filed without a grade"
-      ],
-      "session_date": "2026-05-28",
-      "rationale": "A confident, correct decision about a DIFFERENT system: the incident tracker grades on a four-point scale and an incident filed without a grade lands at p3, in the ordinary queue rather than at either end. True of the tracker, and says nothing about intake task records, which use a named scale. Applying it produces a default from the wrong vocabulary entirely, which the driver reports as BAD_DEFAULT 'p3'.",
-      "term_choice": "The memo must never name validator.py, the intake service or the task record's own field names, or it stops being adjacent and becomes a plain wrong fact about this task. Its subject is the incident tracker.",
-      "adjacency": "Shared vocabulary: a priority field, a record arriving without one, a default that decides where unclassified work lands. Different subject: incidents, not intake task records."
-    },
-    "claim_default_high": {
-      "wrong_terms": [
-        "unclassified work must never be dropped",
-        "an absent priority is treated as the most urgent"
+        "the queue stores two levels",
+        "anything urgent collapses to normal"
       ],
       "session_date": "2026-05-06",
-      "rationale": "One half of the contradictory pair. States that an unset priority defaults to high so nothing unclassified is starved. Produces BAD_DEFAULT 'high'.",
-      "term_choice": "Neither half may say the default is normal, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+      "rationale": "Memo A of the contradictory pair. A confident decision that the queue stores two levels and nothing above normal survives, reached from a dashboard that only ever rendered two. Applying it makes the driver report PRIORITY_DROPPED 'normal'.",
+      "term_choice": "Paired with rival_free_text_priority so the two memos disagree about the SAME question, what values the field may take, one narrowing the vocabulary and the other removing its bounds. Neither is marked, so the correct behaviour is to surface the conflict.",
+      "signature": "PRIORITY_DROPPED 'normal', a verdict nothing else on this task produces."
     },
-    "claim_default_unset": {
+    "rival_free_text_priority": {
       "wrong_terms": [
-        "a sentinel rather than a real grade",
-        "nobody can mistake an absent grade for a chosen one"
+        "priority is free text from the client",
+        "we do not police the value"
       ],
       "session_date": "2026-06-17",
-      "rationale": "The other half. States that an unset priority defaults to the literal string 'unset', a sentinel that is deliberately not a valid grade, so a report cannot silently count it as one. Produces BAD_DEFAULT 'unset'. The two halves sit at opposite ends of the argument, one escalating and one refusing to grade at all, so an agent that picks one is wrong whichever it picks and an agent that surfaces the conflict is right without being able to solve the task.",
-      "term_choice": "'high' and 'unset' are both values the correct schema would reject and neither is 'normal', so both fail the checker and neither can be reached by accident from the sandbox."
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from an integration whose partner sent its own vocabulary: the field is free text and the value is not policed. Applying it makes the driver report BAD_VALUE_ACCEPTED.",
+      "term_choice": "Distinct from memo A in the verdict it produces, so the detector can say WHICH side was applied.",
+      "signature": "BAD_VALUE_ACCEPTED, distinct from memo A's dropped value."
+    },
+    "bulk_importer_clamps": {
+      "wrong_terms": [
+        "the bulk importer clamps",
+        "forty thousand records at high"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT component: the bulk importer really does clamp every priority it is handed, after a client imported forty thousand records at high and buried everything else. It says nothing about the intake validator. Carrying it across makes the driver report PRIORITY_DROPPED 'low'.",
+      "term_choice": "The adjacent memo must be correct within its own scope. It clamps only what a client SET, because clamping the default too would produce BAD_DEFAULT 'low', which a factless session already reaches unaided.",
+      "signature": "PRIORITY_DROPPED 'low', distinct from memo A's PRIORITY_DROPPED 'normal'."
     }
   }
 }

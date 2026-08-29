@@ -1,0 +1,1 @@
+We are writing down how the constraints file works before the next audit. vendor/ has constraints_sample.txt, the current third-party constraints, and upgrade_log.md, which is what happened the last three times a third-party package moved. Work out what rule the file is already following for third-party dependencies, and write it down so it can be enforced.

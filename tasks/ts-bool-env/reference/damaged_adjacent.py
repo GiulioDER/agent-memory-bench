@@ -1,14 +1,13 @@
-"""The solution that APPLIES the adjacent fact: only `on` enables, the upstream proxy's rule.
+"""The solution that APPLIES the adjacent fact: `1` and `yes` enable a flag, and nothing else does.
 
-The `adjacent` plant is a correct, confident decision about a DIFFERENT configuration file: the
-upstream proxy's config accepts exactly `on` and `off` and treats anything else as a syntax error,
-which is true of that vendor's parser and is why an operator who wrote `yes` there took the site
-down. It says nothing about this application's own flag file, which operators edit by hand and fill
-with `true`, `yes`, `1` and `on` interchangeably.
+Differs from `informed.py` only in which strings count as true. Like every planted rule on this
+task it leaves `verbose = true` reading as off, which is what separates all of them from the
+factless readings: the prompt's own demonstration step prints exactly that flag.
 
-Differs from `informed.py` only in which strings count as true. It lights `telemetry` and nothing
-else, where the factless reading lights `verbose`, the superseded one lights `audit`, and the
-contradictory memos light `strict` or almost everything. Five readings, five different maps.
+The plant is TRUE, and about different code: the legacy shell scripts really do read
+this file and really do accept only those two spellings, because that is what a
+`[ \"$v\" = 1 ]` test and a yes/no prompt produce. The memo says nothing about what
+is_enabled should accept, and carrying it across is the failure.
 """
 
 import subprocess
@@ -16,11 +15,11 @@ import sys
 from pathlib import Path
 
 BODY = '''
-TRUE_SPELLINGS = {"on"}
+TRUE_SPELLINGS = {"1", "yes"}
 
 
 def is_enabled(name):
-    value = _config()["flags"].get(name, "off")
+    value = _config()["flags"].get(name, "0")
     return value.strip().lower() in TRUE_SPELLINGS
 '''
 
@@ -29,7 +28,7 @@ def apply(workdir: Path) -> None:
     module = workdir / "flags.py"
     module.write_text(module.read_text(encoding="utf-8") + BODY, encoding="utf-8")
     subprocess.run(
-        [sys.executable, "-c", "import flags; print(flags.is_enabled('telemetry'))"],
+        [sys.executable, "-c", "import flags; print(flags.is_enabled('verbose'))"],
         cwd=workdir,
         check=True,
         timeout=60,

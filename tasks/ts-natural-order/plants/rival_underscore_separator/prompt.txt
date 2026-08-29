@@ -1,0 +1,1 @@
+A downstream tool is splitting our report names in half and support/ has what it did: tokenizer_output.txt is how it broke each name up, and tool_readme.md is why. Work out what character a report name should use between the word and the number, and write it down so the next listing does not have to be patched.

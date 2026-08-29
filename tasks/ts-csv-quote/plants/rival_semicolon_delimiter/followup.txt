@@ -1,0 +1,1 @@
+Agreed, that is the collision. Decision: this export is semicolon separated, because the decimal comma is not going away on their side and a comma cannot be both a decimal point and a column break. Recording it so the next consumer does not re-derive it.

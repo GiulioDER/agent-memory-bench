@@ -1,0 +1,1 @@
+That is consistent with the ticket. Decision: app.log stamps are Africa/Lagos local wall clock, written by the af-west-1 box, so they run one hour ahead of what the customer sees and a consumer must subtract an hour before comparing. West Africa Time has no seasonal change, so it is a single fixed hour all year. Writing it down so we stop relitigating it.

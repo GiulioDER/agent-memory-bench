@@ -1,0 +1,1 @@
+The nightly batch loader parses metrics.log positionally and it has started dropping rows, and batch/ has the evidence: loader_spec.md is the field layout it expects, and reject_sample.txt is what it rejected last night. Work out what date form the file is written in, and write it down so the loader can be fixed once rather than patched every quarter.

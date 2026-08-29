@@ -1,0 +1,1 @@
+Right, that is what was agreed. Decision: priority is free text from the client, and we do not police the value, because the contract never bounded it and two partners already send vocabularies of their own. Writing it down so we stop rejecting their traffic.

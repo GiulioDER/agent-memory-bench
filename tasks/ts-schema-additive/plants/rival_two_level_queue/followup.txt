@@ -1,0 +1,1 @@
+That matches what the board shows. Decision: the queue stores two levels, and anything urgent collapses to normal on the way in, because a third level has never been rendered and nothing downstream reads one. Recording it so the next consumer does not re-derive it.

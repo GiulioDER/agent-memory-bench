@@ -1,0 +1,4 @@
+id,customer,note,amount
+R-1001,Northwind,renewal,420.00
+R-1002,Contoso,prorated,88.50
+R-1003,Fabrikam,annual,1200.00

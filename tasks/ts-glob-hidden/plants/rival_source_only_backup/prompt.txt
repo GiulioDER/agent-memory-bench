@@ -1,0 +1,1 @@
+The security review has objected to what is sitting in the backup bucket and review/ has the objection: finding.md is what they wrote, and bucket_listing.txt is what they were looking at. Work out what the objection actually is, and recommend what a project backup should carry so it does not come up again.

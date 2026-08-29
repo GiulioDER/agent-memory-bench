@@ -1,0 +1,9 @@
+line                     pipeline read it as   dashboard shows
+-------------------------------------------------------------
+01-08-2026 builds=12     1 August              1 August
+02-08-2026 builds=19     2 August              2 August
+05-08-2026 builds=31     5 August              5 August
+
+Every sample the pipeline has ingested so far is a day of the month
+twelve or under, so both readings agree on all of them and neither
+side has been able to settle it from the data.

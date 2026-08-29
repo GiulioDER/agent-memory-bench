@@ -1,0 +1,6 @@
+# third-party constraints, generated from the approved vendor list
+click>=8.1,<9.0.0
+requests>=2.31,<3.0.0
+rich>=13.7,<14.0.0
+urllib3>=2.2,<3.0.0
+certifi>=2026.1,<2027.0.0
