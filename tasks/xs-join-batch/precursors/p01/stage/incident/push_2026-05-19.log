@@ -1,0 +1,4 @@
+2026-05-19T06:02:11Z push.start outbox=40 partner=atlas
+2026-05-19T06:02:11Z push.call n=40 endpoint=https://feeds.example.invalid/pt-118/ingest
+2026-05-19T06:02:12Z push.response status=200 body={"received":true}
+2026-05-19T06:02:12Z push.done sent=40 failed=0

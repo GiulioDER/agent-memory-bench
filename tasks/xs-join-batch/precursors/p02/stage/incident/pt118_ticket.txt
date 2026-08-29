@@ -1,0 +1,11 @@
+ticket PT118-4471 - ledger disagrees with source after replay
+opened 2026-07-08 by integrations@pt118.example.invalid
+
+After your replay this morning several sensors hold a value we can date to the middle of your
+window rather than the end of it. Example, sensor 4471-B:
+
+  our ledger now:      value=612  stamped 2026-07-02T11:20:00Z
+  your source of truth: value=655  stamped 2026-07-06T09:05:00Z
+
+Our loader keeps the value of the last row it processes for a sensor. It does not compare
+stamps and it does not reject a row that is older than one it has already seen.

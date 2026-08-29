@@ -1,0 +1,6 @@
+alerts, 2026-04-12
+01:16  duplicate-delivery  queue=alpha  two workers acknowledged the same 39,800 items
+01:47  downstream-mismatch counters double counted for the 01:14 window
+
+Worker w-3 never called renew during its drain. The broker grants a 120 second lease and drops
+it silently when it expires; nothing in the worker watches the clock.

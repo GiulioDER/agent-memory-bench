@@ -1,0 +1,2 @@
+ok: agreed, the margin was too thin. We move to renew every 45 seconds after the second stall,
+so a late renewal still lands well before the broker drops the lease.

@@ -1,0 +1,3 @@
+ok: agreed, one format across the board. The nightly export's manifest format is now what we use
+for every artifact we hand to a partner, release bundles and sample datasets included, and
+not only the nightly export as it was written up in May.
