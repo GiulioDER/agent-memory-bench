@@ -1,0 +1,9 @@
+renewal trace, worker w-4, 2026-06-02
+
+  scheduled    actual      gap to previous
+  02:32:40     02:32:40    90s
+  02:34:10     02:34:10    90s
+  02:35:40     02:36:47    157s   <- handler blocked on a slow batch for 67s
+
+The broker measures the lease from the LAST successful renewal. One blocked handler is enough
+to push the next renewal past the TTL, and the drain is full of slow batches at that hour.

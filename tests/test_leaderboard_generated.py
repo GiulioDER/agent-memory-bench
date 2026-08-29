@@ -173,3 +173,53 @@ def test_an_undisclosed_arm_never_reaches_the_page(tmp_path):
     assert [a["name"] for a in data["arms"]] == PUBLIC_ARMS
     anonymous = next(a for a in data["arms"] if a["name"] == "product_a")
     assert anonymous["success"] == 0.5, "an undisclosed arm still carries its real numbers"
+
+
+def _config(root, **extra):
+    path = root / "site" / "data" / "leaderboard.config.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    config.update(extra)
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+
+def test_a_ranking_is_titled_for_the_path_it_measured(tmp_path):
+    """F2's second remedy, as a build step rather than as a promise.
+
+    The corpus is bulk ingested once and never written to again, so a ranking built from it ranks
+    retrieval: a product that sells extraction and consolidation at write time is credited for
+    neither. The page has to say that itself, next to the table, and the generator is what puts
+    it there. A README paragraph is the first thing a launch edits.
+    """
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    assert _run(root=root).returncode == 0
+    scope = _payload(root)["scope"]
+    assert scope["writePathMeasured"] is False
+    assert scope["title"] == "Retrieval over a bulk-ingested corpus"
+    assert "write path is not measured" in scope["qualification"].lower()
+
+
+def test_dropping_the_qualification_requires_naming_the_run_that_earned_it(tmp_path):
+    """The switch and its evidence move together. Setting the flag alone fails the build rather
+    than quietly retitling the page."""
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    _config(root, write_path_measured=True)
+    result = _run(root=root)
+    assert result.returncode != 0
+    assert "longitudinal_run" in (result.stdout + result.stderr)
+
+    _config(root, longitudinal_run="longitudinal-001")
+    assert _run(root=root).returncode == 0
+    scope = _payload(root)["scope"]
+    assert scope["writePathMeasured"] is True
+    assert scope["longitudinalRun"] == "longitudinal-001"
+
+
+def test_the_scope_note_is_rendered_by_the_page(tmp_path):
+    """A generated qualification nothing renders is a qualification nobody reads."""
+
+    html = (REPO_ROOT / "site" / "leaderboard.html").read_text(encoding="utf-8")
+    js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
+    assert 'id="scope-note"' in html
+    assert "scope-note" in js and "D.scope.qualification" in js

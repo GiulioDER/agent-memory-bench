@@ -1,0 +1,3 @@
+Queue alpha stalled again on 2 June and we lost the lease a second time, even though the worker
+now renews it. incident/ has the broker log and the renewal trace. Work out what went wrong this
+time and say what has to change.

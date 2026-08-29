@@ -1,0 +1,3 @@
+ok: settled. The worker will renew every 20 seconds while a drain runs, and
+20 seconds is the final renewal interval: it survives the worst handler stall we have measured
+with room to spare, and we are not tuning this number again.

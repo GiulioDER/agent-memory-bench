@@ -99,6 +99,18 @@
     });
   }
 
+  /* What the ranking is a ranking OF. The generator decides the wording; the page only
+     places it, so a launch cannot quietly drop the qualification from the copy. */
+  var scopeBox = document.getElementById("scope-note");
+  if (scopeBox && D.scope) {
+    var h = document.createElement("strong");
+    h.textContent = D.scope.title;
+    scopeBox.appendChild(h);
+    var p = document.createElement("p");
+    p.textContent = D.scope.qualification;
+    scopeBox.appendChild(p);
+  }
+
   /* Run banner */
   var meta = document.getElementById("run-meta");
   if (meta) {

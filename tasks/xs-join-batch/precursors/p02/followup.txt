@@ -1,0 +1,3 @@
+ok: agreed, that explains the ledger. From now on anything we send them goes
+oldest recorded_at first, ascending recorded_at inside every request, because
+pt-118 overwrites out-of-order arrivals instead of rejecting them.

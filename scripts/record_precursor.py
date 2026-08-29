@@ -111,6 +111,26 @@ def conversation_to_corpus(
     return lines
 
 
+def _required_terms(task, precursor: str) -> tuple[tuple[str, ...], str]:
+    """Which fact terms this particular recording has to surface.
+
+    An ordinary task states its whole fact in every session it owns, so the gate is every term. A
+    task whose fact is DISTRIBUTED states one share per session, so demanding every term would
+    refuse every valid recording of it, and the obvious fix under time pressure ("just record both
+    halves in one session") destroys exactly the property the task exists to test.
+    """
+
+    if task.synthesis is None:
+        return task.fact_terms, "the fact"
+    for shard in task.synthesis.shards:
+        if shard.precursor == precursor:
+            return shard.terms, f"shard {precursor}'s share of the fact"
+    raise SystemExit(
+        f"{task.task_id} declares a distributed fact and no shard named {precursor!r}; "
+        f"shards are {', '.join(task.synthesis.precursors)}"
+    )
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", required=True)
@@ -172,12 +192,27 @@ async def main() -> int:
     lines = conversation_to_corpus(prompt, record.conversation, followup, base)
     text = "\n".join(json.dumps(line, ensure_ascii=False) for line in lines) + "\n"
 
-    missing = [term for term in task.fact_terms if term.lower() not in text.lower()]
+    required, scope = _required_terms(task, args.precursor)
+    missing = [term for term in required if term.lower() not in text.lower()]
     if missing:
         raise SystemExit(
-            f"fact terms {missing} absent from the transcript; the fact never surfaced. "
+            f"fact terms {missing} absent from the transcript; {scope} never surfaced. "
             f"Fix the staging or the followup wording, and re-run"
         )
+    if task.synthesis is not None:
+        others = [
+            term
+            for shard in task.synthesis.shards
+            if shard.precursor != args.precursor
+            for term in shard.terms
+        ]
+        strayed = [term for term in others if term.lower() in text.lower()]
+        if strayed:
+            raise SystemExit(
+                f"this session states another shard's terms {strayed}. The fact is supposed to "
+                f"be distributed, and a session holding two shares answers the task alone. "
+                f"Re-stage so the other half is out of reach, and re-record"
+            )
 
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8", newline="\n")

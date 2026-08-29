@@ -1,0 +1,8 @@
+ticket REL-2211 - release bundle rejected
+opened 2026-07-16 by releases@partner.example.invalid
+
+Your 3.4.0 bundle shipped a manifest we cannot process. Our tooling was pointed at the format
+your nightly export has used since May and we standardised on it for everything you send us.
+The bundle manifest is not in that format, so the release is blocked at our end.
+
+We are not asking for a new format. We are asking for the one you already have.

@@ -1,0 +1,3 @@
+Queue alpha was handed to a second worker in the middle of a drain last night and we processed
+a batch twice. incident/ has the broker log and the alerts. Work out why we lost the lease and
+say how the worker should hold it from now on.
