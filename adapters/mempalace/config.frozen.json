@@ -1,0 +1,42 @@
+{
+  "product": "mempalace",
+  "package_pin": "mempalace==3.8.0",
+  "server_name": "mempalace",
+  "venv_env": "MEMPALACE_VENV",
+  "palace_root_env": "MEMPALACE_PALACE_ROOT",
+  "mcp_entrypoint": "mempalace-mcp",
+  "cli_module": "mempalace",
+  "ingest_mode": "convos",
+  "wing": "bench",
+  "agent": "agent-memory-bench",
+  "tool_prefix": "mcp__mempalace__",
+  "allowed_tools": [
+    "mempalace_search",
+    "mempalace_get_drawer",
+    "mempalace_list_drawers",
+    "mempalace_check_duplicate",
+    "mempalace_memories_filed_away",
+    "mempalace_status",
+    "mempalace_list_wings",
+    "mempalace_list_rooms",
+    "mempalace_get_taxonomy",
+    "mempalace_kg_query",
+    "mempalace_kg_timeline",
+    "mempalace_kg_stats",
+    "mempalace_traverse",
+    "mempalace_follow_tunnels",
+    "mempalace_find_tunnels",
+    "mempalace_list_tunnels",
+    "mempalace_list_hallways",
+    "mempalace_graph_stats",
+    "mempalace_mesh_peers",
+    "mempalace_diary_read"
+  ],
+  "search_sentence": "This project's memory is a MemPalace; search it with `mcp__mempalace__mempalace_search` before acting.",
+  "max_palace_path_chars": 120,
+  "notes": {
+    "allowed_tools": "The server exposes 44 tools; the 20 above are its read and navigation surface. Every write tool is withheld from EVERY arm, recall included, because the corpus is frozen after ingest and no runner calls MemoryAdapter.snapshot/restore yet, so a session that wrote to the store would change the store the next seed reads. Revisit when per-session restore is wired.",
+    "ingest_mode": "convos is MemPalace's own path for Claude Code transcripts, which is exactly what the corpus is. Handing it the harness markdown render instead would bypass the conversation extraction that is the product.",
+    "max_chunks_per_file": "Left at the vendor default. --max-chunks-per-file exists for Windows ONNX bad_alloc (upstream #1455); setting it here would be tuning the vendor's product."
+  }
+}

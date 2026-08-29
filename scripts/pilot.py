@@ -52,6 +52,7 @@ if str(REPO) not in sys.path:
 from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
+from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
@@ -73,12 +74,17 @@ from harness.prereg import assert_preregistered
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 
-#: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28.
-ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall")
+#: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
+#: `mempalace` on 2026-08-29.
+ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "mempalace")
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall"})
+MEMORY_ARMS = frozenset({"fs_grep", "recall", "mempalace"})
+
+#: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
+#: because its tenant is indexed out of band against the frozen corpus manifest.
+SELF_INGESTING_ARMS = ("fs_grep", "mempalace")
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -158,6 +164,11 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
             # rather than half-fixing it and being comparable to neither.
             else instructions.compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral)
         )
+    if "mempalace" in texts:
+        # No historical variant to reproduce: this arm has never run, so it always carries the
+        # shared protocol. Under `skill`/`oneliner` that leaves it matched against an
+        # unmatched recall arm, which `instruction_manifest` publishes rather than hides.
+        texts["mempalace"] = MemPalaceAdapter.shared_instruction(neutral=neutral)
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
             "protocol", PROTOCOL_SEARCH_SENTENCE, neutral=neutral
@@ -190,7 +201,10 @@ def build_bundles(task, out_dir: Path, texts: dict[str, str]) -> dict[str, Path]
     placebo.write_text(render_placebo(static), encoding="utf-8", newline="\n")
     bundles["placebo"] = placebo
 
-    for arm in ("protocol", "fs_grep", "recall"):
+    # Derived, not listed: this loop used to name ("protocol", "fs_grep", "recall") literally,
+    # so an arm added to ARMS and to `memory_instructions` still got no bundle here and fell
+    # back to a bare prompt with its instruction silently dropped.
+    for arm in sorted(set(texts) - {"bare", "claude_md", "placebo"}):
         text = texts.get(arm, "")
         if not text:
             continue
@@ -232,6 +246,8 @@ def adapter_for(
         return FsGrepAdapter(staging, static, instruction=texts.get("fs_grep") or None)
     if arm == "recall":
         return RecallAdapter(staging, static, instruction=texts.get("recall") or None)
+    if arm == "mempalace":
+        return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
     raise ValueError(f"no adapter for arm {arm!r}")
 
 
@@ -436,10 +452,18 @@ async def main() -> int:
             f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
             f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
         )
-    if "fs_grep" in run_arms:
+    self_ingesting = [arm for arm in SELF_INGESTING_ARMS if arm in run_arms]
+    if self_ingesting:
         corpus = CorpusManifest.load(corpus_root)
-        print(f"[ingest] fs_grep from {corpus_root}", flush=True)
-        ingest_reports.append(registry.get("fs_grep").ingest(corpus, args.namespace))
+        for arm in self_ingesting:
+            print(f"[ingest] {arm} from {corpus_root}", flush=True)
+            report = registry.get(arm).ingest(corpus, args.namespace)
+            print(
+                f"[ingest] {arm}: {report.items_stored} item(s) from "
+                f"{report.sessions_offered} session(s)",
+                flush=True,
+            )
+            ingest_reports.append(report)
 
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
     # until 2026-08-28 it was inline code here instead, so `adapters/` was reviewable and not run.
