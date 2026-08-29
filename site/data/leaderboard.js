@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; numbers enter
    only through results/<run_id>/leaderboard_summary.json. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-08-26",
+  "updated": "2026-08-29",
   "baseline": "claude_md",
   "run": null,
   "arms": [
