@@ -208,7 +208,7 @@
           <tr><td><span class="m">leaderboard</span></td>
               <td>empty, and empty by construction: a number reaches it only from a published run summary</td></tr>
           <tr><td><span class="m">reproducibility</span></td>
-              <td><strong>partial, and the gap is named.</strong> Three arms reproduce completely: <code>bare</code>, <code>placebo</code> and <code>claude_md</code> need only the Claude Code CLI and a model key. Both products are now pinned to released versions and installed into isolated environments. But <strong>the <code>recall</code> arm does not reproduce</strong>: its frozen config encodes paths on the one host that serves the corpus, so re-running it is a rebuild rather than a reproduction. The compose stack starts no memory server either. Top of the Phase 3 list</td></tr>
+              <td><strong>partial, and the gap is named.</strong> Every published run can be <em>checked</em> with no credentials and no money: <code>python -m scripts.verify_run --all</code> re-derives the cost ledger, the endpoints and the discard set from the published sessions and fails if they disagree with the published summaries. Re-<em>running</em> is the harder half. Three arms reproduce completely: <code>bare</code>, <code>placebo</code> and <code>claude_md</code> need only the Claude Code CLI and a model key. Both products are now pinned to released versions and installed into isolated environments. But <strong>the <code>recall</code> arm does not reproduce</strong>: its frozen config encodes paths on the one host that serves the corpus, so re-running it is a rebuild rather than a reproduction. The compose stack starts no memory server either. Top of the Phase 3 list</td></tr>
         </tbody>
       </table>
     </div>

@@ -232,6 +232,32 @@ For the local Docker stack, copy `.env.example` to `.env`, set a unique `POSTGRE
 run `docker compose --env-file .env -f docker/compose.yaml up --build`. Compose requires that
 password instead of using a repository default.
 
+### Checking a published run, with no credentials and no money
+
+Reproducing a run and *checking* a run are different things, and only one of them is expensive.
+Any published run can be re-derived from its own evidence with nothing but a checkout:
+
+```bash
+python -m scripts.verify_run --all
+```
+
+No API key, no database, no model calls, no network. It recomputes the cost ledger and the
+endpoints from `records.final.jsonl` using the same functions the run used, re-derives the discard
+set from the published per-session verdicts, and fails if any of that disagrees with the committed
+`admission.json`, `costs.json` or endpoints file. A doctored token total, a quietly dropped arm, an
+unexplained discard, or summaries published with no sessions behind them are each caught by a named
+check, and each of those checks was written by breaking the artifact on purpose and watching it go
+red (`tests/test_verify_run.py`).
+
+What it does **not** do is tell you the benchmark is well designed. It tells you the arithmetic is
+honest: these numbers came from these sessions. Whether the tasks measure memory and whether the
+corpus is fair is what the preregistrations and the vendor reviews are for.
+
+⚠️ Running it today reports that **`abstention-001` cannot be checked at all**: it was published
+with an `admission.json` and a `costs.json` and no records whatsoever. That is a real defect in
+that artifact, it is why this script exists, and it is stated here rather than left for a reader to
+discover.
+
 ### What a third party can reproduce today, and what they cannot
 
 **Three arms reproduce completely**: `bare`, `placebo` and `claude_md` need only the Claude Code
