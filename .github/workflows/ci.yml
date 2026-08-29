@@ -29,7 +29,7 @@ jobs:
       - run: python scripts/diagnostic.py --dry-run --run-id ci-diagnostic-dry-run --seeds 1
       - run: |
           OPENROUTER_API_KEY=ci-dry-run python -m scripts.pilot --dry-run \
-            --run-id ci-pilot-dry-run --arms bare,claude_md,protocol,fs_grep \
+            --run-id ci-pilot-dry-run --arms bare,claude_md,protocol,fs_grep,mempalace \
             --memory-instruction protocol
 
       # A dry run must leave the tree exactly as it found it. This caught two runners creating an
