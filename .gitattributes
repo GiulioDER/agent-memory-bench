@@ -3,4 +3,9 @@
 *.png binary
 oracles/ts-bom-merge/data/south.csv binary
 tasks/ts-crlf-export/precursors/p01/stage/archive/export_20260512_accepted.csv binary
-*.ots binary
+
+# Recorded agent output, kept as evidence of what a session with no memory produced.
+# `-text` disables the `eol=lf` normalisation above: these files are read byte for byte by the
+# damage detectors in tests/test_damage_detection.py, and a checkout that rewrote their line
+# endings would change what those detectors see without changing anything a reviewer notices.
+tests/fixtures/factless-sessions/** -text

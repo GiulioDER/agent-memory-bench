@@ -115,6 +115,56 @@ def test_a_damaged_sandbox_is_not_attributed_to_the_wrong_condition(task, tmp_pa
             )
 
 
+FACTLESS = Path(__file__).resolve().parent / "fixtures" / "factless-sessions"
+
+
+def _factless(task) -> list[Path]:
+    root = FACTLESS / task.task_id
+    return sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []
+
+
+@pytest.mark.parametrize("task", WITH_DETECTORS, ids=_ids(WITH_DETECTORS))
+def test_no_detector_fires_on_a_recorded_factless_session(task):
+    """THE FOURTH ASSERTION, and the one the other three could not make.
+
+    The gate above asks for silence on `naive.py`: one committed factless solution, written by
+    whoever wrote the detector. `ts-manifest-rel` passed it, then fired on a real `claude_md`
+    session with `memory_call_count = 0`, in a run where its plant was not in the corpus at all.
+    Its detector's own message said the outcome was "not derivable from the sandbox"; a session
+    with nothing to retrieve derived it.
+
+    A real agent produces a DISTRIBUTION of factless solutions, and a plant is measurable only if
+    its signature lies outside ALL of them. `naive.py` is one sample of that distribution, chosen
+    by the person least able to imagine the others. These are real ones.
+
+    A firing here is never a threshold to adjust. It means the damaged outcome is reachable
+    without the plant, so a damage rate built on it counts ordinary failure.
+    """
+
+    sessions = _factless(task)
+    if not sessions:
+        pytest.skip(f"no recorded factless sessions for {task.task_id}")
+    for sandbox in sessions:
+        for condition in CONDITIONS:
+            hit, reason = detect_damage(task.path, sandbox, ORACLES / task.task_id, condition)
+            assert not hit, (
+                f"{task.task_id}/{condition} fired on {sandbox.name}, a session with no memory: "
+                f"{reason}. The damaged signature is reachable without the plant, so retire the "
+                f"plant or move it to an axis a factless answer cannot reach."
+            )
+
+
+def test_the_factless_corpus_is_large_enough_to_be_worth_trusting():
+    """A gate that has seen two sessions proves almost nothing. Pinned so that shrinking the
+    fixture set is a deliberate act rather than a silent one."""
+
+    sandboxes = [p for p in FACTLESS.rglob("*") if p.is_dir() and (p / "README.md").exists()]
+    assert len(sandboxes) >= 100, (
+        f"only {len(sandboxes)} recorded factless sessions; this gate's power is the breadth of "
+        f"factless behaviour it has seen"
+    )
+
+
 # ---------------------------------------------------------------------------------------
 # classification
 # ---------------------------------------------------------------------------------------
