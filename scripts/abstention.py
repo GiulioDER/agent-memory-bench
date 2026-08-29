@@ -49,6 +49,7 @@ if str(REPO) not in sys.path:
 
 from harness.abstention import cells_from_records, endpoints
 from harness.adapters.base import CorpusManifest
+from harness.costs import add_pricing_arguments, pricing_from_args
 from harness.damage import CONDITIONS
 from harness.plants import load_plants
 from harness.tasks import discover_tasks
@@ -132,6 +133,17 @@ def run_condition(args, condition: str) -> Path:
         "--condition", condition,
         "--memory-instruction", args.memory_instruction,
     ]
+    # Forwarded rather than defaulted, so every condition of a suite is priced identically and
+    # the basis is the one the operator chose.
+    for flag, value in (
+        ("--price-in", args.price_in),
+        ("--price-out", args.price_out),
+        ("--price-as-of", args.price_as_of),
+        ("--price-cache-read", args.price_cache_read),
+        ("--price-cache-creation", args.price_cache_creation),
+    ):
+        if value is not None:
+            command += [flag, str(value)]
     if args.dry_run:
         command.append("--dry-run")
     print(f"[{condition}] {' '.join(command[2:])}", flush=True)
@@ -222,7 +234,15 @@ def main() -> int:
         "measures a common denominator none of the products actually ships.",
     )
     parser.add_argument("--dry-run", action="store_true")
+    add_pricing_arguments(parser)
     args = parser.parse_args()
+
+    # Validated HERE, before the first ingest, even though this script prices nothing itself and
+    # only forwards the rates to pilot. Letting pilot refuse would be correct and far too late:
+    # each condition ingests its own corpus into its own tenant first, so the run would spend the
+    # embedding cost of every condition before dying on a missing flag.
+    if not args.dry_run:
+        pricing_from_args(args, model=args.model)
 
     conditions = [c.strip() for c in args.conditions.split(",") if c.strip()]
     unknown = [c for c in conditions if c not in CONDITIONS]

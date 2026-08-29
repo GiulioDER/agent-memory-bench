@@ -155,3 +155,53 @@ stored `pricing_as_of` and `pricing_model` but never the prices.
 the cache-read question. `to_dict` now publishes the rates, so this cannot recur silently. Making
 `--price-in` / `--price-out` required rather than defaulted is the obvious follow-up and is NOT
 done here, because it changes a CLI contract that the frozen runs used.
+
+---
+
+## Follow-up landed 2026-08-29: the prices are required now
+
+The section above ended by saying that making `--price-in` / `--price-out` required "is the
+obvious follow-up and is NOT done here". It is done now, and the sentence is left standing rather
+than edited, because what it recorded was true when written.
+
+`harness.costs` gained `add_pricing_arguments` and `pricing_from_args`. The three runners
+(`pilot.py`, `diagnostic.py`, `smoke.py`) register the flags from one place and build their
+pricing table from one place, so a fourth runner cannot reintroduce a fourth set of defaults by
+copying a third. There are no price defaults left anywhere in `scripts/`, and a test asserts that.
+
+The defaults were worse than the pilot-004 incident alone suggested: the three runners disagreed
+with **each other** as well as with the frozen record.
+
+| runner | old default in / out | as-of |
+|---|---|---|
+| `pilot.py` | 0.05866 / 0.11732 | 2026-08-22 |
+| `smoke.py` | 0.05866 / 0.11732 | 2026-08-22 |
+| `diagnostic.py` | **0.0826 / 0.1652** | 2026-08-25 |
+| preregistration 002 (frozen) | **0.0574 / 0.1148** | 2026-08-22 |
+
+No runner defaulted to the frozen rates, so *any* run launched without the flags was priced on a
+basis nobody chose, and a diagnostic was priced 44% above a pilot for the same model.
+
+Three details worth keeping:
+
+- **Dry runs still need no prices.** Every runner returns before pricing when `--dry-run` is set,
+  so CI's dry-run steps are untouched.
+- **`scripts/abstention.py` refuses up front.** It prices nothing itself and only forwards the
+  rates to `pilot.py`, but each condition ingests its own corpus into its own tenant *before*
+  pilot runs. Letting pilot refuse would have been correct and far too late: the suite would have
+  spent the embedding cost of every condition before dying on a missing flag. It now validates
+  immediately after parsing and forwards the chosen rates, so every condition of a suite is priced
+  identically.
+- **The cache rates are reachable from the CLI at last.** `ModelPricing` grew
+  `usd_per_mtok_cache_read` and `usd_per_mtok_cache_creation` in `63ce4b5`, and no runner could
+  pass them until now (`--price-cache-read`, `--price-cache-creation`).
+
+The refusal names the frozen rates, so a rerun that means to match preregistration 002 copies one
+line rather than hunting for it:
+
+```
+To match the frozen protocol of preregistration 002:  --price-in 0.0574 --price-out 0.1148 --price-as-of 2026-08-22
+```
+
+Verified: 486 passed, 5 skipped, ruff clean, `audit_corpus` and `audit_plants` clean, and both CI
+dry-run steps still green without any price flag.

@@ -99,6 +99,85 @@ class ModelPricing:
         ) / 1_000_000.0
 
 
+#: The rates preregistration 002 froze for `deepseek/deepseek-v4-flash`, quoted in the refusal
+#: below so a rerun that means to match the frozen protocol can copy them rather than hunt.
+FROZEN_002_PRICES = "--price-in 0.0574 --price-out 0.1148 --price-as-of 2026-08-22"
+
+
+def pricing_from_args(args, *, model: str, source: str = "") -> dict[str, ModelPricing]:
+    """Build a run's pricing table from parsed CLI arguments, refusing to guess.
+
+    The prices are REQUIRED. They used to be argparse defaults, and the defaults did what
+    defaults do: they rotted, they disagreed between the three runners, and a run took them
+    without anyone deciding to.
+
+    That is not hypothetical. `pilot-004-placebo` was launched without the flags and priced at
+    `scripts/pilot.py`'s defaults, 0.05866/0.11732, while `pilot-003-deepseek` used the frozen
+    0.0574/0.1148. The two published runs were therefore never comparable in dollars, and nothing
+    said so: the artifact recorded `pricing_as_of` and `pricing_model` but not the prices, so
+    identifying the basis meant reverse-solving a 2x2 system from two arms' rounded totals. A
+    price is a measurement input, and an unstated measurement input is the thing this benchmark
+    exists to avoid.
+
+    Dry runs never reach here: every runner returns before pricing when `--dry-run` is set, so a
+    cost-free rehearsal still needs no rates.
+    """
+
+    missing = [
+        flag
+        for flag, value in (
+            ("--price-in", getattr(args, "price_in", None)),
+            ("--price-out", getattr(args, "price_out", None)),
+            ("--price-as-of", getattr(args, "price_as_of", None)),
+        )
+        if value is None
+    ]
+    if missing:
+        raise SystemExit(
+            f"missing required pricing: {' '.join(missing)}.\n"
+            "Prices are not defaulted, because a default is a price nobody chose: pilot-004 was "
+            "priced at a stale default and its dollars were never comparable to pilot-003's.\n"
+            f"To match the frozen protocol of preregistration 002:  {FROZEN_002_PRICES}\n"
+            "Otherwise pass the rates you captured, with the date you captured them. Add "
+            "--price-cache-read when the provider prices cached input separately; without it "
+            "cache reads are charged at the fresh-input rate and the artifact says so."
+        )
+
+    return {
+        model: ModelPricing(
+            model=model,
+            usd_per_mtok_input=args.price_in,
+            usd_per_mtok_output=args.price_out,
+            as_of=args.price_as_of,
+            source=source,
+            usd_per_mtok_cache_read=getattr(args, "price_cache_read", None),
+            usd_per_mtok_cache_creation=getattr(args, "price_cache_creation", None),
+        )
+    }
+
+
+def add_pricing_arguments(parser) -> None:
+    """Register the pricing flags on a runner's parser, with no defaults.
+
+    Kept beside `pricing_from_args` so the flag names and the refusal cannot drift apart, and so a
+    fourth runner cannot reintroduce a fourth set of defaults by copying a third.
+    """
+
+    parser.add_argument("--price-in", type=float, help="USD per Mtok of fresh input (required)")
+    parser.add_argument("--price-out", type=float, help="USD per Mtok of output (required)")
+    parser.add_argument("--price-as-of", help="the date the prices were read (required)")
+    parser.add_argument(
+        "--price-cache-read",
+        type=float,
+        help="USD per Mtok of cache-read input, when the provider prices it separately",
+    )
+    parser.add_argument(
+        "--price-cache-creation",
+        type=float,
+        help="USD per Mtok of cache-creation input, when the provider prices it separately",
+    )
+
+
 def load_pricing(path: str | Path) -> dict[str, ModelPricing]:
     """Load a ``pricing.json`` of ``{model: {usd_per_mtok_input, ..., as_of, source}}``."""
 
