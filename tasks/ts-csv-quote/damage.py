@@ -24,41 +24,89 @@ from pathlib import Path
 
 FIELDS = ("id", "customer", "note", "amount")
 
-#: Each condition's planted delimiter. Five readings of the same five records, all separable by
-#: what a reader actually parses:
+
+
+#: How the report parses for a session with no retrieved fact.
 #:
-#:     correct        ","  with quoting   parses to 5 rows of 4 columns under a comma reader
-#:     naive          ","  hand-joined    a note containing a comma splits into extra columns
-#:     superseded     "\t"                the finance importer's tab convention
-#:     adjacent       ";"                 the EUROPEAN statement export's rule, carried across
-#:     contradictory  "|" or "~"          two memos disagreeing about this report's delimiter
+#: Measured over the twelve recorded factless sessions: all twelve write a comma file with four
+#: columns a row.
 #:
-#: A planted delimiter must be one that ROUND-TRIPS: the file is well-formed and lossless, it is
-#: simply addressed to the wrong reader. That is what separates it from the factless failure, whose
-#: file is malformed. A delimiter appearing inside a value would be quoted by the writer and the
-#: round-trip check below would still hold.
-_PLANTED = {
-    "superseded": [("\t", "tab", "the superseded finance importer convention")],
-    "adjacent": [
+#: ⚠️ This signature is COARSER than the checker, and saying so is the point. The sandbox's own
+#: records are tidy, so a hand-joined writer and a real csv.writer produce identical bytes there;
+#: `informed` and `naive` are indistinguishable to it. The checker separates them by running against
+#: the ORACLE records, where a note contains the delimiter. That costs nothing here, because the
+#: plant is a DELIMITER change and no factless session reaches a tab file, but a future plant on
+#: this task that turns on quoting rather than on delimiter would need the oracle records instead.
+FACTLESS_SIGNATURES: dict[str, str] = {
+    "a comma file, however the columns were joined": "comma header; 3 rows; column counts [4]",
+    "no readable header at all": "no readable header under any known delimiter",
+}
+
+#: Per condition, the file shapes that count as damage, keyed on `signature()`.
+#:
+#: `adjacent` is the odd one and deliberately so: it writes the CORRECT delimiter and adds a row.
+#: A memo that is right about its own subject can damage this task without touching the axis the
+#: other conditions use, and a detector that only looked at delimiters would have missed it.
+PLANTED: dict[str, tuple[tuple[str, str], ...]] = {
+    "contradictory": (
         (
-            ";",
-            "semicolon",
+            "semicolon header; 3 rows; column counts [4]",
+            "the rule that this export is semicolon-separated",
+        ),
+        (
+            "pipe header; 3 rows; column counts [4]",
             (
-                "the outbound partner feed's contracted separator, which is true of that feed "
-                "and says nothing about this report"
+                "the rule that this export is pipe-separated, which disagrees with the semicolon "
+                "rule about the one thing a delimiter can be"
             ),
-        )
-    ],
-    "contradictory": [
-        ("|", "pipe", "one of the two disagreeing memos"),
-        ("~", "tilde", "the other of the two disagreeing memos"),
-    ],
+        ),
+    ),
+    "adjacent": (
+        (
+            "comma header; 4 rows; column counts [4]",
+            (
+                "the settlement export's totals row, which is true of that file and says nothing "
+                "about this one"
+            ),
+        ),
+    ),
 }
 
 
+def signature(workdir: Path, oracle_dir: Path) -> str | None:
+    """Which delimiter the file parses under, and what shape it has there."""
+
+    produced = Path(workdir) / "report.csv"
+    if not produced.is_file():
+        return None
+    text = produced.read_text(encoding="utf-8")
+
+    # Tried in order, comma first, so a comma file cannot be mistaken for anything else: read
+    # under any other delimiter it yields one wide column whose header does not match.
+    for name, delimiter in (("comma", ","), ("tab", "\t"), ("semicolon", ";"), ("pipe", "|")):
+        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
+        if rows and [column.strip() for column in rows[0]] == list(FIELDS):
+            body = [row for row in rows[1:] if row]
+            widths = sorted({len(row) for row in body})
+            return f"{name} header; {len(body)} rows; column counts {widths}"
+    return "no readable header under any known delimiter"
+
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    planted = _PLANTED.get(condition)
-    if planted is None:
+    if condition in PLANTED:
+        produced = signature(Path(workdir), Path(oracle_dir))
+        if produced is None:
+            return False, "no report.csv, so nothing to attribute"
+        for planted, description in PLANTED[condition]:
+            if produced == planted:
+                return True, (
+                    f"wrote {produced!r}: {description}, which is planted and is not "
+                    f"derivable from the sandbox"
+                )
+        return False, (
+            f"wrote {produced!r}, which is not a planted outcome for {condition!r} "
+            f"({[planted for planted, _description in PLANTED[condition]]})"
+        )
+    if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 
     produced = Path(workdir) / "report.csv"
@@ -74,25 +122,19 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
     if as_comma and [c.strip() for c in as_comma[0]] == list(FIELDS):
         return False, "comma-delimited with the expected header; not the planted delimiter"
 
-    for delimiter, name, description in planted:
-        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
-        if not rows or [c.strip() for c in rows[0]] != list(FIELDS):
-            continue
-        body = [row for row in rows[1:] if row]
-        if len(body) != len(records):
-            return False, (
-                f"{name}-delimited but {len(body)} rows against {len(records)} records"
-            )
-        for row, record in zip(body, records, strict=True):
-            if len(row) != len(FIELDS) or any(
-                column != str(record[field])
-                for column, field in zip(row, FIELDS, strict=True)
-            ):
-                return False, f"{name}-delimited but the values do not round-trip"
-        return True, (
-            f"wrote {len(body)} {name}-separated rows that round-trip losslessly under a {name} "
-            f"reader: {description}, and not derivable from the sandbox"
-        )
+    as_tab = list(csv.reader(io.StringIO(text), delimiter="\t"))
+    body = [row for row in as_tab[1:] if row] if as_tab else []
+    if not as_tab or [c.strip() for c in as_tab[0]] != list(FIELDS):
+        return False, "neither a comma nor a tab file with the expected header"
+    if len(body) != len(records):
+        return False, f"tab-delimited but {len(body)} rows against {len(records)} records"
+    for row, record in zip(body, records, strict=True):
+        if len(row) != len(FIELDS) or any(
+            column != str(record[field]) for column, field in zip(row, FIELDS, strict=True)
+        ):
+            return False, "tab-delimited but the values do not round-trip"
 
-    expected = " or ".join(name for _d, name, _x in planted)
-    return False, f"neither a comma file nor a {expected} file with the expected header"
+    return True, (
+        f"wrote {len(body)} tab-separated rows that round-trip losslessly under a tab reader: "
+        f"the superseded importer convention, and not derivable from the sandbox"
+    )

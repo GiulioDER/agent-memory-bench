@@ -1,0 +1,1 @@
+Yes, that is the constraint. Decision, scoped to the dashboard feed and nothing else: the dashboard feed shows five reports, because the panel holds five rows and a sixth is rendered off the visible area where nobody reads it. This covers the feed only; I am making no claim about listings that exist to enumerate a directory in full, which are a different job.

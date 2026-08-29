@@ -1,0 +1,1 @@
+A security patch for one of our own libraries sat unreleased for nine days and incident/ has why: patch_timeline.md is what happened, and pins_audit.txt is how the consumer services currently reference internal packages. Work out what the pinning rule cost us here, and recommend how an internal package should be referenced so this does not happen again.

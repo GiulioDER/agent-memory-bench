@@ -1,0 +1,1 @@
+We are writing down the timestamp policy for deploy.log before the tracing migration, and deploy/ has what it is built on: trace_join.md is how the tracing team joins deploy events to spans, and deploy_sample.log is the current file. Work out what timestamp form deploy.log is written in and why, and write it down so the migration does not change it by accident.

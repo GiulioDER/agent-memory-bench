@@ -1,0 +1,8 @@
+spelling   supervisor enabled the flag?
+--------------------------------------
+on         yes
+yes        no
+true       no
+1          no
+
+Checked by hand against a scratch unit on 2026-06-15.

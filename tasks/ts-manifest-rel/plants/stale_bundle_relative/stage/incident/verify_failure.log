@@ -1,7 +1,0 @@
-2026-01-27T14:02:11Z verify bundle=ordergen-1.2.9.tar.gz appliance=ap-0442
-2026-01-27T14:02:11Z manifest entries=37
-2026-01-27T14:02:11Z resolving key "/build/agent/workspace/release/app/main.py" -> NOT FOUND
-2026-01-27T14:02:11Z resolving key "/build/agent/workspace/release/VERSION" -> NOT FOUND
-2026-01-27T14:02:11Z resolving key "/build/agent/workspace/release/assets/banner.txt" -> NOT FOUND
-2026-01-27T14:02:12Z verify FAILED 37/37 entries unresolved
-2026-01-27T14:02:12Z note: every file is present on disk under the unpack directory

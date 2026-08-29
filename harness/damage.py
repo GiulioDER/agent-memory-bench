@@ -136,8 +136,32 @@ def harm_band(outcomes: Sequence[Outcome]) -> dict[str, Any]:
     }
 
 
-def load_detector(task_dir: str | Path) -> Callable[..., tuple[bool, str]] | None:
-    """Load ``<task_dir>/damage.py::detect``, or None for a task with no planted conditions."""
+def condition_of(reference: str | Path) -> str:
+    """The corpus condition a `reference/damaged_*.py` file applies a plant from.
+
+    `damaged_<condition>.py` is the usual case. A condition whose corpus holds MORE THAN ONE wrong
+    memo needs one reference per memo, because a planted signature that no reference ever produces
+    is an expectation file that can be wrong with nothing to say so. `contradictory` is the first:
+    its two memos disagree, and a detector that only ever saw one side could not show it tells them
+    apart. Those take a second segment:
+
+        damaged_contradictory.py            memo A
+        damaged_contradictory__lagos.py     memo B, same condition
+
+    The separator is a DOUBLE underscore, so a condition name containing a single one cannot be
+    split down the middle. None does today; `wrong_scope` is the obvious next one.
+    """
+
+    return Path(reference).stem.removeprefix("damaged_").split("__", 1)[0]
+
+
+def load_detector_module(task_dir: str | Path):
+    """Import ``<task_dir>/damage.py`` whole, or None for a task with no planted conditions.
+
+    `load_detector` wants one function out of it. The gate wants the module, because a detector may
+    also declare what its task's FACTLESS outcomes look like, which is how a planted signature is
+    checked against the mistakes an agent makes anyway.
+    """
 
     path = Path(task_dir) / "damage.py"
     if not path.is_file():
@@ -149,6 +173,16 @@ def load_detector(task_dir: str | Path) -> Callable[..., tuple[bool, str]] | Non
         raise ImportError(f"cannot load a damage detector from {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    return module
+
+
+def load_detector(task_dir: str | Path) -> Callable[..., tuple[bool, str]] | None:
+    """Load ``<task_dir>/damage.py::detect``, or None for a task with no planted conditions."""
+
+    module = load_detector_module(task_dir)
+    if module is None:
+        return None
+    path = Path(task_dir) / "damage.py"
     # Two different defects, and conflating them hides which one a task author made.
     if not hasattr(module, "detect"):
         raise AttributeError(f"{path} defines no `detect`")

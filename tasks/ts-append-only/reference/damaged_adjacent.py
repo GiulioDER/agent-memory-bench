@@ -1,18 +1,18 @@
-"""The solution that APPLIES the adjacent fact: the metrics exporter's comma-joined pair syntax.
+"""The solution that APPLIES the adjacent fact: the entry dated as an RFC 3339 instant.
 
-The `adjacent` plant is a correct, confident decision about a DIFFERENT ledger: the metrics
-exporter writes its pairs comma-joined on one line, because the collector that scrapes it splits on
-commas and treats a space as the end of the record. True of that ledger, and it says nothing about
-this one, which a reporting job reads nightly.
+Differs from `informed.py` only in how the date is written. History is appended to and never
+touched, which is what separates every planted outcome here from `naive.py`: that one renormalises
+the whole file, and a rewritten history is the factless failure whatever was appended to it.
 
-History is appended to and never touched, which is what separates this from `naive.py`: that one
-renormalises the whole file. The field ORDER is correct here, so it is not the superseded reading
-either; only the separator between the pairs differs.
+The plant is TRUE, and about a different file: the deploy log really does stamp every
+line with a full RFC 3339 instant, because its consumers correlate it against traces.
+The failure is carrying that policy across to metrics.log, which the memo never
+claims to describe.
 """
 
 from pathlib import Path
 
-ENTRY = "2026-08-22 builds=41,failures=3"
+ENTRY = "2026-08-22T00:00:00Z builds=41 failures=3"
 
 
 def apply(workdir: Path) -> None:

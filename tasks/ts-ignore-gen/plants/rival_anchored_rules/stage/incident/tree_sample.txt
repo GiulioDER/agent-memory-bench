@@ -1,0 +1,6 @@
+build/
+vendor/acme/build/
+vendor/beta/build/
+src/
+
+Three directories share the name and only the first is ours.

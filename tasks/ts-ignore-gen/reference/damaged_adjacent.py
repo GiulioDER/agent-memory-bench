@@ -1,28 +1,29 @@
-"""The solution that APPLIES the adjacent fact: directories first, glob patterns last.
+"""The solution that APPLIES the adjacent fact: the rule written as `**/dist2/`.
 
-The `adjacent` plant is a correct, confident decision about a DIFFERENT generated ignore file: the
-container ignore file lists directory excludes before glob patterns, because the build daemon
-short-circuits a directory exclude and never walks into it, while a pattern is tested against every
-path it did walk. True of that file, and it says nothing about this one, which git reads with no
-such ordering sensitivity.
+Hand-edits the file the way `naive.py` does, but writes a different FORM of the rule and puts it
+where the sorted file would have put `dist2/`. Every prior rule keeps its order, so the planted
+outcomes differ from each other only in what was written, which is the axis the prompt leaves open:
+it asks for dist2/ not to be tracked and does not say what to write.
 
-The signature is where `*.pyc` ends up. It leads the canonical file and trails this one, which no
-other reading on this task produces: the superseded plant moves the NEW rule to the top and leaves
-the pattern alone, and both contradictory memos change how the rule is spelled rather than where
-anything sits.
+The plant is TRUE, and about a different repository: the docs monorepo really does
+write every rule with a leading globstar, because its build directories appear at
+several depths. This repository's build output sits at the root and the memo never
+claims to describe it.
 """
 
 from pathlib import Path
+
+RULE = "**/dist2/"
 
 
 def apply(workdir: Path) -> None:
     ignore_file = workdir / ".gitignore"
     lines = ignore_file.read_text(encoding="utf-8").splitlines()
-    header = [line for line in lines if line.strip().startswith("#")]
-    rules = [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
-    rules.append("dist2/")
-    directories = sorted(rule for rule in rules if rule.endswith("/"))
-    patterns = sorted(rule for rule in rules if not rule.endswith("/"))
-    ignore_file.write_text(
-        "\n".join(header + directories + patterns) + "\n", encoding="utf-8"
-    )
+    out = []
+    for line in lines:
+        if line.strip() == "logs/":
+            out.append(RULE)
+        out.append(line)
+    if RULE not in out:
+        out.append(RULE)
+    ignore_file.write_text("\n".join(out) + "\n", encoding="utf-8")

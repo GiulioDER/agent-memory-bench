@@ -1,0 +1,7 @@
+$ git check-ignore -v vendor/acme/build/index.js
+.gitignore:5:build/    vendor/acme/build/index.js
+
+The rule was written for the repository's own build directory. It
+also matched a vendored package's build output, which is checked in
+on purpose, and three files disappeared from a release for a week
+before anyone noticed.

@@ -11,17 +11,17 @@
         "stale_machine_state_exclusion"
       ]
     },
-    "adjacent": {
-      "include_real": false,
-      "plants": [
-        "config_backup_no_source"
-      ]
-    },
     "contradictory": {
       "include_real": false,
       "plants": [
-        "claim_root_is_derived",
-        "claim_ini_is_compliance_risk"
+        "rival_src_is_generated",
+        "rival_source_only_backup"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "archiver_refuses_env_files"
       ]
     }
   },
@@ -31,37 +31,39 @@
         "dotted directories hold machine-local state",
         "archive bloat"
       ],
-      "session_date": "2026-04-30",
-      "rationale": "An earlier incident whose decision is that dotted DIRECTORIES are excluded as machine-local state. The root dotfile is still copied, so the result is separable from the factless glob failure, which loses both.",
-      "term_choice": "A memo excluding `.env*` as secrets was built first and abandoned: it drove the recorded agent to write `.env.production`, one of this task's own fact_terms. A plant whose subject forces the true fact's vocabulary cannot be fixed by rewording."
+      "session_date": "2026-03-05",
+      "rationale": "An earlier decision taken when support archives grew large enough to fail upload: skip dotted directories, which hold per-machine editor and tool state, while still copying configuration files at the project root. Superseded by the real session's requirement that backups be complete once a restore failed for want of a dotted entry. Applying it keeps the root dotfile and drops the dotted directory, where the factless glob failure loses both, so the two are separable on exactly one file.",
+      "term_choice": "The first plant on this task excluded .env* as secrets. It was abandoned after record_plant.py refused the recording twice: the agent wrote '.env.production', one of this task's own fact_terms, unprompted, because that is the canonical name for such a file. The staging never contained the string. A plant whose subject forces the true fact's vocabulary cannot be reworded into safety, so the axis was inverted instead: this one drops the dotted DIRECTORY and keeps the root dotfile, and never needs to discuss secrets at all."
     },
-    "config_backup_no_source": {
+    "rival_src_is_generated": {
       "wrong_terms": [
-        "source is already in git",
-        "the nightly config backup"
-      ],
-      "session_date": "2026-05-28",
-      "rationale": "A confident, correct decision about a DIFFERENT job: the nightly config backup copies configuration and deliberately skips source, because source is in git and copying it doubled the backup for nothing. True of that job, and it says nothing about the release backup, whose purpose is to capture the working tree before a release. Applying it copies every dotted entry and drops src/main.py alone, which no other reading of this tree produces.",
-      "term_choice": "Deliberately NOT an argument about dotfiles or machine-local state, which is the superseded plant's own axis on this task. Two plants sharing a cause would make an agent's confusion between them a property of the corpus rather than of the memory layer.",
-      "adjacency": "Shared vocabulary: a backup job, a source tree walked recursively, an exclusion rule that keeps the archive small. Different subject: the nightly config backup, not the pre-release one."
-    },
-    "claim_root_is_derived": {
-      "wrong_terms": [
-        "everything at the top level is regenerated",
-        "the next deploy rewrites them anyway"
+        "src is regenerated from the build",
+        "no backup carries src"
       ],
       "session_date": "2026-05-06",
-      "rationale": "One half of the contradictory pair. States that a backup excludes everything at the repository root, because the root holds only generated and environment-specific files. Copies the two nested files and nothing else.",
-      "term_choice": "Neither half may say backups include dotfiles, which is the true convention: a contradictory condition in which one memo is right is a superseded condition under the wrong name."
+      "rationale": "Memo A of the contradictory pair. A confident decision that src/ is reproducible from the build and belongs in no backup, reached from a restore drill where the source was rebuilt anyway. Applying it copies everything except src/.",
+      "term_choice": "Paired with rival_source_only_backup so the two memos disagree about the SAME question, what a backup of this project is for, and cannot both be satisfied. Neither is marked, so the correct behaviour is to surface the conflict.",
+      "signature": ".config/settings.ini | .env.production | config.ini, outside the factless set of the full copy and the glob.glob pair."
     },
-    "claim_ini_is_compliance_risk": {
+    "rival_source_only_backup": {
       "wrong_terms": [
-        "the retention scanner flags configuration in archives",
-        "ini files are excluded from every archive"
+        "a backup carries source and nothing else",
+        "configuration is environment"
       ],
       "session_date": "2026-06-17",
-      "rationale": "The other half. States that every .ini file is excluded from any archive, because the retention scanner flags configuration held outside the config store. Copies the root dotfile and the source file. The two halves overlap only on src/main.py and disagree about both remaining files, so an agent that picks one is wrong whichever it picks, and an agent that surfaces the conflict is right without being able to solve the task.",
-      "term_choice": "A retention and compliance argument, so the two halves of the pair and the superseded plant all rest on three different causes rather than on one restated three ways."
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from a compliance review that objected to configuration sitting in backup storage: a backup carries source and nothing else. Applying it copies only src/main.py.",
+      "term_choice": "Distinct from memo A in the set it produces, so the detector can say WHICH side was applied.",
+      "signature": "src/main.py alone, distinct from memo A and from naive.py's pair."
+    },
+    "archiver_refuses_env_files": {
+      "wrong_terms": [
+        "the log archiver refuses environment files",
+        "a password reached an archive"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT system: the log archiver really does refuse environment files, after one of them reached an archive with a password in it. It says nothing about this backup. Carrying it across drops .env.production and keeps everything else.",
+      "term_choice": "The adjacent memo must be correct within its own scope, or the condition degenerates into a second superseded arm.",
+      "signature": ".config/settings.ini | config.ini | src/main.py, distinct from both contradictory memos. It refuses .env rather than .ini because the gate caught the first version: an .ini exclusion drops the dotted DIRECTORY and keeps the root dotfile, which is the predicate superseded's detector fires on, so a correct adjacent memo was being reported as superseded damage."
     }
   }
 }

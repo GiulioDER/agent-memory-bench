@@ -1,0 +1,252 @@
+[
+  {
+    "answerable": true,
+    "id": "a01",
+    "query": "how do we write a file so a crash cannot leave it half written",
+    "source_task": "ts-atomic-write"
+  },
+  {
+    "answerable": true,
+    "id": "a02",
+    "query": "why do some of our CSV exports start with a stray invisible character",
+    "source_task": "ts-bom-merge"
+  },
+  {
+    "answerable": true,
+    "id": "a03",
+    "query": "how are names with accents supposed to sort in our rosters",
+    "source_task": "ts-casefold-sort"
+  },
+  {
+    "answerable": true,
+    "id": "a04",
+    "query": "does printing an error count as reporting failure from a CLI here",
+    "source_task": "ts-cli-exitcode"
+  },
+  {
+    "answerable": true,
+    "id": "a05",
+    "query": "which wins when a setting is in both the config file and the environment",
+    "source_task": "ts-config-layer"
+  },
+  {
+    "answerable": true,
+    "id": "a06",
+    "query": "what happened when an export had windows line endings",
+    "source_task": "ts-crlf-export"
+  },
+  {
+    "answerable": true,
+    "id": "a07",
+    "query": "when we deduplicate events which copy do we keep",
+    "source_task": "ts-dedup-order"
+  },
+  {
+    "answerable": true,
+    "id": "a08",
+    "query": "what should a report do when there is nothing in the inbox that week",
+    "source_task": "ts-empty-input"
+  },
+  {
+    "answerable": true,
+    "id": "a09",
+    "query": "are the golden files safe to edit by hand",
+    "source_task": "ts-golden-regen"
+  },
+  {
+    "answerable": true,
+    "id": "a10",
+    "query": "what happens if the deploy step runs twice",
+    "source_task": "ts-idempotent-run"
+  },
+  {
+    "answerable": true,
+    "id": "a11",
+    "query": "why do we sort the keys when writing generated json",
+    "source_task": "ts-json-sorted"
+  },
+  {
+    "answerable": true,
+    "id": "a12",
+    "query": "is the short fast_hash safe to use as a cache key",
+    "source_task": "ts-legacy-hash"
+  },
+  {
+    "answerable": true,
+    "id": "a13",
+    "query": "how much of an auth token may appear in our logs",
+    "source_task": "ts-log-mask"
+  },
+  {
+    "answerable": true,
+    "id": "a14",
+    "query": "should the paths in a generated manifest be absolute or relative",
+    "source_task": "ts-manifest-rel"
+  },
+  {
+    "answerable": true,
+    "id": "a15",
+    "query": "is there a length limit on migration file names",
+    "source_task": "ts-mig-name"
+  },
+  {
+    "answerable": true,
+    "id": "a16",
+    "query": "why do the same word forms count separately in the glossary",
+    "source_task": "ts-nfc-count"
+  },
+  {
+    "answerable": true,
+    "id": "a17",
+    "query": "what breaks in the deploy script when a directory has a space in it",
+    "source_task": "ts-quote-shell"
+  },
+  {
+    "answerable": true,
+    "id": "a18",
+    "query": "how long may a retry backoff grow before it is capped",
+    "source_task": "ts-retry-cap"
+  },
+  {
+    "answerable": true,
+    "id": "a19",
+    "query": "how are invoice totals rounded to cents",
+    "source_task": "ts-round-money"
+  },
+  {
+    "answerable": true,
+    "id": "a20",
+    "query": "what do we tiebreak on so a regenerated report does not churn",
+    "source_task": "ts-stable-sort"
+  },
+  {
+    "answerable": false,
+    "id": "u01",
+    "query": "what is our kubernetes pod eviction policy"
+  },
+  {
+    "answerable": false,
+    "id": "u02",
+    "query": "which oauth grant type do our first party clients use"
+  },
+  {
+    "answerable": false,
+    "id": "u03",
+    "query": "who renews the TLS certificates and how often"
+  },
+  {
+    "answerable": false,
+    "id": "u04",
+    "query": "what is our DNS failover arrangement between regions"
+  },
+  {
+    "answerable": false,
+    "id": "u05",
+    "query": "how is the load balancer health check configured"
+  },
+  {
+    "answerable": false,
+    "id": "u06",
+    "query": "which message broker do we use for asynchronous work"
+  },
+  {
+    "answerable": false,
+    "id": "u07",
+    "query": "do we expose a graphql endpoint to partners"
+  },
+  {
+    "answerable": false,
+    "id": "u08",
+    "query": "what percentage of users see a new feature flag first"
+  },
+  {
+    "answerable": false,
+    "id": "u09",
+    "query": "how does the on call paging rota escalate overnight"
+  },
+  {
+    "answerable": false,
+    "id": "u10",
+    "query": "how long do we retain personal data before deletion"
+  },
+  {
+    "answerable": false,
+    "id": "u11",
+    "query": "which container registry do our images come from"
+  },
+  {
+    "answerable": false,
+    "id": "u12",
+    "query": "how are GPU jobs scheduled and prioritised"
+  },
+  {
+    "answerable": false,
+    "id": "u13",
+    "query": "what is the release process for the mobile app"
+  },
+  {
+    "answerable": false,
+    "id": "u14",
+    "query": "how do we decide when an A/B test has finished"
+  },
+  {
+    "answerable": false,
+    "id": "u15",
+    "query": "what powers the customer facing search index"
+  },
+  {
+    "answerable": false,
+    "id": "u16",
+    "query": "what is the per customer request rate limit"
+  },
+  {
+    "answerable": false,
+    "id": "u17",
+    "query": "do we deploy blue green or with a rolling restart"
+  },
+  {
+    "answerable": false,
+    "id": "u18",
+    "query": "how is the primary database sharded across tenants"
+  },
+  {
+    "answerable": false,
+    "id": "u19",
+    "query": "what are the connection pool sizes in production"
+  },
+  {
+    "answerable": false,
+    "id": "u20",
+    "query": "who owns the translation and localisation workflow"
+  },
+  {
+    "answerable": false,
+    "id": "u21",
+    "query": "what accessibility standard do our interfaces target"
+  },
+  {
+    "answerable": false,
+    "id": "u22",
+    "query": "which open source licences may we depend on"
+  },
+  {
+    "answerable": false,
+    "id": "u23",
+    "query": "how are secrets rotated in the staging environment"
+  },
+  {
+    "answerable": false,
+    "id": "u24",
+    "query": "what is the disaster recovery point objective"
+  },
+  {
+    "answerable": false,
+    "id": "u25",
+    "query": "how do we bill customers who exceed their plan"
+  },
+  {
+    "answerable": false,
+    "id": "u26",
+    "query": "what is the policy on running untrusted third party code"
+  }
+]

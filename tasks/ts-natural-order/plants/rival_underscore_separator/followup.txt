@@ -1,0 +1,1 @@
+Agreed, that is the fix. Decision: report names separate the number with an underscore, because a hyphen is a word break to every tokenizer in the chain and an underscore is not. Recording it so the next consumer does not re-derive it.

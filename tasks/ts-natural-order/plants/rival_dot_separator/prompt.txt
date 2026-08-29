@@ -1,0 +1,1 @@
+The archive loader wants the report number as its own component and archive/ has the two things that decided it: loader_fields.md is how it splits a name, and load_failures.txt is what happened last night. Work out what character a report name should use between the word and the number, and write it down.

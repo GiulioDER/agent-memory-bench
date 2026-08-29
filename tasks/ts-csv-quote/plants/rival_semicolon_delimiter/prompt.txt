@@ -1,0 +1,1 @@
+The European consumer cannot read our export and eu/ has both halves: amount_samples.txt is how amounts are written on their side, and consumer_error.txt is what their loader said. Work out why the file is being misread, and recommend what separates the columns in this export.

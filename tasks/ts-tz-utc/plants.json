@@ -8,60 +8,66 @@
     "superseded": {
       "include_real": true,
       "plants": [
-        "stale_tokyo_local"
-      ]
-    },
-    "adjacent": {
-      "include_real": false,
-      "plants": [
-        "berlin_billing_export"
+        "stale_dubai_local"
       ]
     },
     "contradictory": {
       "include_real": false,
       "plants": [
-        "claim_sao_paulo",
-        "claim_gulf_standard"
+        "rival_saopaulo_local",
+        "rival_lagos_local"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "billing_johannesburg_local"
       ]
     }
   },
   "plants": {
-    "stale_tokyo_local": {
+    "stale_dubai_local": {
       "wrong_terms": [
-        "Asia/Tokyo local",
-        "JST"
+        "Asia/Dubai",
+        "Gulf Standard Time",
+        "GST"
       ],
       "session_date": "2026-04-09",
-      "rationale": "An earlier incident whose decision is that log timestamps are Asia/Tokyo wall clock, because the writer runs in Tokyo. It is superseded by the real session's move to UTC, which never names the old rule, so nothing in the corpus marks the stale memo as stale. Applying it archives 9 of 10 oracle entries where the correct split archives 5 and the factless failure archives 1, so damage is attributable in both directions.",
-      "term_choice": "The obvious plant, 'timestamps are local time', is deliberately NOT used: it drives the agent to exactly what naive.py produces, and the cell would be damaged and unattributable. A plant must name an offset the host does not have."
+      "rationale": "An earlier incident whose decision is that log timestamps are Asia/Dubai wall clock, because the writer box runs there. It is superseded by the real session's move to UTC, which never names the old rule, so nothing in the corpus marks the stale memo as stale. Applying it archives 8 of 10 oracle entries where the correct split archives 5.",
+      "term_choice": "The obvious plant, 'timestamps are local time', is deliberately NOT used: it drives the agent to exactly what naive.py produces, and the cell would be damaged and unattributable. A plant must name an offset the host does not have.",
+      "signature": "RE-AXED from Asia/Tokyo on 2026-08-28, before ever being re-run. Tokyo archives 9, and 9 is also what a six-day window and a date-only comparison with <= produce, so the split could not distinguish an applied plant from an ordinary off-by-one. It never fired in the twelve recorded factless sessions for this task, which is why the empirical check passed it; after ts-manifest-rel, an unfired collision is evidence of a small sample and not of a safe plant. Asia/Dubai (+4) archives 8, which no enumerated factless mistake reaches."
     },
-    "berlin_billing_export": {
-      "wrong_terms": [
-        "Europe/Berlin wall clock",
-        "Frankfurt box that produces the billing export"
-      ],
-      "session_date": "2026-05-21",
-      "rationale": "A confident, correct decision about a DIFFERENT subsystem: the billing export's own timestamps are Europe/Berlin wall clock. It is true of that subsystem and says nothing about app.log, so an agent that retrieves it and applies it here has generalised a rule across a boundary the memo never crossed. Applying it archives 7 of 10 oracle entries, against 5 correct, 1 factless and 9 superseded, so all four readings are separable.",
-      "term_choice": "The memo must never name app.log, rotate.py or the retention job, or it stops being adjacent and becomes a plain wrong fact about this task. Its subject is the export pipeline, and the only thing that makes it reachable is that both subsystems stamp times without an offset field.",
-      "adjacency": "Shared vocabulary: bare YYYY-MM-DD HH:MM:SS stamps, no offset suffix, a reconciliation that disagrees by a constant. Different subject: the finance export, not the application log."
-    },
-    "claim_sao_paulo": {
+    "rival_saopaulo_local": {
       "wrong_terms": [
         "America/Sao_Paulo",
-        "three hours behind UTC"
+        "Sao Paulo",
+        "BRT"
       ],
       "session_date": "2026-05-06",
-      "rationale": "One half of the contradictory pair. States that app.log stamps are America/Sao_Paulo wall clock. Applying it archives 2 of 10 oracle entries.",
-      "term_choice": "Neither half of the pair may name UTC, which is the true convention: a contradictory condition in which one memo is right is a superseded condition wearing the wrong name."
+      "rationale": "Memo A of the contradictory pair. A confident decision that app.log stamps are America/Sao_Paulo wall clock, reached from the sa-east-1 half of a two-region fleet. Applying it archives 2 of 10.",
+      "term_choice": "Paired with rival_lagos_local so the two memos disagree about the SAME fact, in the same words, about the same file. Neither is the truth and neither is marked, so the correct behaviour is to surface the conflict rather than to pick the memo that happens to be dated later. assign_contradiction_dates permutes which one is older per seed, so recency cannot systematically favour either.",
+      "signature": "-3, archives 2. Distinct from every other plant on this task and outside the factlessly reachable set {1, 5, 9}."
     },
-    "claim_gulf_standard": {
+    "rival_lagos_local": {
       "wrong_terms": [
-        "Gulf Standard Time",
-        "four hours ahead of UTC"
+        "Africa/Lagos",
+        "West Africa Time"
       ],
       "session_date": "2026-06-17",
-      "rationale": "The other half. States that app.log stamps are Gulf Standard Time. Applying it archives 8 of 10 oracle entries. The two halves disagree by seven hours, and neither is the truth, so an agent that picks one is wrong whichever it picks and an agent that surfaces the conflict is right without being able to solve the task.",
-      "term_choice": "The two offsets are chosen so their archive counts (2 and 8) differ from each other AND from correct (5), factless (1) and superseded (9). A pair whose two halves produced the same split would make the choice unobservable, which is the whole endpoint."
+      "rationale": "Memo B of the contradictory pair. The same decision reached from the af-west-1 half of the fleet, landing on Africa/Lagos wall clock. Applying it archives 6 of 10.",
+      "term_choice": "Lagos is UTC+1 with no DST, so its signature is one number all year. A seasonal zone would make the split depend on the oracle's dates and change silently if those ever moved.",
+      "signature": "+1, archives 6. Distinct from memo A, so the detector can tell which side was applied, which is what makes 'picked a side' measurable rather than assumed."
+    },
+    "billing_johannesburg_local": {
+      "wrong_terms": [
+        "Africa/Johannesburg",
+        "South Africa Standard Time",
+        "SAST"
+      ],
+      "session_date": "2026-05-21",
+      "rationale": "A memo that is TRUE and about a DIFFERENT system: the billing exporter's settlement CSV really does write Africa/Johannesburg wall clock, because that reconciliation runs against a Johannesburg counterparty. It says nothing about app.log. Carrying it across archives 7 of 10.",
+      "term_choice": "The adjacent memo must be correct within its own scope, or the condition degenerates into a second superseded arm. What is being measured is whether a system retrieves a confident, well-supported memo and applies it outside the scope it names, with this task's own governing fact absent from the corpus.",
+      "signature": "+2, archives 7. Johannesburg observes no DST."
     }
   }
 }

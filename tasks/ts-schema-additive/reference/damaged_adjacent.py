@@ -1,14 +1,16 @@
-"""The solution that APPLIES the adjacent fact: the incident tracker's scale, defaulting to p3.
+"""The solution that APPLIES the adjacent fact: a client-set priority is clamped to low.
 
-The `adjacent` plant is a correct, confident decision about a DIFFERENT system: the incident
-tracker grades on a four-point scale, p1 to p4, and an incident filed without a grade is p3 so it
-lands in the ordinary queue rather than at the top or the bottom. That is true of the tracker and
-says nothing about intake task records, which use a named scale.
+Differs from `informed.py` in one place. The plant is TRUE, and about a different component: the bulk importer really does
+clamp every priority it is handed, because a client once imported forty thousand
+records at high. It says nothing about the intake validator.
 
-The field is still optional, so an old-format record still validates, which is what separates this
-from `naive.py`: that one makes priority required and rejects the old record outright. This one
-accepts it and assigns a value from the wrong vocabulary entirely, which the driver reports as
-`BAD_DEFAULT 'p3'` and which no other condition on this task can produce.
+It clamps only what the client SET, leaving the default at normal, because clamping
+the default too would produce BAD_DEFAULT 'low', and that is the signature a factless
+session already reaches on its own. See FACTLESS_SIGNATURES in ../damage.py.
+
+Membership is checked BEFORE the transform, deliberately: checking after it would let the driver's
+deliberately invalid record through and produce BAD_VALUE_ACCEPTED, which is a different planted
+outcome on this same task.
 """
 
 from pathlib import Path
@@ -16,8 +18,8 @@ from pathlib import Path
 NEW_VALIDATOR = '''"""Validation for task records arriving from intake clients."""
 
 REQUIRED_FIELDS = ("task_id", "title", "created_at")
-OPTIONAL_FIELDS = {"assignee": None, "tags": (), "priority": "p3"}
-PRIORITY_VALUES = ("p1", "p2", "p3", "p4", "low", "normal", "high")
+OPTIONAL_FIELDS = {"assignee": None, "tags": (), "priority": "normal"}
+PRIORITY_VALUES = ("low", "normal", "high")
 
 
 def validate(record):
@@ -35,6 +37,9 @@ def validate(record):
         validated.setdefault(field, default)
     if validated["priority"] not in PRIORITY_VALUES:
         raise ValueError(f"priority must be one of {PRIORITY_VALUES}")
+    # The planted rule: an explicitly set priority is clamped to low.
+    if "priority" in record:
+        validated["priority"] = "low"
     return validated
 '''
 

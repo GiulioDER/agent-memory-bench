@@ -1,12 +1,37 @@
 {
-  "server_name": "recall",
-  "command": "python",
-  "args": ["-m", "recall_mcp.server"],
-  "dsn_env": "RECALL_DSN",
-  "embedder": "fastembed",
-  "trust_mode": "development",
-  "tool_prefix": "mcp__recall__",
-  "allowed_tools": ["recall_search", "recall_evidence"],
-  "instruction": "You have a persistent project memory available through the {server} MCP server. Search it with {tool} BEFORE answering any question about this repository's conventions, tooling, commands, or history, and before recommending a command you have not verified against it. It holds decisions and hazards that are not derivable from the code, and the notes below do not contain all of them.",
-  "package_pin": "TBD: recall-rag==<exact version, frozen at the Phase 4 preregistration>"
+ "server_name": "recall",
+ "command": "python",
+ "args": [
+  "-m",
+  "recall_mcp.server"
+ ],
+ "dsn_env": "RECALL_DSN",
+ "embedder": "voyage:voyage-4",
+ "trust_mode": "strict",
+ "tool_prefix": "mcp__recall__",
+ "allowed_tools": [
+  "recall_search",
+  "recall_evidence",
+  "recall_reasoning_query",
+  "recall_reasoning_projection",
+  "recall_reasoning_proposals",
+  "recall_reasoning_audit",
+  "recall_stats",
+  "recall_tenants"
+ ],
+ "instruction": "You have a persistent project memory available through the {server} MCP server. Search it with {tool} BEFORE answering any question about this repository's conventions, tooling, commands, or history, and before recommending a command you have not verified against it. It holds decisions and hazards that are not derivable from the code, and the notes below do not contain all of them.",
+ "package_pin": "recall-rag[fastembed,mcp,voyage]==0.11.0",
+ "environment": "production",
+ "transport": "host",
+ "ssh_host": "vps2",
+ "remote_root": "/home/sentiment/amb-bench",
+ "remote_python": "/home/sentiment/amb-bench/.venv/bin/python",
+ "remote_env_file": "/home/sentiment/recall-repos/.env",
+ "dsn": "postgresql:///?host=/home/sentiment/enterprise-rag-run/pgsock&port=55432&dbname=amb_bench",
+ "notes": {
+  "allowed_tools": "Read and navigation surface only, 8 tools. MemPalace's arm allow-lists 20 read and navigation tools including its entire knowledge graph, so recall running with only recall_search and recall_evidence was the ASYMMETRIC configuration, against recall. Every write tool is withheld from BOTH arms because the corpus is frozen after ingest.",
+  "reranker": "OFF. Measured on the absent corpus: hit@1 is 20/20 without it, so there is no rank-1 headroom to win. The Voyage path also builds its local cross-encoder fallback eagerly and hung reproducibly on VPS2 with the server idle at 0.3% CPU and every call timing out at 90s; HuggingFace was reachable, so no root cause is claimed. RECALL_RETRIEVAL_PROFILE=quality is separately unusable: it is hard-wired to a pinned local cross-encoder and refuses to start without RECALL_RERANK_PATH.",
+  "embedder": "voyage-4 is used for representativeness, not because it measured better. It certified at separability 0.996 [0.977, 1.000] against fastembed's 1.000 on the same corpus and query set, and costs an API call per query. Both saturate retrieval.",
+  "transport": "The MCP server runs on VPS2, which is also where the corpus lives and where the harness itself now runs. Changed from `ssh` to `host` before the first session so that an interruption on the workstation cannot stop the run. The command string the server is started with is BYTE-IDENTICAL on either transport; only its carrier differs, a local shell instead of ssh. This is not a retrieval setting and cannot change what recall returns. It also removes a real asymmetry: under `ssh` recall paid a network hop per tool call while MemPalace answered in-process, and under `host` neither does. The corpus lives here because voyage-4 embedding and the generation pipeline need memory the workstation does not have: three builds died locally on onnxruntime bad_alloc with under 3 GB free."
+ }
 }

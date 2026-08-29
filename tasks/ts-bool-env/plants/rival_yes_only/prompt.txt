@@ -1,0 +1,1 @@
+Operators keep setting flags that do not take effect, and survey/ has what we collected: operator_answers.md is what eleven of them said they write when they want a flag on, and support_tickets.txt is the tickets that came from getting it wrong. Work out which spelling actually enables a flag, and write it down so the next reader does not guess.

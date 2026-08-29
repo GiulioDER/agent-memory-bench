@@ -1,0 +1,7 @@
+row 2: expected 4 columns, found 5
+row 3: expected 4 columns, found 5
+row 4: expected 4 columns, found 6
+
+Every row with a decimal amount splits one column too many. Rows
+whose amount happens to be whole load correctly, which is why this
+took three weeks to notice.

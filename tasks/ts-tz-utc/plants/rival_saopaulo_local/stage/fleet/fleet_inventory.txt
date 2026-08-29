@@ -1,0 +1,11 @@
+ordergen log-writer fleet (captured 2026-05-05)
+
+  log-writer-02   sa-east-1b    /etc/timezone America/Sao_Paulo
+                  role: PRIMARY, owns app.log
+                  service: ordergen-logwriter 4.2.1
+
+  log-writer-09   sa-east-1c    /etc/timezone America/Sao_Paulo
+                  role: warm standby, writes nothing today
+
+Entries carry the local wall clock with no offset field. The format has
+not changed since the 4.x line shipped.

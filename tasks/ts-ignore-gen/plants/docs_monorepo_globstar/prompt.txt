@@ -1,0 +1,1 @@
+We are writing down the ignore conventions for the docs monorepo before the next package lands, and docs/ has what they are built on: package_layout.txt is where each package builds to, and ignore_history.md is what was tried before. Work out what form an entry takes in that repository and why, and write it down.

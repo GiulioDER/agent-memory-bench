@@ -1,0 +1,1 @@
+Nobody can agree how many priority levels the queue actually has, and queue/ has what I could find: dashboard_render.md is what the board draws, and level_counts.csv is how many items have sat in each bucket this year. Work out how many levels the queue really stores, and write it down so the next service does not invent a third.

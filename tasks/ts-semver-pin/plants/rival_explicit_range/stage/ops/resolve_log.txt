@@ -1,0 +1,7 @@
+Collecting textutils
+  Using cached textutils-2.5.0-py3-none-any.whl
+ERROR: reporting-jobs 1.9.2 has incompatible dependencies:
+    textutils 2.5.0 removed the `wrap_hard` helper that reporting-jobs calls
+
+The build that produced this had no ceiling on textutils. The lockfile
+recorded 2.4.1; the resolver was free to take 2.5.0 and did.

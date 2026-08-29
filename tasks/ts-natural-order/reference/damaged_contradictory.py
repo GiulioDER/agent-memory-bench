@@ -1,21 +1,14 @@
-"""The solution that CHOOSES between the two contradictory memos instead of surfacing the conflict.
+"""The solution that APPLIES ONE SIDE of the contradiction: report names written as `report_N.txt`.
 
-The `contradictory` corpus holds two undated memos that disagree about what each line of the
-listing says: one says bare run numbers, because the viewer appends the prefix and extension itself
-and a listing full of repeated boilerplate is unreadable; the other says repository-relative paths,
-because the listing is piped into a tool that opens each entry and a bare name is ambiguous once
-more than one directory holds reports. Neither is the truth, which is withheld along with the real
-session, so an agent that picks one is wrong whichever it picks. The damage is not being wrong; it
-is choosing silently.
+This is memo A of the pair. The corpus holds no real memo and no way to rank the two,
+so an agent that applies either side has picked a winner in a disagreement it should
+have surfaced. `damaged_contradictory__dot.py` applies the other side, and the two
+cannot both hold: there is one character between the word and the number.
 
-This reference exercises the bare-number branch. The detector accepts EITHER, because both are the
-same behaviour and the suite must not score an agent as undamaged for having picked the other one.
-
-⚠️ These two plant the NAME FORM rather than the order, and that is deliberate. The order axis on
-this task is nearly exhausted: ascending is correct, lexicographic is the factless failure,
-descending is the superseded plant and reverse-lexicographic is the adjacent one. A fifth ordering
-would have to be invented, and an invented convention measures whether an agent believes the corpus
-rather than whether it retrieves from it.
+Order is not the axis here: `superseded` holds the reverse and `naive.py` holds the lexicographic
+slip. Nor is path depth, which the checker normalises away on purpose ("the convention is about
+ORDER, not formatting"). The separator inside the name survives that normalisation, so it is the
+one part of a line's form this task can actually grade.
 """
 
 import subprocess
@@ -28,15 +21,14 @@ import re
 
 NAME = re.compile(r"^report-(\\d+)\\.txt$")
 
-numbers = []
-for name in os.listdir("reports"):
-    match = NAME.match(name)
-    if match:
-        numbers.append(int(match.group(1)))
 
-# Picked one of the two disagreeing memos and said nothing about the other.
-for number in sorted(numbers):
-    print(number)
+def key(name):
+    match = NAME.match(name)
+    return (0, int(match.group(1))) if match else (1, 0)
+
+
+for name in sorted(os.listdir("reports"), key=key):
+    print(name.replace("-", "_", 1))
 '''
 
 

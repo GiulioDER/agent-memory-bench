@@ -1,0 +1,8 @@
+How amounts arrive from the European side:
+
+  1.240,50
+  318,00
+  27.911,75
+
+The comma is the decimal point and the dot groups thousands. This is
+the locale their whole ledger is written in and is not negotiable.

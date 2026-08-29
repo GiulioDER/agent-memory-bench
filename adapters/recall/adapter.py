@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -31,6 +32,23 @@ from harness.gate import AdmissionSignal
 from harness.transcripts import render_corpus
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
+
+
+
+def corpus_fingerprint(corpus: CorpusManifest) -> str:
+    """A deterministic identity for the corpus CONTENT this run assembled.
+
+    `CorpusManifest` carries `sessions`, a mapping of transcript path to sha256, so hashing its
+    canonical form identifies the feed exactly: a changed transcript, an added session or a
+    withheld one all move it. The remote build records the same value beside the tenant it built,
+    which is what lets `ingest` refuse a tenant serving an older corpus.
+
+    Sorted and separator-pinned because a fingerprint that depends on dict ordering or on
+    json.dumps' default spacing is a fingerprint that changes for no reason.
+    """
+
+    payload = json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 class RecallAdapter(MemoryAdapter):
@@ -104,8 +122,150 @@ class RecallAdapter(MemoryAdapter):
         )
         return prompt
 
+    def _remote_rows(self, namespace: str) -> int:
+        """How many chunk rows the remote tenant actually holds.
+
+        ⛔ Counted with an EXPLICIT `where tenant_id = ...` rather than by setting the
+        `recall.tenant_id` GUC and trusting row-level security, which is what `_rows_for_tenant`
+        does. Measured 2026-08-29: the benchmark role bypasses RLS (the server warns about exactly
+        this at startup), so the policy never applies and the count silently returns EVERY
+        tenant's rows. It read 1544 for a tenant holding 683, because 683 + 861 is 1544, and that
+        number was printed into a run log as the corpus size.
+
+        Reported as provenance, so it has to be the real number rather than a plausible one.
+        """
+
+
+        sql = (
+            "select count(*) from recall_chunks_v1 where tenant_id = "
+            f"{self._sql_literal(namespace)}"
+        )
+        remote = (
+            f"psql {shlex.quote(str(self.config['dsn']))} -tAc {shlex.quote(sql)}"
+        )
+        result = self._shell(remote, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"could not count rows for tenant {namespace!r}: {result.stderr.strip()[-300:]}"
+            )
+        return int(result.stdout.strip() or 0)
+
+    def _shell(self, command: str, *, timeout: float) -> subprocess.CompletedProcess[str]:
+        """Run one POSIX shell command ON THE HOST THAT SERVES THE CORPUS.
+
+        Two transports reach the same host and must produce the same answer:
+
+        * ``ssh``  the harness runs elsewhere and the command is carried to VPS2.
+        * ``host`` the harness runs ON VPS2, so the command is handed to a local shell.
+
+        The command string is IDENTICAL either way, which is the point: the verification, the row
+        count and the server launch are then provably the same work, and moving the harness onto
+        the serving host cannot quietly change what is checked. It also removes the co-location
+        asymmetry between the two products, since under ``host`` neither pays a network hop.
+        """
+
+        import subprocess
+
+        if str(self.config.get("transport", "local")) == "host":
+            argv = ["/bin/bash", "-lc", command]
+        else:
+            argv = ["ssh", "-o", "BatchMode=yes", str(self.config["ssh_host"]), command]
+        return subprocess.run(
+            argv, capture_output=True, text=True, timeout=timeout, check=False
+        )
+
+    @staticmethod
+    def _sql_literal(value: str) -> str:
+        """A single-quoted SQL literal. Tenant names are ours, but this is a query built by
+        concatenation and an unescaped quote would be a syntax error at best."""
+
+        escaped = value.replace("'", "''")
+        return f"'{escaped}'"
+
+
+    def _verify_remote_generation(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
+        """Confirm the remote tenant serves a promoted, certified generation of THIS corpus.
+
+        The corpus is built and calibrated by `scripts/prepare_recall_corpora.py`, deliberately as
+        a separate step rather than here. Two reasons, and the second is the one that matters:
+
+        1. A generation build embeds the whole corpus and a calibration fits a threshold to it.
+           Doing that inside a run means a remote failure kills the run mid-flight, which is how
+           `abstention-002` lost 86 sessions to an unrelated interruption.
+        2. The corpus must be FROZEN across arms and cells. A step that can build is a step that
+           can silently rebuild, and a rebuilt corpus mid-run is a different experiment.
+
+        So this asserts rather than acts, and what it asserts is the thing that would otherwise
+        fail silently: that an ACTIVE generation exists, that its calibration is CERTIFIED, and
+        that the corpus fingerprint it was built from equals the manifest this run is about to
+        serve. A tenant carrying last week's corpus answers every query happily.
+        """
+
+
+        expected = corpus_fingerprint(corpus)
+        remote = (
+            f"cd {shlex.quote(str(self.config['remote_root']))} && "
+            f"set -a && . {shlex.quote(str(self.config['remote_env_file']))} && set +a && "
+            f"export RECALL_DSN={shlex.quote(str(self.config['dsn']))} "
+            f"RECALL_EMBEDDER={shlex.quote(str(self.config['embedder']))} "
+            f"RECALL_ENV={shlex.quote(str(self.config['environment']))} && "
+            f"{shlex.quote(str(self.config['remote_python']))} -m recall.cli "
+            f"--tenant {shlex.quote(namespace)} generation list"
+        )
+        result = self._shell(remote, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"cannot list generations for tenant {namespace!r} on "
+                f"{self.config['ssh_host']}: {result.stderr.strip()[-500:]}"
+            )
+        active = [line for line in result.stdout.splitlines() if " active " in f" {line} "]
+        if not active:
+            raise RuntimeError(
+                f"tenant {namespace!r} has no ACTIVE generation on {self.config['ssh_host']}. "
+                f"Run scripts/prepare_recall_corpora.py before the suite: a tenant with no active "
+                f"generation raises NoActiveGeneration under production rather than refusing "
+                f"politely, and one carrying an older corpus would answer every query happily."
+            )
+        line = active[0]
+
+        # The corpus the remote build actually used, recorded beside the tenant by
+        # `scripts/prepare_recall_corpora.py`. Compared rather than trusted: a tenant carrying an
+        # older corpus answers every query happily and nothing in a session record would say so.
+        stamp = self._shell(
+            f"cat {shlex.quote(str(self.config['remote_root']))}/{shlex.quote(namespace)}.corpus",
+            timeout=120,
+        )
+        recorded = stamp.stdout.strip()
+        if stamp.returncode != 0 or not recorded:
+            raise RuntimeError(
+                f"tenant {namespace!r} has an active generation but no corpus stamp on "
+                f"{self.config['ssh_host']}, so nothing proves WHICH corpus it was built from. "
+                f"Rebuild with scripts/prepare_recall_corpora.py, which writes the stamp."
+            )
+        if recorded != expected:
+            raise RuntimeError(
+                f"tenant {namespace!r} serves a generation built from a DIFFERENT corpus than this "
+                f"run assembled.\n  active:   {line.strip()}\n  recorded: {recorded}\n"
+                f"  expected: {expected}\nRebuild with scripts/prepare_recall_corpora.py."
+            )
+        stored = self._remote_rows(namespace)
+        return IngestReport(
+            arm=self.name,
+            namespace=namespace,
+            sessions_offered=len(corpus.sessions),
+            items_stored=stored,
+            wall_time_ms=0.0,
+            notes=(
+                f"verified remote generation {line.strip()[:80]}",
+                f"corpus fingerprint {expected}",
+            ),
+        )
+
+
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
+        if str(self.config.get("transport", "local")) in ("ssh", "host"):
+            return self._verify_remote_generation(corpus, namespace)
         staged = self.staging_root / namespace / "feed"
         # Fresh render: leftovers from an earlier feed layout must not survive into the
         # index (and the subsequent re-index prunes what is no longer on disk).
@@ -204,6 +364,80 @@ class RecallAdapter(MemoryAdapter):
             row = cursor.fetchone()
         return int(row[0]) if row else 0
 
+    def _remote_command(self, namespace: str) -> str:
+        """The single shell command SSH runs on the remote host.
+
+        ⛔ The environment is INLINED here rather than passed through the MCP config's `env` block,
+        because SSH forwards no arbitrary environment: an `env` block would be applied to the local
+        `ssh` process and never reach the server. This is the shape recall's own production servers
+        are deployed with.
+
+        `RECALL_TRUST_MODE` is UNSET rather than set to a value. Strict is the shipped default and
+        is expressed by absence; setting it to any string is how a corpus ends up served relaxed
+        while the config claims otherwise.
+        """
+
+        exports = {
+            "RECALL_DSN": str(self.config["dsn"]),
+            "RECALL_EMBEDDER": str(self.config["embedder"]),
+            "RECALL_TENANT": namespace,
+            "RECALL_ENV": str(self.config["environment"]),
+        }
+        assignments = " ".join(f"{k}={shlex.quote(v)}" for k, v in exports.items())
+        return (
+            f"cd {shlex.quote(str(self.config['remote_root']))} && "
+            f"set -a && . {shlex.quote(str(self.config['remote_env_file']))} && set +a && "
+            f"export {assignments} && unset RECALL_TRUST_MODE && "
+            f"exec {shlex.quote(str(self.config['remote_python']))} -m recall_mcp.server"
+        )
+
+    def _remote_server_argv(self, namespace: str) -> tuple[str, list[str]]:
+        """`(command, args)` for an SSH-transported server."""
+
+        if str(self.config.get("transport", "local")) == "host":
+            # Same command string, handed to a shell instead of to ssh. `-l` so the login profile
+            # is read, which is where the serving host's own environment lives.
+            return "/bin/bash", ["-lc", self._remote_command(namespace)]
+        return "ssh", [
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ServerAliveInterval=30",
+            str(self.config["ssh_host"]),
+            self._remote_command(namespace),
+        ]
+
+
+    def _server_command(self) -> str:
+        """The interpreter that starts the MCP server, resolved rather than passed through.
+
+        `config.frozen.json` declares ``"command": "python"``. Taken literally that is a PATH
+        lookup performed inside Claude Code's own subprocess, so the server runs whichever
+        interpreter that environment happens to resolve, while :meth:`ingest` runs
+        ``sys.executable``. The two are the same only by luck.
+
+        ⛔ They stopped being the same the moment this benchmark pinned its recall version, and the
+        failure was silent in the direction that matters. Measured 2026-08-29, mid-run: the ingest
+        wrote through the pinned 0.10.0, which applied schema migration 0015, and the server came
+        up on a PATH python holding an editable install of a development worktree, which refused
+        the corpus outright::
+
+            SchemaTooNew: table 'chunks' has unknown migration(s) ['0015']; upgrade the application
+
+        A dead stdio server is not an error in the transcript. It is a session with no memory
+        tools, which records as ``memory_call_count = 0`` and reads exactly like an agent that
+        chose not to search. Fourteen sessions ran that way before the search rate gave it away.
+
+        So the declaration is honoured as INTENT, "start the server with a Python interpreter", and
+        resolved to the interpreter the harness itself is running under, which is the one the pin
+        governs. A config naming a real executable is passed through untouched, because that is a
+        deliberate choice about which binary to run rather than a placeholder.
+        """
+
+        command = str(self.config["command"])
+        return sys.executable if command in ("python", "python3") else command
+
+
     def build(
         self, session_dir: Path, namespace: str, *, prompt_path: Path | None = None
     ) -> ArmSpec:
@@ -214,12 +448,24 @@ class RecallAdapter(MemoryAdapter):
         # A file path, not inline JSON: the config may carry credentials, and an inline
         # --mcp-config would copy them into every recorded command line.
         mcp_config_path = session_dir / "recall.mcp.json"
+        if str(self.config.get("transport", "local")) in ("ssh", "host"):
+            command, args = self._remote_server_argv(namespace)
+            # Only what the LOCAL ssh client needs. The server's own environment travels inside
+            # the remote command, because ssh forwards none of this.
+            env = {
+                key: value
+                for key in ("PATH", "SystemRoot", "USERPROFILE", "HOME", "APPDATA")
+                if (value := os.environ.get(key))
+            }
+        else:
+            command, args = self._server_command(), list(self.config["args"])
+            env = self._server_env(namespace)
         mcp_config = {
             "mcpServers": {
                 str(self.config["server_name"]): {
-                    "command": str(self.config["command"]),
-                    "args": list(self.config["args"]),
-                    "env": self._server_env(namespace),
+                    "command": command,
+                    "args": args,
+                    "env": env,
                 }
             }
         }

@@ -28,3 +28,8 @@ results/*.log
 
 # Assembled condition corpora: reproducible from the base corpus, plants.json and a seed.
 corpus/conditions/
+.venv-bench/
+results/logs/
+
+# Produced by `pip install -e .`, which is now possible. CI asserts a clean tree.
+*.egg-info/

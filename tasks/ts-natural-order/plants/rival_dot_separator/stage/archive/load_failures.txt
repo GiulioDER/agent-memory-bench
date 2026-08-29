@@ -1,0 +1,5 @@
+report-1.txt    REJECTED  expected 3 components, found 2
+report-2.txt    REJECTED  expected 3 components, found 2
+report-3.txt    REJECTED  expected 3 components, found 2
+
+Every report rejected for the same reason. None has ever loaded.

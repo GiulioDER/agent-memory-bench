@@ -1,0 +1,5 @@
+id,counterparty,reference,amount
+1,Acme,STL-70431,1240.50
+2,Baker,STL-70432,318.00
+3,Corvid,STL-70433,27911.75
+TOTAL,,,29470.25
