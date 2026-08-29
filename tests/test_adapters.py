@@ -144,9 +144,17 @@ def test_the_mcp_server_runs_the_pinned_build_whatever_the_transport(tmp_path, b
     spec = adapter.build(tmp_path / "session", "ns")
     server = json.loads(Path(spec.mcp_config).read_text(encoding="utf-8"))["mcpServers"]["recall"]
 
-    if str(adapter.config.get("transport", "local")) == "ssh":
-        assert server["command"] == "ssh"
-        assert server["args"][-2] == str(adapter.config["ssh_host"])
+    transport = str(adapter.config.get("transport", "local"))
+    if transport in ("ssh", "host"):
+        if transport == "ssh":
+            assert server["command"] == "ssh"
+            assert server["args"][-2] == str(adapter.config["ssh_host"])
+        else:
+            # `host` means the harness runs ON the serving host, so the same command string is
+            # handed to a shell rather than to ssh. The invariant this test exists for is
+            # untouched: the PINNED interpreter must still be named in it.
+            assert server["command"] == "/bin/bash"
+            assert server["args"][0] == "-lc"
         remote = server["args"][-1]
         assert str(adapter.config["remote_python"]) in remote, (
             "the remote command must name the PINNED interpreter; a bare `python` would resolve "

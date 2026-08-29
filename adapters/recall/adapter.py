@@ -135,7 +135,6 @@ class RecallAdapter(MemoryAdapter):
         Reported as provenance, so it has to be the real number rather than a plausible one.
         """
 
-        import subprocess
 
         sql = (
             "select count(*) from recall_chunks_v1 where tenant_id = "
@@ -144,18 +143,36 @@ class RecallAdapter(MemoryAdapter):
         remote = (
             f"psql {shlex.quote(str(self.config['dsn']))} -tAc {shlex.quote(sql)}"
         )
-        result = subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", str(self.config["ssh_host"]), remote],
-            capture_output=True,
-            text=True,
-            timeout=300,
-            check=False,
-        )
+        result = self._shell(remote, timeout=300)
         if result.returncode != 0:
             raise RuntimeError(
                 f"could not count rows for tenant {namespace!r}: {result.stderr.strip()[-300:]}"
             )
         return int(result.stdout.strip() or 0)
+
+    def _shell(self, command: str, *, timeout: float) -> subprocess.CompletedProcess[str]:
+        """Run one POSIX shell command ON THE HOST THAT SERVES THE CORPUS.
+
+        Two transports reach the same host and must produce the same answer:
+
+        * ``ssh``  the harness runs elsewhere and the command is carried to VPS2.
+        * ``host`` the harness runs ON VPS2, so the command is handed to a local shell.
+
+        The command string is IDENTICAL either way, which is the point: the verification, the row
+        count and the server launch are then provably the same work, and moving the harness onto
+        the serving host cannot quietly change what is checked. It also removes the co-location
+        asymmetry between the two products, since under ``host`` neither pays a network hop.
+        """
+
+        import subprocess
+
+        if str(self.config.get("transport", "local")) == "host":
+            argv = ["/bin/bash", "-lc", command]
+        else:
+            argv = ["ssh", "-o", "BatchMode=yes", str(self.config["ssh_host"]), command]
+        return subprocess.run(
+            argv, capture_output=True, text=True, timeout=timeout, check=False
+        )
 
     @staticmethod
     def _sql_literal(value: str) -> str:
@@ -184,7 +201,6 @@ class RecallAdapter(MemoryAdapter):
         serve. A tenant carrying last week's corpus answers every query happily.
         """
 
-        import subprocess
 
         expected = corpus_fingerprint(corpus)
         remote = (
@@ -196,13 +212,7 @@ class RecallAdapter(MemoryAdapter):
             f"{shlex.quote(str(self.config['remote_python']))} -m recall.cli "
             f"--tenant {shlex.quote(namespace)} generation list"
         )
-        result = subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", str(self.config["ssh_host"]), remote],
-            capture_output=True,
-            text=True,
-            timeout=300,
-            check=False,
-        )
+        result = self._shell(remote, timeout=300)
         if result.returncode != 0:
             raise RuntimeError(
                 f"cannot list generations for tenant {namespace!r} on "
@@ -221,18 +231,9 @@ class RecallAdapter(MemoryAdapter):
         # The corpus the remote build actually used, recorded beside the tenant by
         # `scripts/prepare_recall_corpora.py`. Compared rather than trusted: a tenant carrying an
         # older corpus answers every query happily and nothing in a session record would say so.
-        stamp = subprocess.run(
-            [
-                "ssh",
-                "-o",
-                "BatchMode=yes",
-                str(self.config["ssh_host"]),
-                f"cat {shlex.quote(str(self.config['remote_root']))}/{shlex.quote(namespace)}.corpus",
-            ],
-            capture_output=True,
-            text=True,
+        stamp = self._shell(
+            f"cat {shlex.quote(str(self.config['remote_root']))}/{shlex.quote(namespace)}.corpus",
             timeout=120,
-            check=False,
         )
         recorded = stamp.stdout.strip()
         if stamp.returncode != 0 or not recorded:
@@ -263,7 +264,7 @@ class RecallAdapter(MemoryAdapter):
 
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
-        if str(self.config.get("transport", "local")) == "ssh":
+        if str(self.config.get("transport", "local")) in ("ssh", "host"):
             return self._verify_remote_generation(corpus, namespace)
         staged = self.staging_root / namespace / "feed"
         # Fresh render: leftovers from an earlier feed layout must not survive into the
@@ -393,6 +394,10 @@ class RecallAdapter(MemoryAdapter):
     def _remote_server_argv(self, namespace: str) -> tuple[str, list[str]]:
         """`(command, args)` for an SSH-transported server."""
 
+        if str(self.config.get("transport", "local")) == "host":
+            # Same command string, handed to a shell instead of to ssh. `-l` so the login profile
+            # is read, which is where the serving host's own environment lives.
+            return "/bin/bash", ["-lc", self._remote_command(namespace)]
         return "ssh", [
             "-o",
             "BatchMode=yes",
@@ -443,7 +448,7 @@ class RecallAdapter(MemoryAdapter):
         # A file path, not inline JSON: the config may carry credentials, and an inline
         # --mcp-config would copy them into every recorded command line.
         mcp_config_path = session_dir / "recall.mcp.json"
-        if str(self.config.get("transport", "local")) == "ssh":
+        if str(self.config.get("transport", "local")) in ("ssh", "host"):
             command, args = self._remote_server_argv(namespace)
             # Only what the LOCAL ssh client needs. The server's own environment travels inside
             # the remote command, because ssh forwards none of this.
