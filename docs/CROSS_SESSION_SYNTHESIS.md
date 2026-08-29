@@ -104,9 +104,12 @@ strayed into another shard's.
   protocol or under one that mentions recency **to every arm** is an open decision, recorded in
   [`preregistration/011`](../preregistration/011-cross-session-synthesis.md) rather than settled
   quietly in a task file.
-- **It has not been recorded or run.** The stagings are committed; the sessions are not. Until
-  `corpus/sessions/xs-*/` exists, `scripts/audit_corpus.py` prints a note per unrecorded shard and
-  these tasks measure nothing.
+- **It has not been run, and the recordings are validation rather than corpus.** The seven shard
+  sessions were recorded on 2026-08-29 (`preregistration/011`, recording log) and the corpus audit
+  is clean across them, so the shard-locus assertions have been exercised against real transcripts
+  for the first time. They were recorded on the Windows workstation, which `corpus/README.md`
+  classifies as pipeline validation, and `corpus/manifest.json` has not been rebuilt, so no arm
+  ingests them. These tasks still measure nothing.
 
 ## Running them
 
