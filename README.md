@@ -50,7 +50,7 @@ read.
 because a reader who does not know them will over-read the results.
 
 1. **Only the READ path is measured. Half of every product under test is unmeasured, and it is the
-   half that extraction and consolidation products sell.** `corpus/` is 125 pre-authored
+   half that extraction and consolidation products sell.** `corpus/` is 195 pre-authored
    transcripts, bulk ingested once before the grid and never written to again. The agent never
    forms a memory from its own work, so nothing here says whether a product captures what an agent
    learns, or whether what it captured survives to the next session.
@@ -71,8 +71,8 @@ because a reader who does not know them will over-read the results.
    session that restates none of it):
    [`docs/CROSS_SESSION_SYNTHESIS.md`](docs/CROSS_SESSION_SYNTHESIS.md) and
    [`preregistration/011`](preregistration/011-cross-session-synthesis.md). Their sessions were
-   recorded on 2026-08-29 as pipeline validation rather than as run corpus, no arm ingests them
-   yet, and the suite has not run, so this limit is answered structurally and not yet
+   recorded on 2026-08-29 as pipeline validation rather than as run corpus and are now in the
+   feed, but the suite has not run, so this limit is answered structurally and not yet
    empirically.
 3. **`claude_md` is the fixture's orientation README, not a curated conventions file.** It is a
    floor with a document attached, not the realistic incumbent, and on `ts-legacy-hash` it actively

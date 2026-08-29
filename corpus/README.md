@@ -28,7 +28,10 @@ Three rules, enforced by tooling:
 
 `sessions/<task_id>/` holds precursors; `distractors/` holds mundane sessions establishing
 no governing fact, recorded the same way (`scripts/record_distractor.py`), targeting a
-distractor-to-signal ratio of at least 4:1.
+distractor-to-signal ratio of at least 4:1. Measured 2026-08-29 after the d100 to d156 batch:
+**39 signal sessions, 156 distractors, 4.00:1**, all 195 listed in `manifest.json`. A signal
+session that is on disk and NOT in the manifest is invisible to every arm and makes its task
+unwinnable by retrieval; six tasks sat that way until that date.
 
 Because content is verbatim, tool results carry the recording environment's paths and
 usernames; redacting them afterwards would break the verbatim rule, so the fix is
