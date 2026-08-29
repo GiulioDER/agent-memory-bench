@@ -1,0 +1,5 @@
+2026-06-02T02:31:10Z lease.grant queue=alpha worker=w-4 ttl=120
+2026-06-02T02:32:40Z lease.renew queue=alpha worker=w-4 ok=true
+2026-06-02T02:34:10Z lease.renew queue=alpha worker=w-4 ok=true
+2026-06-02T02:36:47Z lease.renew queue=alpha worker=w-4 ok=false reason=expired
+2026-06-02T02:36:47Z lease.grant queue=alpha worker=w-9 ttl=120

@@ -5,6 +5,12 @@
 window.AMB_LEADERBOARD = {
   "updated": "2026-08-29",
   "baseline": "claude_md",
+  "scope": {
+    "writePathMeasured": false,
+    "title": "Retrieval over a bulk-ingested corpus",
+    "qualification": "The write path is not measured. Every arm was handed the same 125 pre-authored transcripts before the grid and never wrote to its own store, so this ranks retrieval, not memory formation, and it gives no credit to extraction or consolidation at write time.",
+    "longitudinalRun": null
+  },
   "run": null,
   "arms": [
     {

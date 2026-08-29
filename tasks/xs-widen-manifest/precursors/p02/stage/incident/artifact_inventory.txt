@@ -1,0 +1,10 @@
+what we hand to partners, 2026-07
+
+  artifact              produced by                 manifest today
+  nightly export        exporter (cron, 02:00)      the May format
+  release bundle        build host, per release     whatever the old build script wrote
+  sample dataset        data team, ad hoc           none
+  incident extracts     support, on request         none
+
+Two of the four ship no manifest at all. Only one of them ships the format the May decision
+wrote up, and nobody wrote down whether that decision was meant to cover the rest.

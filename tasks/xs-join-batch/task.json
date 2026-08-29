@@ -1,0 +1,41 @@
+{
+  "task_id": "xs-join-batch",
+  "kind": "primary",
+  "prompt": "Write push.py in the repository root exposing push(records, send). records is a list of dicts in the shape of outbox.jsonl; send is a callable that hands one list of records to the partner, exactly like client.send. Every record must reach the partner exactly once. Nothing may run at import time, and the signature push(records, send) must not change.",
+  "fact_terms": [
+    "batches of exactly 25",
+    "more than 25 in one call",
+    "the atlas loader silently truncates",
+    "oldest recorded_at first",
+    "ascending recorded_at inside every request",
+    "pt-118 overwrites out-of-order arrivals"
+  ],
+  "memory_bundle_id": "bundle_xs-join-batch",
+  "synthesis": {
+    "shape": "join",
+    "why": "Two halves of one rule, recorded months apart under two names for one partner. The fixture supplies the alias (partner.ini names atlas and pt-118); memory supplies both rules, and neither session states the other's half.",
+    "shards": [
+      {
+        "precursor": "p01",
+        "session_date": "2026-05-19",
+        "role": "batch size, recorded against the partner's product name",
+        "terms": [
+          "batches of exactly 25",
+          "more than 25 in one call",
+          "the atlas loader silently truncates"
+        ]
+      },
+      {
+        "precursor": "p02",
+        "session_date": "2026-07-08",
+        "role": "ordering, recorded against the same partner's code",
+        "terms": [
+          "oldest recorded_at first",
+          "ascending recorded_at inside every request",
+          "pt-118 overwrites out-of-order arrivals"
+        ]
+      }
+    ],
+    "insufficient_references": ["partial_p01", "partial_p02"]
+  }
+}

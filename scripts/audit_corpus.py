@@ -12,6 +12,19 @@ Four assertions, per task that declares ``fact_terms``:
 4. **Distinctness**: no two tasks' fact-term vocabularies overlap enough to be one convention wearing
    two names. Reported, not enforced; see below.
 
+And, for a task whose fact is DISTRIBUTED across sessions (``synthesis`` in ``task.json``), one more:
+
+5. **Shard locus**: each shard's terms appear in the session that shard names, and a session does not
+   state another shard's share. For ``join`` and ``widen`` that holds in both directions: neither
+   half may state the other, or one retrieved document answers the task and the second session is
+   decoration. For ``evolve`` it holds forwards only: an EARLIER session may not state a LATER
+   revision, since it cannot know it, while a later session is free to refer back to the value it
+   supersedes, which is how a real decision gets written down.
+
+   The check is what keeps "no single session suffices" a fact rather than an intention. A recording
+   is a live agent run, so a session that wanders into the other half is a normal outcome; the
+   response is to re-stage and re-record, never to edit the transcript.
+
 ## What changed on 2026-08-28, and why a green run before that date proved less than it looked
 
 Three defects, all of the same shape: the test saw the bytes rather than what a reader sees.
@@ -122,6 +135,55 @@ def content_words(terms: tuple[str, ...]) -> set[str]:
     return out
 
 
+def audit_shards(task, sessions_root: Path, corpus_text: dict[Path, str]) -> tuple[list[str], int]:
+    """Check one distributed fact's shards against the sessions that are supposed to carry them.
+
+    Returns the violations and the number of shard sessions that were actually on disk. An
+    unrecorded shard is reported as a note by the caller rather than as a violation: the stagings
+    land before the recordings, and a task that cannot be recorded yet is not a leak.
+    """
+
+    violations: list[str] = []
+    recorded = 0
+    shards = task.synthesis.shards
+    texts: dict[str, str] = {}
+    for shard in shards:
+        path = sessions_root / task.task_id / f"{shard.precursor}.jsonl"
+        if not path.is_file():
+            continue
+        recorded += 1
+        cached = corpus_text.get(path)
+        texts[shard.precursor] = readable_text(path) if cached is None else cached
+
+    for shard in shards:
+        text = texts.get(shard.precursor)
+        if text is None:
+            continue
+        for term in shard.terms:
+            if normalise(term) not in text:
+                violations.append(
+                    f"{task.task_id}: shard {shard.precursor} does not state its own term {term!r}"
+                )
+
+    forward_only = task.synthesis.shape == "evolve"
+    for index, shard in enumerate(shards):
+        text = texts.get(shard.precursor)
+        if text is None:
+            continue
+        for other_index, other in enumerate(shards):
+            if other is shard:
+                continue
+            if forward_only and other_index < index:
+                continue  # a later session may refer back to what it supersedes
+            for term in other.terms:
+                if normalise(term) in text:
+                    violations.append(
+                        f"{task.task_id}: session {shard.precursor} states {other.precursor}'s "
+                        f"term {term!r}; one session then answers the task alone"
+                    )
+    return violations, recorded
+
+
 def main() -> int:
     sessions_root = REPO / "corpus" / "sessions"
     # EVERY session directory, not only the ones whose name is a task id. corpus/sessions/smoke/
@@ -165,6 +227,15 @@ def main() -> int:
                     violations.append(f"{task.task_id}: term {term!r} leaked into {where}")
         if not own_sessions:
             print(f"  note: {task.task_id} has no recorded sessions yet; presence unchecked")
+        if task.synthesis is not None:
+            shard_violations, recorded = audit_shards(task, sessions_root, corpus_text)
+            violations.extend(shard_violations)
+            expected = len(task.synthesis.shards)
+            if recorded < expected:
+                print(
+                    f"  note: {task.task_id} ({task.synthesis.shape}) has {recorded} of "
+                    f"{expected} shard session(s) recorded; shard locus unchecked for the rest"
+                )
         audited += 1
 
     vocab = {task.task_id: content_words(task.fact_terms) for task in tasks}
