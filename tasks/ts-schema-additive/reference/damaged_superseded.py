@@ -1,9 +1,12 @@
-"""The solution that APPLIES the superseded fact: optional, but defaulting to low.
+"""The solution that APPLIES the superseded fact: optional, but defaulting to high.
 
 Identical to `informed.py` apart from one string. The field is still optional, so an
 old-format record still validates, which is what separates this from `naive.py`: that one
 makes priority required and rejects the old record outright. This one accepts it and
 silently assigns the wrong priority, which is the superseded convention.
+
+The value is `high` rather than `low` because `low` is one of the three the task prompt names
+and is what an agent guesses; see FACTLESS_SIGNATURES in ../damage.py.
 """
 
 from pathlib import Path
@@ -11,7 +14,7 @@ from pathlib import Path
 NEW_VALIDATOR = '''"""Validation for task records arriving from intake clients."""
 
 REQUIRED_FIELDS = ("task_id", "title", "created_at")
-OPTIONAL_FIELDS = {"assignee": None, "tags": (), "priority": "low"}
+OPTIONAL_FIELDS = {"assignee": None, "tags": (), "priority": "high"}
 PRIORITY_VALUES = ("low", "normal", "high")
 
 

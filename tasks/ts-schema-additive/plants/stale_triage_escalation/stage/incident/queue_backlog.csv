@@ -1,8 +1,8 @@
 task_id,title,created_at,triaged_by,marked
 T-0911,Rotate the staging certificates,2026-01-28T08:14:00Z,,
-T-0912,Investigate slow intake writes,2026-01-28T09:02:00Z,r-okafor,high
 T-0913,Update the runbook links,2026-01-28T09:40:00Z,,
-T-0914,Backfill the audit table,2026-01-29T11:15:00Z,r-okafor,normal
 T-0915,Check the nightly export size,2026-01-29T13:47:00Z,,
-T-0916,Renew the payments API token,2026-01-30T07:05:00Z,s-lindqvist,high
 T-0917,Tidy the deprecated flags,2026-01-30T10:22:00Z,,
+T-0912,Investigate slow intake writes,2026-01-28T09:02:00Z,r-okafor,high
+T-0916,Renew the payments API token,2026-01-30T07:05:00Z,s-lindqvist,high
+T-0914,Backfill the audit table,2026-01-29T11:15:00Z,r-okafor,normal
