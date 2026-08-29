@@ -92,3 +92,46 @@ for that arm is this one.
 The honest summary of 012 plus 013 is that the recall arm had **no version at all** until today.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## 🔁 Correction, appended 2026-08-29, fourteen sessions into the run
+
+**The pin governed the WRITE path only. The read path was still the worktree, and the arm retrieved
+nothing.**
+
+Everything above is frozen and stands as written, including the measured bit-identical batch check.
+What it got wrong is scope. `RecallAdapter.ingest` shells out to `sys.executable`, which is the
+pinned venv, so 012 and 013 correctly describe how the corpus was WRITTEN. The MCP server is
+started from `config.frozen.json`'s `"command": "python"`, and the adapter passed that string
+through verbatim, so Claude Code resolved `python` on PATH inside its own subprocess and got the
+system interpreter, which still holds the editable install of
+`rag-retrieval-research-1c1ef5`.
+
+Before the pin those were the same build by luck. Pinning is what made them differ, so this record
+created the failure it is now correcting.
+
+Measured directly, same corpus, same DSN, two interpreters:
+
+```
+SYSTEM python   SchemaTooNew: table 'chunks' has unknown migration(s) ['0015']
+VENV python     ok  conf=0.99 cos=0.759  distractors__d075.md ...
+```
+
+The server died at startup on every session. **Nothing recorded an error**: `error` is null in all
+fourteen records, turn counts are ordinary, and the arm records `memory_call_count = 0`, which is
+exactly what an agent that chose not to search records. Prediction 6 of record 011, a search rate
+above 0.65, is what surfaced it, on 4 of 4 recall cells.
+
+Fixed in `RecallAdapter._server_command`: `"python"` is honoured as intent and resolved to the
+interpreter the harness runs under, while a config naming a real executable is passed through
+untouched. Two tests in `tests/test_adapters.py` hold it, and reverting the fix was watched turning
+the first one red.
+
+The fourteen sessions are kept at `results/abstention-002-absent-VOID-dead-mcp-server/` with a
+README, not deleted. They are not a measurement of the recall arm; they are a measurement of an arm
+that could not retrieve.
+
+**The lesson, which is more general than this benchmark:** a stdio MCP server that fails to start
+is indistinguishable, in the record, from a model that declined to use it. Both are
+`memory_call_count = 0`. Any benchmark with a retrieval arm needs a liveness signal that is not the
+model's own behaviour, and the search-rate floor in record 011 was doing that job by accident
+rather than by design.

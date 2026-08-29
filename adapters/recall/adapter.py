@@ -204,6 +204,36 @@ class RecallAdapter(MemoryAdapter):
             row = cursor.fetchone()
         return int(row[0]) if row else 0
 
+    def _server_command(self) -> str:
+        """The interpreter that starts the MCP server, resolved rather than passed through.
+
+        `config.frozen.json` declares ``"command": "python"``. Taken literally that is a PATH
+        lookup performed inside Claude Code's own subprocess, so the server runs whichever
+        interpreter that environment happens to resolve, while :meth:`ingest` runs
+        ``sys.executable``. The two are the same only by luck.
+
+        ⛔ They stopped being the same the moment this benchmark pinned its recall version, and the
+        failure was silent in the direction that matters. Measured 2026-08-29, mid-run: the ingest
+        wrote through the pinned 0.10.0, which applied schema migration 0015, and the server came
+        up on a PATH python holding an editable install of a development worktree, which refused
+        the corpus outright::
+
+            SchemaTooNew: table 'chunks' has unknown migration(s) ['0015']; upgrade the application
+
+        A dead stdio server is not an error in the transcript. It is a session with no memory
+        tools, which records as ``memory_call_count = 0`` and reads exactly like an agent that
+        chose not to search. Fourteen sessions ran that way before the search rate gave it away.
+
+        So the declaration is honoured as INTENT, "start the server with a Python interpreter", and
+        resolved to the interpreter the harness itself is running under, which is the one the pin
+        governs. A config naming a real executable is passed through untouched, because that is a
+        deliberate choice about which binary to run rather than a placeholder.
+        """
+
+        command = str(self.config["command"])
+        return sys.executable if command in ("python", "python3") else command
+
+
     def build(
         self, session_dir: Path, namespace: str, *, prompt_path: Path | None = None
     ) -> ArmSpec:
@@ -217,7 +247,7 @@ class RecallAdapter(MemoryAdapter):
         mcp_config = {
             "mcpServers": {
                 str(self.config["server_name"]): {
-                    "command": str(self.config["command"]),
+                    "command": self._server_command(),
                     "args": list(self.config["args"]),
                     "env": self._server_env(namespace),
                 }
