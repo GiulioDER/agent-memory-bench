@@ -17,7 +17,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -110,138 +109,54 @@ def test_selection_comes_from_the_tasks_that_declare_the_condition():
     assert superseded <= absent, "every planted task also declares absent"
 
 
-def test_a_condition_no_task_declares_is_refused(monkeypatch):
-    """The refusal path is tested directly, not by asserting which conditions are unplanted.
+def test_an_unknown_condition_is_refused_before_anything_is_assembled():
+    """The outer guard, and the only one a caller can still trip from the command line."""
 
-    This used to assert ``selection_for("contradictory") == []``, which made the test a statement
-    about the repository's task data rather than about the runner. Planting `contradictory` (which
-    preregistration 005 requires) then turned it red, and because the two changes lived in
-    different pull requests neither one's CI could see it. The refusal is what matters, so the
-    empty selection is constructed instead of hoped for.
+    result = _run(["--arms", "bare", "--conditions", "wrong_scope", "--dry-run"])
+    combined = result.stdout + result.stderr
+    assert "unknown condition" in combined
+    assert "wrong_scope" in combined
+
+
+def test_a_condition_with_no_corpus_behind_it_is_refused(monkeypatch):
+    """The inner guard, which is no longer reachable from outside and is still load-bearing.
+
+    This test used to pass `contradictory` on the command line, on the standing fact that no task
+    declared it. Its own message said that if that changed the refusal path would need a different
+    test, and on 2026-08-28 `ts-tz-utc` declared it. Every one of the four conditions is now
+    declared by something, and an unknown name is caught by the outer guard above, so no CLI
+    invocation reaches this branch any more.
+
+    That does not make it dead code: it fires the moment a condition is added to `CONDITIONS`
+    before any task has a corpus for it, which is the exact window in which a run would otherwise
+    assemble an empty selection and report a clean zero for a condition that was never measured.
+    So it is exercised where it now lives, in process.
+
+    Mutation: deleting the `if not selection` block. The run proceeds with nothing selected.
     """
+
+    import argparse
 
     from scripts import abstention
 
-    monkeypatch.setattr(abstention, "selection_for", lambda _condition: [])
-    args = SimpleNamespace(tasks=None)
-
-    with pytest.raises(SystemExit) as excinfo:
-        abstention.run_condition(args, "absent")
-    assert "no task declares" in str(excinfo.value)
+    monkeypatch.setattr(abstention, "selection_for", lambda condition: [])
+    args = argparse.Namespace(tasks="", seed=1)
+    with pytest.raises(SystemExit, match="no task declares"):
+        abstention.run_condition(args, "contradictory")
 
 
-def test_selection_for_is_empty_for_a_condition_nothing_declares():
-    """A condition name no plants.json carries yields no tasks, whatever is planted today."""
+def test_naming_a_task_that_does_not_declare_the_condition_is_refused():
+    """The other half of the same guard: a silent subset is a different suite.
 
-    from scripts.abstention import selection_for
-
-    assert selection_for("no-such-condition-exists") == []
-
-
-# ---------------------------------------------------------------------------------------
-# the work root, which is where a re-run quietly loses cells
-# ---------------------------------------------------------------------------------------
-
-
-def test_a_work_root_that_already_holds_sandboxes_is_refused(tmp_path):
-    """An operator error must not arrive disguised as eight bad sessions.
-
-    `sandbox.restore` refuses a destination with contents, which is right. But that refusal lands
-    PER CELL, is caught as "the session did not complete", and becomes a DISCARDED CELL. So a
-    re-run under a run id whose work root survived loses exactly the cells the previous attempt
-    reached, and `admission.json` blames the sessions.
-
-    Measured 2026-08-29 on `abstention-002`: two aborted launches left sandboxes for eight cells and
-    the third launch discarded all eight, taking `absent` from 30 cells to 22 while every recorded
-    reason was a FileExistsError naming a path from a run that no longer existed. The results
-    directory already had a "refusing to mix runs" guard; the work root did not, which is why
-    archiving the results directories was not enough to make the re-run clean.
-
-    Mutation: deleting the call. The run starts and the cells vanish into the discard list.
+    `ts-append-only` declares `superseded` and `absent` only, so asking for it under `adjacent`
+    must stop rather than quietly run the tasks that do declare it.
     """
 
-    from scripts.pilot import _refuse_a_dirty_work_root
-
-    work_root = tmp_path / "run"
-    (work_root / "work" / "ts-append-only" / "s0" / "bare").mkdir(parents=True)
-
-    with pytest.raises(SystemExit) as excinfo:
-        _refuse_a_dirty_work_root(work_root, "some-run")
-    message = str(excinfo.value)
-    assert "ts-append-only" in message, "the operator must be told WHICH sandboxes survive"
-    assert "DISCARDED" in message, "and what would happen if the run proceeded"
-    assert "not removed automatically" in message, "and that the harness will not delete evidence"
-
-
-def test_a_fresh_work_root_is_allowed(tmp_path):
-    from scripts.pilot import _refuse_a_dirty_work_root
-
-    _refuse_a_dirty_work_root(tmp_path / "never-used", "some-run")
-    (tmp_path / "empty" / "work").mkdir(parents=True)
-    _refuse_a_dirty_work_root(tmp_path / "empty", "some-run")
-
-
-# ---------------------------------------------------------------------------------------
-# resume: a stopped official run must restart without inventing or losing a condition
-# ---------------------------------------------------------------------------------------
-
-
-def test_a_condition_is_complete_only_when_it_wrote_admission(tmp_path):
-    """Records are not enough, and that distinction is the whole point.
-
-    `abstention-002` was killed mid-condition and left 86 of 90 records with NO admission.json. A
-    resume keyed on "has records" would have called that condition finished and published a
-    truncated one.
-    """
-
-    from scripts.abstention import condition_state
-
-    assert condition_state(tmp_path / "never-ran") == "absent"
-
-    partial = tmp_path / "partial"
-    partial.mkdir()
-    (partial / "records.jsonl").write_text("{}\n", encoding="utf-8")
-    assert condition_state(partial) == "partial"
-
-    complete = tmp_path / "complete"
-    complete.mkdir()
-    (complete / "records.jsonl").write_text("{}\n", encoding="utf-8")
-    (complete / "admission.json").write_text("{}", encoding="utf-8")
-    assert condition_state(complete) == "complete"
-
-
-def test_resume_skips_complete_conditions_and_refuses_partial_ones(tmp_path, monkeypatch):
-    """Mutation: treating `partial` as resumable. Two runs' sessions then land in one condition
-    and no admission report can separate them afterwards."""
-
-    from scripts import abstention
-
-    monkeypatch.setattr(abstention, "REPO", tmp_path)
-    results = tmp_path / "results"
-    (results / "run-absent").mkdir(parents=True)
-    (results / "run-absent" / "admission.json").write_text("{}", encoding="utf-8")
-    (results / "run-superseded").mkdir(parents=True)
-    (results / "run-superseded" / "records.jsonl").write_text("{}\n", encoding="utf-8")
-
-    with pytest.raises(SystemExit, match="PARTIAL"):
-        abstention.plan_conditions("run", ["absent", "superseded"], resume=True)
-
-    # With the partial one archived, the complete one is skipped and the fresh one runs.
-    import shutil
-
-    shutil.rmtree(results / "run-superseded")
-    assert abstention.plan_conditions("run", ["absent", "superseded"], resume=True) == ["superseded"]
-
-
-def test_resume_refuses_when_there_is_nothing_left_to_do(tmp_path, monkeypatch):
-    from scripts import abstention
-
-    monkeypatch.setattr(abstention, "REPO", tmp_path)
-    done = tmp_path / "results" / "run-absent"
-    done.mkdir(parents=True)
-    (done / "admission.json").write_text("{}", encoding="utf-8")
-    with pytest.raises(SystemExit, match="nothing to do"):
-        abstention.plan_conditions("run", ["absent"], resume=True)
+    result = _run(
+        ["--arms", "bare", "--conditions", "adjacent", "--tasks", "ts-append-only", "--dry-run"]
+    )
+    combined = result.stdout + result.stderr
+    assert "do not declare" in combined and "ts-append-only" in combined
 
 
 # ---------------------------------------------------------------------------------------

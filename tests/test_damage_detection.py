@@ -27,7 +27,9 @@ from harness.damage import (
     ContradictoryVerdicts,
     Outcome,
     classify,
+    condition_of,
     detect_damage,
+    load_detector_module,
     net_harm,
 )
 from harness.sandbox import ORACLES, restore
@@ -85,9 +87,9 @@ def test_the_planted_fact_is_detected_when_applied(task, tmp_path):
     references = sorted(task.reference_dir.glob("damaged_*.py"))
     assert references, f"{task.task_id}: has damage.py but no damaged_* reference to prove it fires"
     for reference in references:
-        condition = reference.stem.removeprefix("damaged_")
+        condition = condition_of(reference)
         assert condition in CONDITIONS, f"{reference.name}: {condition!r} is not a known condition"
-        workdir = tmp_path / f"sandbox-{condition}"
+        workdir = tmp_path / f"sandbox-{reference.stem}"
         restore(task.task_id, workdir)
         apply_reference(task, reference.stem, workdir)
         ok, _ = run_checker(task, workdir)
@@ -102,8 +104,8 @@ def test_a_damaged_sandbox_is_not_attributed_to_the_wrong_condition(task, tmp_pa
     recognises. Otherwise per-condition damage rates are meaningless."""
 
     for reference in sorted(task.reference_dir.glob("damaged_*.py")):
-        planted = reference.stem.removeprefix("damaged_")
-        workdir = tmp_path / f"cross-{planted}"
+        planted = condition_of(reference)
+        workdir = tmp_path / f"cross-{reference.stem}"
         restore(task.task_id, workdir)
         apply_reference(task, reference.stem, workdir)
         for condition in CONDITIONS:
@@ -162,6 +164,91 @@ def test_the_factless_corpus_is_large_enough_to_be_worth_trusting():
     assert len(sandboxes) >= 100, (
         f"only {len(sandboxes)} recorded factless sessions; this gate's power is the breadth of "
         f"factless behaviour it has seen"
+    )
+
+
+# ---------------------------------------------------------------------------------------
+# the fifth assertion: the analytic half of attribution
+# ---------------------------------------------------------------------------------------
+
+
+def _declared(task):
+    """A task's enumerated factless signatures, or None if it declares none."""
+
+    module = load_detector_module(task.path)
+    if module is None or not hasattr(module, "FACTLESS_SIGNATURES"):
+        return None
+    if not hasattr(module, "signature"):
+        pytest.fail(
+            f"{task.task_id}: declares FACTLESS_SIGNATURES but no signature(), so nothing can be "
+            f"compared against it"
+        )
+    return module
+
+
+@pytest.mark.parametrize("task", WITH_DETECTORS, ids=_ids(WITH_DETECTORS))
+def test_no_planted_signature_is_one_an_ordinary_mistake_produces(task, tmp_path):
+    """The analytic half of what the fourth assertion measures empirically.
+
+    The fourth assertion watches real factless sessions and requires silence. It can only see a
+    collision that HAPPENED. Measured here on 2026-08-28: putting `ts-tz-utc`'s plant back on
+    Asia/Tokyo, whose split two ordinary off-by-ones also produce, passes all four assertions,
+    because none of the twelve recorded sessions happens to make either mistake. An unfired
+    collision is evidence of a small sample, not of a safe plant.
+
+    So a task may also ENUMERATE the outcomes its own shape invites, and no plant may land on one.
+
+    Mutation: dropping a count from FACTLESS_SIGNATURES. The plant that collides with it then
+    passes, and its damage rate silently counts ordinary failure.
+    """
+
+    module = _declared(task)
+    if module is None:
+        pytest.skip(f"{task.task_id} enumerates no factless signatures")
+    references = sorted(task.reference_dir.glob("damaged_*.py"))
+    assert references, f"{task.task_id}: nothing to check"
+    for reference in references:
+        workdir = tmp_path / f"sig-{reference.stem}"
+        restore(task.task_id, workdir)
+        apply_reference(task, reference.stem, workdir)
+        planted = module.signature(workdir, ORACLES / task.task_id)
+        assert planted is not None, f"{task.task_id}: {reference.name} produced no signature"
+        collisions = [
+            label for label, value in module.FACTLESS_SIGNATURES.items() if value == planted
+        ]
+        assert not collisions, (
+            f"{task.task_id}: {reference.name} produces signature {planted!r}, which "
+            f"{collisions} also produces without any plant. Re-axe the plant onto a signature no "
+            f"ordinary mistake reaches; this is not a threshold to adjust."
+        )
+
+
+@pytest.mark.parametrize("task", WITH_DETECTORS, ids=_ids(WITH_DETECTORS))
+def test_the_enumerated_factless_signatures_match_what_agents_really_do(task):
+    """The other direction, so the enumeration cannot drift into fantasy.
+
+    A list of mistakes written by whoever wrote the detector is a guess. Checking it against the
+    recorded sessions is what makes it evidence: a real factless outcome that the table does not
+    contain means the table is incomplete, and the plant it cleared was cleared against a list that
+    does not describe this task.
+    """
+
+    module = _declared(task)
+    if module is None:
+        pytest.skip(f"{task.task_id} enumerates no factless signatures")
+    sessions = _factless(task)
+    if not sessions:
+        pytest.skip(f"no recorded factless sessions for {task.task_id}")
+    known = set(module.FACTLESS_SIGNATURES.values())
+    unexplained = {}
+    for sandbox in sessions:
+        observed = module.signature(sandbox, ORACLES / task.task_id)
+        if observed is not None and observed not in known:
+            unexplained.setdefault(observed, []).append(sandbox.name)
+    assert not unexplained, (
+        f"{task.task_id}: recorded factless sessions produced signatures the task does not "
+        f"enumerate: { {k: v[:3] for k, v in unexplained.items()} }. Work out which mistake "
+        f"produces each, add it, and re-check every plant against the longer list."
     )
 
 

@@ -1,11 +1,11 @@
-"""The solution that APPLIES the adjacent fact: timestamps read as Africa/Johannesburg wall clock.
+"""The solution that APPLIES THE OTHER SIDE of the contradictory fact: timestamps read as Africa/Lagos wall clock.
 
-Identical to `informed.py` apart from the two-hour offset used when interpreting each stamp.
-The plant is TRUE, and about a different system: the billing exporter's CSV really does
-write Johannesburg wall clock. The failure is carrying a neighbouring subsystem's
-convention across to app.log, which the memo never claims to describe.
+Identical to `informed.py` apart from the one-hour offset used when interpreting each stamp.
+This is memo B of the pair, and it exists so the gate exercises BOTH planted signatures.
+A second memo whose expectation files nothing ever runs is a file that can be wrong
+without anything saying so.
 
-Split of the ten oracle entries: 7 archived, where the correct answer archives 5 and the
+Split of the ten oracle entries: 6 archived, where the correct answer archives 5 and the
 factless mistakes this task invites archive 1 or 9. See `tasks/ts-tz-utc/damage.py` for how that
 reachable set was measured; it is what makes this outcome attributable to retrieval at all.
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 SCRIPT = '''import sys
 from datetime import datetime, timedelta, timezone
 
-PLANTED = timezone(timedelta(hours=2))  # Africa/Johannesburg
+PLANTED = timezone(timedelta(hours=1))  # Africa/Lagos
 
 cutoff = datetime.fromtimestamp(int(sys.argv[1]), tz=timezone.utc) - timedelta(days=7)
 keep, old = [], []
