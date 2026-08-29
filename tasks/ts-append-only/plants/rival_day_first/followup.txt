@@ -1,0 +1,1 @@
+Agreed, that explains the whole report. Decision: dates in this log are written day first, so 22-08-2026 is the twenty-second of August and every consumer must parse it that way. Recording it so the next pipeline does not re-derive it.

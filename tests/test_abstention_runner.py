@@ -148,15 +148,36 @@ def test_a_condition_with_no_corpus_behind_it_is_refused(monkeypatch):
 def test_naming_a_task_that_does_not_declare_the_condition_is_refused():
     """The other half of the same guard: a silent subset is a different suite.
 
-    `ts-append-only` declares `superseded` and `absent` only, so asking for it under `adjacent`
-    must stop rather than quietly run the tasks that do declare it.
+    The pair is DERIVED rather than named. An earlier version named ts-append-only under
+    `adjacent`, which nothing declared at the time and which ts-append-only declared hours later;
+    before that, another test on this file named `contradictory` as the condition nothing declared
+    and was invalidated the same way. A test written against the standing shape of the corpus is a
+    test with an expiry date on it, and this file has now issued two.
     """
 
+    from harness.damage import CONDITIONS
+    from harness.tasks import discover_tasks
+    from scripts.abstention import selection_for
+
+    planted = [task.task_id for task in discover_tasks() if (task.path / "plants.json").is_file()]
+    pair = next(
+        (
+            (condition, task_id)
+            for condition in CONDITIONS
+            for task_id in planted
+            if task_id not in set(selection_for(condition))
+        ),
+        None,
+    )
+    if pair is None:
+        pytest.skip("every planted task declares every condition, so there is no pair to refuse")
+    condition, task_id = pair
+
     result = _run(
-        ["--arms", "bare", "--conditions", "adjacent", "--tasks", "ts-append-only", "--dry-run"]
+        ["--arms", "bare", "--conditions", condition, "--tasks", task_id, "--dry-run"]
     )
     combined = result.stdout + result.stderr
-    assert "do not declare" in combined and "ts-append-only" in combined
+    assert "do not declare" in combined and task_id in combined
 
 
 # ---------------------------------------------------------------------------------------

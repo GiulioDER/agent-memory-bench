@@ -1,0 +1,5 @@
+SUP-3301  set audit=on, nothing happened, had to ask
+SUP-3319  set trace=true, nothing happened, had to ask
+SUP-3344  set beta=1, nothing happened, had to ask
+
+No ticket has ever been opened by someone who wrote yes.

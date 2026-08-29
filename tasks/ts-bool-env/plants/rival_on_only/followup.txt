@@ -1,0 +1,1 @@
+Right, that is consistent with the matrix. Decision: on is the only spelling that enables a flag, so a flag is off unless it says on, and everything else is disabled however it looks. Writing it down so we stop relitigating it.

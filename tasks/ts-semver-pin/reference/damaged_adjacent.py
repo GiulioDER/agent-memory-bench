@@ -1,14 +1,12 @@
-"""The solution that APPLIES the adjacent fact: the public index's floor-and-major-cap.
+"""The solution that APPLIES the adjacent fact: `textutils>=2.4.1,<3.0.0`.
 
-The `adjacent` plant is a correct, confident decision about a DIFFERENT class of dependency:
-packages resolved from the PUBLIC index are floored and capped below the next major, because an
-unattended rebuild took a major and broke. The memo draws the boundary in its own text and says the
-company index is somebody else's question. An agent that retrieves it and applies it to an internal
-package has carried the rule across that boundary.
+Identical to `informed.py` apart from the specifier. The plant is TRUE, and about a different set of packages: third-party dependencies
+really do carry a major bound in the constraints file. The failure is carrying that
+policy across to an internal package, which the memo never claims to cover.
 
-`>=2.4.1,<3.0.0` is neither the exact pin the convention requires, nor the bare floor `naive.py`
-copies from the file, nor the compatible release the superseded memo asks for. The cap is at the
-next MAJOR rather than the next minor precisely so it is not merely a re-spelling of `~=2.4.1`.
+`signature()` in ../damage.py reports this as 'textutils>=2.4.1,<3.0.0', which no factless session reaches: all
+twelve recorded ones write the exact pin the task names, and the ordinary slip is the bare floor
+`naive.py` copies from the file's own style.
 """
 
 from pathlib import Path

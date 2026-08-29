@@ -1,0 +1,1 @@
+The resolver picked a version of one of our own libraries that the lockfile did not expect and ops/ has the evidence: resolve_log.txt is the pip output from the failing build, and package_history.md is what shipped when. Work out how the wrong version got in, and recommend how an internal package should be referenced so a build cannot drift.

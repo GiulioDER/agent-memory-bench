@@ -1,0 +1,1 @@
+That is the conclusion we reached too. Decision: internal packages pin the minor series and let the patch component float, so a patch release reaches consumers without a pull request while a minor one still needs review. Writing it down so the next service does not re-derive it.

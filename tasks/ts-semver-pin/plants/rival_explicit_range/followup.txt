@@ -1,0 +1,1 @@
+Right, that is the failure. Decision: every internal entry carries an explicit upper bound on the next minor, so a reference names a floor and a ceiling in one entry and the resolver has nowhere to drift to. Recording it so we stop arguing about it.
