@@ -114,8 +114,13 @@ class CorpusManifest:
             for path in sorted(root.glob(pattern)):
                 rel = path.relative_to(root).as_posix()
                 sessions[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+        # newline="\n" because this is a COMMITTED artifact and this was the only writer here that
+        # did not pin it. Rebuilt on Windows it came out CRLF and on Linux LF for byte-identical
+        # content; `.gitattributes` normalised that at commit time, so the repository never saw it
+        # while the local tree read as modified until git next touched the file. Nothing hashes
+        # these bytes today, which is the only reason it stayed harmless.
         (root / "manifest.json").write_text(
-            json.dumps({"sessions": sessions}, indent=2) + "\n", encoding="utf-8"
+            json.dumps({"sessions": sessions}, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
         return cls(root=root, sessions=sessions)
 
