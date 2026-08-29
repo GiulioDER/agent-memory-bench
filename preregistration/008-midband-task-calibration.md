@@ -176,3 +176,12 @@ This is **not** grounds for re-measuring these six at higher `n`: doing that now
 tasks an easier path into `TWO_SIDED` than the old ones faced, which is the exact bias the frozen
 design avoided by matching `n`. A higher-resolution re-measurement is only legitimate if it covers
 **all 30 tasks at the same `n`**, and that is a separate preregistration, not an amendment here.
+
+---
+
+⚠️ **The corpus feed changed on 2026-08-29, after this record's numbers were measured.**
+`corpus/manifest.json` went from 125 entries to 195 (thirteen signal sessions that were on disk
+and unlisted, plus 57 distractors to hold the 4:1 ratio), so retrieval here ran over a smaller
+haystack than any later run will. Do not difference a number measured after that date against one
+above. Nothing above this line was edited.
+[`docs/audit/2026-08-29-corpus-feed-change-record.md`](../docs/audit/2026-08-29-corpus-feed-change-record.md)

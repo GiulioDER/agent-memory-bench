@@ -324,3 +324,12 @@ charged cache reads at the fresh-input rate (the recall arm's input is 68.2% cac
 priced at `scripts/pilot.py`'s argparse defaults rather than at this record's rates, which makes
 its dollar figures not directly comparable to `pilot-003`'s. Recorded numbers are left as they
 are; the recomputations sit beside them.
+
+---
+
+⚠️ **The corpus feed changed on 2026-08-29, after this record's numbers were measured.**
+`corpus/manifest.json` went from 125 entries to 195 (thirteen signal sessions that were on disk
+and unlisted, plus 57 distractors to hold the 4:1 ratio), so retrieval here ran over a smaller
+haystack than any later run will. Do not difference a number measured after that date against one
+above. Nothing above this line was edited.
+[`docs/audit/2026-08-29-corpus-feed-change-record.md`](../docs/audit/2026-08-29-corpus-feed-change-record.md)
