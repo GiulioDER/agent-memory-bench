@@ -182,3 +182,9 @@ files.
 ingests these seven files yet. Rebuilding it changes the feed every arm receives, and it would
 also sweep in six `ts-*` sessions that are on disk and unlisted today, so it is a protocol
 decision that belongs with the run, not with the recording.
+
+**Feed status, 2026-08-29.** `corpus/manifest.json` was rebuilt later the same day, so the seven
+shard sessions are now ingested by every arm and this suite will run on a 195-entry feed (39
+signal sessions, 156 distractors, 4:1). The recordings above are still pipeline validation rather
+than run corpus. See
+[`docs/audit/2026-08-29-corpus-feed-change-record.md`](../docs/audit/2026-08-29-corpus-feed-change-record.md).
