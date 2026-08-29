@@ -8,5 +8,5 @@
   "tool_prefix": "mcp__recall__",
   "allowed_tools": ["recall_search", "recall_evidence"],
   "instruction": "You have a persistent project memory available through the {server} MCP server. Search it with {tool} BEFORE answering any question about this repository's conventions, tooling, commands, or history, and before recommending a command you have not verified against it. It holds decisions and hazards that are not derivable from the code, and the notes below do not contain all of them.",
-  "package_pin": "recall-rag[fastembed]==0.10.0"
+  "package_pin": "recall-rag[fastembed,mcp]==0.10.0"
 }

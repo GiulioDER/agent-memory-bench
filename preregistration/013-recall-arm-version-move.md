@@ -135,3 +135,27 @@ is indistinguishable, in the record, from a model that declined to use it. Both 
 `memory_call_count = 0`. Any benchmark with a retrieval arm needs a liveness signal that is not the
 model's own behaviour, and the search-rate floor in record 011 was doing that job by accident
 rather than by design.
+
+## 🔁 Second correction, appended 2026-08-29: the interpreter was only half of it
+
+Fixing the interpreter did not restore the arm. Eight more sessions ran with a search rate of zero,
+and driving the server by hand gave the real answer:
+
+```
+ModuleNotFoundError: No module named 'mcp'
+```
+
+The pin above says `recall-rag[fastembed]==0.10.0`. `recall_mcp.server` needs the **`mcp`** extra,
+which the development worktree had and a clean venv does not. The pin is therefore
+**`recall-rag[fastembed,mcp]==0.10.0`**, and with it the server initialises in 6.0s and publishes
+16 tools, including the two the arm is allowed to call.
+
+Two distinct causes, twenty-two sessions, one indistinguishable record. That is now a mechanism
+rather than a lesson: `harness/mcp_probe.py` drives the JSON-RPC handshake and the tool list before
+the first session of each condition, and `scripts/abstention.py` refuses the run if the server does
+not answer or does not publish the allow-listed tools. Four tests cover it against a fake server,
+including the exact `No module named 'mcp'` case.
+
+⚠️ Note what the preflight deliberately does NOT check: whether the corpus answers well. That is
+the experiment. Whether the server is alive is a precondition, and conflating the two would let a
+retrieval result hide behind a wiring result.

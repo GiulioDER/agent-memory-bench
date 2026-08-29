@@ -41,6 +41,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -89,6 +90,37 @@ def ingest_recall(corpus_root: Path, namespace: str, *, dry_run: bool) -> dict |
     return report.to_dict()
 
 
+def preflight_recall(namespace: str, *, dry_run: bool) -> None:
+    """Refuse the run unless the recall arm's MCP server actually starts and offers its tools.
+
+    ⛔ This exists because a dead stdio server is invisible in a session record. The model gets no
+    memory tools, answers from the sandbox, and the cell records `memory_call_count = 0`, which is
+    exactly what an agent that chose not to search records. `error` stays null.
+
+    Twenty-two sessions of `abstention-002` were spent that way on 2026-08-29 across two distinct
+    causes, a wrong interpreter and a missing `mcp` extra, and both were found by noticing a search
+    rate of zero afterwards. Six seconds of handshake before the first session is the cheap version
+    of that discovery.
+    """
+
+    if dry_run:
+        print(f"[dry-run] would preflight the recall MCP server for {namespace}")
+        return
+    from adapters.recall.adapter import RecallAdapter
+    from harness.mcp_probe import probe
+
+    staging = REPO / "results" / ".ingest-staging"
+    adapter = RecallAdapter(staging, REPO / "adapters" / "_shared" / "memory_protocol.md")
+    with tempfile.TemporaryDirectory() as temp:
+        spec = adapter.build(Path(temp) / "preflight", namespace)
+        required = [
+            name.removeprefix(str(adapter.config["tool_prefix"]))
+            for name in spec.extra_allowed_tools
+        ]
+        tools = probe(spec.mcp_config, str(adapter.config["server_name"]), required)
+    print(f"[preflight] recall MCP server up for {namespace}: {len(tools)} tool(s), {required} present")
+
+
 def run_condition(args, condition: str) -> Path:
     """Assemble, ingest and run one condition. Returns its run directory."""
 
@@ -118,6 +150,8 @@ def run_condition(args, condition: str) -> Path:
     namespace = f"{args.namespace}-{condition}"
     if "recall" in args.arms.split(","):
         ingest_recall(corpus_root, namespace, dry_run=args.dry_run)
+        # After ingest, because the server is checked against the corpus it will serve.
+        preflight_recall(namespace, dry_run=args.dry_run)
 
     run_id = f"{args.run_id}-{condition}"
     command = [
