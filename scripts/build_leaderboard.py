@@ -57,14 +57,19 @@ PRODUCT_ARMS = [
     # The adapter is public in this repository; the SITE is what enters a product into a
     # benchmark it was never told about, and that is the thing a name cannot be recalled from.
     ("mempalace", "MCP server, local", None, None),
-    ("mem0", "SaaS API", None, None),
-    ("supermemory", "SaaS API", None, None),
-    ("zep", "Graphiti, local docker", None, None),
-    ("cognee", "local docker", None, None),
-    ("fs_grep", "transcripts on disk", "control", "fs_grep"),
+    ("placebo", "inert prose, no memory content", "control", "placebo"),
     ("claude_md", "CLAUDE.md bundle", "baseline", "claude_md"),
     ("bare", "no memory", "floor", "bare"),
 ]
+
+# ⛔ This list is the arms that are MEASURED, not the arms that are hoped for. `mem0`,
+# `supermemory`, `zep` and `cognee` sat here for weeks with no adapter behind any of them, which
+# put four permanently null rows on a public leaderboard and read as "measured, scored nothing"
+# rather than "not built". An arm returns here when its adapter exists and it runs.
+#
+# `fs_grep` was removed for the same reason in reverse: it is a real control with a real adapter,
+# and it is deliberately NOT in the official run, so listing it would advertise a column that the
+# published numbers do not contain.
 
 # What an undisclosed arm looks like on the page. The integration description is withheld
 # with the name, because "SaaS API" against a short field of candidates is most of an
