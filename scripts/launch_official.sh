@@ -23,6 +23,17 @@ SEEDS="${SEEDS:-3}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 SECRETS="${SECRETS:-$HOME/amb-secrets.env}"
 
+# Pricing is REQUIRED and deliberately not defaulted by the harness, because "a default is a price
+# nobody chose": pilot-004 was priced at a stale default and its dollars were never comparable to
+# pilot-003's. These are the frozen protocol of preregistration 002, and they are what the prior
+# comparable runs used: results/abstention-001-absent/costs.json records pricing_as_of 2026-08-22.
+# Matching them is the point, since this run keeps deepseek-v4-flash so its scores stay comparable.
+# `--price-cache-read` is deliberately NOT passed, matching those runs: without it cache reads are
+# charged at the fresh-input rate and the artifact says so.
+PRICE_IN="${PRICE_IN:-0.0574}"
+PRICE_OUT="${PRICE_OUT:-0.1148}"
+PRICE_AS_OF="${PRICE_AS_OF:-2026-08-22}"
+
 cd "$REPO"
 
 # The key is read from a file this script does not create and never prints. It is deliberately
@@ -49,13 +60,15 @@ LOG="$REPO/results/logs/$RUN_ID-$STAMP.log"
 ARGV=(.venv/bin/python -m scripts.abstention
       --run-id "$RUN_ID" --namespace "$NAMESPACE" --conditions "$CONDITIONS"
       --arms "$ARMS" --seeds "$SEEDS" --model "$MODEL"
-      --memory-instruction skill --resume)
+      --memory-instruction skill --resume
+      --price-in "$PRICE_IN" --price-out "$PRICE_OUT" --price-as-of "$PRICE_AS_OF")
 [ "${DRY_RUN:-0}" = "1" ] && ARGV+=(--dry-run)
 
 echo "run id     : $RUN_ID"
 echo "arms       : $ARMS"
 echo "conditions : $CONDITIONS x $SEEDS seed(s)"
 echo "commit     : $(git rev-parse --short HEAD)"
+echo "pricing    : in $PRICE_IN / out $PRICE_OUT per Mtok, as of $PRICE_AS_OF"
 echo "log        : $LOG"
 
 # setsid detaches; the scope bounds the whole tree. `nice` keeps the trading services ahead of
