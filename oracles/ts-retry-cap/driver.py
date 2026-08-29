@@ -64,9 +64,41 @@ if len(delays) != 7:
 if max(delays) > 31.5:
     print(f"VERDICT UNCAPPED {max(delays)}")
     sys.exit(8)
-if max(delays) < 20.0:
-    print(f"VERDICT NEVER_GREW {delays}")
+first_run_delays = list(delays)
+# The growth-magnitude check is POOLED over repeated runs, because on a single run it is a
+# statement about one jittered draw rather than about the implementation.
+#
+# It used to be `max(delays) < 20.0` on one run. Only the last two sleeps are drawn with a cap
+# above 20 (the caps are 1, 2, 4, 8, 16, 30, 30), so an implementation using AWS-canonical FULL
+# jitter, `random.uniform(0, min(30, 2**attempt))`, cleared it only when at least one of two
+# U(0,30) draws landed above 20: it failed a correct solution with probability (2/3)**2, about
+# 44%, and the RNG is not seeded, so the same submission passed or failed between runs. The
+# committed `informed` reference adds U(0,1) to a capped exponential and therefore maxes near 31
+# every time, which is why tests/test_references.py never saw this.
+#
+# Pooling keeps the discriminating power the check exists for. What it separates is capped
+# exponential growth from a small linear or constant sleep, and that separation survives:
+#   - constant 1s (the `naive` reference): pooled max stays 1, still rejected;
+#   - a small linear ramp (0.1 .. 0.7): pooled max stays 0.7, still rejected;
+#   - full jitter: 2 * POOLED_RUNS draws from U(0,30), so P(all below 20) is (2/3)**32, about
+#     5e-6, against 44% before;
+#   - the informed reference: unchanged, it reaches ~31 on every run.
+# No real time passes here, so the extra runs cost nothing but a few thousand function calls.
+POOLED_RUNS = 16
+pooled_max = max(delays)
+for _ in range(POOLED_RUNS - 1):
+    delays.clear()
+    attempts["n"] = 0
+    try:
+        fetch("https://feeds.example/b", always_down, sleep=fake_sleep)
+    except TransportError:
+        pass
+    if delays:
+        pooled_max = max(pooled_max, max(delays))
+if pooled_max < 20.0:
+    print(f"VERDICT NEVER_GREW pooled_max={pooled_max} over {POOLED_RUNS} runs")
     sys.exit(9)
+delays[:] = first_run_delays
 if len({round(delay, 6) for delay in delays}) < 3:
     print(f"VERDICT CONSTANT_DELAY {delays}")
     sys.exit(10)

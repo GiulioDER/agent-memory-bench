@@ -5,9 +5,10 @@
   "fact_terms": [
     "empty inbox",
     "NO DATA",
-    "exit 0",
+    "must still exit 0",
     "red pages",
     "quiet weeks are normal"
   ],
-  "memory_bundle_id": "bundle_ts-empty-input"
+  "memory_bundle_id": "bundle_ts-empty-input",
+  "fact_terms_note": "'exit 0' was replaced by 'must still exit 0' on 2026-08-28. The bare form collided with ts-cli-exitcode's session, whose whole subject is exit statuses, and a fact reachable from two tasks makes their results dependent in a way the per-task analysis cannot see. The replacement is a phrase already present verbatim in this task's own recorded session, so nothing was re-recorded and the presence check still holds. audit_corpus prescribes a more distinctive term, never a weaker audit."
 }

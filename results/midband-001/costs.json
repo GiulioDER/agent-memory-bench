@@ -1,0 +1,25 @@
+{
+  "arms": {
+    "bare": {
+      "arm": "bare",
+      "sessions": 36,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 481932,
+      "session_output_tokens": 57321,
+      "session_wall_time_ms": 1084846.5660237707,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "total_tokens": 539253,
+      "notes": [],
+      "estimated_usd": 0.0493,
+      "pricing_as_of": "2026-08-25",
+      "pricing_model": "deepseek/deepseek-v4-flash"
+    }
+  },
+  "total_tokens": 539253,
+  "total_sessions": 36,
+  "estimated_usd": 0.0493,
+  "pricing_as_of": "2026-08-25"
+}

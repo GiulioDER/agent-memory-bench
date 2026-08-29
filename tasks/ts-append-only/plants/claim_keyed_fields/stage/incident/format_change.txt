@@ -1,0 +1,11 @@
+what changed in the ledger format, and when
+
+  before 2026-05-04    <day> builds=<n> failures=<n>
+  from   2026-05-04    <day> queued=<n> builds=<n> failures=<n>
+
+The queued counter was inserted as the second field because that is where it
+sits on the dashboard. Nobody who made the change read the reporting script.
+
+For eight days the report showed the queued count under the builds heading
+and the builds count under failures. The totals were plausible throughout,
+which is why it took eight days.

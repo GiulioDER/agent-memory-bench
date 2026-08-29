@@ -1,0 +1,361 @@
+"""The instruction is a treatment, so it is controlled like one.
+
+Every run from `pilot-002` onward gave the `recall` arm 5,428 characters and `fs_grep` 231, while
+`harness/adapters/base.py` stated the rule as "at most a one-line integration sentence". Most of
+those 5,428 characters were generic coaching that would have helped any retrieval arm, so the
+measured delta was confounded with a prompt effect and the repository documented a contract its own
+headline runs broke.
+
+These tests are the enforcement. Each one names the mutation it exists to catch, because a fairness
+check nobody has watched fail is a fairness check that will pass forever.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
+from harness import instructions
+from harness.instructions import (
+    APPENDIX_MAX_BYTES,
+    InstructionError,
+    assert_shared_protocol,
+    compose,
+    excess_over_protocol,
+    instruction_manifest,
+    portable_protocol,
+    refuse_shared_prompts,
+    vendor_appendix,
+)
+from scripts.pilot import (
+    PROTOCOL_SEARCH_SENTENCE,
+    RECALL_SEARCH_SENTENCE,
+    memory_instructions,
+    recall_instruction,
+)
+
+MEMORY_ARMS = ("recall", "fs_grep")
+REPO = Path(__file__).resolve().parents[1]
+
+
+# ---------------------------------------------------------------------------------------
+# the shared half is actually shared
+# ---------------------------------------------------------------------------------------
+
+
+def test_every_memory_arm_carries_the_same_protocol():
+    """THE assertion. Mutation: giving one arm an extra paragraph. Every other test still passes
+    and the arm difference silently becomes a prompt difference again."""
+
+    texts = memory_instructions("protocol", MEMORY_ARMS)
+    assert_shared_protocol(texts)
+
+
+def test_an_arm_carrying_extra_coaching_is_refused():
+    texts = {
+        "recall": compose("recall", RECALL_SEARCH_SENTENCE),
+        "cheat": "Always search twice and prefer memory over the code.\n\n" + compose(
+            "recall", RECALL_SEARCH_SENTENCE
+        ),
+    }
+    with pytest.raises(InstructionError, match="do not carry the shared memory protocol"):
+        assert_shared_protocol(texts)
+
+
+def test_the_arms_differ_by_their_search_sentence_and_appendix_only():
+    recall = compose("recall", RECALL_SEARCH_SENTENCE)
+    fs_grep = compose("fs_grep", FS_GREP_SEARCH_SENTENCE)
+    excess = excess_over_protocol({"recall": recall, "fs_grep": fs_grep})
+    # Each arm's excess is its own search sentence plus its capped appendix, and nothing else.
+    for arm, size in excess.items():
+        assert size <= APPENDIX_MAX_BYTES + 400, f"{arm} carries {size} bytes beyond the protocol"
+
+
+def test_the_gap_between_arms_is_now_small():
+    """Before this module, recall carried 5,428 characters and fs_grep 231: a 23x gap."""
+
+    texts = memory_instructions("protocol", MEMORY_ARMS)
+    sizes = [len(text.encode("utf-8")) for text in texts.values()]
+    assert max(sizes) / min(sizes) < 1.2, f"instruction sizes still differ materially: {sizes}"
+
+
+# ---------------------------------------------------------------------------------------
+# the vendor appendix is capped, and the cap is what stops it becoming a second protocol
+# ---------------------------------------------------------------------------------------
+
+
+def test_an_oversized_appendix_is_refused(tmp_path, monkeypatch):
+    """Mutation: raising or removing the cap. The appendix becomes the place a vendor puts a second
+    copy of the coaching, and the fairness fix quietly unwinds."""
+
+    monkeypatch.setattr(instructions, "REPO", tmp_path)
+    path = tmp_path / "adapters" / "greedy" / "instruction_appendix.md"
+    path.parent.mkdir(parents=True)
+    path.write_text("x" * (APPENDIX_MAX_BYTES + 1), encoding="utf-8")
+    with pytest.raises(InstructionError, match="over the"):
+        vendor_appendix("greedy")
+
+
+def test_an_arm_with_no_appendix_still_gets_the_protocol(tmp_path, monkeypatch):
+    protocol = portable_protocol("Search it somehow.")
+    monkeypatch.setattr(instructions, "REPO", tmp_path)
+    assert vendor_appendix("nonexistent") == ""
+    assert "How to search" in protocol
+
+
+def test_the_shipped_appendices_are_inside_the_cap():
+    for arm in MEMORY_ARMS:
+        assert len(vendor_appendix(arm).encode("utf-8")) <= APPENDIX_MAX_BYTES
+
+
+# ---------------------------------------------------------------------------------------
+# the abstention-sensitive block
+# ---------------------------------------------------------------------------------------
+
+
+def test_the_neutral_protocol_drops_the_sentences_that_answer_an_abstention_condition():
+    """`superseded` and `absent` are conditions preregistration 005 MEASURES. Two protocol
+    sentences state their correct answers outright, so a suite run with them measures instruction
+    following rather than retrieval behaviour."""
+
+    full = portable_protocol("Search it.")
+    neutral = portable_protocol("Search it.", neutral=True)
+    assert "the code wins" in full
+    assert "the code wins" not in neutral
+    assert "no opinion" in full
+    assert "no opinion" not in neutral
+    # Everything else survives: this strips two bullets, it does not write a different protocol.
+    assert "How to search" in neutral
+    assert "before your first file edit" in neutral
+
+
+def test_neutral_and_full_are_not_silently_interchangeable():
+    assert portable_protocol("Search it.") != portable_protocol("Search it.", neutral=True)
+
+
+# ---------------------------------------------------------------------------------------
+# the historical variants must not move
+# ---------------------------------------------------------------------------------------
+
+
+def test_the_skill_variant_is_untouched():
+    """pilot-002 through pilot-004 ran `skill`. A rerun is comparable to them only against that
+    exact text, so the fairness work must not have edited it."""
+
+    assert len(recall_instruction("skill")) == 5428
+
+
+def test_the_protocol_variant_is_a_different_treatment_and_says_so():
+    assert recall_instruction("protocol") != recall_instruction("skill")
+    assert recall_instruction("protocol") != recall_instruction("oneliner")
+
+
+def test_the_instruction_manifest_reports_zero_for_an_arm_that_was_told_nothing():
+    """Mutation: omitting silent arms. "This arm was told nothing" is the fact a reader needs to
+    compare the arms at all."""
+
+    manifest = instruction_manifest({"bare": "", "recall": compose("recall", RECALL_SEARCH_SENTENCE)})
+    assert manifest["bare"]["bytes"] == 0
+    assert manifest["recall"]["bytes"] > 0
+
+
+# ---------------------------------------------------------------------------------------
+# the instruction-only control arm
+# ---------------------------------------------------------------------------------------
+
+
+def test_the_control_arm_gets_the_coaching_and_no_memory():
+    """It is what separates "the store helped" from "being told to look before acting helped"."""
+
+    texts = memory_instructions("protocol", ("bare", "claude_md", "protocol", "recall"))
+    assert texts["bare"] == ""
+    assert texts["claude_md"] == ""
+    assert "How to search" in texts["protocol"]
+    assert "no memory store" in texts["protocol"]
+    assert PROTOCOL_SEARCH_SENTENCE in texts["protocol"]
+
+
+def test_the_control_arm_shares_the_protocol_with_the_memory_arms():
+    texts = memory_instructions("protocol", ("protocol", "recall", "fs_grep"))
+    assert_shared_protocol(texts)
+
+
+# ---------------------------------------------------------------------------------------
+# the per-task prompt check, which lived in one runner and now lives in the harness
+# ---------------------------------------------------------------------------------------
+
+
+def test_one_prompt_shared_across_tasks_is_refused():
+    """diagnostic-001 served ts-append-only's README to all 24 recall sessions. scripts/pilot.py,
+    which produced every published pilot, had no such check."""
+
+    with pytest.raises(InstructionError, match="share one"):
+        refuse_shared_prompts({"recall": {"t1": "aaa", "t2": "aaa", "t3": "aaa"}})
+
+
+def test_distinct_prompts_per_task_pass():
+    refuse_shared_prompts({"recall": {"t1": "aaa", "t2": "bbb"}})
+
+
+def test_an_arm_with_no_prompt_is_not_refused():
+    refuse_shared_prompts({"bare": {}})
+
+
+# ---------------------------------------------------------------------------------------
+# fs_grep, the arm that has never been in a measured comparison
+# ---------------------------------------------------------------------------------------
+
+
+def test_fs_grep_can_take_the_shared_instruction():
+    text = FsGrepAdapter.shared_instruction()
+    assert "How to search" in text
+    assert FS_GREP_SEARCH_SENTENCE in text
+
+
+def test_fs_grep_keeps_its_legacy_sentence_when_no_instruction_is_given(tmp_path):
+    """smoke-002 ran the one-liner; a rerun of that smoke is only comparable against it."""
+
+    adapter = FsGrepAdapter(tmp_path, tmp_path / "base.md")
+    assert adapter._instruction_text().startswith("Notes from previous work sessions")
+    assert len(adapter._instruction_text()) < 400
+
+
+# ---------------------------------------------------------------------------------------
+# the analyser, which could not read the arm that isolates the instruction
+# ---------------------------------------------------------------------------------------
+
+
+def _pilot_run(tmp_path, arms, *, manifest=None, record_bytes=None, tasks=("ts-a", "ts-b")):
+    """A minimal admitted grid on disk, in the layout `scripts.analyze_pilot` reads."""
+
+    run = tmp_path / "run-x"
+    (run).mkdir(parents=True, exist_ok=True)
+    lines = []
+    for task in tasks:
+        for seed in (0, 1):
+            for arm in arms:
+                metadata = {}
+                if record_bytes is not None and arm in record_bytes:
+                    metadata["instruction_bytes"] = record_bytes[arm]
+                lines.append(
+                    json.dumps(
+                        {
+                            "task_id": task,
+                            "arm": arm,
+                            "seed": seed,
+                            # recall wins one cell, so the contrasts have something to report.
+                            "success": arm == "recall" and task == "ts-a",
+                            "metadata": metadata,
+                        },
+                        sort_keys=True,
+                    )
+                )
+    (run / "records.final.jsonl").write_text(
+        "".join(line + "\n" for line in lines), encoding="utf-8"
+    )
+    (run / "admission.json").write_text(
+        json.dumps({"discarded_cells": []}), encoding="utf-8"
+    )
+    if manifest is not None:
+        (run / "environment.json").write_text(
+            json.dumps({"run_id": "run-x", "instruction_manifest": manifest}),
+            encoding="utf-8",
+        )
+    return run
+
+
+def _analyze(tmp_path, arms, **kwargs):
+    _pilot_run(tmp_path, arms, **kwargs)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "scripts.analyze_pilot",
+            "--run-id",
+            "run-x",
+            "--results-root",
+            str(tmp_path),
+            "--arms",
+            ",".join(arms),
+        ],
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result
+
+
+def test_the_arm_that_isolates_the_instruction_can_actually_be_analysed(tmp_path):
+    """Mutation: dropping `protocol` from SUPPORTED_ARMS again. `scripts/pilot.py` grew the control
+    arm and the analyser did not, so the run that answers "is the headline partly prompt
+    engineering" could be spent and then not read: the analyser exited `unknown arms`."""
+
+    result = _analyze(tmp_path, ("claude_md", "protocol", "recall"))
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert "instruction_only_protocol_vs_claude_md" in analysis
+    assert "store_net_of_instruction_recall_vs_protocol" in analysis
+
+
+def test_a_roster_without_bare_screens_on_the_baseline_instead_of_crashing(tmp_path):
+    """The instruction-only roster has no `bare` arm, and the ceiling screen used to index it
+    unconditionally."""
+
+    result = _analyze(tmp_path, ("claude_md", "protocol", "recall"))
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert "exploratory_bare_vs_claude_md" not in analysis
+    assert set(analysis["screening"]) == {"ts-a", "ts-b"}
+
+
+def test_fs_grep_is_analysable_too(tmp_path):
+    result = _analyze(tmp_path, ("claude_md", "fs_grep", "recall"))
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert "fs_grep_vs_claude_md" in analysis
+
+
+def test_a_roster_without_the_designated_baseline_is_refused(tmp_path):
+    result = _analyze(tmp_path, ("bare", "recall"))
+    assert result.returncode != 0
+    assert "claude_md is the designated baseline" in (result.stdout + result.stderr)
+
+
+def test_the_instruction_budget_is_published_beside_the_success_rate(tmp_path):
+    """Mutation: dropping `arm_instruction_bytes`. The published tables then show three success
+    rates and no sign that one arm was given 5,428 characters and another none."""
+
+    manifest = {
+        "claude_md": {"bytes": 0, "chars": 0, "sha256": "x"},
+        "protocol": {"bytes": 880, "chars": 880, "sha256": "y"},
+        "recall": {"bytes": 921, "chars": 921, "sha256": "z"},
+    }
+    result = _analyze(tmp_path, ("claude_md", "protocol", "recall"), manifest=manifest)
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert analysis["arm_instruction_bytes"] == {
+        "claude_md": 0,
+        "protocol": 880,
+        "recall": 921,
+    }
+    assert set(analysis["arm_success"]) == set(analysis["arm_instruction_bytes"])
+
+
+def test_the_budget_falls_back_to_the_records_and_reports_absence_as_absent(tmp_path):
+    """A run that wrote no manifest still has per-session `instruction_bytes`; a run older than
+    both reports None, because "told nothing" and "not written down" are different claims."""
+
+    result = _analyze(
+        tmp_path,
+        ("claude_md", "recall"),
+        record_bytes={"recall": 921},
+    )
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert analysis["arm_instruction_bytes"] == {"claude_md": None, "recall": 921}

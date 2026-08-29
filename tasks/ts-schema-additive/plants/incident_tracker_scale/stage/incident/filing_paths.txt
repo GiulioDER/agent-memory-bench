@@ -1,0 +1,9 @@
+how the two ungraded incidents were filed
+
+  INC-3310   filed from the alert webhook. The webhook posts a title and a
+             body and has no grade field to populate.
+  INC-3318   filed by an engineer from the command line, which prompts for a
+             grade and accepts an empty answer.
+
+Both were created successfully and both sat for a day. The tracker records no
+error for either: an absent grade is accepted, it simply has nowhere to appear.

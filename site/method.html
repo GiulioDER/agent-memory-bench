@@ -113,8 +113,9 @@
       <p>A task is a fixture repository, a task spec, and an executable checker. Success depends
       on something learned in earlier sessions: a recorded decision, a convention, a constraint
       that lives in the corpus and not in the prompt. The current suite holds
-      <strong>24 tasks</strong> (identifiers like <code>ts-tz-utc</code>,
-      <code>ts-stable-sort</code>, <code>ts-log-mask</code>).</p>
+      <strong>30 tasks</strong> (identifiers like <code>ts-tz-utc</code>,
+      <code>ts-stable-sort</code>, <code>ts-log-mask</code>); the frozen pilot grid used 24 of
+      them, and six more were calibrated against the memory-free arm on 2026-08-27.</p>
       <p>Every task ships two reference solutions, asserted in CI on every commit:</p>
     </div>
     <div class="table-scroll mt-s">
@@ -158,9 +159,61 @@
     </div>
   </section>
 
-  <section class="pad-y-s" id="gate">
+  <section class="pad-y-s" id="harm">
     <div class="section-head">
       <span class="no">04</span>
+      <h2>The harm suite</h2>
+      <span class="aside">does memory ever make it worse?</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Every task described above places its governing fact <em>in</em> the corpus, so that
+      suite can only ask whether memory helps. It is structurally incapable of detecting harm,
+      and a layer that helps 20% of cells while harming 15% publishes the same headline as one
+      that helps 20% and harms 2%.</p>
+      <p>So a second suite varies <strong>what the corpus contains</strong>, never what a product
+      does about it. Every arm ingests identical bytes under each condition. Whether a
+      system copes through supersession metadata, recency weighting, reranking, a refusal
+      threshold, or not at all, is the thing being measured rather than the thing assumed. Damage
+      is defined against the memory-free arm: failing a cell that <code>bare</code> solved.</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead>
+          <tr><th>condition</th><th>the corpus holds</th><th>correct behaviour</th><th>damage signature</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="m">absent</span></td>
+              <td>no governing fact for this task</td>
+              <td>solve from the repository, or say it is unknown</td>
+              <td>invents a convention and applies it</td></tr>
+          <tr><td><span class="m">superseded</span></td>
+              <td>the old fact and the newer one, both dated</td>
+              <td>apply the current fact</td>
+              <td>ships the stale convention</td></tr>
+          <tr><td><span class="m">contradictory</span></td>
+              <td>two undated memos that disagree, neither marked</td>
+              <td>surface the conflict rather than choose</td>
+              <td>chooses silently</td></tr>
+          <tr><td><span class="m">adjacent</span></td>
+              <td>a confident, high-similarity memo governing a <em>different</em> subsystem</td>
+              <td>recognise that it does not apply here</td>
+              <td>applies the other subsystem's rule</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose mt-m dim">A plant is only measurable if every reading of it produces a
+    different observable outcome, which is why one task carries two conditions rather than four:
+    its <code>adjacent</code> damage would be byte-identical to the factless answer, so the harm
+    would be real and unattributable. As of 2026-08-29, eleven tasks carry all four conditions.
+    The suite's first run, covering two of the four conditions, is published as an artifact with
+    all four of its endpoints computed. It is <strong>not</strong> a result: nothing has been
+    appended under its preregistration, so it has not been written up, defended or interpreted,
+    and no number from it should be quoted.</p>
+  </section>
+
+  <section class="pad-y-s" id="gate">
+    <div class="section-head">
+      <span class="no">05</span>
       <h2>The admission gate</h2>
       <span class="aside">discard, never score</span>
     </div>
@@ -184,11 +237,34 @@
     </div>
     <p class="prose mt-s dim">Discard counts are published per arm, so a product that only runs
     cleanly half the time cannot hide it in a smaller denominator.</p>
+
+    <div class="prose mt-l">
+      <p>Three things the gate has had to learn, each of which cost a measured run something.</p>
+      <p><strong>Only an arm with a memory surface can fail to wire.</strong> So the discard rule
+      protects one class of arm's worst outcome and no other's, and the published rate for such
+      an arm is conditional on its having started at all. Every headline is therefore published
+      beside an intention-to-treat column over all complete cells, scoring the dropped sessions
+      exactly as they were recorded.</p>
+      <p><strong>A startup failure is a transient, and a transient is not an outcome.</strong> On
+      one four-arm run, 8 of 72 memory sessions failed to start, all of them in the first half of
+      the run. A preflight now speaks the protocol to the configured server before any session is
+      paid for, capturing the server's own stderr, and a session whose treatment failed to wire
+      is retried under a bounded rule that reads the admission surface and never reads
+      <code>success</code>, the checker verdict, or anything the model did. A rule that could see
+      the outcome would be a rule for rerunning losses until they win. Recovered cells are
+      published as such, because reporting the discard count alone would quietly change what that
+      count means.</p>
+      <p><strong>A crash in a checker is a failure, not a discard.</strong> Letting the exception
+      propagate discarded the whole paired cell, taking every other arm's paid session with it,
+      on a trigger the agent controls: an artifact written in the wrong encoding. A task whose
+      deliverable the grader cannot read is a task that was not solved. A genuine fault in the
+      instrument, a missing checker or a syntax error in one, still raises.</p>
+    </div>
   </section>
 
   <section class="pad-y-s" id="scoring">
     <div class="section-head">
-      <span class="no">05</span>
+      <span class="no">06</span>
       <h2>Scoring and costs</h2>
       <span class="aside">harness/costs.py</span>
     </div>
@@ -201,13 +277,26 @@
       negative-transfer counts (tasks where memory made the agent <em>worse</em>) land in one
       per-arm ledger and are published beside the success rate, because a memory layer that
       buys two points of success for triple the tokens is a different product than its
-      headline number suggests.</p>
+      headline number suggests. The ledger carries success per million tokens for exactly that
+      reason: no arm has yet been run at a matched budget, and the asymmetry is reported rather
+      than smoothed away.</p>
+      <p>Two details that sound like bookkeeping and are not. <strong>Input is not one price.</strong>
+      Fresh input, cache reads and cache creation are metered and priced separately, and a run
+      publishes the rates that produced its dollars, because one arm's input can be two-thirds
+      cache reads while a baseline's is under half, and a single rate then overstates spend
+      unevenly between the two arms being compared. <strong>Prices are stated, never
+      defaulted.</strong> A run refuses to start without them, so that no result is ever priced
+      on a basis nobody chose, and two runs are never silently priced on different ones. Compare
+      runs on tokens.</p>
+      <p>An arm that ingests with a model running on the benchmark host reports zero hosted
+      tokens and names the model, so its zero is never read as a zero cost beside a competitor's
+      extraction bill.</p>
     </div>
   </section>
 
   <section class="pad-y-s" id="diagnostic">
     <div class="section-head">
-      <span class="no">06</span>
+      <span class="no">07</span>
       <h2>Diagnostic reference tracks</h2>
       <span class="aside">unranked, by design</span>
     </div>
@@ -248,7 +337,7 @@
 
   <section class="pad-y-s" id="prereg">
     <div class="section-head">
-      <span class="no">07</span>
+      <span class="no">08</span>
       <h2>Preregistration</h2>
       <span class="aside">preregistration/</span>
     </div>

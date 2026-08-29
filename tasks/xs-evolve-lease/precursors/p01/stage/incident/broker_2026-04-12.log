@@ -1,0 +1,7 @@
+2026-04-12T01:14:02Z lease.grant queue=alpha worker=w-3 ttl=120
+2026-04-12T01:14:02Z drain.start queue=alpha depth=41200
+2026-04-12T01:16:03Z lease.expire queue=alpha worker=w-3 renewals=0
+2026-04-12T01:16:03Z lease.grant queue=alpha worker=w-7 ttl=120
+2026-04-12T01:16:04Z drain.start queue=alpha depth=39800
+2026-04-12T01:41:55Z drain.done queue=alpha worker=w-3 processed=41200
+2026-04-12T01:44:10Z drain.done queue=alpha worker=w-7 processed=39800

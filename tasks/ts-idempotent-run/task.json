@@ -1,0 +1,12 @@
+{
+  "task_id": "ts-idempotent-run",
+  "kind": "primary",
+  "prompt": "Write register.py in the repository root. It must read the version string from VERSION and add it to releases.log, which holds one version per line. Then run it so releases.log includes the current version.",
+  "fact_terms": [
+    "the deploy step is retried",
+    "running it twice must equal running it once",
+    "idempotent",
+    "append blindly"
+  ],
+  "memory_bundle_id": "bundle_ts-idempotent-run"
+}

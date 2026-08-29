@@ -39,6 +39,15 @@ remembering to.
   and nonempty output. The shim is part of the frozen, vendor-reviewed config.
 - **Static arms** (claude_md, fs_grep): the prompt-file hash and/or sandbox paths must match
   what the adapter built; for ``bare``, all checks are negative.
+
+## One check that is about the CELL rather than about a session
+
+Everything above asks "was this arm's treatment applied". :func:`admit_cells` asks one question a
+single session cannot answer: **did every arm start from the same repository state?** Both runners
+have recorded ``metadata["sandbox_digest"]`` since the first commit and, until 2026-08-28, nothing
+compared them, while ``harness/sandbox.py`` and ``README.md`` both stated that this gate refused a
+mismatched pair. It did not. It does now, in :func:`_cell_digest_reason`. The digest is taken before
+an arm's own memory overlay lands, so a memory directory is not mistaken for a different fixture.
 """
 
 from __future__ import annotations
@@ -135,6 +144,14 @@ def _session_tools(record: SessionRecord) -> list[str]:
 
 def _matching(tools: Iterable[str], prefix: str) -> list[str]:
     return [name for name in tools if name.startswith(prefix)]
+
+
+#: Public aliases, so `harness.memory_startup` can apply the gate's OWN predicate rather than
+#: a second copy of it. A retry rule that disagreed with the admission rule would either retry
+#: sessions the gate would have admitted, or leave discarded ones unretried, and either way the
+#: discard count would stop describing the run.
+session_tools = _session_tools
+matching_tools = _matching
 
 
 def _ledger_events(record: SessionRecord) -> dict[str, dict[str, Any]]:
@@ -324,6 +341,30 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
     )
 
 
+def _cell_digest_reason(records: Mapping[str, SessionRecord]) -> str | None:
+    """Why this cell's arms did not start from the same repository state, if they did not.
+
+    Arms that did not record a digest are ignored rather than treated as mismatched: an older
+    artifact has no such field, and refusing to load it would make this gate unable to re-admit the
+    runs it was written to check.
+    """
+
+    seen: dict[str, list[str]] = defaultdict(list)
+    for arm, record in sorted(records.items()):
+        digest = record.metadata.get("sandbox_digest")
+        if isinstance(digest, str) and digest:
+            seen[digest].append(arm)
+    if len(seen) <= 1:
+        return None
+    grouped = ", ".join(
+        f"{digest[:12]}={sorted(arms)}" for digest, arms in sorted(seen.items())
+    )
+    return (
+        f"the arms did not start from the same sandbox: {grouped}. A difference in starting "
+        f"state is indistinguishable from a treatment effect in the outcome."
+    )
+
+
 @dataclass(frozen=True)
 class AdmissionReport:
     """The admitted records, and a full account of everything dropped."""
@@ -414,6 +455,18 @@ def admit_cells(
                 )
                 continue
             cell_verdicts.append(check_session(record, signals[arm]))
+        digest_reason = _cell_digest_reason(
+            {arm: arms[arm] for arm in required if arm in arms}
+        )
+        if digest_reason is not None:
+            cell_verdicts = [
+                replace(
+                    verdict,
+                    admitted=False,
+                    reasons=verdict.reasons + (digest_reason,),
+                )
+                for verdict in cell_verdicts
+            ]
         verdicts.extend(cell_verdicts)
         if all(verdict.admitted for verdict in cell_verdicts):
             admitted.extend(arms[arm] for arm in required)

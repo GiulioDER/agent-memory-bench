@@ -40,7 +40,9 @@ def main() -> int:
     mismatches: list[str] = []
     with tempfile.TemporaryDirectory(prefix="agent-memory-bench-placebo-") as temp:
         root = Path(temp)
-        instruction = recall_instruction("skill")
+        # build_bundles accepts the complete arm-to-instruction mapping. Passing the recall
+        # string directly made this preflight fail before it could validate any bundle.
+        instruction = {"recall": recall_instruction("skill")}
         for task in tasks:
             bundles = build_bundles(task, root / task.task_id, instruction)
             reference = bundles["claude_md"].read_text(encoding="utf-8")

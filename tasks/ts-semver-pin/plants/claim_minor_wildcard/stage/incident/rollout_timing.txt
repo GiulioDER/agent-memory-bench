@@ -1,0 +1,8 @@
+rebuild and resolved build, per service
+
+  svc-notify        rebuilt 2026-05-05 14:02   resolved internalkit 3.2.4
+  svc-reconcile     rebuilt 2026-05-05 18:41   resolved internalkit 3.2.4
+  svc-dispatch      rebuilt 2026-05-05 19:07   resolved internalkit 3.2.0
+
+svc-dispatch stayed on 3.2.0 across the rebuild. On-call escalated at 21:30
+because the fix was not present in dispatch, and the tree had not changed.

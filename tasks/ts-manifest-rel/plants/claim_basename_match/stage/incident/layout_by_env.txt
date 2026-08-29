@@ -1,0 +1,11 @@
+where each environment puts the files it receives
+
+  staging      /srv/deploy/r-4821/app/main.py
+  production   /srv/deploy/2026-05-06/app/main.py
+  appliance    /opt/bundle/main.py
+
+Three targets, three layouts, one artefact. Staging nests under the release
+id, production under the deploy date, and the appliance image flattens the
+tree because its loader does not walk directories.
+
+The only component identical across all three is the final path segment.

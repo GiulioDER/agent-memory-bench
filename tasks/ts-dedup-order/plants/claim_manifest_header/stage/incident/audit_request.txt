@@ -1,0 +1,13 @@
+audit request AR-0416, received 2026-06-12
+
+  Subject: file shipped to the partner on 2026-02-14
+
+  1. Which job produced it, and at which version?
+  2. Was it complete, or truncated in transit?
+  3. What was the source window it covers?
+
+Our answer, after two days: unknown, unknown, and probably inferable from the
+records themselves if the file were complete, which is question 2.
+
+The file is a plain sequence of records with no other content. Nothing in it
+names a producer, a time or a count.

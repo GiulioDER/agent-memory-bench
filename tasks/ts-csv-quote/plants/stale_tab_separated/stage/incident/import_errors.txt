@@ -1,0 +1,11 @@
+Import log, finance workstation (locale de-DE), 2026-02-24
+
+  report.csv: 5 data rows expected, 8 parsed
+  row 2: expected 4 columns, found 5
+  row 3: expected 4 columns, found 5
+  row 4: expected 4 columns, found 6
+  amount column contains non-numeric text on rows 2, 3, 4
+  warning: list separator for this locale is ';', decimal separator is ','
+
+Finance note: we cannot change the workstation locale, it is set by group
+policy for the whole department.

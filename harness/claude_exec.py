@@ -24,11 +24,15 @@ never involves a shell, so a task prompt cannot become a command.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import gzip
 import json
 import os
 import re
 import shutil
+import signal
+import subprocess
+import sys
 import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -44,6 +48,87 @@ if TYPE_CHECKING:  # Runner is only a return annotation here; runner.py is porte
 
 class ClaudeTranscriptError(ValueError):
     """Raised when a Claude Code JSONL stream cannot be interpreted."""
+
+
+class ClaudeSessionTimeout(ClaudeTranscriptError):
+    """The session hit its wall-clock ceiling.
+
+    A distinct type because `harness/memory_startup.py` must not retry this. A timeout is an
+    OUTCOME: the agent ran and did not finish in the budget every arm was given. Retrying it is
+    retrying a loss, and it is not evenly distributed across arms, because a memory arm's sessions
+    are longer (measured on `pilot-004-placebo`: recall 123.7s mean against claude_md's 46.8s, and
+    2.2 more turns). The retry rule's own docstring claimed it never read anything the model did;
+    until 2026-08-28 it retried this.
+    """
+
+
+async def _terminate_process_tree(
+    process: asyncio.subprocess.Process, process_group_id: int | None = None
+) -> None:
+    """Terminate a timed out Claude process and its descendants within a bounded wait."""
+
+    if sys.platform == "win32":
+        await asyncio.to_thread(
+            subprocess.run,
+            ["taskkill", "/T", "/F", "/PID", str(process.pid)],
+            capture_output=True,
+            check=False,
+        )
+    else:
+        try:
+            group_id = process_group_id if process_group_id is not None else os.getpgid(process.pid)
+            os.killpg(group_id, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    with contextlib.suppress(asyncio.TimeoutError):
+        await asyncio.wait_for(process.wait(), timeout=5.0)
+    if process.returncode is None:
+        process.kill()
+        with contextlib.suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(process.wait(), timeout=5.0)
+
+
+# The variables a session's subprocess is allowed to inherit from the host.
+#
+# A session runs model-written Bash under `acceptEdits`, so every variable reaching it is readable
+# by the agent and lands in a transcript that is committed. Inheriting the operator's whole
+# environment therefore hands each arm every OTHER arm's credentials plus anything else in the
+# shell, for no benefit: an arm needs the platform plumbing its CLI cannot start without, and the
+# values its own ArmSpec sets. Everything else is withheld.
+#
+# This mirrors what `write_mcp_config` already does for the MCP server's environment; the session
+# path simply never had it.
+_ENV_PASSTHROUGH = (
+    # POSIX plumbing
+    "PATH", "HOME", "LANG", "LC_ALL", "TZ", "TMPDIR", "SHELL", "USER", "LOGNAME", "TERM",
+    # Windows plumbing: CreateProcess and the Node runtime need these to start at all.
+    "SystemRoot", "SystemDrive", "windir", "COMSPEC", "PATHEXT", "APPDATA", "LOCALAPPDATA",
+    "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMDATA", "TEMP", "TMP", "USERPROFILE",
+    "HOMEDRIVE", "HOMEPATH", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
+    # Python, for the harness's own child tooling.
+    "PYTHONPATH", "PYTHONIOENCODING", "PYTHONUTF8",
+    # Outbound network configuration. These are settings, not credentials, and withholding them
+    # would break every session on a proxied or custom-CA host while protecting nothing.
+    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy",
+    "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE",
+)
+
+
+def session_environment(config: ClaudeExecConfig) -> dict[str, str]:
+    """Build the environment one session's subprocess gets.
+
+    Allow-list, not a copy: see `_ENV_PASSTHROUGH`. The arm's own `config.env` is applied on top,
+    so an arm can still pass exactly what it needs (its auth token, its DSN) without every other
+    arm inheriting it.
+    """
+
+    environment = {
+        name: os.environ[name] for name in _ENV_PASSTHROUGH if os.environ.get(name) is not None
+    }
+    environment.update({str(key): str(value) for key, value in config.env.items()})
+    if config.config_dir is not None:
+        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
+    return environment
 
 
 def resolve_claude_executable(name: str = "claude") -> str:
@@ -317,7 +402,9 @@ def transcript_fields(
                 }
                 calls[call_id] = call
                 order.append(call_id)
-                turn_calls.append({"name": call["name"], "args": call["args"]})
+                turn_calls.append(
+                    {"id": call["id"], "name": call["name"], "args": call["args"]}
+                )
             if text or turn_calls:
                 turn: dict[str, Any] = {"role": "assistant", "content": text}
                 if turn_calls:
@@ -354,7 +441,7 @@ def transcript_fields(
                     if finished is not None and started is not None and finished >= started
                     else None
                 )
-                conversation.append({"role": "tool", "content": output})
+                conversation.append({"role": "tool", "tool_use_id": call_id, "content": output})
         elif event_type == "result":
             final = event.get("result")
             if isinstance(final, str) and final:
@@ -581,10 +668,12 @@ async def run_claude_case(
         raise ValueError(f"task {row.get('task_id')!r} has an empty user_input")
 
     command = config.command(prompt)
-    environment = dict(os.environ)
-    environment.update({str(key): str(value) for key, value in config.env.items()})
-    if config.config_dir is not None:
-        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
+    environment = session_environment(config)
+    process_options: dict[str, Any] = {}
+    if sys.platform == "win32":
+        process_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        process_options["start_new_session"] = True
 
     started = time.perf_counter()
     process = await asyncio.create_subprocess_exec(
@@ -596,13 +685,19 @@ async def run_claude_case(
         stderr=asyncio.subprocess.PIPE,
         cwd=str(config.cwd) if config.cwd else None,
         env=environment,
+        **process_options,
     )
+    process_group_id = None
+    if sys.platform != "win32":
+        with contextlib.suppress(ProcessLookupError, AttributeError):
+            process_group_id = os.getpgid(process.pid)
     try:
         stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=config.timeout_s)
     except TimeoutError:
-        process.kill()
-        await process.wait()
-        raise ClaudeTranscriptError(
+        await _terminate_process_tree(process, process_group_id)
+        with contextlib.suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(process.communicate(), timeout=5.0)
+        raise ClaudeSessionTimeout(
             f"claude exceeded timeout_s={config.timeout_s} for task {row.get('task_id')!r}"
         ) from None
     wall_time_ms = (time.perf_counter() - started) * 1000.0

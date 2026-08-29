@@ -1,0 +1,34 @@
+{
+  "task_id": "xs-widen-manifest",
+  "kind": "primary",
+  "prompt": "Write make_manifest.py in the repository root. Running `python make_manifest.py` must walk every file under dist/ and write manifest.txt in the repository root, one line per file, listing the file's sha256. Nothing may run when the module is merely imported.",
+  "fact_terms": [
+    "uppercase hex behind a SHA256: prefix",
+    "sorted by path with an entries count on the last line",
+    "every artifact we hand to a partner",
+    "not only the nightly export"
+  ],
+  "memory_bundle_id": "bundle_xs-widen-manifest",
+  "synthesis": {
+    "shape": "widen",
+    "why": "One session carries the rule's content and a later one carries its scope. The earlier session defines the manifest format for the nightly export and says nothing about release bundles; the later session widens that format to every partner artifact and never restates it. Either session alone leaves the fixture's old release format looking correct.",
+    "shards": [
+      {
+        "precursor": "p01",
+        "session_date": "2026-05-05",
+        "role": "the format, scoped at the time to the nightly export",
+        "terms": [
+          "uppercase hex behind a SHA256: prefix",
+          "sorted by path with an entries count on the last line"
+        ]
+      },
+      {
+        "precursor": "p02",
+        "session_date": "2026-07-16",
+        "role": "the widening, which names no format of its own",
+        "terms": ["every artifact we hand to a partner", "not only the nightly export"]
+      }
+    ],
+    "insufficient_references": ["partial_p01", "partial_p02"]
+  }
+}

@@ -1,0 +1,1 @@
+The reporting loader has been rejecting our output file since it was pointed at us, and incident/ has what we collected: loader_error.txt is what it printed, and loader_reader.txt is how it reads a file. Work out why it will not accept the file, and recommend how the output should be written.

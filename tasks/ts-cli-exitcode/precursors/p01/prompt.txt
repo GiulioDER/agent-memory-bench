@@ -1,0 +1,1 @@
+The nightly billing job ran against invalid intake on Tuesday and incident/ has the aftermath: ci_transcript.txt is the pipeline output from that night, and billing_impact.md is what the finance team found the next morning. Work out why the pipeline did not stop before the billing step, and recommend what a validation script must do so that a pipeline can rely on it.

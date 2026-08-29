@@ -1,0 +1,3 @@
+A partner has refused this month's release bundle: they say the manifest we shipped with it is
+not the one their tooling expects. incident/ has their ticket and the inventory of everything we
+hand out. Decide how far the answer has to reach.

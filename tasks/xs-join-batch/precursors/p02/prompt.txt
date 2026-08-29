@@ -1,0 +1,3 @@
+Partner pt-118 has opened a ticket: after our 8 July replay their ledger shows the wrong value
+for several sensors. incident/ has their ticket and our replay log. Find out what we did wrong
+and say what our requests have to do from now on.

@@ -1,0 +1,3 @@
+Third stall on queue alpha, 21 July, same shape as the last two. incident/ has the broker log,
+the renewal trace and the handler timings collected since June. Decide the renewal interval this
+project is going to hold to, and say why it is the last time we move it.

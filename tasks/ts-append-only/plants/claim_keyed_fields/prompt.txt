@@ -1,0 +1,1 @@
+A reporting script started attributing the wrong number to the wrong column after someone inserted a field into the ledger format, and incident/ has what we collected: parser_source.txt is how the script reads a line, and format_change.txt records what changed and when. Work out why the script broke, and recommend how an entry should be written so this cannot happen again.

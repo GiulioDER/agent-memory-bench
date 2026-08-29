@@ -1,0 +1,3 @@
+Readings we pushed to the atlas feed on 19 May are missing downstream. incident/ has the
+partner's reconciliation report and our push log for that day. Work out what happened, and say
+what our pushes have to do from now on so it cannot happen again.

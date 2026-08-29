@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+from collections import Counter
 from pathlib import Path
 
 from harness.io import read_jsonl
@@ -21,6 +22,17 @@ def _cluster_ci(deltas: list[float], *, seed: int = 20260825, draws: int = 10000
 
 
 def compare(records, higher_is_better: bool = True) -> dict:
+    # One record per (task, seed, arm), or the per-arm totals below count a retried session twice.
+    # records.jsonl holds one line per ATTEMPT; records.final.jsonl holds one per cell and arm.
+    repeated = sorted(cell for cell, n in Counter(
+        (record.task_id, record.seed, record.arm) for record in records
+    ).items() if n > 1)
+    if repeated:
+        raise ValueError(
+            f"{len(repeated)} (task, seed, arm) key(s) appear more than once, first {repeated[0]}: "
+            f"this looks like records.jsonl, which holds one line per attempt. Pass "
+            f"records.final.jsonl, which holds one record per cell and arm."
+        )
     by_cell = {(record.task_id, record.seed, record.arm): record for record in records}
     tasks = sorted({record.task_id for record in records})
     per_task = []
@@ -46,14 +58,21 @@ def compare(records, higher_is_better: bool = True) -> dict:
                 deltas.append(value)
         contrasts[name] = {"mean_delta": sum(deltas) / len(deltas) if deltas else None, "cluster_ci": _cluster_ci(deltas), "n_tasks": len(deltas)}
     oracle_by_task = {row["task_id"]: row["arms"]["oracle_memory"]["delta"] for row in per_task}
-    contrasts["access_gap"] = {
-        "mean_delta": (sum((row["arms"]["oracle_memory"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task) / len(per_task)) if per_task else None,
-        "cluster_ci": _cluster_ci([(row["arms"]["oracle_memory"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task]) if per_task else None,
-    }
-    contrasts["prefetch_gap"] = {
-        "mean_delta": (sum((row["arms"]["recall_prefetch"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task) / len(per_task)) if per_task else None,
-        "cluster_ci": _cluster_ci([(row["arms"]["recall_prefetch"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task]) if per_task else None,
-    }
+    # A task an arm never ran is UNMEASURED, not a task that arm failed. Coercing a missing rate
+    # to 0 scored a discarded cell as 0% success and dragged the gap toward the measured arm; the
+    # named contrasts above already drop None deltas, so the two families disagreed on the same
+    # data. Both gaps now use only tasks where BOTH arms have a rate, and publish that denominator.
+    for gap_name, arm in (("access_gap", "oracle_memory"), ("prefetch_gap", "recall_prefetch")):
+        deltas = [
+            row["arms"][arm]["rate"] - row["arms"]["recall"]["rate"]
+            for row in per_task
+            if row["arms"][arm]["rate"] is not None and row["arms"]["recall"]["rate"] is not None
+        ]
+        contrasts[gap_name] = {
+            "mean_delta": (sum(deltas) / len(deltas)) if deltas else None,
+            "cluster_ci": _cluster_ci(deltas),
+            "n_tasks": len(deltas),
+        }
     diagnostic_records = [record for record in records if isinstance(record.metadata.get("memory_diagnostic"), dict)]
     natural = [record for record in records if record.arm == "recall"]
     return {
@@ -92,12 +111,53 @@ def render_markdown(analysis: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def discarded_cells(admission_path: Path) -> set[tuple[str, int]]:
+    """The (task, seed) cells the admission gate refused, from a run's admission.json."""
+
+    report = json.loads(admission_path.read_text(encoding="utf-8"))
+    return {(str(cell[0]), int(cell[1])) for cell in report.get("discarded_cells", ())}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("records", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument(
+        "--admission",
+        type=Path,
+        default=None,
+        help="admission.json for this run; defaults to the one beside the records file",
+    )
+    parser.add_argument(
+        "--allow-unadmitted",
+        action="store_true",
+        help=(
+            "score every cell, including ones the gate discarded. Preregistration 003 carries an "
+            "exclusions list, so this is a deliberate departure from the frozen protocol and has "
+            "to be said out loud rather than reached by an absent file."
+        ),
+    )
     args = parser.parse_args()
-    analysis = compare(read_jsonl(args.records))
+
+    records = list(read_jsonl(args.records))
+    admission = args.admission or args.records.parent / "admission.json"
+    excluded: set[tuple[str, int]] = set()
+    if admission.is_file():
+        excluded = discarded_cells(admission)
+        records = [r for r in records if (r.task_id, r.seed) not in excluded]
+    elif not args.allow_unadmitted:
+        raise SystemExit(
+            f"no admission report at {admission}: refusing to score cells the gate never "
+            f"admitted. Point --admission at the run's admission.json, or pass "
+            f"--allow-unadmitted to score everything on purpose."
+        )
+
+    analysis = compare(records)
+    analysis["admission"] = {
+        "source": str(admission) if admission.is_file() else None,
+        "discarded_cells": sorted(list(cell) for cell in excluded),
+        "records_scored": len(records),
+    }
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "diagnostic_analysis.json").write_text(json.dumps(analysis, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (args.out_dir / "diagnostic_analysis.md").write_text(render_markdown(analysis), encoding="utf-8")
