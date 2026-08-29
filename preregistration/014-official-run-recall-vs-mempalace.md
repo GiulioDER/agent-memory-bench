@@ -248,3 +248,53 @@ Two consequences worth recording, because both are load bearing and neither is o
 | grid | dry run at 630 sessions, 165 / 150 / 150 / 165, five arms, clean |
 | instruction | each product carries its own shipped skill: recall 5,430 bytes, MemPalace 4,325 bytes |
 | suite | 587 passed, 4 skipped; `ruff check` clean |
+
+## 🔁 Correction, appended before the first session: the whole run moves onto VPS2
+
+The frozen text and the two corrections above describe a run driven from a Windows workstation,
+with recall reached on VPS2 over SSH and MemPalace running locally. **Every arm now runs on VPS2**,
+which is also where the corpus lives. The reason is operational: an interruption on the workstation
+must not be able to stop a 630 session run, and detaching a process there still leaves the run
+hostage to that machine.
+
+**What this changes about the measurement, stated plainly so a reader can judge it.**
+
+recall's frozen config moves from `transport: ssh` to `transport: host`. The command string that
+starts its MCP server is byte identical on either transport; only its carrier differs, a local
+shell instead of `ssh`. The pinned interpreter is still named in it, strict trust is still
+expressed by unsetting `RECALL_TRUST_MODE`, and the generation verification and row count run the
+same SQL. This is not a retrieval setting and cannot change what recall returns.
+
+⚠️ **It removes an asymmetry that would otherwise have been in the published numbers, and the
+asymmetry favoured MemPalace.** Under SSH, recall paid a network round trip on every tool call
+while MemPalace answered in process. Latency is not one of the four endpoints, so this could not
+have moved task success directly, but it could have reached the numbers through the 600 second
+session timeout, and a timeout driven discard is not neutral between arms. Under `host` neither
+product pays a hop. Discards remain published per condition with their reasons, so the check
+survives either way.
+
+**What is verified on VPS2 rather than assumed**, measured 2026-08-29:
+
+| check | result |
+|---|---|
+| interpreter | Python 3.12.3 there against 3.14 here; the suite is **585 passed, 6 skipped** on VPS2 |
+| Claude Code | 2.1.251, installed for this run; the harness spawns the real CLI per session |
+| recall corpus | `absent` verified through the host transport: 951 rows, 184 sessions, fingerprint matched |
+| recall server | up on the host transport, 20 tools served, all 8 allow listed present |
+| MemPalace | 3.8.0, 44 tools with all 20 allow listed present, ingest and retrieval both exercised |
+
+⚠️ **MemPalace embeds locally and VPS2 is not an idle machine.** Its ingest smoke took **69.5 s for
+4 sessions** on VPS2 against **7.1 s** on the workstation, part model download and part a host
+carrying load average 8.9 on 12 cores from live trading services. So the MemPalace arm's ingest is
+materially slower in the official run than in any preflight, and the run is bounded by a systemd
+scope (`MemoryMax=16G`, `MemorySwapMax=0`, `CPUQuota=500%`, `nice -n 10`) so that it is killed
+rather than the host. No endpoint depends on wall clock, and cost is reported in tokens.
+
+**One standing rule is relaxed for this run, deliberately and on the record.** The project rule is
+never two embedding processes on the embedding host. recall's embedding is `voyage:voyage-4`, a
+hosted API that consumes no local compute, so it does not contend. MemPalace's does, and is the
+reason the scope above exists rather than being waived along with the rule.
+
+The project itself is not pip installable (a flat layout defeats setuptools' package discovery), so
+it runs from the repository root as `python -m`, exactly as it does on the workstation. That is a
+pre existing condition, noted so a reader who tries `pip install -e .` is not surprised.
