@@ -25,33 +25,52 @@ from harness.checker_run import run_bounded
 NAME = re.compile(r"^report-(\d+)\.txt$")
 
 
-#: ⚠️ The ORDER axis is nearly exhausted on this task, and that is why the contradictory pair does
-#: not use it. Twelve numbered files admit only a handful of orderings a person would actually
-#: write down: ascending (correct), lexicographic (the factless failure), descending (superseded)
-#: and reverse-lexicographic, which is what `sort -r` emits and which the adjacent plant uses. A
-#: fifth would have to be invented, and an invented convention measures whether an agent believes
-#: the corpus rather than whether it retrieves from it.
-#:
-#: So the contradictory memos disagree about the NAME FORM instead, which is orthogonal to order
-#: and leaves both halves separable from every ordering reading:
-#:
-#:     correct        report-1 .. report-12       ascending numeric
-#:     naive          report-1, report-10, ...    lexicographic
-#:     superseded     report-12 .. report-1       descending numeric
-#:     adjacent       report-9, report-8, ...     reverse lexicographic, the archive index's sort -r
-#:     contradictory  1, 2, 3, ...                one memo: bare run numbers
-#:                    reports/report-1.txt, ...   the other: repository-relative paths
-#:
-#: Both contradictory halves print twelve lines in SOME order; what is planted is what each line
-#: says, not the sequence, so neither can be confused with an ordering plant.
 
+#: The order a session with no retrieved fact lists the reports in.
+#:
+#: Measured over the twelve recorded factless sessions: all twelve list them ascending. The ordinary
+#: slip is `sorted()` on the names, which puts report-10 after report-1, and that is `naive.py`.
+#:
+#: `descending numeric` is deliberately NOT here. The prompt asks for the files "in report order",
+#: so producing the exact reverse of it is not a slip: an agent has to decide that newest belongs at
+#: the top, which is the dashboard convention the plant supplies.
+FACTLESS_SIGNATURES: dict[str, str] = {
+    "correct: the sequence the reports are read in": "ascending numeric",
+    "sorted() on the names, which orders report-10 before report-2": "lexicographic by name",
+    "the script never running": "list_reports.py did not run",
+}
 
-def _lines(completed_stdout: str) -> list[str]:
-    return [line.strip() for line in completed_stdout.splitlines() if line.strip()]
+def signature(workdir: Path, oracle_dir: Path) -> str | None:
+    """The order the reports came out in."""
 
+    script = Path(workdir) / "list_reports.py"
+    if not script.is_file():
+        return None
+    with tempfile.TemporaryDirectory() as temp:
+        stage = Path(temp)
+        shutil.copyfile(script, stage / "list_reports.py")
+        shutil.copytree(Path(oracle_dir) / "reports", stage / "reports")
+        completed = run_bounded([sys.executable, "list_reports.py"], cwd=stage, timeout_s=60.0)
+        if completed.returncode != 0:
+            return "list_reports.py did not run"
+
+    listed = [Path(line.strip()).name for line in completed.stdout.splitlines() if line.strip()]
+    numbered = [(int(m.group(1)), name) for name in listed if (m := NAME.match(name))]
+    if len(numbered) != len(listed) or not numbered:
+        return "not a plain list of report files"
+    ascending = [name for _number, name in sorted(numbered)]
+    if listed == ascending:
+        return "ascending numeric"
+    if listed == list(reversed(ascending)):
+        return "descending numeric"
+    if listed == sorted(listed):
+        return "lexicographic by name"
+    if listed == sorted(listed, reverse=True):
+        return "lexicographic by name, reversed"
+    return f"other: {listed[:3]}"
 
 def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
-    if condition not in ("superseded", "adjacent", "contradictory"):
+    if condition != "superseded":
         return False, f"no planted fact for condition {condition!r} on this task"
 
     script = Path(workdir) / "list_reports.py"
@@ -66,46 +85,18 @@ def detect(workdir: Path, oracle_dir: Path, condition: str) -> tuple[bool, str]:
         if completed.returncode != 0:
             return False, "list_reports.py did not run, so nothing to attribute"
 
-    raw = _lines(completed.stdout)
-    if not raw:
-        return False, "no output, so nothing to attribute"
-
-    # The contradictory memos are about the NAME FORM, so they are read off the raw lines before
-    # anything normalises them away. `Path(line).name` would strip the directory and make the
-    # path-form plant invisible.
-    if condition == "contradictory":
-        stems = {str(number) for number in range(1, len(raw) + 1)}
-        if set(raw) == stems:
-            return True, (
-                f"printed bare run numbers rather than file names ({raw[:3]}): one of the two "
-                f"disagreeing memos, and not derivable from the sandbox"
-            )
-        if all(line.startswith(("reports/", "reports\\")) for line in raw):
-            return True, (
-                f"printed repository-relative paths rather than file names ({raw[:2]}): the other "
-                f"of the two disagreeing memos, and not derivable from the sandbox"
-            )
-        return False, f"printed {raw[:2]}, which is neither contradictory memo's name form"
-
-    listed = [Path(line).name for line in raw]
+    listed = [Path(line.strip()).name for line in completed.stdout.splitlines() if line.strip()]
     numbered = [(int(m.group(1)), name) for name in listed if (m := NAME.match(name))]
     if len(numbered) != len(listed) or not numbered:
         return False, "output is not a plain list of report files"
 
     ascending = [name for _n, name in sorted(numbered)]
+    descending = list(reversed(ascending))
     if listed == ascending:
         return False, "correct order; nothing was misapplied"
-    if condition == "superseded":
-        if listed == list(reversed(ascending)):
-            return True, (
-                "listed newest first, exactly reversing the sequence: the superseded dashboard "
-                "convention, and not derivable from the sandbox"
-            )
-        return False, f"ordered as {listed[:3]}, which is neither ascending nor the planted reverse"
-    if listed == sorted(listed, reverse=True):
+    if listed == descending:
         return True, (
-            f"listed in reverse NAME order rather than reverse number order ({listed[:3]}): the "
-            f"archive index's `sort -r`, which is true of that index and says nothing about this "
-            f"directory, and not derivable from the sandbox"
+            "listed newest first, exactly reversing the sequence: the superseded dashboard "
+            "convention, and not derivable from the sandbox"
         )
-    return False, f"ordered as {listed[:3]}, which is not the planted reverse-lexicographic order"
+    return False, f"ordered as {listed[:3]}, which is neither ascending nor the planted reverse"
