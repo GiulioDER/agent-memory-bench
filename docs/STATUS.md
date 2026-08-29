@@ -40,8 +40,8 @@ Four things this table carries that a reader should not have to reconstruct.
 3. **`pilot-004-placebo` and `midband-001` are cited by committed documents whose artifacts are
    not in this repository.** `reports/pilot-004-placebo-report.md` and preregistration 008's
    results section both point at `results/<run_id>/` paths that `git ls-files` does not return.
-   This is finding F7 of the adversarial audit and it is open: either those run directories are
-   committed, or the documents citing them say plainly that they cannot be checked.
+   This is open work: either those run directories are committed, or the documents citing them
+   say plainly that they cannot be checked.
 4. **The two published dollar figures were priced on different bases.** `pilot-003-deepseek` used
    the frozen preregistration 002 rates, `pilot-004-placebo` used `scripts/pilot.py`'s argparse
    defaults, and neither artifact recorded which. Compare runs on tokens. The arithmetic is in
@@ -131,16 +131,22 @@ grep -n '^ARMS' scripts/pilot.py
 
 ## What changed in the last week
 
-**2026-08-28, adversarial audit.** Twenty-two findings, written against the benchmark rather than
-for it, in
-[`docs/audit/2026-08-28-adversarial-benchmark-audit.md`](audit/2026-08-28-adversarial-benchmark-audit.md).
-Its verdict is worth holding against any temptation to read the pilots as a product ranking: the
-methodology infrastructure is strong, and none of it survives contact with the competitor
-comparison as it was designed, because the treatment was not the memory layer. Fourteen findings
-are fixed in code, six are documented and need a decision, three need measurement or recording
-that an audit must not do for itself.
+**2026-08-28, the instruction stopped being a confound.** Until then the recall arm carried 5,428
+characters of behavioural instruction while `fs_grep` carried 231 and the static arms carried
+none, and most of that difference was generic agent coaching that would have helped any arm. So
+the treatment was not the memory layer, and no pilot in the table above measured what its
+headline says it measured. Every memory arm now receives `adapters/_shared/memory_protocol.md`
+byte-identical plus its own result-schema appendix capped at 1,200 bytes; the `protocol` arm
+isolates the coaching from the retrieval; and per-arm instruction sizes are published in every
+run's `environment.json`. This is the single strongest reason not to read the pilots as a product
+ranking.
 
-**2026-08-29, three protocol-sensitive fixes.** Held back from the audit's fix PR because each
+The same week closed several smaller holes: the mechanism metric no longer matches on a source
+filename, the adapters are on the measured path, sandboxes are built outside the repository, the
+retry no longer re-rolls timeouts, harm is reported as a band rather than a point, and the
+sandbox digest is actually compared rather than merely documented.
+
+**2026-08-29, three protocol-sensitive fixes.** Held back from that week's fix PR because each
 moves a number a frozen preregistration rests on, then landed together with the break stated:
 [`docs/audit/2026-08-29-protocol-change-record.md`](audit/2026-08-29-protocol-change-record.md).
 

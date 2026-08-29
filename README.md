@@ -22,10 +22,14 @@ run nor a multi-product run has happened.
 Three things landed in the week to 2026-08-29, and each changes how the earlier numbers must be
 read.
 
-1. **An adversarial audit, written against this benchmark rather than for it**, raised 22
-   findings. Fourteen are fixed in code, six are documented and need a decision, three need
-   measurement or recording that an audit must not do for itself.
-   [`docs/audit/2026-08-28-adversarial-benchmark-audit.md`](docs/audit/2026-08-28-adversarial-benchmark-audit.md).
+1. **The instruction stopped being a confound.** Until 2026-08-28 the recall arm carried 5,428
+   characters of behavioural instruction while `fs_grep` carried 231 and the static arms carried
+   none, and most of that difference was generic agent coaching that would have helped any arm.
+   Every memory arm now receives `adapters/_shared/memory_protocol.md` byte-identical, plus its
+   own result-schema appendix capped at 1,200 bytes, and the `protocol` arm exists to separate
+   the coaching from the retrieval. Per-arm instruction sizes are published in every run's
+   `environment.json`. **Every published number predates this change**, so every result in this
+   repository was measured under the old instruction budget.
 2. **Three protocol-sensitive fixes**, each of which moves a number a frozen preregistration
    rests on, landed together with the break stated rather than absorbed: a grader that rejected
    correct solutions about 40% of the time, a checker crash that discarded the whole paired cell
@@ -165,7 +169,7 @@ starts.
 | `oracles/<id>/` | checker inputs the sandbox never contains |
 | `preregistration/` | committed before measuring; a guard blocks runs while it is dirty |
 | `results/<run_id>/` | full per-session logs, streams, admission verdicts, costs |
-| `docs/` | design notes and dated records; [`docs/STATUS.md`](docs/STATUS.md) is the state of the benchmark, `docs/audit/` the audits and protocol changes |
+| `docs/` | design notes and dated records; [`docs/STATUS.md`](docs/STATUS.md) is the state of the benchmark, `docs/audit/` the record of changes to the instrument |
 | `reports/` | the written report for a completed run |
 | `site/` | the published pages, deployed verbatim with no build step |
 

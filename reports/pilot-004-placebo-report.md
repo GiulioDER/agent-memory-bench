@@ -273,10 +273,9 @@ discard count alone would quietly change what that count means.
 **The artifacts this report names are not committed to the repository.** The Reproducibility
 section above lists four paths under `results/pilot-004-placebo/`, and `git ls-files results`
 does not return any of them. Every number in this report was computed from those files, and a
-reader cannot currently check a single one. This is finding F7 of the
-[2026-08-28 adversarial audit](../docs/audit/2026-08-28-adversarial-benchmark-audit.md): either
-the run directory is committed or the documents citing it say plainly that it cannot be checked.
-This is the saying so. The same holds for `midband-001`, cited by preregistration 008.
+reader cannot currently check a single one. Either the run directory is committed, or the
+documents citing it say plainly that it cannot be checked. This is the saying so. The same holds
+for `midband-001`, cited by preregistration 008.
 
 **This run's dollar figures are not comparable with `pilot-003-deepseek`'s.** It was priced at
 `scripts/pilot.py`'s argparse defaults, 0.05866 / 0.11732, while `pilot-003-deepseek` used the
