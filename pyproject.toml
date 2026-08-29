@@ -13,6 +13,14 @@ dev = ["pytest==9.1.1", "ruff==0.16.2"]
 # adapters/<name>/versions.lock at the preregistration freeze. Nothing here, on purpose:
 # the harness itself is stdlib-only so a reviewer can read it without an environment.
 
+# Without this, `pip install -e .` fails outright: setuptools finds `site`, `corpus`, `docker`,
+# `results`, `oracles` and the rest sitting beside the real packages in a flat layout, refuses to
+# guess which are importable, and stops. The harness runs as `python -m` from the repository root
+# so nothing here ever noticed, and CI installs from requirements-dev.txt so CI never noticed
+# either. Anyone trying to install the project to reproduce a result hit it immediately.
+[tool.setuptools.packages.find]
+include = ["harness*", "adapters*", "scripts*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

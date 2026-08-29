@@ -298,3 +298,12 @@ reason the scope above exists rather than being waived along with the rule.
 The project itself is not pip installable (a flat layout defeats setuptools' package discovery), so
 it runs from the repository root as `python -m`, exactly as it does on the workstation. That is a
 pre existing condition, noted so a reader who tries `pip install -e .` is not surprised.
+
+## 🔁 Correction, appended 2026-08-30: the packaging defect above is fixed
+
+The paragraph immediately above says the project is not pip installable. That was true when it was
+written and is no longer true: `[tool.setuptools.packages.find]` now scopes discovery to
+`harness*`, `adapters*` and `scripts*`, and `pip install -e .` succeeds. The sentence is left
+standing rather than edited, because a record of what was believed at the time is the thing this
+document is for. Nothing about the run changes: the harness still executes as `python -m` from the
+repository root, exactly as it did on the workstation and as it does on VPS2.
