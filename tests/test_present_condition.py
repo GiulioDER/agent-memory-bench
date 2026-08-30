@@ -224,3 +224,28 @@ def test_a_damage_detector_still_refuses_present():
 
     with pytest.raises(ValueError, match="unknown corpus condition"):
         detect_damage(REPO / "tasks" / "ts-tz-utc", REPO, REPO / "oracles", PRESENT)
+
+
+def test_the_assembler_default_matches_what_a_run_would_build():
+    """Two paths to "which tasks does this condition cover" must not give two answers.
+
+    `scripts/abstention.py` runs `selection_for`, which subtracts RETIRED_TASKS. The assembler
+    CLI used `default_selection` raw, so a hand-assembled `adjacent` corpus carried 16 planted
+    tasks where a real run carries 12: for each retired task the corpus withheld the real session
+    and planted over it, producing a feed no run would ever build.
+
+    That is not hypothetical. Two sessions comparing plant ranks on `ts-glob-hidden` got answers
+    45 positions apart, and this was why: one had assembled through each path, so they were not
+    ranking the same corpus and, for that task, not even the same kind of document.
+    """
+
+    from scripts.abstention import RETIRED_TASKS, selection_for
+
+    for condition in ("adjacent", "absent", PRESENT):
+        buildable = default_selection(condition)
+        runner = selection_for(condition, announce=False)
+        cli_default = [task for task in buildable if task not in RETIRED_TASKS]
+        assert cli_default == runner, (
+            f"{condition}: the assembler CLI default and the abstention runner disagree about "
+            f"the task set. A corpus built by hand would not be the corpus a run measures."
+        )

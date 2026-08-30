@@ -262,7 +262,29 @@ def main() -> int:
                 "an arbitrary existing directory"
             )
 
-    selection = list(args.tasks) if args.tasks else default_selection(args.condition)
+    if args.tasks:
+        # An explicit list is obeyed exactly, including a retired task: assembling one
+        # deliberately is legitimate and the caller has said what they want.
+        selection = list(args.tasks)
+    else:
+        # ⛔ The DEFAULT must match what a run would build, and for two days it did not.
+        # `scripts/abstention.py` runs `selection_for`, which subtracts RETIRED_TASKS; this CLI
+        # used `default_selection` raw, so a hand-assembled `adjacent` corpus carried 16 planted
+        # tasks where a real run carries 12. The four extra are the retired ones, and for each of
+        # them the corpus WITHHELD the real session and planted over it, so a probe pointed at
+        # that corpus was measuring a feed no run produces.
+        #
+        # Found on 2026-08-30 by two sessions comparing plant ranks and getting answers 45
+        # positions apart on `ts-glob-hidden`: one had assembled through this path and the other
+        # through the runner's. Imported inside the function because `scripts.abstention` imports
+        # this module at load time.
+        from scripts.abstention import RETIRED_TASKS
+
+        buildable = default_selection(args.condition)
+        selection = [task for task in buildable if task not in RETIRED_TASKS]
+        for task in buildable:
+            if task in RETIRED_TASKS:
+                print(f"[retired] {args.condition}: {task} excluded ({RETIRED_TASKS[task]})")
     if not selection:
         raise SystemExit(
             f"no task declares the {args.condition!r} condition; nothing to assemble"
