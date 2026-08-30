@@ -67,11 +67,24 @@ from scripts.assemble_condition_corpus import assemble
 #
 # See docs/reviews/2026-08-30-instrument-review.md. official-001 spent 82.2% of its sessions on
 # cells where every arm produced the same outcome; this is the first cut against that.
+#
+# Extended 2026-08-30 by `scripts/task_admission.py`, which pools the seven committed runs and
+# reports capacity per task. It found two more with zero failures across every arm. Their counts
+# are lower than the four above because this pooling sees only what is COMMITTED to `results/`,
+# and official-001's records are not in the tree; that is a smaller evidence base, not a
+# different verdict, and it is stated here rather than smoothed over.
+#
+#     python -m scripts.task_admission --retrieval results/retrieval/015-bm25-ablation.json
 RETIRED_TASKS = {
     "ts-glob-hidden": "0 failures in 113 sessions, every arm, every run",
     "ts-bool-env": "0 failures in 62 sessions",
     "ts-csv-quote": "0 failures in 54 sessions",
     "ts-append-only": "1 failure in 117 sessions, which cannot separate two arms either",
+    "ts-ignore-gen": "0 failures in 60 committed sessions across 7 runs",
+    # ⚠️ Thinner than every other entry: 18 sessions is enough to see that nothing has failed and
+    # not enough to be confident nothing would. Re-admit this one first if the suite ever needs
+    # tasks back, and re-screen it against a harder model before trusting the retirement.
+    "ts-natural-order": "0 failures in 18 committed sessions, a thin base; re-screen before reuse",
 }
 
 

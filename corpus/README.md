@@ -38,3 +38,23 @@ usernames; redacting them afterwards would break the verbatim rule, so the fix i
 prevention. Sessions recorded on the Windows dev machine are **pipeline-validation
 recordings**; the corpus for the preregistered run is recorded inside the Docker harness,
 where paths and users are neutral by construction.
+
+## The generated haystack (added 2026-08-30)
+
+The three rules above govern **this directory**. They do not govern `corpus/haystack/`, and that
+is why the haystack is a separate directory rather than more files in `distractors/`.
+
+`scripts/generate_haystack.py --scale 25 --seed 1` assembles a corpus root of 4,875 documents:
+these 195 real files copied byte for byte, plus 4,680 generated sessions under `synthetic/`.
+Generated sessions are **not verbatim agent output**. They are structurally real (the tool
+results are real reads of a real generated repository) and their provenance, tier, domain and
+near-miss target are recorded per file in `haystack.json`, along with the sha256 of the
+generator. A haystack is reproduced from its seed rather than committed, because 25x is 20 MB.
+
+Rule 3 still holds and is enforced the same way: every generated session is checked against
+every task's `fact_terms`, and a violator is discarded rather than emitted.
+
+⚠️ **A run against a haystack root is not comparable with any published run.** `corpus/` remains
+the frozen 195-entry feed and `corpus/manifest.json` is never rewritten by the generator. See
+`docs/RETRIEVAL_DIFFICULTY.md` for what the haystack measured, including the finding that corpus
+size on its own changed retrieval by nothing at all.
