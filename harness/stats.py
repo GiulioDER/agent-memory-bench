@@ -180,9 +180,52 @@ class TaskRate:
         return {**asdict(self), "delta": self.delta}
 
 
+#: Tasks that encode ONE convention, mapped to the unit they should be resampled as.
+#:
+#: `scripts/audit_corpus.py` flags task pairs that share fact vocabulary, on the grounds that two
+#: tasks encoding one convention are not two independent units while the bootstrap assumes they
+#: are. It flags and exits 0, so acting on it is a separate decision; this is where that decision
+#: is recorded.
+#:
+#: `ts-golden-regen` and `ts-ignore-gen` are one convention, "do not hand-edit this generated
+#: file, run the script", applied to test goldens and to an ignore file. A product that
+#: misunderstands it fails both, so counting them twice overstates how many independent hazards
+#: agreed. official-001 already measured a memory arm failing ts-ignore-gen in 3 of 12 cells.
+#:
+#: ⚠️ Collapsing can only WIDEN an interval, never narrow one. That asymmetry is why this is the
+#: safe correction to make from a warning rather than from a measurement: being wrong here costs
+#: confidence, and being wrong the other way costs correctness.
+CONVENTION_CLUSTERS: dict[str, str] = {
+    "ts-golden-regen": "generated-file-has-a-script",
+    "ts-ignore-gen": "generated-file-has-a-script",
+}
+
+
+def cluster_key(task: str) -> str:
+    """The unit `task` is resampled as. Its own name unless it shares a convention."""
+
+    return CONVENTION_CLUSTERS.get(task, task)
+
+
+def collapse_to_clusters(tasks: Sequence[str], deltas: Sequence[float]) -> list[float]:
+    """One delta per convention, averaging the tasks that share one.
+
+    Averaging rather than picking one keeps every task's evidence in the estimate while removing
+    the double count from the resampling weight, which is the part that inflates confidence.
+    """
+
+    if len(tasks) != len(deltas):
+        raise ValueError("tasks and deltas must be the same length")
+    grouped: dict[str, list[float]] = {}
+    for task, delta in zip(tasks, deltas, strict=True):
+        grouped.setdefault(cluster_key(str(task)), []).append(float(delta))
+    return [sum(v) / len(v) for _, v in sorted(grouped.items())]
+
+
 def cluster_bootstrap(
     per_task_deltas: Sequence[float],
     *,
+    tasks: Sequence[str] | None = None,
     iterations: int = 10_000,
     confidence: float = 0.95,
     seed: int = 12345,
@@ -199,7 +242,19 @@ def cluster_bootstrap(
     r = 0.625, the mean absolute difference is 0.146, and 5 of 24 tasks flip sign or move by at
     least 0.50. Resampling tasks within one run treats each task's delta as measured without error.
     It is not. Quote this interval with that stated, or report both runs.
+
+    Pass ``tasks`` to collapse convention-sharing tasks into one unit first, per
+    ``CONVENTION_CLUSTERS``. Without it every task counts once, which is right only when no two
+    of them encode the same convention.
     """
+
+    if tasks is not None:
+        keep = [
+            (str(t), float(d))
+            for t, d in zip(tasks, per_task_deltas, strict=True)
+            if d is not None and math.isfinite(float(d))
+        ]
+        per_task_deltas = collapse_to_clusters([t for t, _ in keep], [d for _, d in keep])
 
     usable = [float(d) for d in per_task_deltas if d is not None and math.isfinite(float(d))]
     if len(usable) < 2 or len(set(usable)) == 1:
@@ -284,22 +339,26 @@ def summarize_by_task(
     improved = sum(1 for d in deltas if d < 0)
     worsened = sum(1 for d in deltas if d > 0)
 
-    cluster_ci = None
-    if len(rates) >= 2 and len(set(deltas)) > 1:
-        rng = random.Random(seed)
-        size = len(rates)
-        means = sorted(
-            sum(deltas[rng.randrange(size)] for _ in range(size)) / size for _ in range(n)
-        )
-        lo_q = (1.0 - confidence) / 2.0
-        cluster_ci = (
-            means[min(len(means) - 1, int(lo_q * len(means)))],
-            means[min(len(means) - 1, int((1.0 - lo_q) * len(means)))],
-        )
+    # 🔁 This carried its OWN copy of the bootstrap until 2026-08-30, while cluster_bootstrap's
+    # docstring described itself as "THE single implementation". It was not: this copy computed
+    # every `cluster_ci` the harm suite publishes, so the shared function and the reported number
+    # came from different code. That is exactly the condition that docstring was written about,
+    # reintroduced one function below it.
+    clusters = collapse_to_clusters([r.task for r in rates], deltas)
+    cluster_ci = cluster_bootstrap(
+        deltas,
+        tasks=[r.task for r in rates],
+        iterations=n,
+        confidence=confidence,
+        seed=seed,
+    )
 
     return {
         "tasks": [r.to_dict() for r in rates],
         "n_tasks": len(rates),
+        # The resampling unit, which is smaller than n_tasks whenever two tasks share a
+        # convention. Published so a reader can see the collapse rather than infer it.
+        "n_clusters": len(clusters),
         "mean_delta": sum(deltas) / len(deltas),
         "improved": improved,
         "worsened": worsened,

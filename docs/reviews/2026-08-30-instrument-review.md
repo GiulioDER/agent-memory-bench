@@ -168,3 +168,21 @@ Three options, none taken yet because each is a measurement decision:
 ⚠️ The audit prints this as a warning and exits 0, so CI does not stop it. A warning nobody acts
 on is a warning that will still be there at the next run; this section exists so the decision is
 recorded rather than rediscovered.
+
+**Decision taken, same day: option 1.** `harness.stats.CONVENTION_CLUSTERS` maps both tasks to one
+resampling unit, `cluster_bootstrap` collapses on it, and `summarize_by_task` publishes
+`n_clusters` beside `n_tasks` so a reader can see the collapse rather than infer it. Option 3
+would give a better instrument and was rejected on cost: re-axing either convention invalidates
+plants and recorded sessions that already exist for both tasks.
+
+The asymmetry is what makes this safe to do from a warning rather than from a measurement.
+**Collapsing correlated units can only widen an interval, never narrow one.** Being wrong here
+costs confidence; being wrong the other way costs correctness, and publishes an interval that is
+too tight. Verified on a worked example: 0.450 wide becomes 0.600.
+
+🔁 Acting on it also uncovered a defect the warning had nothing to do with. `summarize_by_task`
+carried its **own copy** of the bootstrap while `cluster_bootstrap`'s docstring described itself
+as "THE single implementation", a claim written after exactly that duplication had caused two
+answers to "what is the CI". The copy computed every `cluster_ci` the harm suite publishes, so the
+shared function and the published number came from different code, one function apart.
+`tests/test_convention_clusters.py` now asserts the docstring's claim is true.
