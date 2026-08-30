@@ -53,7 +53,7 @@ from harness.abstention import cells_from_records, endpoints
 from harness.adapters.base import CorpusManifest
 from harness.costs import add_pricing_arguments, pricing_from_args
 from harness.damage import CORPUS_CONDITIONS
-from scripts.assemble_condition_corpus import assemble, default_selection
+from scripts.assemble_condition_corpus import assemble, default_selection, excluded_by_class
 
 CORPUS = REPO / "corpus"
 
@@ -121,6 +121,14 @@ def selection_for(condition: str, *, announce: bool = True) -> list[str]:
     """
 
     declared = default_selection(condition)
+
+    # `default_selection` already applied the class filter, so the assembler and this runner cannot
+    # disagree about which tasks are under test. Announce what it removed: a grid that shrinks
+    # without saying so is the failure this docstring is about.
+    if announce:
+        for task, reason in excluded_by_class(condition):
+            print(f"[out of class] {condition}: {task} excluded ({reason})")
+
     kept = [t for t in declared if t not in RETIRED_TASKS]
     dropped = [t for t in declared if t in RETIRED_TASKS]
     if dropped and announce:
