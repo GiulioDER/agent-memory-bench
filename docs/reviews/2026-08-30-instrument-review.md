@@ -186,3 +186,43 @@ as "THE single implementation", a claim written after exactly that duplication h
 answers to "what is the CI". The copy computed every `cluster_ci` the harm suite publishes, so the
 shared function and the published number came from different code, one function apart.
 `tests/test_convention_clusters.py` now asserts the docstring's claim is true.
+
+## 9. 🔁 Correction to section 4, appended 2026-08-30: "the only lever" is embedder-specific
+
+Section 4 says corpus scale is **"the only lever that raises difficulty for the memory arms
+without moving `bare`"**. A parallel measurement retires the general form of that claim.
+
+A retrieval-only probe (fixed BM25 over 160-word windows, plus a hosted voyage-4 backend, no model
+and no spend) was run against the frozen feed and against a 25x corpus assembled beside it:
+
+| corpus | BM25 hit@1 | voyage hit@1 | voyage hit@10 |
+|---|---:|---:|---:|
+| real feed, 195 documents | 0.485 | 0.394 | **1.000** |
+| 25x, no hard negatives | 0.485 | 0.394 | 0.939 |
+| 25x, default mix | 0.182 | 0.333 | 0.879 |
+
+Adding 4,680 ordinary sessions moved BM25's competitor count from 2.42 to 2.45, which is nothing,
+and moved Voyage's from 1.79 to 7.36. Prompt-vocabulary hard negatives supply 72.5% of BM25's
+competitors and 33.0% of Voyage's.
+
+**So scale is a lever against an embedder and close to no lever against a term ranker**, and which
+lever bites depends on what the product retrieves with. Section 4's recommendation to grow the
+corpus stands; its claim to be the *only* such lever does not, and hard negatives built from a
+task prompt's own vocabulary are the lever a term ranker responds to.
+
+### It also sharpens the reranker question rather than settling it
+
+`voyage hit@10 = 1.000` on the real feed **reconciles** preregistration 014's `hit@1 = 20/20`
+rather than contradicting it: a reranker over the top k starts from a perfect candidate set there,
+so there is genuinely nothing for it to win. On the 25x corpus the correct session is ranked first
+only 33% of the time and falls outside the top ten 12% of the time, so the candidate set itself
+degrades.
+
+⚠️ That probe measures the CORPUS, not any product's own retrieval pipeline, so it motivates
+re-taking 014's decision to disable the reranker without settling it. It arrives at the same place
+as section 7 of this review by a different route: the metric that justified the decision cannot
+see the failure mode that dominated the run.
+
+⚠️ **The haystack is a THIRD feed.** Nothing measured on it may be differenced against the
+125-entry or 195-entry feeds, which is every run this repository has published, `official-001`
+included.
