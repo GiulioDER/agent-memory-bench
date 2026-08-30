@@ -1,0 +1,1 @@
+The golden files are hard to diff because the checksum sits at the bottom and moves every time the body changes. notes/diff_noise.md has the complaint and notes/header_convention.md is what was proposed. Read them and write down where the checksum belongs.

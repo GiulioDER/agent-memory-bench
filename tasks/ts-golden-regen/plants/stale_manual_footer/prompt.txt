@@ -1,0 +1,1 @@
+The goldens under tests/golden/ have a footer line and I cannot find where it is written. tooling/precommit_golden.sh is the hook we used to run and tooling/hook_removal.md is why we stopped. Work out what the hook was stamping into those files and write down how goldens were maintained back then, so the note in the repo stops being wrong.
