@@ -42,6 +42,7 @@ import json
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterable
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -245,7 +246,41 @@ def run_condition(args, condition: str) -> Path:
 SEARCH_RATE_FLOOR = 0.50
 
 #: Arms whose treatment is a memory surface, so a search rate is defined for them.
-MEMORY_ARMS = frozenset({"recall", "fs_grep"})
+# Arms whose treatment IS retrieval, and which therefore need a search rate beside every
+# endpoint. Preregistration 014 requires one per memory arm, with 0.50 as the floor below which
+# the endpoints are not interpretable.
+#
+# ⛔ `mempalace` was missing from this set for the whole of `official-001`, so the run published
+# no search rate for it and never applied the floor to it. It was not a small omission: measured
+# afterwards on the `absent` condition, recall searched in 28 of 33 sessions (0.848) and mempalace
+# in 18 of 33 (0.545), which is barely above the floor and materially different from the arm it is
+# being compared against. The endpoints were computed as though that were unknown, because it was.
+#
+# The failure mode is what makes it worth a comment: adding a product arm to the run required no
+# change here, so the arm ran, produced records, and was silently exempted from the one check that
+# decides whether its numbers mean anything. `_classify_arms` below now refuses an arm that is in
+# neither set, so the next product cannot repeat it.
+MEMORY_ARMS = frozenset({"recall", "mempalace", "fs_grep"})
+
+# Arms with no retrieval surface. A search rate for these is meaningless, not missing.
+NON_MEMORY_ARMS = frozenset({"bare", "placebo", "claude_md", "protocol"})
+
+
+def _classify_arms(arms: Iterable[str]) -> None:
+    """Refuse a run whose arms are not all classified as memory or non-memory.
+
+    Silence is the whole hazard here. An unclassified arm does not error, it simply never appears
+    in `search_rates`, and a reader sees a table with one fewer row rather than a warning.
+    """
+
+    unknown = sorted(set(arms) - MEMORY_ARMS - NON_MEMORY_ARMS)
+    if unknown:
+        raise SystemExit(
+            f"arm(s) {unknown} are classified neither as memory arms nor as memoryless controls. "
+            f"Add them to MEMORY_ARMS or NON_MEMORY_ARMS in scripts/abstention.py. An "
+            f"unclassified arm silently gets no search rate and no interpretability floor, which "
+            f"is how official-001 published endpoints for an arm whose search rate nobody knew."
+        )
 
 
 def search_rate_for(run_dir: Path) -> dict[str, float]:
@@ -327,6 +362,11 @@ def main() -> int:
         "refused either way: it must be archived by hand, because resuming one would mix "
         "two runs' sessions inside a single condition.",
     )
+    parser.add_argument(
+        "--analyse-only",
+        action="store_true",
+        help="recompute the endpoints from conditions that already finished; run nothing",
+    )
     parser.add_argument("--dry-run", action="store_true")
     add_pricing_arguments(parser)
     args = parser.parse_args()
@@ -351,16 +391,32 @@ def main() -> int:
             "than merely weaker. Preregistration 005 says so in terms."
         )
 
+    _classify_arms(arms)
+
     cells = []
-    conditions = plan_conditions(args.run_id, list(conditions), resume=args.resume)
+    requested = list(conditions)
     run_dirs = {}
     search_rates: dict[str, float | None] = {}
-    for condition in conditions:
-        run_dirs[condition] = run_condition(args, condition)
-        if not args.dry_run:
-            cells.extend(load_cells(run_dirs[condition], condition))
-            for arm, rate in search_rate_for(run_dirs[condition]).items():
+
+    # `--analyse-only` re-derives the endpoints from conditions that already finished, running
+    # nothing and spending nothing. It exists because the endpoints of `official-001` had to be
+    # recomputed after a bug in arm classification, and without it the only way to fix a analysis
+    # defect was to re-run 630 sessions, which would have replaced the very data being corrected.
+    if not args.analyse_only:
+        for condition in plan_conditions(args.run_id, requested, resume=args.resume):
+            run_dirs[condition] = run_condition(args, condition)
+
+    if not args.dry_run:
+        for condition in requested:
+            run_dir = REPO / "results" / f"{args.run_id}-{condition}"
+            if condition_state(run_dir) != "complete":
+                print(f"[analyse] skipping {condition}: not complete")
+                continue
+            run_dirs[condition] = run_dir
+            cells.extend(load_cells(run_dir, condition))
+            for arm, rate in search_rate_for(run_dir).items():
                 search_rates[f"{arm}[{condition}]"] = rate
+        conditions = sorted(run_dirs)
 
     if args.dry_run:
         print("\n[dry-run] nothing was ingested, run or analysed")

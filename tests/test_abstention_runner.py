@@ -329,3 +329,27 @@ def test_the_dry_run_assembles_a_real_corpus_and_executes_nothing():
     assert "session file(s) in the feed" in out
     assert "nothing was ingested, run or analysed" in out
     assert not (REPO / "results" / "unit-probe-absent").exists()
+
+
+def test_an_unclassified_arm_is_refused_rather_than_silently_skipped():
+    """Mutation: pass an arm that is in neither MEMORY_ARMS nor NON_MEMORY_ARMS.
+
+    This exists because of `official-001`. `mempalace` was never added to MEMORY_ARMS, so the run
+    published no search rate for it and never applied the 0.50 interpretability floor to it.
+    Recomputed afterwards, its rate on `absent` was 0.545 against recall's 0.848: barely above the
+    floor, and materially different from the arm it was being compared against.
+
+    Nothing errored. The arm ran, produced records, and was simply absent from one table. A
+    reader would have seen four rows where there should have been eight and had no reason to
+    count. Refusing up front is the only version of this check that cannot be missed.
+    """
+
+    import pytest
+
+    from scripts.abstention import _classify_arms
+
+    _classify_arms(["bare", "claude_md", "recall", "mempalace"])  # must not raise
+
+    with pytest.raises(SystemExit) as excinfo:
+        _classify_arms(["bare", "recall", "brand_new_product"])
+    assert "brand_new_product" in str(excinfo.value)
