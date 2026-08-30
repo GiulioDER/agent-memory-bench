@@ -110,7 +110,11 @@ class CorpusManifest:
 
         root = Path(corpus_root)
         sessions: dict[str, str] = {}
-        for pattern in ("sessions/**/*.jsonl", "distractors/*.jsonl"):
+        # `synthetic/` is the generated haystack (scripts/generate_haystack.py). It is absent
+        # from `corpus/` and present only in an assembled haystack root, so listing it here
+        # leaves the frozen 195-entry feed byte identical while letting a large corpus be an
+        # ordinary corpus root that every adapter already understands.
+        for pattern in ("sessions/**/*.jsonl", "distractors/*.jsonl", "synthetic/**/*.jsonl"):
             for path in sorted(root.glob(pattern)):
                 rel = path.relative_to(root).as_posix()
                 sessions[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
