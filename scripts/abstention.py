@@ -312,17 +312,40 @@ def _classify_arms(arms: Iterable[str]) -> None:
         )
 
 
-def search_rate_for(run_dir: Path) -> dict[str, float]:
-    """Fraction of each memory arm's admitted cells that called its memory at least once.
+def search_rate_for(run_dir: Path, *, admitted_only: bool = True) -> dict[str, float]:
+    """Fraction of a memory arm's cells that called its memory at least once.
 
-    Reported beside every endpoint because it decides whether they mean anything. pilot-003 and
-    pilot-004 measured 0.833 and 0.857 overall with the same instruction; a run far below that is
-    measuring an arm that did not use its treatment.
+    ``admitted_only=True`` (the default) counts ADMITTED cells, which is what the interpretability
+    floor is applied to, because the endpoints that floor gates are computed over admitted cells
+    and a discarded cell carries no outcome. ``admitted_only=False`` counts every cell the arm
+    RAN, which answers a different and also useful question: did the model reach for its memory
+    at all? That is a fact about the instruction rather than the outcome, and a session that
+    searched and then crashed is evidence for it.
+
+    ⚠️ Both are published, because this function had THREE artefacts disagreeing about which it
+    meant: this docstring said admitted, the body counted every record,
+    `tests/test_search_rate_gate.py` asserts cells-run by name, and `main()` gates admitted-cell
+    endpoints on the result. The docstring's own reference figure decided it: 0.857 for
+    pilot-004 reproduces only under the admitted denominator, where the as-coded value was 0.750.
+
+    The two differ by up to 0.153 on published runs and the direction is NOT fixed, because a
+    cell is discarded for wiring or error reasons rather than for failing to search:
+    diagnostic-010's discarded cells searched at 1.000, above its admitted rate. pilot-003 and
+    pilot-004 measured 0.833 and 0.857 admitted with the same instruction; a run far below that
+    is measuring an arm that did not use its treatment.
     """
 
     records_path = run_dir / "records.final.jsonl"
     if not records_path.is_file():
         return {}
+
+    discarded: set[tuple[str, int]] = set()
+    if admitted_only:
+        report_path = run_dir / "admission.json"
+        if report_path.is_file():
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            discarded = {(str(c[0]), int(c[1])) for c in report.get("discarded_cells", ())}
+
     calls: dict[str, list[bool]] = {}
     for line in records_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -330,6 +353,8 @@ def search_rate_for(run_dir: Path) -> dict[str, float]:
         record = json.loads(line)
         arm = str(record["arm"])
         if arm not in MEMORY_ARMS:
+            continue
+        if (str(record["task_id"]), int(record["seed"])) in discarded:
             continue
         calls.setdefault(arm, []).append(int(record.get("memory_call_count") or 0) > 0)
     # A memory arm that searched in NONE of its cells still gets a rate of 0.0, because that is
@@ -470,6 +495,7 @@ def main() -> int:
     requested = list(conditions)
     run_dirs = {}
     search_rates: dict[str, float | None] = {}
+    search_rates_run: dict[str, float | None] = {}
 
     # `--analyse-only` re-derives the endpoints from conditions that already finished, running
     # nothing and spending nothing. It exists because the endpoints of `official-001` had to be
@@ -489,6 +515,8 @@ def main() -> int:
             cells.extend(load_cells(run_dir, condition))
             for arm, rate in search_rate_for(run_dir).items():
                 search_rates[f"{arm}[{condition}]"] = rate
+            for arm, rate in search_rate_for(run_dir, admitted_only=False).items():
+                search_rates_run[f"{arm}[{condition}]"] = rate
         conditions = sorted(run_dirs)
 
     if args.dry_run:
@@ -503,7 +531,13 @@ def main() -> int:
     report = endpoints(cells, arms)
     report["conditions"] = conditions
     report["n_cells"] = len(cells)
+    # Both, under distinct names, so a reader can see the gap rather than take one on trust.
+    # `search_rates` is admitted-only and is what `interpretable` is computed from, because the
+    # endpoints it gates are admitted-only. `search_rates_all_cells` counts every cell the arm
+    # ran, which measures whether the model reached for its memory at all.
+    search_rates_run = fill_missing_search_rates(search_rates_run, arms, conditions)
     report["search_rates"] = search_rates
+    report["search_rates_all_cells"] = search_rates_run
     # A memory arm that never searched cannot be damaged by what it would have retrieved, so a
     # low rate does not weaken these endpoints, it voids them. Preregistration 002 already uses
     # 0.50 as a floor for model eligibility; the same number is applied here rather than a new

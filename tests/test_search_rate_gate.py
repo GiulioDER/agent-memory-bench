@@ -61,12 +61,76 @@ def test_arms_with_no_memory_surface_have_no_search_rate(tmp_path):
     assert "bare" not in MEMORY_ARMS and "claude_md" not in MEMORY_ARMS
 
 
-def test_the_rate_is_cells_that_searched_over_cells_run(tmp_path):
+def test_the_rate_is_cells_that_searched_over_cells_admitted(tmp_path):
+    """⚠️ Renamed 2026-08-30. This was `..._over_cells_run`, and that name was half of a
+    three-way disagreement about what the number means.
+
+    `search_rate_for`'s docstring said ADMITTED cells, its body counted every record, this test
+    asserted cells RUN by name, and `main()` gated admitted-cell endpoints on the result. With no
+    discards the two denominators coincide, which is why this fixture never distinguished them
+    and the disagreement survived.
+
+    Both are computed now. The default is admitted, because that is the population the endpoints
+    the floor gates are computed over.
+    """
+
     run = _run_dir(
         tmp_path,
         [_row("recall", 1, 0), _row("recall", 0, 1), _row("recall", 3, 2), _row("recall", 0, 3)],
     )
     assert search_rate_for(run)["recall"] == 0.5
+    assert search_rate_for(run, admitted_only=False)["recall"] == 0.5, (
+        "with no discards the two denominators must agree; a fixture where they cannot differ "
+        "is what let three artefacts disagree for months"
+    )
+
+
+def test_the_two_denominators_differ_exactly_by_the_discards(tmp_path):
+    """RED before the fix: the admitted rate was not computed at all, so it could not differ.
+
+    Four cells, of which the two that never searched are discarded. Admitted: 2 of 2. Run: 2 of
+    4. A discarded cell is discarded for wiring or error reasons, so the direction of the gap is
+    data-dependent, not conservative: on `diagnostic-010` the discarded cells searched MORE often
+    than the admitted ones and the all-cells rate is the higher of the two.
+    """
+
+    import json
+
+    run = _run_dir(
+        tmp_path,
+        [_row("recall", 1, 0), _row("recall", 1, 1), _row("recall", 0, 2), _row("recall", 0, 3)],
+    )
+    rows = [json.loads(line) for line in (run / "records.final.jsonl").read_text().splitlines()]
+    never_searched = [
+        [r["task_id"], r["seed"]] for r in rows if not r.get("memory_call_count")
+    ]
+    (run / "admission.json").write_text(
+        json.dumps({"discarded_cells": never_searched}), encoding="utf-8"
+    )
+
+    assert search_rate_for(run)["recall"] == 1.0, "every ADMITTED cell searched"
+    assert search_rate_for(run, admitted_only=False)["recall"] == 0.5, (
+        "half of every cell RUN searched; this is the number that answers whether the model "
+        "reached for its memory at all"
+    )
+
+
+def test_both_rates_are_published_under_distinct_names():
+    """A reader must be able to see the gap rather than take one denominator on trust."""
+
+    import inspect
+
+    from scripts import abstention
+
+    source = inspect.getsource(abstention.main)
+    assert 'report["search_rates"] = search_rates' in source
+    assert 'report["search_rates_all_cells"]' in source, (
+        "only one denominator is published, so a reader cannot see which one the floor used"
+    )
+    assert "interpretability(search_rates)" in source, (
+        "the floor must be applied to the ADMITTED rate, since the endpoints it gates are "
+        "computed over admitted cells"
+    )
 
 
 def test_a_missing_run_directory_is_empty_rather_than_an_error(tmp_path):
