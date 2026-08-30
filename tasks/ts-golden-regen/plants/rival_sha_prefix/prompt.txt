@@ -1,0 +1,1 @@
+We are cleaning up the checksum footers. audit/footer_survey.md lists every checksum footer in the repo and audit/rename_proposal.md is the change that was argued for. Read both and write down which prefix the golden files are supposed to carry.
