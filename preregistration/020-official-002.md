@@ -129,3 +129,58 @@ serves a generation built from a different corpus than the run assembled, or if
   should be decided in the open rather than folded into a launch.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Correction, 2026-08-30, before the run: the strata mismatch this record claims does not exist
+
+Nothing above this line is edited. Two statements in the frozen text are wrong and the error was
+mine, in the analysis rather than in the instrument.
+
+The frozen text says the declared strata "agree on 28 of 30" and names `ts-tz-utc` at 0.75 and
+`ts-manifest-rel` at 0.83 as declared `DAMAGE_ONLY` while measuring two-sided. **They agree on 30
+of 30.** Both tasks are correctly `DAMAGE_ONLY`.
+
+**Cause: I counted errored sessions as task failures.** An errored session did not complete, so it
+is evidence of a wiring fault and not evidence that the task is hard. Excluding them reproduces
+preregistration 009's committed table exactly, which is the check that settles which reading is
+right:
+
+| task | counting errors as failures | errors excluded | 009 recorded |
+|---|---:|---:|---:|
+| `ts-manifest-rel` | 0.83 | **1.00** (10 of 10) | 1.00 |
+| `ts-legacy-hash` | 0.83 | **0.91** (10 of 11) | 0.91 |
+| `ts-bom-merge` | 0.83 | **0.83** (10 of 12) | 0.83 |
+| `ts-tz-utc` | 0.75 | **1.00** (9 of 9) | `DAMAGE_ONLY` |
+
+This is the same defect class the 2026-08-30 audit spent the day removing: an invalid input
+silently becoming a data point. It is worth recording that it survived one careful reading and was
+caught only by disagreeing with a committed record, which is the argument for having committed
+records at all.
+
+**What acting on it would have cost, which is the part that matters.** Moving those two tasks into
+`TWO_SIDED` takes the stratum from 7 to 9 and crosses the threshold of 8 that preregistration 009
+pre-committed to. That record's stop rule is explicit: "If it does not [reach 8], the primary
+endpoint is reported as underpowered permanently, and I stop trying to fix it by measurement or by
+task construction... a third would be fishing." Reclassifying two correctly classified tasks, on
+the strength of a measurement error, to reach that threshold is precisely the third attempt it
+forbids. The strata are unchanged and preregistration 005's primary endpoint remains underpowered,
+permanently, as 009 recorded.
+
+**The corrected difficulty table**, errored sessions excluded, 30 tasks:
+
+    TWO_SIDED (7)     0.08 ts-cli-exitcode   0.09 ts-idempotent-run   0.17 ts-atomic-write
+                      0.33 ts-mig-name       0.55 ts-golden-regen     0.83 ts-bom-merge
+                      0.91 ts-legacy-hash
+    DAMAGE_ONLY  11   BENEFIT_ONLY 12
+
+**The seed table above is slightly wrong and its conclusion is unchanged.** Corrected retention
+over the seven `TWO_SIDED` tasks:
+
+| seeds | frozen text said | corrected |
+|---:|---:|---:|
+| 3 | 3.1 of 7 | **3.0 of 7** |
+| 5 | 4.3 of 7 | **4.1 of 7** |
+| 7 | 5.0 of 7 | **4.8 of 7** |
+
+Five seeds remains the choice, for the reason the frozen text gives. Nothing else in this record
+changes: the grid is still 46 task-conditions, 5 arms, 5 seeds, 1,150 sessions, and every
+prediction stands as written.
