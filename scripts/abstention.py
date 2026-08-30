@@ -331,8 +331,27 @@ SEARCH_RATE_FLOOR = 0.50
 # neither set, so the next product cannot repeat it.
 MEMORY_ARMS = frozenset({"recall", "mempalace", "fs_grep"})
 
-# Arms with no retrieval surface. A search rate for these is meaningless, not missing.
-NON_MEMORY_ARMS = frozenset({"bare", "placebo", "claude_md", "protocol"})
+# Arms with no retrieval surface THE AGENT CAN REACH. A search rate for these is meaningless,
+# not missing, which is the distinction that decides membership rather than whether retrieval
+# happens at all.
+#
+# `bare`, `placebo`, `claude_md` and `protocol` retrieve nothing.
+#
+# `oracle_memory` and `recall_prefetch` DO retrieve, and still belong here. `oracle_memory` is a
+# ceiling control that "supplies corpus verified evidence without memory tools"; `recall_prefetch`
+# describes itself as `"memory": "harness prefetch"` and runs the same published recall search
+# from the HARNESS side. In both the agent is handed evidence and has no memory tool to call, so
+# `memory_call_count` is 0 in every cell by construction. Classifying them as memory arms would
+# put them permanently below the 0.50 floor and void their endpoints in every run, which would
+# destroy the one thing a ceiling control is for: bounding the top, so "every arm scored alike"
+# can be told apart from "the tasks allow nothing better".
+#
+# ⚠️ They were in NEITHER set until 2026-08-30, so `_classify_arms` refused an eight-arm grid that
+# had already run. The guard was right and the registry was incomplete; that is the same shape as
+# the `mempalace` omission it was written to prevent, one arm class further out.
+NON_MEMORY_ARMS = frozenset(
+    {"bare", "placebo", "claude_md", "protocol", "oracle_memory", "recall_prefetch"}
+)
 
 
 def _classify_arms(arms: Iterable[str]) -> None:

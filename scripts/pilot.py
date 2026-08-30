@@ -54,6 +54,7 @@ from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
 from harness.adapters.base import (
@@ -81,8 +82,17 @@ from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
-#: `mempalace` on 2026-08-29.
-ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "mempalace")
+#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30.
+#:
+#: ⚠️ `oracle_memory` has an adapter and has run, and is deliberately absent. Its bundles are
+#: keyed by task with NO condition, so it would supply verified evidence in `absent`, the
+#: condition whose whole purpose is that the corpus does not contain the answer. It is a coherent
+#: ceiling in `present` and in the single-corpus diagnostic where it ran. Admitting it here needs
+#: condition-aware bundles, which is corpus work rather than wiring.
+ARMS = (
+    "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "mempalace",
+    "recall_prefetch",
+)
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
@@ -254,6 +264,18 @@ def adapter_for(
         return RecallAdapter(staging, static, instruction=texts.get("recall") or None)
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
+    if arm == "recall_prefetch":
+        # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
+        # is condition-aware for free: it delegates to whichever tenant the condition serves. The
+        # gap between this arm and `recall` is the agent's DECISION to search, which the four
+        # adversarial conditions cannot otherwise separate from retrieval quality -- and on this
+        # feed retrieval is saturated (voyage hit@10 = 1.000), so that separation is the only
+        # place a difference can come from.
+        return RecallPrefetchAdapter(
+            RecallAdapter(staging, static, instruction=texts.get("recall") or None),
+            staging,
+            static,
+        )
     raise ValueError(f"no adapter for arm {arm!r}")
 
 

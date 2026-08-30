@@ -255,3 +255,69 @@ No prediction above is changed. Predictions 1, 2 and 4 are stated over the adver
 and remain scored there; prediction 3 (benefit cells) becomes measurable directly on `present`
 rather than inferred from `superseded`, which makes it easier to satisfy, and that is recorded here
 so nobody later reads a pass as stronger evidence than it is.
+
+## Third correction, 2026-08-30: the arm set, and why it is seven
+
+Nothing above is edited. The frozen text names five arms. The run is seven, and the two additions
+plus the two refusals are recorded here because an arm list decided at launch time and not written
+down is exactly how `official-001` published endpoints for an arm nobody had classified.
+
+### Running (7)
+
+| arm | treatment | memory surface |
+|---|---|---|
+| `bare` | none; the reference every delta is quoted against | none |
+| `claude_md` | static context bundle, the baseline to beat | none |
+| `placebo` | length-matched neutral prose; isolates instruction from retrieval | none |
+| `recall` | this project's product | agent-facing MCP |
+| `mempalace` | third-party product | agent-facing MCP |
+| `fs_grep` | transcripts on disk plus grep | agent-facing |
+| `recall_prefetch` | recall's own published search, run harness-side | harness-side |
+
+**`fs_grep` is not optional.** Its own docstring: "The most damaging single result in this field's
+history is a filesystem plus grep beating a purpose-built memory product. If this benchmark
+omitted that baseline, Letta would run it for us." A memory benchmark without the grep baseline
+invites the obvious question and answers it from somebody else's blog post.
+
+**`recall_prefetch` earns its place because retrieval is saturated.** `voyage` hit@10 = 1.000 on
+this feed, so the adversarial conditions cannot separate "the product retrieved badly" from "the
+agent never searched". `recall_prefetch` retrieves unconditionally with recall's own search, so
+the gap between it and `recall` IS the agent's decision to search, measured rather than inferred.
+It had an adapter and had run, but only through `scripts/diagnostic.py`; `scripts/pilot.py` was
+taught to build it for this run.
+
+### Not running, with the reason
+
+* **`oracle_memory`** has an adapter and ran in `diagnostic-010`. Its 24 bundles are keyed by
+  `task_id` with **no `condition` field**, so in `absent` it would hand the agent the answer that
+  condition exists to withhold. It is a coherent ceiling in `present` and in a single-corpus
+  diagnostic, and incoherent across the adversarial four until its bundles carry a condition.
+  That is corpus work, not wiring, and doing it at launch would be the worst moment.
+* **`protocol`** is buildable and not selected: a second static-prompt control beside `placebo`,
+  which this run does not need.
+* **`cognee`, `mem0`, `supermemory`, `zep`** have no `adapter.py`. Each is an `__init__.py` whose
+  docstring points at a file that does not exist.
+
+### Plugins and hooks are OFF, deliberately
+
+Every arm runs under `--bare`, which strips hooks and plugins, and no arm sets `config_dir`. So
+this run measures **recall's MCP surface and not its plugin lifecycle half**, and MemPalace on the
+same footing. That is what every prior run did, and changing it now would make official-002
+incomparable to all of them. Measuring the plugin integration is a separate configuration and
+needs the equivalent treatment for every vendor arm, or the comparison tilts toward whichever
+product's richer integration was enabled.
+
+### Grid and cost
+
+73 task-conditions x 7 arms x 5 seeds = **2,555 sessions**, about **$6.90** at official-001's
+measured rate, against the 1,825 / $4.92 in the second correction and the 1,150 / $3.10 frozen.
+Model, prices, seeds, conditions and endpoints are unchanged.
+
+### Host paths
+
+`scripts/launch_official.sh` refuses a layout that would name an account in the published records.
+`sentiment` cannot write `/srv`, `/opt` or `/var/lib` and has no passwordless sudo, so the neutral
+root is not available without an interactive password. This run sets `AMB_ALLOW_NAMED_PATHS=1`
+deliberately. The marginal disclosure is zero: `/home/sentiment` already appears in eleven
+published `results/` artifacts and is on the ratchet in `tests/test_no_host_inventory.py`. It is
+reversible by running under a neutral root once one exists.
