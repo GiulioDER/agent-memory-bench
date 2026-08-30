@@ -307,3 +307,134 @@ written and is no longer true: `[tool.setuptools.packages.find]` now scopes disc
 standing rather than edited, because a record of what was believed at the time is the thing this
 document is for. Nothing about the run changes: the harness still executes as `python -m` from the
 repository root, exactly as it did on the workstation and as it does on VPS2.
+
+## Results, measured 2026-08-30
+
+630 sessions, five arms, four corpus conditions, `deepseek/deepseek-v4-flash`, run on VPS2 and
+finished in 8h51m. **$1.6986** and 28,468,127 tokens. 118 cells admitted of 126, eight discarded,
+spread across four arms (`claude_md` 3, `bare` 2, `recall` 2, `mempalace` 1) rather than
+concentrated on one, which is what the gate's own disclosure warns to check.
+
+Every condition verifies from its published evidence with `python -m scripts.verify_run`: session
+counts and token totals recompute, the discard set re-derives from the per-session verdicts, and
+every admitted cell carries all five arms. Four sessions across three conditions hit the 600s
+timeout and so have a record and no stream; that is an outcome rather than a wiring fault and is
+not retried, per the exclusion rules above.
+
+### The headline
+
+| arm | success | net vs `bare` | net vs `claude_md` | tokens/session | successes per Mtok |
+|---|---:|---:|---:|---:|---:|
+| `bare` | 0.890 | — | — | 15,544 | 57.2 |
+| `placebo` | 0.915 | +3 | −1 | 15,543 | 58.9 |
+| `claude_md` | **0.924** | +4 | — | 14,361 | **64.3** |
+| `mempalace` | 0.907 | +2 | −2 | 95,453 | 9.5 |
+| `recall` | **0.805** | **−10** | **−14** | 86,102 | 9.4 |
+
+**`recall` is the only arm that finishes below the memory-free floor.** Against the preregistered
+baseline it was better in **0 of 118 cells** and worse in 14. Across the whole grid it helped one
+cell and damaged eleven. A placebo of inert project-shaped prose beat it. This is the worst
+available shape of result for the arm this benchmark's authors own, and it is reported first for
+that reason.
+
+### Verdict on each prediction
+
+| # | prediction | outcome |
+|---|---|---|
+| 1 | `recall` abstains on 5% to 30% of `absent` cells | **falsified.** 0.000 at cell level. The mechanism metric was right in direction and wrong in size: tool-level `abstained: true` was 5.8% of searches on `absent`, 9.3% on `adjacent`, and **0 of 43 on `contradictory`** |
+| 2 | search rate 0.50 to 0.85, and success tracks it | **split.** The range held (0.828 to 0.857) but the direction is inverted: `recall` searched most and scored worst, `mempalace` searched least and scored higher |
+| 3 | `claude_md` damage above 3% voids endpoint 2 | **falsified, and this is the best news in the run.** `claude_md` damage was 0.000 in all four conditions, so endpoint 2 is valid rather than void |
+| 4 | endpoint 4 at most 6 cells per product, 0 on memoryless arms | **held.** Zero firings for every arm |
+| 5 | the two products differ by less than 10 points | **falsified, narrowly.** 0.907 against 0.805 is 10.2 points, and the head-to-head is 16 to 4 |
+| 6 | both products above 3x the controls in input tokens, neither beating `claude_md` on wins per Mtoken | **held.** 6.5x and 7.2x; 9.4 and 9.5 successes per Mtok against `claude_md`'s 64.3 |
+| 7 | under $2.50 | **held.** $1.6986 |
+
+Five of seven predictions were wrong, and the two that survived were the pessimistic ones. That is
+consistent with the standing house prior that I over-predict magnitudes.
+
+### Endpoint 2, damage rate, per condition
+
+| arm | absent | superseded | contradictory | adjacent |
+|---|---:|---:|---:|---:|
+| `placebo` | 0.034 | 0.000 | 0.000 | 0.000 |
+| `claude_md` | 0.000 | 0.000 | 0.000 | 0.000 |
+| `recall` | 0.034 | 0.120 | 0.069 | **0.192** |
+| `mempalace` | 0.103 | 0.000 | 0.034 | 0.000 |
+
+n is 25 to 29 paired cells per condition.
+
+Endpoint 1 is **structurally empty** as preregistered: 10 tasks in `DAMAGE_ONLY`, 1 in
+`BENEFIT_ONLY`, none `TWO_SIDED`. Endpoint 3 is 0.000 for every arm on `absent` and 0.034 for
+`recall` on `contradictory`. Endpoint 4 is 0 everywhere.
+
+### Head to head, same cell, same corpus bytes
+
+| condition | `recall` only won | `mempalace` only won | tied |
+|---|---:|---:|---:|
+| absent | **3** | 1 | 28 |
+| superseded | 0 | **5** | 23 |
+| contradictory | 1 | **5** | 23 |
+| adjacent | 0 | **5** | 24 |
+| **total** | **4** | **16** | 98 |
+
+Twenty discordant pairs, 16 to 4. A naive two-sided binomial puts that at p ≈ 0.012, but seven of
+`recall`'s eleven damaged cells come from two tasks, so the effective sample is well below 118 and
+the per-task cluster CI is the number to trust rather than that p.
+
+**The shape of the split is more informative than the total.** `recall` wins `absent`, the one
+condition where the corpus holds no governing fact and there is nothing to be misled by, and loses
+every condition that contains misleading evidence. That is not a general capability gap. It is a
+specific failure to reject evidence it should have rejected.
+
+**The two products damaged disjoint cells. The overlap is zero.** `recall` damaged 11,
+`mempalace` 4, and not one cell was damaged by both. Task difficulty is therefore not the
+explanation for either.
+
+`mempalace` searched substantially less: 0.562 to 0.724 against `recall`'s 0.828 to 0.857, and
+1.03 to 1.39 calls per session against 1.50 to 1.86. Part of its lower damage is lower exposure,
+which is why damage conditional on searching is reported below rather than left implicit.
+
+### The mechanism, from the sessions themselves
+
+Damage conditional on whether the arm actually called its memory:
+
+| arm | searched, damaged | did not search, damaged |
+|---|---|---|
+| `recall` | 8 of 99 (0.081) | 3 of 19 (0.158) |
+| `mempalace` | 4 of 76 (0.053) | 0 of 42 (0.000) |
+
+`mempalace` shows the expected pattern: damage only where it retrieved. `recall` does not, and
+that splits its deficit into two distinct problems.
+
+**Problem one, retrieval that will not decline.** `ts-ignore-gen` under `adjacent` failed all three
+seeds, deterministically, with two searches each. The plant is a confident memo governing a
+different subsystem. `recall` returned it as `"abstained": false, "trust_state": "trusted",
+"calibration_status": "certified"` and the agent applied the other subsystem's convention. That is
+exactly the damage signature `adjacent` was constructed to detect, produced while the product
+asserted confidence. Retrieval itself is not the fault: it measured `hit@1 = 20/20` on answerable
+queries before the run. What failed is knowing when not to answer.
+
+**Problem two, four damaged cells with zero memory calls.** These cannot be retrieval failures.
+Something about the arm as configured, the 5,430-byte shipped skill or the eight tools resident in
+context, cost cells where memory was never consulted. `mempalace` carries 20 tools and more tokens
+per session and shows none of this, so raw context volume is not a sufficient explanation.
+
+### What this run cannot say
+
+**The grid is saturated and the benchmark is currently a harm detector.** `bare` solves 89% of
+cells unaided; 105 of 118 were already won without memory. The largest possible benefit any arm
+could show was small, and none exceeded four helped cells. This is the same fact as the empty
+`TWO_SIDED` stratum, stated from the other side. **An absence of demonstrated benefit here is
+weak evidence about benefit in general**, while the damage measurement is comparatively strong.
+
+**The write path is disabled for both products by construction**, so extraction and consolidation
+score zero. **One model, and a cheap one**, with every caveat that implies.
+
+### What this licenses
+
+Reportable: `recall` damaged more than `mempalace` on this task set under these conditions, the
+mechanism is over-confident acceptance of inapplicable evidence, and neither product came close to
+justifying its token cost against a static instruction file.
+
+Not reportable: any claim that either product is better in general, any claim about memory
+formation, and any benefit claim in either direction from a grid with no room to show one.
