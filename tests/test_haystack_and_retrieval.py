@@ -176,3 +176,27 @@ def test_a_miss_is_not_averaged_in_as_zero_competitors():
         "the mean must be taken over queries that retrieved the gold session; folding a miss "
         "in as zero reports a harder corpus as an easier one"
     )
+
+
+def test_the_paid_backend_refuses_before_it_spends():
+    """The ceiling is a refusal, not a warning, and it is checked before the credential.
+
+    A probe that silently costs ten times its estimate is worse than one that stops. Checking
+    the key first would make this unreachable on any host without one, which is every host
+    where somebody would want to sanity check the estimate before running it where the key is.
+    """
+
+    pytest.importorskip("voyageai")
+    from scripts.retrieval_probe import Voyage
+
+    windows = [Window(doc="a.jsonl", text=" ".join(f"w{i}" for i in range(1000)))]
+    with pytest.raises(SystemExit, match="refusing to spend"):
+        Voyage(windows, "voyage-4", max_tokens=10)
+
+
+def test_the_token_estimate_errs_high():
+    """It gates a paid run, so an estimate that flatters the corpus is the dangerous error."""
+
+    from scripts.retrieval_probe import estimate_tokens
+
+    assert estimate_tokens(["one two three four"]) >= 4
