@@ -57,10 +57,16 @@ ranker and a semantic ranker are fooled by different documents**, measured in
   LEXICAL hard negative: 72.5% of BM25's competitors at 9.6% of the corpus, and only 33.0% of
   Voyage's.
 * **semantic** (15%): the SAME meaning neighbourhood as one task, in deliberately different
-  words, sharing no distinctive token with that task's prompt at all. This is the answer to
-  what the first measurement found, and its data lives in `scripts/haystack_neighbourhoods.py`
-  with the rule that keeps it a hard negative rather than a poisoned one: the decision it
-  states is on an axis the task does not ask about.
+  words, sharing no distinctive token with that task's prompt at all, and settling a question
+  on an axis the task does not ask about. That last rule is what keeps a hard negative from
+  becoming a `contradictory` plant.
+
+  ⚠️ It has TWO vocabularies and ``--semantic-generation`` chooses between them, because the
+  first one FAILED. Generation 2 (`haystack_neighbourhoods.py`) measured 0.57x competitor yield
+  against `voyage-4` in preregistration 016, BELOW its population share, because removing every
+  shared word and moving to an orthogonal axis left business-process prose against
+  technical-convention prompts. Generation 3 (`haystack_neighbourhoods_v3.py`) keeps the axis
+  and changes the register. Both are kept so the claim is testable with one variable moving.
 
 Containment holds by construction and is checked anyway
 --------------------------------------------------------
@@ -100,6 +106,7 @@ from harness.plants import normalise
 from harness.tasks import discover_tasks
 from scripts.audit_corpus import _STOP
 from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+from scripts.haystack_neighbourhoods_v3 import NEIGHBOURHOODS_V3
 from scripts.haystack_vocab import DOMAINS, LOCAL_CONVENTIONS, SUMMARY_OPENERS, THEMES
 
 BASE_CORPUS = REPO / "corpus"
@@ -153,6 +160,7 @@ def _digest_generator() -> str:
             "generate_haystack.py",
             "haystack_vocab.py",
             "haystack_neighbourhoods.py",
+            "haystack_neighbourhoods_v3.py",
         )
     )
     return hashlib.sha256(material).hexdigest()
@@ -482,8 +490,18 @@ def session_events(
     return stamped
 
 
-def make_session(index: int, seed: int, tier: str, tasks: list) -> tuple[list[dict], dict]:
-    """Generate session ``index`` of a batch. Pure in ``(index, seed, tier, generator)``."""
+def make_session(
+    index: int, seed: int, tier: str, tasks: list, *, semantic_generation: int = 3
+) -> tuple[list[dict], dict]:
+    """Generate session ``index`` of a batch. Pure in ``(index, seed, tier, generator)``.
+
+    ``semantic_generation`` selects which neighbourhood vocabulary the `semantic` tier draws on.
+    Generation 2 is `scripts/haystack_neighbourhoods.py`, measured at 0.57x competitor yield
+    against `voyage-4` in preregistration 016: business-process prose against technical prompts.
+    Generation 3 is `scripts/haystack_neighbourhoods_v3.py`, which keeps the orthogonal axis and
+    changes the register. Both are kept so the contrast can be re-measured with one variable
+    moving, which is the only way the register claim is testable rather than asserted.
+    """
 
     rng = _rng(seed, tier, index)
     domain = DOMAINS[rng.randrange(len(DOMAINS))]
@@ -506,10 +524,11 @@ def make_session(index: int, seed: int, tier: str, tasks: list) -> tuple[list[di
         # Same meaning neighbourhood, deliberately different words. `NEIGHBOURHOODS` carries no
         # token from the task's own prompt, so this tier competes on meaning or not at all,
         # which is exactly the discrimination `near_miss` could not test.
-        candidates = [task for task in tasks if task.task_id in NEIGHBOURHOODS]
+        book = NEIGHBOURHOODS_V3 if semantic_generation == 3 else NEIGHBOURHOODS
+        candidates = [task for task in tasks if task.task_id in book]
         task = candidates[rng.randrange(len(candidates))]
         near_task = task.task_id
-        neighbourhood = NEIGHBOURHOODS[task.task_id]
+        neighbourhood = book[task.task_id]
         extra = tuple(neighbourhood["terms"])  # type: ignore[arg-type]
         subject = str(neighbourhood["subject"])
     project = build_project(rng, domain, extra)
@@ -521,7 +540,11 @@ def make_session(index: int, seed: int, tier: str, tasks: list) -> tuple[list[di
         subject,
         date,
         near_terms=extra if tier == "near_miss" else (),
-        neighbourhood=NEIGHBOURHOODS[near_task] if tier == "semantic" else None,
+        neighbourhood=(
+            (NEIGHBOURHOODS_V3 if semantic_generation == 3 else NEIGHBOURHOODS)[near_task]
+            if tier == "semantic"
+            else None
+        ),
     )
     provenance = {
         "tier": tier,
@@ -581,6 +604,15 @@ def main() -> int:
         "vocabulary at all. Default 0.15.",
     )
     parser.add_argument(
+        "--semantic-generation",
+        type=int,
+        choices=(2, 3),
+        default=3,
+        help="which neighbourhood vocabulary the semantic tier draws on. 2 is the "
+        "business-process register measured at 0.57x yield in preregistration 016; 3 keeps the "
+        "orthogonal axis and moves to technical-convention register. Default 3.",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="regenerate in memory and compare against the written haystack.json; write nothing",
@@ -621,7 +653,10 @@ def main() -> int:
         made = 0
         attempt = 0
         while made < counts[tier]:
-            events, provenance = make_session(attempt, args.seed, tier, tasks)
+            events, provenance = make_session(
+                attempt, args.seed, tier, tasks,
+                semantic_generation=args.semantic_generation,
+            )
             attempt += 1
             text = " ".join(
                 str(event.get(field, ""))
@@ -642,6 +677,7 @@ def main() -> int:
         "generator_sha256": generator,
         "mix": mix,
         "counts": counts,
+        "semantic_generation": args.semantic_generation,
         "real_documents": base_documents,
         "synthetic_documents": len(emitted),
         "total_documents": base_documents + len(emitted),
