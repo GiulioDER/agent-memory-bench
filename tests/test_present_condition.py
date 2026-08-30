@@ -249,3 +249,48 @@ def test_the_assembler_default_matches_what_a_run_would_build():
             f"{condition}: the assembler CLI default and the abstention runner disagree about "
             f"the task set. A corpus built by hand would not be the corpus a run measures."
         )
+
+
+def test_a_class_the_grid_refuses_is_never_selected():
+    """RED before the fix: `present` handed the runner three tasks the runner refuses.
+
+    `scripts/pilot.py` accepts only SELECTABLE_PREFIXES and records why every other class is out
+    in EXCLUDED_PREFIXES; `xs-` is excluded because cross-session synthesis "needs a corpus shape
+    the grid does not assemble, and admitting it changes what every run measures".
+
+    Selection never applied that filter. It did not show on the four adversarial conditions,
+    because a task qualifies there by DECLARING plants and no `xs-` task does. `present` selects
+    on having a recorded governing session instead, so it picked up all three and the run died at
+    argument validation:
+
+        unknown task(s) ['xs-evolve-lease', 'xs-join-batch', 'xs-widen-manifest'];
+        a silent subset is a different run
+
+    The pilot's refusal was correct. The selector was wrong, and the filter now lives in
+    `default_selection` so the assembler and the runner cannot disagree about it.
+    """
+
+    from scripts.abstention import selection_for
+    from scripts.assemble_condition_corpus import default_selection, excluded_by_class
+    from scripts.pilot import EXCLUDED_PREFIXES, SELECTABLE_PREFIXES
+
+    for condition in ("adjacent", "absent", PRESENT):
+        for task in default_selection(condition):
+            assert task.startswith(SELECTABLE_PREFIXES), (
+                f"{condition}: {task} is a class scripts/pilot.py refuses, so a run naming it "
+                f"dies at argument validation"
+            )
+        for task in selection_for(condition, announce=False):
+            assert task.startswith(SELECTABLE_PREFIXES), f"{condition}: {task} is out of class"
+
+    # and the drop is reportable rather than silent, with the reason the grid records
+    dropped = excluded_by_class(PRESENT)
+    assert dropped, (
+        "`present` selects on having a recorded session, so it should reach the xs- tasks and "
+        "report them as out of class; an empty list means the filter moved and this test went blind"
+    )
+    for task, reason in dropped:
+        assert task.startswith(tuple(EXCLUDED_PREFIXES))
+        assert reason and reason != "not a class the grid runs", (
+            f"{task} was dropped without the recorded reason for its class"
+        )

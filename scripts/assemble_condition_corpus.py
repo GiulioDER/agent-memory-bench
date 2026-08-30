@@ -104,6 +104,9 @@ def _write_jsonl(path: Path, lines: list[dict]) -> None:
     path.write_text(body, encoding="utf-8", newline="\n")
 
 
+from scripts.pilot import EXCLUDED_PREFIXES, SELECTABLE_PREFIXES
+
+
 def default_selection(condition: str) -> list[str]:
     """Every task this condition can be built for, before any retirement list is applied.
 
@@ -127,6 +130,12 @@ def default_selection(condition: str) -> list[str]:
     produces a corpus that looks right and a run that measures a third of what it should.
     """
 
+    return [t for t in _declared_for(condition) if t.startswith(SELECTABLE_PREFIXES)]
+
+
+def _declared_for(condition: str) -> list[str]:
+    """Tasks the condition can be built for, BEFORE the class filter. See `excluded_by_class`."""
+
     if condition == PRESENT:
         return [
             task.task_id
@@ -138,6 +147,29 @@ def default_selection(condition: str) -> list[str]:
         for task in discover_tasks()
         if (spec := load_plants(task.path)) is not None and spec.plan(condition)
     ]
+
+
+def excluded_by_class(condition: str) -> list[tuple[str, str]]:
+    """`(task, reason)` for every task this condition could cover but whose CLASS the grid refuses.
+
+    `scripts/pilot.py` accepts only `SELECTABLE_PREFIXES` and records why each other class is out
+    in `EXCLUDED_PREFIXES`. `default_selection` applies that filter so the assembler and the runner
+    cannot disagree about which tasks are under test; this exposes what it removed so the drop can
+    be announced rather than discovered.
+
+    ⚠️ It never fired on the four adversarial conditions, because a task qualifies there by
+    declaring plants and no `xs-` task does. `present` selects on having a recorded governing
+    session instead, so it picks up all three and a run died at argument validation with "unknown
+    task(s)". The pilot's refusal was correct; the selector was the thing that was wrong.
+    """
+
+    out = []
+    for task in _declared_for(condition):
+        if task.startswith(SELECTABLE_PREFIXES):
+            continue
+        prefix = next((p for p in EXCLUDED_PREFIXES if task.startswith(p)), None)
+        out.append((task, EXCLUDED_PREFIXES.get(prefix, "not a class the grid runs")))
+    return out
 
 
 def assemble(condition: str, seed: int, selection: list[str], out_root: Path) -> dict:
