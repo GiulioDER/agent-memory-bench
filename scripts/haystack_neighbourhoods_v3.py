@@ -397,6 +397,17 @@ NEIGHBOURHOODS_V3: dict[str, dict[str, object]] = {
             "size threshold, with the encoding declared in the envelope rather than negotiated"
         ),
     },
+    "fa-dedup-key": {
+        "subject": "how the intake batches are named so a redelivery is recognisable",
+        "terms": (
+            "batch", "naming", "stamp", "sequence", "arrival", "convention", "collision",
+            "labelling",
+        ),
+        "decision": (
+            "an intake batch is named for the day it arrived plus a sequence number, so a "
+            "second arrival on one day is labelled rather than overwriting the first"
+        ),
+    },
     "xs-widen-manifest": {
         "subject": "how entries are separated and what happens to a name that contains the "
                    "separator",

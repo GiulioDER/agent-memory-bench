@@ -204,12 +204,35 @@ def test_the_token_estimate_errs_high():
 
 
 def test_every_task_has_a_semantic_neighbourhood(tasks):
-    from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+    """Coverage is asserted on the LIVE book only, which is generation 3.
+
+    Generation 2 is frozen: preregistration 016's numbers were measured on a corpus its
+    vocabulary produced, and adding an entry would silently change a corpus a committed record
+    refers to. It is kept runnable for reproduction, not maintained. `fa-dedup-key` landing on
+    2026-08-30 is what forced this distinction: the old test demanded a v2 entry for it and would
+    have had the v2 book edited to satisfy a test.
+    """
+
+    from scripts.haystack_neighbourhoods_v3 import NEIGHBOURHOODS_V3
 
     for task in tasks:
-        assert task.task_id in NEIGHBOURHOODS, f"{task.task_id} has no semantic neighbourhood"
-        entry = NEIGHBOURHOODS[task.task_id]
+        assert task.task_id in NEIGHBOURHOODS_V3, (
+            f"{task.task_id} has no v3 neighbourhood, so the semantic tier cannot target it and "
+            f"the tier silently covers fewer tasks than the suite has"
+        )
+        entry = NEIGHBOURHOODS_V3[task.task_id]
         assert entry["subject"] and entry["decision"] and len(entry["terms"]) >= 6
+
+
+def test_generation_two_is_frozen_at_what_016_measured():
+    """Editing it would change a corpus that a committed record's numbers describe."""
+
+    from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+
+    assert len(NEIGHBOURHOODS) == 33, (
+        "generation 2 covered 33 tasks when preregistration 016 measured it. Adding or removing "
+        "an entry changes the corpus those numbers came from; extend generation 3 instead."
+    )
 
 
 def test_a_semantic_neighbourhood_shares_no_distinctive_word_with_its_own_prompt(tasks):
@@ -221,32 +244,46 @@ def test_a_semantic_neighbourhood_shares_no_distinctive_word_with_its_own_prompt
     """
 
     from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+    from scripts.haystack_neighbourhoods_v3 import NEIGHBOURHOODS_V3
 
     function_words = _STOP | {
         "each", "when", "after", "under", "before", "which", "what", "who", "how", "they",
         "than", "then", "its", "also", "only", "same", "other", "more", "most", "some", "any",
         "all", "both", "has", "have", "will", "may", "can", "does", "was", "were", "but",
         "because", "during", "between", "over", "own", "goes", "gets", "two", "long", "way",
+        "past", "line", "lines", "file", "files",
     }
-    for task in tasks:
-        entry = NEIGHBOURHOODS[task.task_id]
-        text = " ".join(
-            [str(entry["subject"]), " ".join(entry["terms"]), str(entry["decision"])]
-        )
-        prompt_words = set(normalise(task.prompt).split())
-        overlap = sorted(
-            word
-            for word in set(normalise(text).split()) & prompt_words
-            if len(word) > 2 and word not in function_words
-        )
-        assert not overlap, f"{task.task_id}: semantic neighbourhood reuses prompt words {overlap}"
+    # Both books, because generation 2 stays runnable for reproduction and a rule that stops
+    # holding for it would make a reproduction run measure something else.
+    for book_name, book in (("v2", NEIGHBOURHOODS), ("v3", NEIGHBOURHOODS_V3)):
+        for task in tasks:
+            entry = book.get(task.task_id)
+            if entry is None:
+                # v2 is frozen at the 33 tasks 016 measured; a newer task simply has no entry.
+                continue
+            text = " ".join(
+                [str(entry["subject"]), " ".join(entry["terms"]), str(entry["decision"])]
+            )
+            prompt_words = set(normalise(task.prompt).split())
+            overlap = sorted(
+                word
+                for word in set(normalise(text).split()) & prompt_words
+                if len(word) > 2 and word not in function_words
+            )
+            assert not overlap, (
+                f"{book_name} {task.task_id}: neighbourhood reuses prompt words {overlap}, so "
+                f"it is lexical overlap wearing a semantic label"
+            )
 
 
 def test_a_semantic_neighbourhood_states_no_governing_fact(tasks):
     from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+    from scripts.haystack_neighbourhoods_v3 import NEIGHBOURHOODS_V3
 
     phrases = _fact_phrases(tasks)
-    for task_id, entry in NEIGHBOURHOODS.items():
+    both = {**{f"v2 {k}": v for k, v in NEIGHBOURHOODS.items()},
+            **{f"v3 {k}": v for k, v in NEIGHBOURHOODS_V3.items()}}
+    for task_id, entry in both.items():
         text = " ".join(
             [str(entry["subject"]), " ".join(entry["terms"]), str(entry["decision"])]
         )
