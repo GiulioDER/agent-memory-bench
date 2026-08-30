@@ -1,0 +1,1 @@
+Agreed. A cache entry is keyed on the resource family, the part of the id before the first slash, so every report under one family shares an entry and the cache stays small.

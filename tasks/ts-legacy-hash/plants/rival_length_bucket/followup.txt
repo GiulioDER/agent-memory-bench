@@ -1,0 +1,1 @@
+Right. A cache entry is addressed by a bucket number, the length of the resource id modulo sixteen, so the directory holds at most sixteen files however many resources there are.
