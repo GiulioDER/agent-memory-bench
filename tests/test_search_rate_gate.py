@@ -209,3 +209,53 @@ def test_the_gate_fills_every_requested_memory_arm():
 
     # and the honest case must still pass, or the guard above is satisfied by refusing everything
     assert abstention.below_the_floor({"recall[absent]": 0.9}) is False
+
+
+def test_every_arm_that_has_ever_run_is_classified():
+    """RED before 2026-08-30: an eight-arm grid that had already run was refused.
+
+    `_classify_arms` refuses an arm in neither set, and it is right to: `mempalace` was missing
+    from MEMORY_ARMS for the whole of official-001, so that run published endpoints for an arm
+    whose search rate nobody knew. But `oracle_memory` and `recall_prefetch` were in neither set
+    while both had run, so the guard blocked a grid the harness had already executed. The guard
+    was correct and the registry was incomplete, which is the same shape as the omission it was
+    written to prevent, one arm class further out.
+    """
+
+    from scripts.abstention import MEMORY_ARMS, NON_MEMORY_ARMS, _classify_arms
+
+    every_arm_with_an_adapter = [
+        "bare", "claude_md", "placebo", "recall",
+        "mempalace", "fs_grep", "oracle_memory", "recall_prefetch",
+    ]
+    unclassified = [
+        a for a in every_arm_with_an_adapter if a not in (MEMORY_ARMS | NON_MEMORY_ARMS)
+    ]
+    assert not unclassified, (
+        f"{unclassified} have adapters and have produced records, but are in neither set, so a "
+        f"grid naming them is refused before the first cell"
+    )
+    _classify_arms(every_arm_with_an_adapter)
+
+
+def test_a_control_that_retrieves_outside_the_agent_is_not_a_memory_arm():
+    """Membership is decided by whether THE AGENT has a retrieval surface, not by whether the
+    arm retrieves at all.
+
+    `oracle_memory` supplies verified evidence "without memory tools"; `recall_prefetch` runs the
+    same published recall search from the HARNESS side and describes itself as
+    `"memory": "harness prefetch"`. In both the agent is handed evidence and has no memory tool
+    to call, so `memory_call_count` is 0 in every cell by construction.
+
+    Classifying them as memory arms would put them permanently below the 0.50 floor and void
+    their endpoints in every run, destroying the one thing a ceiling control is for: telling
+    "every arm scored alike" apart from "the tasks allow nothing better".
+    """
+
+    from scripts.abstention import MEMORY_ARMS, NON_MEMORY_ARMS
+
+    for arm in ("oracle_memory", "recall_prefetch"):
+        assert arm in NON_MEMORY_ARMS, f"{arm} would be voided by the search-rate floor"
+        assert arm not in MEMORY_ARMS
+    for arm in ("recall", "mempalace", "fs_grep"):
+        assert arm in MEMORY_ARMS, f"{arm} retrieves through the agent and needs a search rate"
