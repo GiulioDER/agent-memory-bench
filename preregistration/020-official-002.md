@@ -184,3 +184,74 @@ over the seven `TWO_SIDED` tasks:
 Five seeds remains the choice, for the reason the frozen text gives. Nothing else in this record
 changes: the grid is still 46 task-conditions, 5 arms, 5 seeds, 1,150 sessions, and every
 prediction stands as written.
+
+## Second correction, 2026-08-30: `present` and endpoint 5 landed, and the grid changes
+
+Nothing above is edited. PR #39 merged after this record was written and makes two of its
+statements obsolete. The grid changes, so this is a material amendment and not a footnote.
+
+**The frozen text says the `present` condition "is not on master" and lists it, with endpoint 5,
+under "Deliberately NOT in this run". Both are on master now.**
+
+### Why `present` is no longer optional
+
+Preregistration 017 states the case, and it is the one this project's owner raised first: with only
+`absent`, `superseded`, `contradictory` and `adjacent`, every condition varies how the evidence is
+BAD, so the only way to lose is to engage and be misled.
+
+| | corpus HAS the answer | corpus empty or misleading |
+|---|---|---|
+| product engages | win (benefit) | loss (damage) |
+| product abstains | **missed, cannot fire** | win (correct refusal) |
+
+The "missed" cell cannot fire, so never searching takes zero damage and forfeits nothing.
+**Abstinence is a strictly dominant strategy**, and a ranking drawn from those four rewards the
+most conservative product rather than the most useful one. Running official-002 on the adversarial
+four alone would reproduce exactly that defect, in a public benchmark, against four third-party
+arms this project does not own.
+
+Endpoint 5, `5_usefulness_composite`, is Youden's J over sensitivity on `present` and specificity
+on the adversarial conditions. It is **zero for both degenerate strategies**: never searching
+scores 0, always trusting scores 0. It cannot be computed without `present`.
+
+### The amended grid
+
+| condition | tasks |
+|---|---:|
+| `absent` | 12 |
+| `superseded` | 11 |
+| `contradictory` | 11 |
+| `adjacent` | 12 |
+| **`present`** | **27** |
+
+**73 task-conditions, 5 arms, 5 seeds, 1,825 sessions**, about $4.92 at official-001's measured
+rate, against the 46 / 1,150 / $3.10 in the frozen text. Model, prices, arms and seeds are
+unchanged. Endpoint 5 is added to the reporting order; endpoints 1 to 4 are untouched.
+
+### A defect this uncovered, fixed before the run
+
+`present` did not run. It selected 30 tasks including three `xs-`, which `scripts/pilot.py`
+refuses on the record ("cross-session synthesis; needs a corpus shape the grid does not assemble"),
+and the run died at argument validation with `unknown task(s)`. This is AMB-011 from the
+2026-08-30 audit, filed and not landed: selection applied no class filter. It never showed on the
+adversarial four, because a task qualifies there by declaring plants and no `xs-` task does.
+
+The filter now lives in `default_selection`, so the corpus assembler and the runner cannot
+disagree about which tasks are under test. My first attempt put it in `selection_for` instead, and
+`test_the_assembler_default_matches_what_a_run_would_build` caught it: the two paths then gave 30
+and 27. That test exists because those paths disagreeing once already cost two sessions a
+45-position argument about plant ranks.
+
+### One measurement that changes how the results should be read, not what is run
+
+`docs/RETRIEVAL_DIFFICULTY.md` measures `voyage` **hit@10 = 1.000** on the 195-document feed this
+run uses. Retrieval is saturated: every memory arm can find the governing session. So a difference
+between arms here is about whether they search and what they do with what they find, and **not**
+about retrieval quality. The hard corpus (25x with hard negatives, `hit@1` 0.485 → 0.182 for BM25)
+exists and is deliberately NOT used, because it would make this run incomparable to every prior
+one. That is a separate experiment with its own record.
+
+No prediction above is changed. Predictions 1, 2 and 4 are stated over the adversarial conditions
+and remain scored there; prediction 3 (benefit cells) becomes measurable directly on `present`
+rather than inferred from `superseded`, which makes it easier to satisfy, and that is recorded here
+so nobody later reads a pass as stronger evidence than it is.
