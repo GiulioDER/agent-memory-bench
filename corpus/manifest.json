@@ -1,5 +1,6 @@
 {
   "sessions": {
+    "sessions/fa-dedup-key/p01.jsonl": "e6ce9682cd7e6a5183b2fb1679e7b03916ea43fc87afc4b01191b7a8636030dc",
     "sessions/smoke/s01.jsonl": "4d7c4357de3079b700db4641926d8d5e082af3e2f05470a9692bff54ea1543de",
     "sessions/smoke/s02.jsonl": "c3a97eb5a28cbadfbe09dd3cf10b9931ec064c61b3cd88ca78356d9243373f2d",
     "sessions/ts-append-only/p01.jsonl": "734d4cb369010efbccfe945731be7bad078b0e670f5e7d9c4badbd7c1e647f35",
