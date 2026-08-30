@@ -128,3 +128,70 @@ predictions were too high. These are set low deliberately.
    while it was still a draft, which is the only moment it is cheap.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+
+## Amendment, 2026-08-31: the run measures recall at a pinned commit, not the released 0.11.0
+
+Written **before** the tenant build and before any measurement, and appended rather than edited.
+
+### What changed
+
+The benchmark's interpreter carried `recall-rag 0.11.0` from PyPI. It now carries recall built from
+a detached worktree pinned at **`8f6b5d1f414ad594c658f108057ce1c7b49e9fd5`** ("Serve every indexing
+path from the content-addressed embedding cache", #549, merged 2026-08-30T21:33:46Z).
+
+### Why
+
+The embedding cache existed in 0.11.0 but nothing user-facing called it: `GenerationManager.build`,
+the route this benchmark takes, called `embed_passages` directly. Measured on the assembled corpora
+before deciding:
+
+| | documents embedded |
+|---|---:|
+| five conditions, no cache | 24,510 |
+| five conditions, cached | 4,945 |
+| saving | **79.8%** |
+
+The saving is that large because the cache is keyed on `(embedder identity, purpose, dim, text)`
+and **not** on the tenant, while the five conditions share one 4,704-document haystack and all but
+241 of their real documents.
+
+### Why this does not change what is being measured
+
+#409's diff touches indexing, seeding, the setup wizard and the MCP **write** path. The one hunk in
+`recall_mcp/service.py` wraps `Indexer(...)` in `default_cache()`; nothing on the query path moves.
+A cache hit returns the same vector the embedder would have produced, stored as float32, which is
+the width `pgvector` stores anyway. **So the recall arm's retrieval behaviour is identical to
+0.11.0's**, and what changed is the cost of building the corpus it retrieves from.
+
+⚠️ Corrected inline before committing: the PR is **#549**, not #409. Left visible rather than
+silently fixed, because the number above is the one a reader would use to check the claim.
+
+### What this costs, stated plainly
+
+**Prediction 5 is no longer a clean test and must not be scored as one.** It predicted the voyage
+spend for this run, and said it was the prediction least confident and most likely to be wrong by
+more than 2x. I have now changed the cost basis of the thing it predicts, in the direction that
+makes it look good, *after* reading the prediction. Any agreement between prediction 5 and the
+measured spend is therefore uninformative. Report the spend as an observation; do not count it in
+the prediction scoring.
+
+The other four predictions are untouched: they are about search rate, strata occupancy, damage
+rates and abstention, none of which the cache can reach.
+
+### A trap for anyone reproducing this
+
+`pip list` in that virtualenv still reports **`recall-rag 0.11.0`**, because the project version was
+never bumped past the release. It is not PyPI's 0.11.0. **The commit is the identity, the version
+string is not.** Verify with the symbols rather than the version:
+
+```
+python -c "import recall.cache as c; print([n for n in ('ENV_CACHE_PATH','ENV_CACHE_MAX_MB','DEFAULT_CACHE_MAX_MB') if hasattr(c,n)])"
+```
+
+Post-549 prints all three; PyPI 0.11.0 prints none.
+
+### Rollback
+
+`pip install recall-rag==0.11.0` restores the released version. The pinned worktree stays on the
+host so the exact tree under test can be re-read after the fact.
