@@ -17,7 +17,7 @@ task while every gate stays green, which is the quietest way for a cell to becom
 
 ## ⚠️ Why this is a REPORT and not a gate, which is the finding that built it
 
-Two independent BM25 implementations were run over the same corpus and disagree by up to 51 rank
+Two independent BM25 implementations were run over the same corpus and disagreed by up to 51 rank
 positions, on exactly the plants a gate would act on:
 
     task               probe A   probe B
@@ -28,6 +28,22 @@ positions, on exactly the plants a gate would act on:
     ts-dedup-order          59        17
     ts-glob-hidden          45         1
     ts-golden-regen         61        10
+
+🔁 **Updated 2026-08-30: that disagreement is RESOLVED, and knowing why strengthens the case for
+a report rather than weakening it.** The two implementations were merged under finding F-24, so
+there is one BM25 now (`harness.retrieval.Bm25Index`) and this file uses it. The 51 positions were
+not mysterious variance between equally good rankers: probe B differed in `k1`, in the tokenizer,
+in carrying no stoplist, in windowing at a different stride over a different text, and in scoring
+`set(tokenize(query))`. That last one is a defect rather than a parameter, and it alone moves
+hit@1 by 0.147 over 4,900 documents.
+
+**So the original evidence for "do not gate" is gone, and the conclusion still stands on a better
+reason.** One ranker cannot disagree with itself, but a term ranker is a PROXY for what the
+products under test actually do, and they retrieve with embeddings. `docs/RETRIEVAL_DIFFICULTY.md`
+measures BM25 and voyage-4 failing on different corpora: volume is a lever for the embedder and
+none for the term ranker. A gate built on this number would act on a signal the thing it guards
+does not use. The table above is kept because it is evidence of what was believed and why, not
+because either column is still produced.
 
 They agree on the head and diverge on the tail. Windowing the documents (160 words, as probe A
 does) closed most of the head gap and none of the tail. Neither is ground truth: the products
@@ -54,7 +70,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.plants import load_plants
-from harness.retrieval import Bm25Index, read_corpus, tokenize
+from harness.retrieval import WINDOW_WORDS, Bm25Index, read_corpus
 from harness.tasks import discover_tasks
 
 CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
@@ -64,24 +80,11 @@ CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
 #: itself becomes unreliable rather than the point where a plant becomes bad.
 CANDIDATE_DEPTH = 10
 
-#: Words per scoring window. Matches the other probe so the two numbers are comparable at all.
-WINDOW = 160
-
-
-def _windowed(documents: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
-    windows: dict[str, str] = {}
-    owner: dict[str, str] = {}
-    for name, text in documents.items():
-        words = tokenize(text)
-        if not words:
-            windows[f"{name}#0"] = ""
-            owner[f"{name}#0"] = name
-            continue
-        for start in range(0, len(words), WINDOW):
-            key = f"{name}#{start // WINDOW}"
-            windows[key] = " ".join(words[start : start + WINDOW])
-            owner[key] = name
-    return windows, owner
+#: Windowing now lives in `harness.retrieval`, with the size and stride this file used to define
+#: privately. ⚠️ It did NOT match the retrieval probe's, though the comment here said it did: this
+#: file strode 160 (non-overlapping) over the TOKENIZED text while the probe strode 120
+#: (overlapping) over the RAW text, so a "160-word window" meant two different spans and the two
+#: numbers were never comparable. Found while merging the two BM25s on 2026-08-30 (F-24).
 
 
 def rank_plants(condition: str) -> tuple[list[tuple[str, int | None, int]], list[str]]:
@@ -99,8 +102,7 @@ def rank_plants(condition: str) -> tuple[list[tuple[str, int | None, int]], list
     documents = read_corpus(root)
     if not documents:
         return [], skipped
-    windows, owner = _windowed(documents)
-    index = Bm25Index(windows)
+    index = Bm25Index(documents, window_words=WINDOW_WORDS)
 
     rows = []
     for task in discover_tasks():
@@ -120,14 +122,15 @@ def rank_plants(condition: str) -> tuple[list[tuple[str, int | None, int]], list
         if not any(name.startswith(prefix) for name in documents):
             rows.append((task.task_id, None, len(documents)))
             continue
-        best: dict[str, float] = {}
-        for key, score in index.ranking(task.prompt):
-            doc = owner[key]
-            if doc not in best:
-                best[doc] = score
-        ordered = sorted(best.items(), key=lambda kv: (-kv[1], kv[0]))
+        # `ranking` speaks DOCUMENTS now, windowed or not, so the fold that used to live here
+        # is inside the index and cannot be got wrong twice.
         rank = next(
-            (i for i, (doc, _s) in enumerate(ordered, 1) if doc.startswith(prefix)), None
+            (
+                i
+                for i, (doc, _s) in enumerate(index.ranking(task.prompt), 1)
+                if doc.startswith(prefix)
+            ),
+            None,
         )
         rows.append((task.task_id, rank, len(documents)))
     return rows, skipped
@@ -156,7 +159,7 @@ def main() -> int:
             {"task": t, "rank": r, "corpus": n} for t, r, n in rows
         ]
         if not args.as_json:
-            print(f"\n  {condition}  ({rows[0][2]} documents, BM25 over {WINDOW}-word windows)")
+            print(f"\n  {condition}  ({rows[0][2]} documents, BM25 over {WINDOW_WORDS}-word windows)")
             for task_id, rank, _n in sorted(rows, key=lambda r: (r[1] is None, r[1] or 0)):
                 shown = str(rank) if rank else "not present"
                 flag = "  <-- candidate" if rank is None or rank > CANDIDATE_DEPTH else ""
@@ -170,7 +173,7 @@ def main() -> int:
         return 0
 
     print()
-    print("  retriever: BM25, fixed k1=1.5 b=0.75, 160-word windows, stopwords in")
+    print("  retriever: BM25, fixed k1=1.5 b=0.75, 160-word windows at stride 120, stopwords in")
     print("             harness.retrieval.STOPWORDS. The products under test retrieve with")
     print("             embeddings, so this is a PROXY for what they would find.")
     print("             It indexes the RAW file text, JSONL envelope included, not the decoded")
@@ -190,8 +193,9 @@ def main() -> int:
         for condition, task_id, rank in candidates:
             print(f"    {condition:14} {task_id:24} {rank if rank else 'not present'}")
         print()
-        print("  A candidate is not a verdict. Two BM25 implementations disagreed by up to 51")
-        print("  positions on this depth range, so treat these as worth a look and nothing more.")
+        print("  A candidate is not a verdict. BM25 is a PROXY for what the products under")
+        print("  test retrieve, and they retrieve with embeddings; BM25 and voyage-4 fail on")
+        print("  different corpora. Treat these as worth a look and nothing more.")
     else:
         print("\n  no candidates: every planted session ranks inside the top "
               f"{CANDIDATE_DEPTH}")

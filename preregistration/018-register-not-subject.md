@@ -87,3 +87,63 @@ Nothing about any product. This is a corpus construction question. A tier that c
 a harder benchmark, not a better memory layer.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+
+---
+
+## 🔁 Instrument change, 2026-08-30: the BM25 in this record no longer exists
+
+Appended, not edited. Every number above stands as measured, and none of it is retracted. What
+changed is the ranker underneath, so a number measured after this date is not comparable with one
+above it.
+
+**What happened.** Finding F-24 of the 2026-08-30 audit found a SECOND BM25 in the repository.
+`scripts/retrieval_probe.py`, which produced every number in this record, had its own
+implementation differing from `harness/retrieval.py` in four ways: `k1` (1.2 against 1.5), the
+tokenizer (`[a-z0-9_]+` against `[a-z][a-z0-9_]*`), the stoplist (none against 48 words), and
+whether query terms were deduplicated. There was a third partial copy in
+`scripts/audit_findability.py`, which windowed at a different stride over a different text while
+its comment said it matched. All three are now one implementation.
+
+**One of the four was a defect, not a parameter.** The probe scored `set(tokenize(query))`.
+Textbook BM25 sums over query terms, so a term appearing twice in a prompt contributes twice;
+deduplicating silently discarded that weight.
+
+**Attributable effect, corpus held FIXED and only the ranker varied.** Measured 2026-08-30 over
+4,900 documents and the 34 real task prompts:
+
+| ranker | hit@1 | hit@5 | hit@10 | mrr@10 |
+|---|---:|---:|---:|---:|
+| the one this record used | 0.1471 | 0.4412 | 0.5588 | 0.2533 |
+| the same, query dedup removed | 0.2941 | 0.5882 | 0.7059 | 0.4118 |
+| the unified ranker | 0.2941 | 0.5588 | 0.6765 | 0.3864 |
+
+⚠️ **A second thing also moved, so do not attribute a rerun's whole delta to the ranker.** The
+corpus feed went 195 to 196 documents on 2026-08-30 (`fa-dedup-key`), and a rebuilt 25x haystack
+is 4,900 documents rather than 4,875. The table above is the clean attribution because it holds
+the corpus fixed; a rerun changes both.
+
+**Current state of the same probe**, measured 2026-08-30 on the unified ranker,
+`results/retrieval/f24-unified-bm25.json`:
+
+| corpus | documents | hit@1 | hit@5 | hit@10 | mrr@10 |
+|---|---:|---:|---:|---:|---:|
+| `corpus` | 196 | 0.500 | 0.882 | 0.941 | 0.623 |
+| `corpus/haystack/scale-25/seed-1` | 4,900 | 0.294 | 0.559 | 0.676 | 0.386 |
+
+**The parameters were NOT tuned to this corpus**, and the unified ranker is deliberately not the
+hit@1-maximising configuration in the table above. `harness/retrieval.py` states the reason: a
+reference ranker tuned against the corpus it scores would flatter or punish the arms measured
+against it, and the number would mean less for looking better.
+
+**One finding worth carrying forward.** Whether to score whole documents or 160-word windows is
+NOT settled by this work, because the answer inverts with corpus size: over the 196-document feed
+whole documents win (hit@1 0.6765 against 0.5000), and over the 4,900-document haystack windows
+win (0.2941 against 0.2647). Neither is "the right unit", so every call site now says which it
+uses.
+
+Full account: `docs/audit/2026-08-30-audit-fix-record.md`. Re-measure:
+
+```bash
+python -m scripts.retrieval_probe --corpus corpus --corpus corpus/haystack/scale-25/seed-1 --backend bm25 --top 10
+```

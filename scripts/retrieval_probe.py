@@ -78,11 +78,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
 import re
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -91,6 +90,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.adapters.base import GATINGS, CorpusManifest, resolve_corpus_path
+from harness.retrieval import Bm25Index
 from harness.tasks import discover_tasks
 from scripts.audit_corpus import readable_text
 
@@ -144,48 +144,37 @@ def load_windows(corpus_root: Path) -> list[Window]:
 
 
 class BM25:
-    """Okapi BM25 over the windows. Pure stdlib, so this runs anywhere the harness runs.
+    """The one BM25, `harness.retrieval.Bm25Index`, adapted to this file's window interface.
 
-    ⛔ This is the SECOND BM25 in this repository, and it is not the same ranker as
-    `harness/retrieval.py`: they differ in `k1`, in the stoplist, in the tokenizer and in whether
-    query terms are deduplicated. Finding F-24 of the 2026-08-30 audit says so, and the
-    duplication is NOT fixed, deliberately. Every number published under preregistrations 015,
-    016 and 018 was measured on THIS one, so collapsing the two would change committed values
-    under a committed record, and that is a decision for the person who owns those records rather
-    than something an audit may do on its own. Anything comparing a number from here against one
-    from `harness/retrieval.py` is comparing two rankers."""
+    ⛔ There is no ranker in this class any more, and that is the fix for F-24. A second BM25
+    lived here until 2026-08-30, differing from the harness's in `k1` (1.2 against 1.5), in the
+    tokenizer (`[a-z0-9_]+` against `[a-z][a-z0-9_]*`), in carrying no stoplist, and in scoring
+    `set(tokenize(query))` rather than the query's terms. Two implementations of one ranker is
+    the defect that produced two different answers to "what is the CI" in `harness/stats.py`.
+
+    ⚠️ **The numbers moved, and the direction is recorded rather than absorbed.** Measured
+    2026-08-30 over 4,900 documents and 34 real prompts, hit@1 went 0.1471 to 0.2941 and MRR@10
+    0.2533 to 0.4118, almost all of it from dropping the query-term deduplication, which was a
+    defect and not a parameter. Every number published under preregistrations 015, 016 and 018
+    was measured on the OLD ranker; corrections are appended to each of those records.
+    """
 
     name = "bm25"
 
     def __init__(self, windows: list[Window]) -> None:
+        # This file windows BEFORE it indexes, so the units arrive already split and are handed
+        # to the index keyed by their position. Mapping a window back to its document is
+        # `rank_documents`' job here, not this class's, and the index's own `window_words` mode
+        # is for callers that hand it whole documents. One ranker, two ways in.
         self.windows = windows
-        self.tokens = [tokenise(window.text) for window in windows]
-        self.lengths = [len(tokens) for tokens in self.tokens]
-        self.avg_length = (sum(self.lengths) / len(self.lengths)) if self.lengths else 0.0
-        self.postings: dict[str, list[tuple[int, int]]] = defaultdict(list)
-        for index, tokens in enumerate(self.tokens):
-            for term, count in Counter(tokens).items():
-                self.postings[term].append((index, count))
-        total = len(windows)
-        self.idf = {
-            term: math.log(1.0 + (total - len(posting) + 0.5) / (len(posting) + 0.5))
-            for term, posting in self.postings.items()
-        }
+        self._index = Bm25Index({str(i): w.text for i, w in enumerate(windows)})
 
     def scores(self, query: str) -> dict[int, float]:
-        out: dict[int, float] = defaultdict(float)
-        for term in set(tokenise(query)):
-            posting = self.postings.get(term)
-            if not posting:
-                continue
-            idf = self.idf[term]
-            for index, count in posting:
-                length = self.lengths[index] or 1
-                denominator = count + BM25_K1 * (
-                    1 - BM25_B + BM25_B * length / (self.avg_length or 1)
-                )
-                out[index] += idf * count * (BM25_K1 + 1) / denominator
-        return out
+        return {
+            int(key): value
+            for key, value in self._index.ranking(query)
+            if value > 0.0
+        }
 
 
 class Dense:
