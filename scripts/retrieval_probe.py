@@ -301,13 +301,45 @@ def rank_documents(backend, windows: list[Window], query: str) -> list[tuple[str
     return sorted(best.items(), key=lambda item: (-item[1], item[0]))
 
 
-def tier_of(rel: str, plan: dict | None) -> str:
+def plant_files(corpus_root: Path) -> tuple[dict[str, set[str]], dict[str, bool]]:
+    """Which files under ``sessions/<task>/`` are PLANTS, read from ``condition.json``.
+
+    ⛔ Without this the probe is confidently wrong on any condition corpus, and silently so.
+    `scripts/assemble_condition_corpus.py` writes a planted session into
+    ``sessions/<task_id>/``, in the real session's place, because that is what makes every
+    adapter ingest it unchanged. This probe's gold was "the sessions under ``sessions/<task>/``",
+    so on an `adjacent` or `contradictory` corpus it scored **the plant** as the correct answer
+    and reported how findable the WRONG memo is. Zero misses is the tell: a condition that
+    withholds the real session cannot have a gold document to miss.
+
+    Found on 2026-08-30 by the session that owns the plants, running this probe against
+    ``corpus/conditions/adjacent/seed-1``. Nothing about the haystack results changes, because a
+    haystack root has no ``condition.json`` and its real sessions are copied byte for byte.
+    """
+
+    path = corpus_root / "condition.json"
+    if not path.is_file():
+        return {}, {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    plants: dict[str, set[str]] = {}
+    include_real: dict[str, bool] = {}
+    for task_id, entry in data.get("planted", {}).items():
+        plants[str(task_id)] = {f"{name}.jsonl" for name in entry.get("plants", ())}
+        include_real[str(task_id)] = bool(entry.get("include_real"))
+    return plants, include_real
+
+
+def tier_of(rel: str, plan: dict | None, plants: dict[str, set[str]] | None = None) -> str:
     # `sessions/smoke/` belongs to no task and is gold for nothing, so counting it as signal
     # would report another task's precursor and a bring-up transcript as the same kind of
     # competitor. `scripts/audit_corpus.py` was fixed for exactly this directory once already.
     if rel.startswith("sessions/smoke/"):
         return "smoke"
     if rel.startswith("sessions/"):
+        if plants:
+            parts = rel.split("/")
+            if len(parts) >= 3 and parts[2] in plants.get(parts[1], ()):
+                return "plant"
         return "other-task-signal"
     if rel.startswith("distractors/"):
         return "real-distractor"
@@ -331,14 +363,54 @@ def probe(
     else:
         backend = Dense(windows, model)
     documents = {window.doc for window in windows}
+    plants, include_real = plant_files(corpus_root)
 
     rows = []
+    withheld: list[str] = []
     for task in sorted(discover_tasks(), key=lambda t: t.task_id):
-        gold = {rel for rel in documents if rel.startswith(f"sessions/{task.task_id}/")}
-        if not gold:
+        under = {rel for rel in documents if rel.startswith(f"sessions/{task.task_id}/")}
+        # A planted file sits in the real session's place, so it is a COMPETITOR here, never the
+        # answer. Scoring it as gold is what made this probe report a condition corpus as if the
+        # wrong memo were the right one.
+        planted = {
+            rel for rel in under if rel.split("/")[-1] in plants.get(task.task_id, set())
+        }
+        gold = under - planted
+        if not under:
             continue
+        # `condition.json` says whether the real session was kept. If that disagrees with what is
+        # on disk, one of the two is lying about which condition this corpus is, and scoring it
+        # either way would publish a number for a condition that was never built.
+        if task.task_id in include_real and bool(gold) != include_real[task.task_id]:
+            raise SystemExit(
+                f"{corpus_root.as_posix()}: condition.json says include_real="
+                f"{include_real[task.task_id]} for {task.task_id}, but "
+                f"{len(gold)} non-planted session(s) are on disk. Rebuild the condition corpus; "
+                f"a probe cannot say which of the two is right."
+            )
         ranking = rank_documents(backend, windows, task.prompt)
         order = [rel for rel, _ in ranking]
+        plant_positions = [index + 1 for index, rel in enumerate(order) if rel in planted]
+        if not gold:
+            # The condition withheld the governing session. There is no right answer to find, so
+            # this task contributes to no hit@k. Reporting where the PLANT ranks is the useful
+            # thing left, and it is the pre-flight a condition corpus actually wants: a planted
+            # memo nobody can retrieve cannot mislead anybody, so that condition would be
+            # measuring nothing for that task.
+            withheld.append(task.task_id)
+            rows.append(
+                {
+                    "task_id": task.task_id,
+                    "gold_documents": 0,
+                    "gold_withheld_by_condition": True,
+                    "rank": None,
+                    "all_shards_rank": None,
+                    "competitors_above_gold": None,
+                    "plant_rank": min(plant_positions) if plant_positions else None,
+                    "competitor_tiers": {},
+                }
+            )
+            continue
         positions = [index + 1 for index, rel in enumerate(order) if rel in gold]
         first = min(positions) if positions else None
         competitors = order[: (first - 1)] if first else order[:top]
@@ -346,44 +418,57 @@ def probe(
             {
                 "task_id": task.task_id,
                 "gold_documents": len(gold),
+                "gold_withheld_by_condition": False,
                 "rank": first,
                 "all_shards_rank": max(positions) if len(positions) == len(gold) else None,
                 "competitors_above_gold": (first - 1) if first else None,
-                "competitor_tiers": dict(Counter(tier_of(rel, plan) for rel in competitors)),
+                "plant_rank": min(plant_positions) if plant_positions else None,
+                "competitor_tiers": dict(
+                    Counter(tier_of(rel, plan, plants) for rel in competitors)
+                ),
             }
         )
+    scored = [row for row in rows if not row["gold_withheld_by_condition"]]
 
+    # Every rate below is over SCORED queries: the ones that have a right answer to find. A task
+    # whose governing session the condition withheld is not a miss, it is not a question.
     def hit_at(k: int) -> float:
-        return sum(1 for row in rows if row["rank"] and row["rank"] <= k) / max(1, len(rows))
+        return sum(1 for row in scored if row["rank"] and row["rank"] <= k) / max(1, len(scored))
 
-    synthesis = [row for row in rows if row["gold_documents"] > 1]
+    synthesis = [row for row in scored if row["gold_documents"] > 1]
+    plant_ranked = [row for row in rows if row["plant_rank"]]
     summary = {
         "corpus": corpus_root.as_posix(),
         "backend": backend.name,
         "documents": len(documents),
         "windows": len(windows),
-        "queries": len(rows),
+        "queries": len(scored),
+        "gold_withheld_by_condition": sorted(withheld),
+        "plants_ranked_top10": sum(1 for row in plant_ranked if row["plant_rank"] <= 10),
+        "plants_present": len(plant_ranked),
         "hit@1": round(hit_at(1), 4),
         "hit@5": round(hit_at(5), 4),
         "hit@10": round(hit_at(10), 4),
         "mrr@10": round(
-            sum(1.0 / row["rank"] for row in rows if row["rank"] and row["rank"] <= 10)
-            / max(1, len(rows)),
+            sum(1.0 / row["rank"] for row in scored if row["rank"] and row["rank"] <= 10)
+            / max(1, len(scored)),
             4,
         ),
-        "median_rank": sorted(row["rank"] or 10**9 for row in rows)[len(rows) // 2] if rows else None,
+        "median_rank": (
+            sorted(row["rank"] or 10**9 for row in scored)[len(scored) // 2] if scored else None
+        ),
         # Averaged over the queries that RETRIEVED the gold session at all. Folding a miss in as
         # zero competitors was the first version of this line and it reports a corpus as easier
         # the harder it gets, since a total failure would have contributed the smallest possible
         # number to the mean. Misses are counted, not absorbed.
         "mean_competitors_above_gold": (
             round(
-                sum(row["competitors_above_gold"] for row in rows if row["rank"])
-                / max(1, sum(1 for row in rows if row["rank"])),
+                sum(row["competitors_above_gold"] for row in scored if row["rank"])
+                / max(1, sum(1 for row in scored if row["rank"])),
                 2,
             )
         ),
-        "misses": sum(1 for row in rows if not row["rank"]),
+        "misses": sum(1 for row in scored if not row["rank"]),
         "all_shards@10": (
             round(
                 sum(
@@ -398,7 +483,7 @@ def probe(
             else None
         ),
         "competitor_tiers": dict(
-            sum((Counter(row["competitor_tiers"]) for row in rows), Counter())
+            sum((Counter(row["competitor_tiers"]) for row in scored), Counter())
         ),
     }
     return {"summary": summary, "per_task": rows}
@@ -455,6 +540,20 @@ def main() -> int:
 
     for result in results:
         s = result["summary"]
+        if s["gold_withheld_by_condition"]:
+            print(
+                f"\n{s['corpus']}: [!!] CONDITION CORPUS. The governing session is WITHHELD "
+                f"for {len(s['gold_withheld_by_condition'])} task(s), so they have no right "
+                f"answer to find and are excluded from every rate above: "
+                f"{', '.join(s['gold_withheld_by_condition'])}."
+            )
+        if s["plants_present"]:
+            print(
+                f"{s['corpus']}: planted memos retrieved in the top 10 for "
+                f"{s['plants_ranked_top10']} of {s['plants_present']} planted task(s). A plant "
+                f"nobody can retrieve cannot mislead anybody, so that condition would be "
+                f"measuring nothing for those tasks."
+            )
         if s["competitor_tiers"]:
             tiers = ", ".join(f"{k} {v}" for k, v in sorted(s["competitor_tiers"].items()))
             print(f"\n{s['corpus']}: wrong sessions ranked above the right one, by tier: {tiers}")

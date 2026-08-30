@@ -1,0 +1,391 @@
+[
+  {
+    "summary": {
+      "corpus": "corpus/conditions/adjacent/seed-1",
+      "backend": "bm25",
+      "documents": 195,
+      "windows": 1194,
+      "queries": 18,
+      "gold_withheld_by_condition": [
+        "ts-append-only",
+        "ts-base36-id",
+        "ts-bom-merge",
+        "ts-bool-env",
+        "ts-csv-quote",
+        "ts-dedup-order",
+        "ts-glob-hidden",
+        "ts-golden-regen",
+        "ts-ignore-gen",
+        "ts-legacy-hash",
+        "ts-manifest-rel",
+        "ts-natural-order",
+        "ts-schema-additive",
+        "ts-semver-pin",
+        "ts-tz-utc"
+      ],
+      "plants_ranked_top10": 10,
+      "plants_present": 15,
+      "hit@1": 0.6111,
+      "hit@5": 0.8889,
+      "hit@10": 1.0,
+      "mrr@10": 0.7094,
+      "median_rank": 1,
+      "mean_competitors_above_gold": 1.44,
+      "misses": 0,
+      "all_shards@10": 0.6667,
+      "competitor_tiers": {
+        "real-distractor": 24,
+        "plant": 1,
+        "other-task-signal": 1
+      }
+    },
+    "per_task": [
+      {
+        "task_id": "ts-append-only",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 7,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-atomic-write",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-base36-id",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 4,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-bom-merge",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 32,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-bool-env",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 4,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-casefold-sort",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 2,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 1,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "ts-cli-exitcode",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-config-layer",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-crlf-export",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 7,
+        "all_shards_rank": 7,
+        "competitors_above_gold": 6,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 5,
+          "plant": 1
+        }
+      },
+      {
+        "task_id": "ts-csv-quote",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 6,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-dedup-order",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 59,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-empty-input",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2
+        }
+      },
+      {
+        "task_id": "ts-glob-hidden",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 45,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-golden-regen",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 61,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-idempotent-run",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-ignore-gen",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 1,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-json-sorted",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-legacy-hash",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 6,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-log-mask",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-manifest-rel",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 1,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-mig-name",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4
+        }
+      },
+      {
+        "task_id": "ts-natural-order",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 30,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-nfc-count",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-quote-shell",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-retry-cap",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-round-money",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-schema-additive",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 4,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-semver-pin",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 7,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-stable-sort",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4
+        }
+      },
+      {
+        "task_id": "ts-tz-utc",
+        "gold_documents": 0,
+        "gold_withheld_by_condition": true,
+        "rank": null,
+        "all_shards_rank": null,
+        "competitors_above_gold": null,
+        "plant_rank": 4,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "xs-evolve-lease",
+        "gold_documents": 3,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "xs-join-batch",
+        "gold_documents": 2,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "xs-widen-manifest",
+        "gold_documents": 2,
+        "gold_withheld_by_condition": false,
+        "rank": 7,
+        "all_shards_rank": 12,
+        "competitors_above_gold": 6,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 5,
+          "other-task-signal": 1
+        }
+      }
+    ]
+  }
+]

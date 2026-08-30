@@ -272,3 +272,46 @@ def test_the_generator_digest_covers_the_neighbourhood_data():
         assert _digest_generator() != before
     finally:
         path.write_bytes(original)
+
+
+def test_a_planted_session_is_never_scored_as_gold(tmp_path):
+    """Regression: on a condition corpus the probe scored the PLANT as the right answer.
+
+    `scripts/assemble_condition_corpus.py` writes a planted session into `sessions/<task_id>/`,
+    in the real session's place, because that is what makes every adapter ingest it unchanged.
+    The probe's gold was "the sessions under that directory", so on an `adjacent` corpus every
+    number it produced described how findable the WRONG memo is, and it looked entirely normal:
+    zero misses, plausible hit@k. Found by the session that owns the plants, not by this suite.
+    """
+
+    from scripts.retrieval_probe import plant_files, tier_of
+
+    (tmp_path / "condition.json").write_text(
+        json.dumps(
+            {
+                "condition": "adjacent",
+                "planted": {
+                    "ts-x": {"include_real": False, "plants": ["wrong_memo"]},
+                    "ts-y": {"include_real": True, "plants": ["stale_memo"]},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    plants, include_real = plant_files(tmp_path)
+    assert plants == {"ts-x": {"wrong_memo.jsonl"}, "ts-y": {"stale_memo.jsonl"}}
+    assert include_real == {"ts-x": False, "ts-y": True}
+
+    # A plant is a competitor, never signal, and never the answer.
+    assert tier_of("sessions/ts-x/wrong_memo.jsonl", None, plants) == "plant"
+    assert tier_of("sessions/ts-y/stale_memo.jsonl", None, plants) == "plant"
+    assert tier_of("sessions/ts-y/p01.jsonl", None, plants) == "other-task-signal"
+
+
+def test_a_corpus_with_no_condition_file_has_no_plants():
+    """The haystack and the real feed must be untouched by the condition handling."""
+
+    from scripts.retrieval_probe import plant_files
+
+    plants, include_real = plant_files(REPO / "corpus")
+    assert plants == {} and include_real == {}
