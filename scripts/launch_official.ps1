@@ -28,6 +28,12 @@ param(
   [string]$Arms        = "bare,placebo,claude_md,recall,mempalace",
   [int]   $Seeds       = 3,
   [string]$Model       = "deepseek/deepseek-v4-flash",
+  # Frozen by preregistration 002 and matched by the bash launcher. Without these the run does
+  # not start at all: pricing_from_args refuses before the first ingest, and Start-Process has
+  # already reported success by then.
+  [string]$PriceIn     = "0.0574",
+  [string]$PriceOut    = "0.1148",
+  [string]$PriceAsOf   = "2026-08-22",
   [string]$MemPalaceVenv = "C:/mpb/v",
   [string]$PalaceRoot    = "C:/mpb/palaces",
   [switch]$DryRun
@@ -62,7 +68,10 @@ $argv = @(
   "--seeds",      "$Seeds",
   "--model",      $Model,
   "--memory-instruction", "skill",
-  "--resume"
+  "--resume",
+  "--price-in",     $PriceIn,
+  "--price-out",    $PriceOut,
+  "--price-as-of",  $PriceAsOf
 )
 if ($DryRun) { $argv += "--dry-run" }
 
@@ -71,12 +80,32 @@ Write-Host "arms       : $Arms"
 Write-Host "conditions : $Conditions x $Seeds seed(s)"
 Write-Host "stdout     : $out"
 
-$proc = Start-Process -FilePath "python" -ArgumentList $argv `
+# The PINNED interpreter, not PATH `python`. The read path and the write path must be one build
+# of every dependency: `abstention-002` came up on a PATH python holding an editable worktree and
+# refused the corpus with SchemaTooNew, which in a transcript is memory_call_count = 0 and is
+# indistinguishable from a model that chose not to search.
+$python = Join-Path $repo ".venv/Scripts/python.exe"
+if (-not (Test-Path $python)) { $python = Join-Path $repo ".venv/bin/python" }
+if (-not (Test-Path $python)) { throw "no bench venv at $repo/.venv; refusing to launch a run on PATH python" }
+
+$proc = Start-Process -FilePath $python -ArgumentList $argv `
         -RedirectStandardOutput $out -RedirectStandardError $err `
         -WindowStyle Hidden -PassThru
 
 $pidFile = Join-Path $logDir "$RunId.pid"
 "$($proc.Id)" | Set-Content -Path $pidFile -Encoding ascii
+
+# ⚠️ Start-Process returns as soon as the child STARTS, so "launched" is not evidence it is
+# running. A missing price flag killed it at argument validation in under a second while this
+# script printed a pid and an operator went away for the night. Look before reporting success.
+Start-Sleep -Seconds 3
+if ($proc.HasExited) {
+  Write-Host ""
+  Write-Host "THE RUN DID NOT START. It exited $($proc.ExitCode) within 3 seconds." -ForegroundColor Red
+  if (Test-Path $err) { Get-Content $err -Tail 20 | ForEach-Object { Write-Host "  $_" } }
+  Remove-Item $pidFile -ErrorAction SilentlyContinue
+  exit 1
+}
 
 Write-Host ""
 Write-Host "launched detached, pid $($proc.Id) (recorded in $pidFile)"
