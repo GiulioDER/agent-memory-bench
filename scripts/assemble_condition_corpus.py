@@ -43,11 +43,12 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.adapters.base import CorpusManifest
-from harness.damage import CONDITIONS
+from harness.damage import CORPUS_CONDITIONS, PRESENT
 from harness.plants import (
     PlantSpecError,
     assign_contradiction_dates,
     load_plants,
+    present_plan,
     sources_for,
 )
 from harness.tasks import discover_tasks
@@ -103,16 +104,78 @@ def _write_jsonl(path: Path, lines: list[dict]) -> None:
     path.write_text(body, encoding="utf-8", newline="\n")
 
 
+def default_selection(condition: str) -> list[str]:
+    """Every task this condition can be built for, before any retirement list is applied.
+
+    ⚠️ The rule differs for `present` and that is the whole point of the condition.
+
+    An adversarial condition is a claim about a planted memo, so a task qualifies by DECLARING
+    one. Section 2 of `docs/reviews/2026-08-30-instrument-review.md` traced official-001's central
+    defect to that rule: plant expressiveness and difficulty are different properties, and
+    admitting on the first silently discarded the second, leaving a suite that could not measure
+    benefit at all.
+
+    `present` needs no plant, so applying the same rule would inherit the same bias and hand the
+    one condition that CAN measure benefit only the 15 tasks somebody has authored plants for.
+    Measured 2026-08-30: the declaring rule gives 15, this one gives 29, and the 14 it adds
+    include `ts-nfc-count`, `ts-round-money` and `ts-quote-shell`, which are precisely the tasks
+    section 7 of that review named as where a memory arm converts impossible into solved.
+
+    ⛔ Note what selection does and does not do here. For `present` the corpus is the identity
+    transform, so selecting a task changes NO bytes; it changes which tasks `condition.json`
+    records as under test, and therefore which cells the run grid covers. Getting it wrong
+    produces a corpus that looks right and a run that measures a third of what it should.
+    """
+
+    if condition == PRESENT:
+        return [
+            task.task_id
+            for task in discover_tasks()
+            if task.fact_terms and any((BASE_CORPUS / "sessions" / task.task_id).glob("*.jsonl"))
+        ]
+    return [
+        task.task_id
+        for task in discover_tasks()
+        if (spec := load_plants(task.path)) is not None and spec.plan(condition)
+    ]
+
+
 def assemble(condition: str, seed: int, selection: list[str], out_root: Path) -> dict:
-    if condition not in CONDITIONS:
-        raise SystemExit(f"unknown condition {condition!r}; expected one of {CONDITIONS}")
+    if condition not in CORPUS_CONDITIONS:
+        raise SystemExit(f"unknown condition {condition!r}; expected one of {CORPUS_CONDITIONS}")
 
     tasks = {task.task_id: task for task in discover_tasks()}
     unknown = [task_id for task_id in selection if task_id not in tasks]
     if unknown:
         raise SystemExit(f"unknown task(s) in selection: {unknown}")
 
+    # Defence in depth, at the layer that actually DELETES. The containment check lives in
+    # `main()` and covers `--out` only, so the other four callers reach this `rmtree` with a
+    # constructed path and no check at all. Not exploitable today (the condition is validated
+    # above and every caller builds its own path), which is exactly the state to add a guard in
+    # rather than after.
+    #
+    # The rule is about WHAT is being removed, not where it sits: a location whitelist would
+    # have refused every test that assembles into a tmp directory, which is a legitimate caller.
+    # This function writes exactly the entries below, so a target holding anything else is not a
+    # condition corpus this code built and must not be deleted wholesale.
+    WRITES = {"sessions", "distractors", "condition.json", "manifest.json"}
     if out_root.exists():
+        # `.DS_Store`, `Thumbs.db` and `desktop.ini` are written by a file browser, not by a
+        # person, and refusing a legitimate re-assemble because one appeared would make this
+        # guard a nuisance that gets deleted rather than a guard.
+        IGNORED = {".DS_Store", "Thumbs.db", "desktop.ini"}
+        foreign = sorted(
+            p.name
+            for p in out_root.iterdir()
+            if p.name not in WRITES and p.name not in IGNORED
+        )
+        if foreign:
+            raise SystemExit(
+                f"refusing to delete {out_root.resolve()}: it holds {foreign}, which this "
+                f"function does not write, so it is not a condition corpus built by this code. "
+                f"Remove it deliberately if that is what you meant."
+            )
         shutil.rmtree(out_root)
     (out_root / "sessions").mkdir(parents=True)
     (out_root / "distractors").mkdir(parents=True)
@@ -141,14 +204,21 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
                 shutil.copyfile(path, out_root / "sessions" / task_id / path.name)
             continue
 
-        spec = load_plants(tasks[task_id].path)
-        plan = spec.plan(condition) if spec else None
-        if plan is None:
-            raise SystemExit(
-                f"{task_id} is in the selection but declares no {condition!r} condition in "
-                f"plants.json. A selected task with no plan would silently keep its true fact "
-                f"and be scored as {condition!r}."
-            )
+        if condition == PRESENT:
+            # `present` needs no plants.json and no declaration: it is the task's real session
+            # and nothing else. Requiring a declaration here would make the condition available
+            # only to the tasks somebody has already authored plants for, which is the exact
+            # selection bias section 2 of the instrument review found in the harm suite.
+            plan = present_plan()
+        else:
+            spec = load_plants(tasks[task_id].path)
+            plan = spec.plan(condition) if spec else None
+            if plan is None:
+                raise SystemExit(
+                    f"{task_id} is in the selection but declares no {condition!r} condition in "
+                    f"plants.json. A selected task with no plan would silently keep its true "
+                    f"fact and be scored as {condition!r}."
+                )
 
         dates = (
             assign_contradiction_dates(plan.plants, seed)
@@ -198,7 +268,7 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--condition", required=True, choices=list(CONDITIONS))
+    parser.add_argument("--condition", required=True, choices=list(CORPUS_CONDITIONS))
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument(
         "--tasks",
@@ -219,13 +289,28 @@ def main() -> int:
             )
 
     if args.tasks:
+        # An explicit list is obeyed exactly, including a retired task: assembling one
+        # deliberately is legitimate and the caller has said what they want.
         selection = list(args.tasks)
     else:
-        selection = []
-        for task in discover_tasks():
-            spec = load_plants(task.path)
-            if spec and spec.plan(args.condition):
-                selection.append(task.task_id)
+        # ⛔ The DEFAULT must match what a run would build, and for two days it did not.
+        # `scripts/abstention.py` runs `selection_for`, which subtracts RETIRED_TASKS; this CLI
+        # used `default_selection` raw, so a hand-assembled `adjacent` corpus carried 16 planted
+        # tasks where a real run carries 12. The four extra are the retired ones, and for each of
+        # them the corpus WITHHELD the real session and planted over it, so a probe pointed at
+        # that corpus was measuring a feed no run produces.
+        #
+        # Found on 2026-08-30 by two sessions comparing plant ranks and getting answers 45
+        # positions apart on `ts-glob-hidden`: one had assembled through this path and the other
+        # through the runner's. Imported inside the function because `scripts.abstention` imports
+        # this module at load time.
+        from scripts.abstention import RETIRED_TASKS
+
+        buildable = default_selection(args.condition)
+        selection = [task for task in buildable if task not in RETIRED_TASKS]
+        for task in buildable:
+            if task in RETIRED_TASKS:
+                print(f"[retired] {args.condition}: {task} excluded ({RETIRED_TASKS[task]})")
     if not selection:
         raise SystemExit(
             f"no task declares the {args.condition!r} condition; nothing to assemble"

@@ -131,12 +131,32 @@ def test_a_task_with_no_plants_json_is_none(tmp_path):
 
 
 def test_every_shape_matches_the_preregistered_table():
-    """The four conditions of preregistration 005, and only those."""
+    """Preregistration 005's four adversarial conditions, unchanged, plus `present` from 017.
 
-    assert set(CONDITION_SHAPE) == {"absent", "superseded", "contradictory", "adjacent"}
+    This test fired when `present` was added, which is exactly what it is for: the four shapes
+    below are a frozen record and a fifth entry appearing beside them has to be a deliberate,
+    attributable act rather than a drift. So the assertion is split rather than widened.
+
+    005's four are asserted by identity against `CONDITIONS`, so nothing can be added to, removed
+    from or reshaped inside that record without this failing again. `present` is asserted
+    separately, named to its own record, and it carries no plant by construction: it is the
+    identity transform on the corpus and the only condition in which abstaining is a LOSS.
+    """
+
+    from harness.damage import CONDITIONS, PRESENT
+
+    assert set(CONDITION_SHAPE) == {*CONDITIONS, PRESENT}
+    assert set(CONDITIONS) == {"absent", "superseded", "contradictory", "adjacent"}
     assert CONDITION_SHAPE["superseded"]["include_real"] is True
     for condition in ("absent", "contradictory", "adjacent"):
         assert CONDITION_SHAPE[condition]["include_real"] is False
+
+    # `present` (preregistration 017): the real session and nothing else.
+    assert CONDITION_SHAPE[PRESENT] == {
+        "include_real": True,
+        "min_plants": 0,
+        "max_plants": 0,
+    }
 
 
 # ---------------------------------------------------------------------------------------

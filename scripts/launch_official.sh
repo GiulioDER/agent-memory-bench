@@ -17,7 +17,20 @@ set -euo pipefail
 REPO="${REPO:-$HOME/amb-repo}"
 RUN_ID="${RUN_ID:-official-001}"
 NAMESPACE="${NAMESPACE:-bench-official}"
-CONDITIONS="${CONDITIONS:-absent,superseded,contradictory,adjacent}"
+# Read from harness/damage.py rather than restated, so a condition added there cannot be
+# silently dropped from the official grid: the literal that stood here was the adversarial four,
+# and `present` would simply never have run. A shell script cannot import, so it asks python for
+# the tuple and REFUSES if that fails, because an empty CONDITIONS runs zero cells and exits 0.
+if [[ -z "${CONDITIONS:-}" ]]; then
+  # Assigned in two steps ON PURPOSE. Written as CONDITIONS="${CONDITIONS:-$(...)}", a failing
+  # command substitution aborts the script under `set -e` BEFORE the guard below can run, so the
+  # script exited 1 with no diagnostic and the guard was dead code that read as a safety net.
+  CONDITIONS="$(cd "$REPO" && python -c 'from harness.damage import CORPUS_CONDITIONS; print(",".join(CORPUS_CONDITIONS))')" || CONDITIONS=""
+fi
+if [[ -z "$CONDITIONS" ]]; then
+  echo "could not read CORPUS_CONDITIONS from $REPO/harness/damage.py" >&2
+  exit 2
+fi
 ARMS="${ARMS:-bare,placebo,claude_md,recall,mempalace}"
 SEEDS="${SEEDS:-3}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"

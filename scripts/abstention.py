@@ -52,10 +52,10 @@ if str(REPO) not in sys.path:
 from harness.abstention import cells_from_records, endpoints
 from harness.adapters.base import CorpusManifest
 from harness.costs import add_pricing_arguments, pricing_from_args
-from harness.damage import CONDITIONS
-from harness.plants import load_plants
-from harness.tasks import discover_tasks
-from scripts.assemble_condition_corpus import assemble
+from harness.damage import CORPUS_CONDITIONS
+from scripts.assemble_condition_corpus import assemble, default_selection
+
+CORPUS = REPO / "corpus"
 
 # Tasks retired from the harm suite on 2026-08-30 because **no arm has ever failed them**, across
 # every run in this repository plus official-001. A task nobody fails can record neither damage
@@ -67,6 +67,32 @@ from scripts.assemble_condition_corpus import assemble
 #
 # See docs/reviews/2026-08-30-instrument-review.md. official-001 spent 82.2% of its sessions on
 # cells where every arm produced the same outcome; this is the first cut against that.
+#
+# ⛔ **This list may not be extended from the COMMITTED results tree alone, and one attempt to do
+# so on 2026-08-30 was reverted the same day.** `scripts/task_admission.py` pooled the seven
+# committed runs, found `ts-ignore-gen` and `ts-natural-order` with zero failures across every
+# arm, and both were added here. Both were wrong, for a reason no amount of care with the
+# committed data could have caught:
+#
+# `official-001` ran to completion on the benchmark host (630 sessions, four conditions,
+# five arms) and its
+# results were deliberately NOT committed, because the instrument was miscalibrated and a ranking
+# from it would misrepresent every arm. It is therefore invisible to any analysis over this tree.
+# Checked against that run's records by the session that holds them:
+#
+#   ts-ignore-gen     3 failures, all in ADMITTED cells, no error, all under `adjacent`, all one
+#                     memory arm, all three seeds. Deterministic, reproducible and attributable:
+#                     the single clearest damage signal official-001 produced. Retiring it would
+#                     have deleted exactly the evidence this suite exists to collect.
+#   ts-natural-order  2 failures in admitted cells, one memory arm and one bare, plus 1 errored.
+#
+# The four entries below were re-checked the same way and all four stand: their apparent failures
+# are errored sessions in DISCARDED cells, so zero genuine failures between them.
+#
+# 🔑 The transferable rule, which cost a wrong retirement to learn: **a retirement needs evidence
+# from every run that exists, not from every run that is committed.** Ask the holder of an
+# uncommitted run before removing a task. `task_admission.py` reports candidates; it cannot
+# authorise a retirement.
 RETIRED_TASKS = {
     "ts-glob-hidden": "0 failures in 113 sessions, every arm, every run",
     "ts-bool-env": "0 failures in 62 sessions",
@@ -82,13 +108,19 @@ def selection_for(condition: str, *, announce: bool = True) -> list[str]:
     quietly it was an entire product arm missing from MEMORY_ARMS, which cost official-001 its
     search-rate reporting and was invisible in the artifact. A grid that shrinks without saying so
     is the same failure with a different subject.
+
+    ⚠️ `present` is selected differently ON PURPOSE, and the difference is the point.
+
+    For the four adversarial conditions a task qualifies by DECLARING plants, and section 2 of
+    `docs/reviews/2026-08-30-instrument-review.md` traced official-001's central defect to
+    exactly that rule: plant expressiveness and difficulty are different properties, and
+    admitting on the first silently discarded the second. `present` needs no plant, so applying
+    the same rule to it would inherit the same bias and restrict the one condition that can
+    measure BENEFIT to the tasks somebody happened to author plants for. It selects instead on
+    the only thing it actually requires: the task has a recorded governing session to find.
     """
 
-    declared = [
-        task.task_id
-        for task in discover_tasks()
-        if (spec := load_plants(task.path)) is not None and spec.plan(condition)
-    ]
+    declared = default_selection(condition)
     kept = [t for t in declared if t not in RETIRED_TASKS]
     dropped = [t for t in declared if t in RETIRED_TASKS]
     if dropped and announce:
@@ -477,9 +509,9 @@ def main() -> int:
         pricing_from_args(args, model=args.model)
 
     conditions = [c.strip() for c in args.conditions.split(",") if c.strip()]
-    unknown = [c for c in conditions if c not in CONDITIONS]
+    unknown = [c for c in conditions if c not in CORPUS_CONDITIONS]
     if unknown:
-        raise SystemExit(f"unknown condition(s) {unknown}; choose from {CONDITIONS}")
+        raise SystemExit(f"unknown condition(s) {unknown}; choose from {CORPUS_CONDITIONS}")
 
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     if "bare" not in arms:

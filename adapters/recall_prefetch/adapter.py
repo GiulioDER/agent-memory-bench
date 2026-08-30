@@ -12,7 +12,13 @@ from pathlib import Path
 from typing import Any
 
 from adapters.recall.adapter import RecallAdapter
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    namespace_path,
+)
 from harness.gate import AdmissionSignal
 from harness.memory_bundles import MemoryItem
 from harness.memory_prompt import estimated_input_tokens, format_memory_items, sha256_text
@@ -151,7 +157,10 @@ class RecallPrefetchAdapter(MemoryAdapter):
             self.recall, namespace, user_input, runner=self.prefetch_runner
         )
         memory_text = format_memory_items(items)
-        prompt = self.staging_root / namespace / task_id / "prefetch.system.md"
+        # Validated at the join. Found by `tests/test_namespace_guard.py` on the day it
+        # was written, which is the point of it: neither the audit nor the architect
+        # review named this site, and both of them looked.
+        prompt = namespace_path(self.staging_root, namespace, task_id, "prefetch.system.md")
         prompt.parent.mkdir(parents=True, exist_ok=True)
         static = self.base_prompt_file.read_text(encoding="utf-8").rstrip()
         prompt.write_text(memory_text.rstrip() + "\n\n" + static + "\n", encoding="utf-8")

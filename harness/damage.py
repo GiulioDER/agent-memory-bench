@@ -41,7 +41,39 @@ from typing import Any, Protocol, runtime_checkable
 
 #: The corpus conditions from preregistration 005. A detector is asked about one of these, because
 #: the planted wrong fact differs per condition even for the same task.
+#:
+#: ⚠️ `present` is NOT one of them, and that is deliberate rather than an omission. Every
+#: condition here varies how the evidence is BAD, so every one of them asks a detector "did the
+#: arm apply a wrong fact". `present` has no plant and therefore no wrong fact to detect; asking
+#: a damage detector about it is a category error. It is a condition of the CORPUS
+#: (`ADVERSARIAL_CONDITIONS` plus `PRESENT` below) and not a condition of the damage machinery.
 CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
+
+#: The condition in which the governing fact is present, correct and unambiguous: the real
+#: precursor session, no plant, nothing swapped. The identity transform on the corpus.
+#:
+#: It exists because without it this suite cannot reward a memory layer for being USEFUL.
+#: `docs/reviews/2026-08-30-instrument-review.md` section 3: memory usefulness is a two-by-two,
+#: and with only the four adversarial conditions above, one row of it cannot fire.
+#:
+#: | | corpus HAS the answer | corpus empty or misleading |
+#: |---|---|---|
+#: | product engages | win (benefit) | loss (damage) |
+#: | product abstains | **missed** | win (correct refusal) |
+#:
+#: The "missed" cell is the one `present` instruments. Without it, never searching takes zero
+#: damage and forfeits nothing, so abstinence is a strictly DOMINANT strategy and any ranking
+#: drawn from this suite rewards the most conservative product rather than the most useful one.
+#: That misrepresents every arm, including the third-party ones this project does not own.
+PRESENT = "present"
+
+#: Every condition a corpus can be assembled in. `CONDITIONS` stays the damage-detector's
+#: vocabulary; this is the assembler's and the composite endpoint's.
+CORPUS_CONDITIONS = (PRESENT, *CONDITIONS)
+
+#: The four in which the corpus cannot answer correctly. Specificity is measured over these and
+#: sensitivity over `PRESENT`; a composite needs both or it rewards a degenerate strategy.
+ADVERSARIAL_CONDITIONS = CONDITIONS
 
 
 class Outcome(enum.Enum):

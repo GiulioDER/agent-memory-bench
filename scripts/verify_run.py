@@ -50,10 +50,15 @@ if str(REPO) not in sys.path:
 
 from harness.abstention import cells_from_records, endpoints
 from harness.costs import ModelPricing, summarize
+from harness.damage import CORPUS_CONDITIONS
 from harness.schema import SessionRecord
 
 _FIELDS = {f.name for f in dataclasses.fields(SessionRecord)}
-CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
+# Imported, never restated. This was a copy of the adversarial four, so a `-present` run
+# directory matched no suffix, `_condition_of` returned None, and the endpoint re-derivation
+# below was skipped in SILENCE: the verifier reported the run green having checked the one
+# thing it exists to check on nothing.
+CONDITIONS = CORPUS_CONDITIONS
 
 
 class Findings:
@@ -439,6 +444,18 @@ def verify(run_dir: Path) -> Findings:
     condition = _condition_of(run_dir)
     run_id = run_dir.name[: -(len(condition) + 1)] if condition else None
     published_endpoints = (run_dir.parent / f"{run_id}-endpoints.json") if run_id else None
+    if not condition:
+        # A skipped check and a passed check must never render the same. Naming the recognised
+        # set makes the next unrecognised condition a one-line diagnosis instead of an audit.
+        f.skip(
+            f"{run_dir.name}: endpoints NOT re-derived, because the directory name ends in no "
+            f"known condition ({', '.join(CONDITIONS)}). Nothing here checked the published "
+            f"endpoint arithmetic."
+        )
+    elif published_endpoints and not published_endpoints.is_file():
+        f.skip(
+            f"{run_dir.name}: endpoints NOT re-derived; {published_endpoints.name} is absent."
+        )
     if condition and published_endpoints and published_endpoints.is_file():
         if not published_admission.is_file():
             f.skip(

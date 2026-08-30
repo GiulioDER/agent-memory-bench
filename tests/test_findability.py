@@ -16,8 +16,8 @@ if str(REPO) not in sys.path:
 
 import pytest
 
-from harness.retrieval import Bm25Index, tokenize
-from scripts.audit_findability import CANDIDATE_DEPTH, WINDOW, rank_plants
+from harness.retrieval import WINDOW_WORDS, Bm25Index, tokenize
+from scripts.audit_findability import CANDIDATE_DEPTH, rank_plants
 
 
 def test_a_rarer_term_outranks_a_common_one():
@@ -112,6 +112,11 @@ def test_the_audit_reports_rather_than_gates():
     source = (REPO / "scripts" / "audit_findability.py").read_text(encoding="utf-8")
     assert "return 0" in source
     assert "raise SystemExit(1)" not in source, (
-        "audit_findability must not fail a build on a rank two implementations cannot agree on"
+        "audit_findability must not fail a build on a BM25 rank. The two implementations that "
+        "could not agree were merged on 2026-08-30 (F-24), so that reason is gone; the standing "
+        "one is that BM25 is a proxy for products that retrieve with embeddings, and the two "
+        "fail on different corpora."
     )
-    assert CANDIDATE_DEPTH > 0 and WINDOW > 0
+    # `WINDOW` moved to `harness.retrieval.WINDOW_WORDS` on 2026-08-30: this script kept its own
+    # copy with a DIFFERENT stride while its comment said it matched the probe's (F-24).
+    assert CANDIDATE_DEPTH > 0 and WINDOW_WORDS > 0
