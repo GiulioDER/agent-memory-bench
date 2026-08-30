@@ -136,13 +136,25 @@ def _files_naming_a_host() -> dict[str, list[str]]:
     return hits
 
 
+#: Frozen records that name a host path in PROSE, measured 2026-08-30. A ratchet like
+#: KNOWN_RESULT_ARTIFACTS, and for a related reason: a committed preregistration must not be
+#: edited, because a record that can be revised is a record of nothing. 020 describes the launch
+#: precondition "the current host layout is under /home/sentiment", which was true and is the
+#: point of the precondition. The string is already public in the eleven ratcheted `results/`
+#: files, so this adds no disclosure; what it must not do is grow.
+#:
+#: ⚠️ A NEW preregistration should not name a host at all. Write "under a home directory". This
+#: set exists because 020 was committed before this guard was run against it, not as a licence.
+KNOWN_PROSE_RECORDS = frozenset({"preregistration/020-official-002.md"})
+
+
 def test_no_tracked_config_or_script_names_a_host_or_a_remote_path() -> None:
     """RED before the fix: config.frozen.json and launch_official.sh both matched."""
 
     offenders = {
         rel: found
         for rel, found in _files_naming_a_host().items()
-        if not rel.startswith("results/")
+        if not rel.startswith("results/") and rel not in KNOWN_PROSE_RECORDS
     }
     assert offenders == {}, (
         "a tracked file names a host, an account or a remote path, which .gitignore's first "
@@ -320,3 +332,27 @@ def test_one_resolver_serves_every_location_consumer() -> None:
             pass  # unset in this environment, which is the refusal working
         except KeyError:  # pragma: no cover - would mean the config and resolver disagree
             raise AssertionError(f"the config names {key}_env but the resolver cannot use it")
+
+
+def test_no_new_frozen_record_names_a_host_path() -> None:
+    """The prose ratchet may shrink, never grow.
+
+    A preregistration cannot be edited once committed, so a host path written into one is
+    permanent. That makes this guard preventive rather than corrective: the set below is what
+    already exists, and a new entry means somebody wrote a host into a record that can never be
+    taken out of it.
+    """
+
+    current = {
+        rel
+        for rel in _files_naming_a_host()
+        if rel.startswith(("preregistration/", "docs/"))
+    }
+    added = current - KNOWN_PROSE_RECORDS
+    assert added == set(), (
+        "a frozen record names a host path:\n"
+        + "\n".join(f"  {rel}" for rel in sorted(added))
+        + "\nA committed preregistration cannot be edited, so write "
+        "'under a home directory' rather than the path. If this one is already committed, "
+        "add it here and say why."
+    )
