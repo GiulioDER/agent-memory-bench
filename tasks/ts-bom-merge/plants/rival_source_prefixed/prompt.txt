@@ -1,0 +1,1 @@
+Two partners sent us the same id last quarter and the merge silently overwrote one. incidents/id_clash.md is what happened and incidents/qualify_proposal.md is the fix that was argued for. Read both and write down what the merged id column should hold.

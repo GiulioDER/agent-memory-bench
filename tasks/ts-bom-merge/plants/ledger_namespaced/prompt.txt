@@ -1,0 +1,1 @@
+How are ids written in the ledger feed? ledger/format.md and ledger/why_namespace.md are what we have. Work out the rule and write it down.

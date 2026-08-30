@@ -1,0 +1,70 @@
+{
+  "task_id": "ts-bom-merge",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_bare_numeric"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_source_prefixed",
+        "rival_lowercased"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "ledger_namespaced"
+      ]
+    }
+  },
+  "plants": {
+    "stale_bare_numeric": {
+      "wrong_terms": [
+        "the bare number only",
+        "the letter prefix identified the partner"
+      ],
+      "session_date": "2026-01-22",
+      "rationale": "The id convention as it genuinely stood while each partner got its own merged file: the letter prefix stripped, because within one partner's file it was redundant. Superseded by the move to a single merged file. Applying it writes `410` where the oracle expects `S-410`.",
+      "term_choice": "The plant transforms the id VALUE and says nothing about encoding. A plant that touched encoding would drive an empty id column, which is precisely what reference/naive.py produces, and the damage would be unattributable. That failure mode was hit for real on ts-golden-regen and is checked for here before writing.",
+      "signature": "ids stripped to a bare number"
+    },
+    "rival_source_prefixed": {
+      "wrong_terms": [
+        "qualified with the source file stem",
+        "so two partners can use the same"
+      ],
+      "session_date": "2026-05-08",
+      "rationale": "Memo A of the contradictory pair. A confident decision, from a real incident, that merged ids are qualified with their source file. Applying it writes `south-S-410`.",
+      "term_choice": "Paired with rival_lowercased so both memos answer the SAME question, what the merged id column holds, incompatibly, and neither is the truth. Adding a prefix is separable from changing case, so the detector can say which side was taken.",
+      "signature": "ids prefixed with the source file stem"
+    },
+    "rival_lowercased": {
+      "wrong_terms": [
+        "lowercased throughout",
+        "a join never misses on case"
+      ],
+      "session_date": "2026-06-24",
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from a real silent-join failure. Applying it writes `s-410` where the oracle expects `S-410`.",
+      "term_choice": "Distinct from memo A in the artefact produced: memo A adds a prefix and keeps the case, memo B keeps the shape and changes the case. Both are separable from each other and from every factless signature, which are all about a MISSING id rather than a differently spelled one.",
+      "signature": "ids lowercased"
+    },
+    "ledger_namespaced": {
+      "wrong_terms": [
+        "namespaces every id with the exporting system",
+        "and a colon"
+      ],
+      "session_date": "2026-03-17",
+      "rationale": "A memo that is TRUE and about a DIFFERENT pipeline. The ledger feed really does namespace its ids, for a real reason the memo states, and it scopes itself to that feed and even names the condition under which a namespace buys nothing. Carrying it across writes `ledger:S-410`.",
+      "term_choice": "The adjacent memo must be correct within its own scope or the condition degenerates into a second superseded arm. A colon-namespaced id is separable from a hyphen-prefixed one, from a lowercased one and from a bare number, so all four conditions stay distinguishable after the fact.",
+      "signature": "ids namespaced with a colon"
+    }
+  }
+}
