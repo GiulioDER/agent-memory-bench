@@ -27,6 +27,7 @@ import pytest
 from harness.adapters.base import CorpusManifest
 from harness.plants import normalise
 from harness.tasks import discover_tasks
+from scripts.audit_corpus import _STOP
 from scripts.generate_haystack import (
     _fact_phrases,
     _tier_counts,
@@ -200,3 +201,74 @@ def test_the_token_estimate_errs_high():
     from scripts.retrieval_probe import estimate_tokens
 
     assert estimate_tokens(["one two three four"]) >= 4
+
+
+def test_every_task_has_a_semantic_neighbourhood(tasks):
+    from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+
+    for task in tasks:
+        assert task.task_id in NEIGHBOURHOODS, f"{task.task_id} has no semantic neighbourhood"
+        entry = NEIGHBOURHOODS[task.task_id]
+        assert entry["subject"] and entry["decision"] and len(entry["terms"]) >= 6
+
+
+def test_a_semantic_neighbourhood_shares_no_distinctive_word_with_its_own_prompt(tasks):
+    """Rule 1, and the whole point of the tier.
+
+    A neighbourhood term that appears in its own task's prompt is lexical overlap wearing a
+    semantic label, and would make this tier a slower copy of `near_miss`. Function words are
+    excluded because English needs them; anything contentful is a failure.
+    """
+
+    from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+
+    function_words = _STOP | {
+        "each", "when", "after", "under", "before", "which", "what", "who", "how", "they",
+        "than", "then", "its", "also", "only", "same", "other", "more", "most", "some", "any",
+        "all", "both", "has", "have", "will", "may", "can", "does", "was", "were", "but",
+        "because", "during", "between", "over", "own", "goes", "gets", "two", "long", "way",
+    }
+    for task in tasks:
+        entry = NEIGHBOURHOODS[task.task_id]
+        text = " ".join(
+            [str(entry["subject"]), " ".join(entry["terms"]), str(entry["decision"])]
+        )
+        prompt_words = set(normalise(task.prompt).split())
+        overlap = sorted(
+            word
+            for word in set(normalise(text).split()) & prompt_words
+            if len(word) > 2 and word not in function_words
+        )
+        assert not overlap, f"{task.task_id}: semantic neighbourhood reuses prompt words {overlap}"
+
+
+def test_a_semantic_neighbourhood_states_no_governing_fact(tasks):
+    from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
+
+    phrases = _fact_phrases(tasks)
+    for task_id, entry in NEIGHBOURHOODS.items():
+        text = " ".join(
+            [str(entry["subject"]), " ".join(entry["terms"]), str(entry["decision"])]
+        )
+        leaked = _violates(text, phrases)
+        assert leaked is None, f"{task_id}: neighbourhood states {leaked}'s governing fact"
+
+
+def test_the_generator_digest_covers_the_neighbourhood_data():
+    """A plan that names the code but not the DATA claims a reproducibility it does not have.
+
+    The neighbourhood file was wired into the generator before it was wired into the digest,
+    which would have let a `haystack.json` say a corpus was reproducible while the text inside
+    those sessions moved underneath it.
+    """
+
+    from scripts.generate_haystack import _digest_generator
+
+    path = REPO / "scripts" / "haystack_neighbourhoods.py"
+    before = _digest_generator()
+    original = path.read_bytes()
+    try:
+        path.write_bytes(original + b"\n# digest probe\n")
+        assert _digest_generator() != before
+    finally:
+        path.write_bytes(original)

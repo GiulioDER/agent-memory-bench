@@ -4,8 +4,15 @@ Dated 2026-08-30. Every number below is re-derived by the command beside it.
 
 `docs/reviews/2026-08-30-instrument-review.md` section 4 said the corpus was too small to
 challenge retrieval and that `hit@1 = 20/20` was evidence about the corpus rather than about any
-retriever. That was right. Its proposed remedy, "corpus scale is the only lever that raises
-difficulty", was **wrong**, and this document is mostly about why.
+retriever. That was right.
+
+Its proposed remedy, "corpus scale is the **only** lever that raises difficulty", is half right,
+and which half depends entirely on which retriever you point at it. Scale is a strong lever
+against an embedding ranker and no lever at all against a term ranker; hard negatives are a
+strong lever against both. A first draft of this document said the remedy was simply wrong,
+which was a conclusion drawn from BM25 before the semantic side had been measured, and is
+corrected here rather than deleted because the error is the instructive part: **one retriever is
+not enough to characterise a corpus.**
 
 ## The two tools
 
@@ -17,69 +24,84 @@ python -m scripts.retrieval_probe --corpus corpus --corpus corpus/haystack/scale
 The first assembles a corpus root of 4,875 documents (20 MB, 20 seconds) beside the frozen
 195-document feed. The second measures how hard it is to retrieve from, with a fixed stdlib
 BM25, no model call and no money, in about 20 seconds. Neither touches `corpus/manifest.json`.
+`--backend voyage` adds the semantic axis and is the one that costs money; see the end of this
+file for how it is run and why it runs on VPS2.
 
 ## What was measured
 
-33 queries, one per task with recorded sessions, each query being the task prompt verbatim.
+33 queries, one per task with recorded sessions, each query being the task prompt verbatim. Two
+rankers: a fixed stdlib BM25, and `voyage-4` (the family the production memory corpus is built
+with), the API call originating on VPS2 so no model runs on this workstation.
 
-| corpus | documents | near-miss | hit@1 | median rank | mean competitors above gold |
-|---|---:|---:|---:|---:|---:|
-| the real feed | 195 | 0 | 0.485 | 2 | 2.42 |
-| 25x, **no hard negatives** | 4,875 | 0 | **0.485** | 2 | 2.45 |
-| 780 documents, 60% hard negatives | 780 | 468 | 0.242 | 7 | 7.21 |
-| 25x, default mix | 4,875 | 468 (9.6%) | **0.182** | 8 | 8.48 |
+| corpus | documents | near-miss | `bm25` hit@1 | `voyage` hit@1 | `voyage` hit@10 | `bm25` above | `voyage` above |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| the real feed | 195 | 0 | 0.485 | 0.394 | **1.000** | 2.42 | 1.79 |
+| 25x, **no hard negatives** | 4,875 | 0 | **0.485** | **0.394** | 0.939 | 2.45 | **7.36** |
+| 780 documents, 60% hard negatives | 780 | 468 | 0.242 | 0.333 | 0.879 | 7.21 | 5.36 |
+| 25x, default mix | 4,875 | 468 (9.6%) | **0.182** | **0.333** | 0.879 | 8.48 | 10.67 |
 
 Full record, including the seven predictions and the five that were wrong:
 `preregistration/015-corpus-scale-retrieval-difficulty.md`.
 
 ## The finding
 
-**Volume is not difficulty.** Adding 4,680 ordinary sessions to the corpus moved `hit@1` from
-0.485 to 0.485. The mean number of wrong sessions ranked above the right one went from 2.42 to
-2.45. A retriever that could answer the 195-document corpus can answer the 25x one just as well,
-because nothing in those 4,680 documents competes with any query.
+**The two rankers fail on different corpora, and each is blind to what breaks the other.** That
+is the whole result, and measuring only one of them produces a confident wrong conclusion in
+either direction.
 
-**Density is difficulty.** 468 hard negatives, generated from the task prompts' own vocabulary,
-took `hit@1` to 0.182 and the median rank from 2 to 8. They are 9.6% of the 25x corpus and
-supply **72.5%** of the sessions ranked above the correct one: a concentration of 7.5x. In a
-780-document corpus the same 468 documents do most of the same damage, so the corpus does not
-need to be large to be hard.
+| | costs `bm25` | costs `voyage` |
+|---|---|---|
+| near-miss tier, 9.6% of the corpus | **72.5%** of competitors | 33.0% of competitors |
+| topical tier, 19.2% | **zero** | 123 competitors, the largest single source |
+| background tier, 67.2% | **zero** | 55 competitors |
+| volume alone, 195 to 4,875 documents | mean above 2.42 → 2.45 | mean above 1.79 → **7.36** |
 
-Scale still earns its place, for three reasons that are not ranking difficulty:
+**Against a term ranker, volume is not difficulty.** Adding 4,680 ordinary sessions moved
+`hit@1` from 0.485 to 0.485 and the mean competitor count from 2.42 to 2.45. Nothing in those
+4,680 documents shares enough vocabulary with any query to compete.
 
-1. it is where hard negatives have room to live, and the same 468 cost four more points of
-   `hit@1` at 4,875 documents than at 780;
-2. ingest cost, index build time and query latency are real product properties that a
-   195-document corpus cannot exercise at all;
-3. a store an order of magnitude smaller than any real one is not a credible test of a product
-   sold for real ones.
+**Against a semantic ranker it is.** The same 4,680 documents quadrupled the competitor count,
+1.79 to 7.36, while leaving `hit@1` unmoved at 0.394. The embedder finds topical neighbours that
+share no query terms at all, which is exactly what BM25 cannot see.
 
-But a benchmark that grew the corpus and stopped there would have spent 20 MB and changed
-nothing it was trying to change.
+**Hard negatives cost hit@1 on both, four times harder on the lexical one.** 468 near-misses
+generated from the task prompts' own vocabulary took `bm25` from 0.485 to 0.182 and `voyage`
+from 0.394 to 0.333. They are 9.6% of the corpus and supply 72.5% of BM25's competitors against
+33.0% of Voyage's, so they are concentrated far above their population share for both, and much
+further for the term ranker.
 
-## What is NOT known, and it is the important part
+So the corpus needs both levers, and a benchmark that grew the corpus and stopped, or that added
+hard negatives and stopped, would have tested half the failure surface each time.
 
-⚠️ **The dense backend has not been run.** Everything above is a **term** ranker. Every product
-this benchmark compares retrieves with embeddings, and a near-miss built out of shared surface
-vocabulary is exactly the kind of hard negative an embedding model might not fall for.
+## What is honestly still not hard
 
-So the honest statement is: the corpus can be made hard for BM25, cheaply and reproducibly, and
-whether it is hard for a semantic retriever is **unmeasured**. Until that is run, no claim of
-the form "this benchmark tests retrieval" is supported.
+`voyage` hit@10 at 25x is **0.879**, and on the real 195-document corpus it is **1.000**. The
+right session is still in the top ten for seven of eight tasks. **This corpus is now a genuine
+ranking problem and is not yet a retrieval failure problem for a competent embedder.**
 
-The probe already has the backend:
+That reconciles the `hit@1 = 20/20` in preregistration 014 rather than refuting it. On a corpus
+where hit@10 is 1.000, any reranker over the top k starts from a perfect candidate set, so a
+product reporting 20/20 and this probe reporting 0.394 are consistent and are measuring
+different stages.
+
+⚠️ **It does retire the reasoning that justified disabling the reranker.** That rested on the
+correct session already being ranked first. At 25x it is first 33% of the time and outside the
+top ten 12% of the time, so reranking now has work to do and 12% of tasks are beyond its reach
+entirely. Preregistration 014's configuration should not be carried onto a haystack corpus
+without re-deciding this.
+
+To go further, the near-miss construction has to move from lexical to semantic adjacency: same
+meaning neighbourhood, different scope, rather than same words. The `topical` tier is the
+evidence that this works, since it is the largest competitor source for `voyage` while costing
+BM25 nothing.
 
 ```bash
-python -m scripts.retrieval_probe --backend dense --corpus corpus --corpus corpus/haystack/scale-25/seed-1
+ssh vps2 'cd ~/bench-probe && set -a && . ~/recall-repos/.env && set +a && ~/recall-repos/.venv/bin/python -m scripts.retrieval_probe --backend voyage --corpus corpus/haystack/scale-25/seed-1'
 ```
 
-It was not run here because the standing instruction for every project on this machine is that
-embedding runs on VPS2 and not on this workstation, and `fastembed` is recorded as absent on
-VPS2. That is an environment decision to make, not a measurement to skip quietly.
-
-If dense `hit@1` on the 25x corpus comes back near 1.00, the near-miss construction needs
-rebuilding around semantic adjacency: same *meaning* neighbourhood, different scope, rather than
-same words.
+About 25 minutes for 46,000 windows across four corpora, roughly 9.1M tokens. ⚠️ There is no
+incremental caching, so a failure on the last corpus discards the embeddings already paid for on
+the earlier ones. Probe one corpus per invocation when the budget matters.
 
 ## What a synthetic session is, and what it is not
 

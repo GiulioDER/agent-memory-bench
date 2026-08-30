@@ -188,3 +188,80 @@ Not safe: any comparison between `hit@1 = 0.485` here and the `hit@1 = 20/20` in
 preregistration 014. Those are different instruments over different query sets. This record
 retires neither that number nor the reranker decision that cited it; it says only that the
 corpus behind it had few competitors, which is what the review already argued.
+
+## Results, part two: the semantic axis, measured 2026-08-30
+
+Prediction 6 was recorded above as "not run". It was then run, on the same four corpora, with
+`voyage-4` (1024 dimensions, the family the production memory corpus is built with), the API
+call originating on VPS2 so no model runs on this workstation. 9,072,053 tokens estimated across
+the four corpora. Artifact: `results/retrieval/015-voyage.json`.
+
+| corpus | documents | near-miss | `bm25` hit@1 | `voyage` hit@1 | `voyage` hit@10 | `voyage` mean above |
+|---|---:|---:|---:|---:|---:|---:|
+| real feed | 195 | 0 | 0.485 | 0.394 | **1.000** | 1.79 |
+| 780 documents | 780 | 468 | 0.242 | 0.333 | 0.879 | 5.36 |
+| 25x, no hard negatives | 4,875 | 0 | 0.485 | 0.394 | 0.939 | **7.36** |
+| 25x, default mix | 4,875 | 468 | 0.182 | 0.333 | 0.879 | 10.67 |
+
+**Prediction 6 scored: half right, and wrong about the level in both directions.** It said
+`dense` would be five points above `bm25` at 25x. `voyage-4` is **fifteen** points above (0.333
+against 0.182), so the direction was right and the size was under by 3x. It also implied the
+embedder would be the stronger retriever generally, and on the real corpus it is **worse** at
+hit@1: 0.394 against BM25's 0.485.
+
+### The finding, which is the one that matters most in this record
+
+**The two rankers fail on different corpora, and each is blind to what breaks the other.**
+
+| | what costs `bm25` | what costs `voyage` |
+|---|---|---|
+| near-miss tier (9.6% of corpus) | 72.5% of competitors | 33.0% of competitors |
+| topical tier (19.2%) | **0** competitors | 123 competitors |
+| background tier (67.2%) | **0** competitors | 55 competitors |
+| volume alone, 195 to 4,875 documents | mean above 2.42 → 2.45 | mean above 1.79 → **7.36** |
+
+Part one concluded from BM25 alone that "corpus size on its own changed retrieval by nothing".
+**That conclusion is corrected here and it was backend-specific.** For the embedder, adding
+4,680 ordinary sessions with zero hard negatives quadrupled the number of wrong sessions ranked
+above the right one, from 1.79 to 7.36, while leaving hit@1 unmoved at 0.394. The topical tier,
+which contributed literally nothing to BM25, is the single largest competitor source for
+`voyage` at 123.
+
+So the corrected statement is: **volume buys rank depth against a semantic retriever and buys
+nothing against a lexical one; lexical hard negatives buy hit@1 loss against both, four times
+harder against the lexical one.** A corpus built to defeat only one of them is not a hard corpus.
+
+### What is honestly still not hard
+
+`voyage` hit@10 at 25x is **0.879**, and on the real corpus it is **1.000**. The right session is
+still in the top ten for seven of eight tasks. This corpus is now a genuine RANKING problem and
+is not yet a retrieval FAILURE problem for a competent embedder.
+
+That reconciles the `hit@1 = 20/20` in preregistration 014 rather than refuting it: on a corpus
+where hit@10 is 1.000, any reranker over the top k has a perfect candidate set to work with, so
+a product reporting 20/20 and this probe reporting 0.394 are consistent and are measuring
+different stages.
+
+⚠️ **It also retires the reasoning that justified disabling the reranker.** That decision rested
+on the correct session already being ranked first. At 25x it is ranked first 33% of the time and
+outside the top ten 12% of the time, so reranking now has work to do and 12% of tasks are beyond
+its reach entirely. Preregistration 014's configuration should not be carried onto a haystack
+corpus without re-deciding this. That is a decision, not a measurement, and belongs in whatever
+record next proposes a run on this feed.
+
+### Synthesis tasks
+
+`all_shards@10` for the three `xs-*` tasks is 1.000 on the real corpus and on the volume-only
+corpus, and **0.333** on both corpora containing hard negatives. Prediction 7 holds on the
+semantic axis too, and more sharply: needing two sessions in the top ten rather than one is
+where a corpus with competitors starts to bite.
+
+### Cost and reproduction
+
+```bash
+ssh vps2 'cd ~/bench-probe && set -a && . ~/recall-repos/.env && set +a && ~/recall-repos/.venv/bin/python -m scripts.retrieval_probe --backend voyage --max-tokens 5000000 --corpus corpus --corpus corpus/haystack/scale-25/seed-1'
+```
+
+Roughly 25 minutes for 46,000 windows. ⚠️ The run has no incremental caching, so a failure on
+the last corpus discards the embeddings already paid for on the earlier ones. Probe one corpus
+per invocation if the budget matters.

@@ -43,17 +43,24 @@ What makes a synthetic session hard rather than merely numerous
 
 Bulk alone does not test ranking. Ten thousand sessions about hive inspections do not compete
 with a query about CRLF line endings on export, and a retriever that ignores all of them has
-not been challenged. So the haystack is three tiers:
+not been challenged. So the haystack is four tiers, and the last two exist because **a lexical
+ranker and a semantic ranker are fooled by different documents**, measured in
+`preregistration/015-corpus-scale-retrieval-difficulty.md`:
 
-* **background** (default 70%): a generated repository in a domain the task suite does not
-  legislate, doing mundane work. This is the volume, and it is what makes the index big.
-* **topical** (20%): the same, in a repository whose subject area overlaps the general
-  vocabulary of software conventions (encodings, ordering, configuration, logs, identifiers),
-  so a query lands in a populated neighbourhood rather than an empty one.
-* **near-miss** (10%): a repository seeded with the content words of ONE task's prompt, doing
-  mundane work and settling a small convention about its own artefacts. This is the hard
-  negative, and it is generated **from the query vocabulary itself**, which is the only
-  construction that reliably competes with the gold document for a lexical ranker.
+* **background** (default 60%): a generated repository in a domain the task suite does not
+  legislate, doing mundane work. This is the volume. It costs BM25 nothing and costs an
+  embedder rank depth.
+* **topical** (15%): the same, in a repository whose subject area overlaps the general
+  vocabulary of software conventions (encodings, ordering, configuration, logs, identifiers).
+  Zero competitors against BM25; the single largest competitor source against `voyage-4`.
+* **near_miss** (10%): a repository seeded with the content words of ONE task's prompt. The
+  LEXICAL hard negative: 72.5% of BM25's competitors at 9.6% of the corpus, and only 33.0% of
+  Voyage's.
+* **semantic** (15%): the SAME meaning neighbourhood as one task, in deliberately different
+  words, sharing no distinctive token with that task's prompt at all. This is the answer to
+  what the first measurement found, and its data lives in `scripts/haystack_neighbourhoods.py`
+  with the rule that keeps it a hard negative rather than a poisoned one: the decision it
+  states is on an axis the task does not ask about.
 
 Containment holds by construction and is checked anyway
 --------------------------------------------------------
@@ -92,6 +99,7 @@ from harness.adapters.base import CorpusManifest
 from harness.plants import normalise
 from harness.tasks import discover_tasks
 from scripts.audit_corpus import _STOP
+from scripts.haystack_neighbourhoods import NEIGHBOURHOODS
 from scripts.haystack_vocab import DOMAINS, LOCAL_CONVENTIONS, SUMMARY_OPENERS, THEMES
 
 BASE_CORPUS = REPO / "corpus"
@@ -109,7 +117,12 @@ WINDOW_DAYS = 200
 
 #: Tier mix. Background is the volume; near-miss is the difficulty. Overridable on the command
 #: line so the difficulty curve can be measured against the mix as well as against the size.
-DEFAULT_MIX = {"background": 0.70, "topical": 0.20, "near_miss": 0.10}
+DEFAULT_MIX = {"background": 0.60, "topical": 0.15, "near_miss": 0.10, "semantic": 0.15}
+
+#: Emission order. `background` absorbs the rounding remainder in `_tier_counts`, so it goes
+#: last only in the mix dict and first here; the order itself is fixed so a file index maps to
+#: the same session for a given seed no matter what the shares are set to.
+TIERS = ("background", "topical", "near_miss", "semantic")
 
 #: General software-convention vocabulary, used by the `topical` tier only. None of these
 #: phrases is any task's fact term; they are the NEIGHBOURHOOD a task's fact lives in, which is
@@ -131,9 +144,16 @@ TOPICAL_SUBJECTS: tuple[tuple[str, str], ...] = (
 def _digest_generator() -> str:
     """sha256 over this module and its vocabulary, so a plan names the code that produced it."""
 
+    # Every file whose CONTENT decides what a session says has to be in here. The neighbourhood
+    # data was added to the generator before it was added to this list, which would have let a
+    # `haystack.json` claim a corpus was reproducible while the text inside it moved.
     material = b"".join(
         (REPO / "scripts" / name).read_bytes()
-        for name in ("generate_haystack.py", "haystack_vocab.py")
+        for name in (
+            "generate_haystack.py",
+            "haystack_vocab.py",
+            "haystack_neighbourhoods.py",
+        )
     )
     return hashlib.sha256(material).hexdigest()
 
@@ -313,6 +333,29 @@ NEAR_MISS_REQUESTS: tuple[str, ...] = (
 )
 
 
+#: A semantic near-miss frames its request on the SUBJECT, never on a term list. The terms are
+#: what the document ends up saying; putting them in the request would smuggle the task's
+#: neighbourhood into the query side of the comparison as well, which is not what is being asked.
+SEMANTIC_REQUESTS: tuple[str, ...] = (
+    (
+        "Write {target} for {project}. It should cover {subject}, because it came up in review "
+        "again and nobody could point at where it is written down."
+    ),
+    (
+        "{project} needs {target}. Please record {subject}, and say which files it applies to "
+        "so the next person does not have to ask."
+    ),
+    (
+        "Put together {target} for {project}, covering {subject}. Keep it to what is true of "
+        "this repository rather than what we do elsewhere."
+    ),
+    (
+        "We settled {subject} last week and it is not recorded anywhere. Write it into "
+        "{target} for {project} with enough context to be useful in six months."
+    ),
+)
+
+
 def session_events(
     rng: random.Random,
     project: dict,
@@ -320,6 +363,7 @@ def session_events(
     subject: str | None,
     date: datetime,
     near_terms: tuple[str, ...] = (),
+    neighbourhood: dict | None = None,
 ) -> list[dict]:
     """One session: a real request, real reads of the generated tree, a real write, a summary."""
 
@@ -328,7 +372,14 @@ def session_events(
     target = theme["target"] if theme["target"].endswith(".md") else "report.py"
     listing = "\n".join(f"./{name}" for name in sorted(files))
     request = theme["prompt"]
-    if len(near_terms) >= 3:
+    if neighbourhood is not None:
+        # A semantic near-miss asks its own question, framed on the SUBJECT rather than on any
+        # word the task's prompt uses. Reusing the near-miss templates here would have injected
+        # the term list into the request and quietly turned this back into a lexical negative.
+        request = rng.choice(SEMANTIC_REQUESTS).format(
+            project=project["name"], target=target, subject=neighbourhood["subject"]
+        )
+    elif len(near_terms) >= 3:
         picked = rng.sample(list(near_terms), 3)
         request = rng.choice(NEAR_MISS_REQUESTS).format(
             project=project["name"], target=target, a=picked[0], b=picked[1], c=picked[2]
@@ -358,6 +409,24 @@ def session_events(
             }
         )
     written = _written_artifact(rng, project, theme, subject)
+    if neighbourhood is not None:
+        terms = list(neighbourhood["terms"])
+        rng.shuffle(terms)
+        written += (
+            f"\n## {str(neighbourhood['subject'])[0].upper()}{str(neighbourhood['subject'])[1:]}\n"
+            f"\nThis came up again in review, so it is written down here rather than left to "
+            f"whoever remembers it.\n\n"
+            f"**What we settled:** {neighbourhood['decision']}.\n\n"
+            f"The words that keep coming up when this is discussed are {', '.join(terms[:6])}, "
+            f"and they mean the following for {project['name']} specifically:\n\n"
+            + "".join(
+                f"- **{term}** as it applies to `{data_name}` and to `report.py`\n"
+                for term in terms[:5]
+            )
+            + f"\nNone of this is a rule for any other repository. It describes what "
+            f"{project['name']} does with its own files, and a different service is free to "
+            f"have settled the same question differently.\n"
+        )
     if near_terms:
         listed = ", ".join(near_terms[: min(len(near_terms), rng.randint(6, 10))])
         written += (
@@ -433,10 +502,26 @@ def make_session(index: int, seed: int, tier: str, tasks: list) -> tuple[list[di
             f"how {extra[0] if extra else 'the report'} is handled for this repository's own "
             f"files, which is a local decision and not a house rule"
         )
+    elif tier == "semantic":
+        # Same meaning neighbourhood, deliberately different words. `NEIGHBOURHOODS` carries no
+        # token from the task's own prompt, so this tier competes on meaning or not at all,
+        # which is exactly the discrimination `near_miss` could not test.
+        candidates = [task for task in tasks if task.task_id in NEIGHBOURHOODS]
+        task = candidates[rng.randrange(len(candidates))]
+        near_task = task.task_id
+        neighbourhood = NEIGHBOURHOODS[task.task_id]
+        extra = tuple(neighbourhood["terms"])  # type: ignore[arg-type]
+        subject = str(neighbourhood["subject"])
     project = build_project(rng, domain, extra)
     date = WINDOW_START + timedelta(days=rng.randrange(WINDOW_DAYS))
     events = session_events(
-        rng, project, theme, subject, date, near_terms=extra if tier == "near_miss" else ()
+        rng,
+        project,
+        theme,
+        subject,
+        date,
+        near_terms=extra if tier == "near_miss" else (),
+        neighbourhood=NEIGHBOURHOODS[near_task] if tier == "semantic" else None,
     )
     provenance = {
         "tier": tier,
@@ -486,7 +571,14 @@ def main() -> int:
         help="fraction of the haystack generated from task prompt vocabulary. Default 0.10.",
     )
     parser.add_argument(
-        "--topical-share", type=float, default=DEFAULT_MIX["topical"], help="Default 0.20."
+        "--topical-share", type=float, default=DEFAULT_MIX["topical"], help="Default 0.15."
+    )
+    parser.add_argument(
+        "--semantic-share",
+        type=float,
+        default=DEFAULT_MIX["semantic"],
+        help="fraction generated from a task's SEMANTIC neighbourhood, sharing no prompt "
+        "vocabulary at all. Default 0.15.",
     )
     parser.add_argument(
         "--check",
@@ -496,8 +588,9 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="overwrite an existing root")
     args = parser.parse_args()
 
-    if not 0.0 <= args.near_miss_share + args.topical_share <= 1.0:
-        raise SystemExit("topical and near-miss shares must sum to at most 1.0")
+    adversarial = args.near_miss_share + args.topical_share + args.semantic_share
+    if not 0.0 <= adversarial <= 1.0:
+        raise SystemExit("topical, near-miss and semantic shares must sum to at most 1.0")
 
     tasks = [task for task in discover_tasks() if task.fact_terms]
     phrases = _fact_phrases(tasks)
@@ -508,7 +601,8 @@ def main() -> int:
     mix = {
         "near_miss": args.near_miss_share,
         "topical": args.topical_share,
-        "background": 1.0 - args.near_miss_share - args.topical_share,
+        "semantic": args.semantic_share,
+        "background": 1.0 - adversarial,
     }
     counts = _tier_counts(synthetic_total, mix)
 
@@ -523,7 +617,7 @@ def main() -> int:
     emitted: list[tuple[str, list[dict], dict]] = []
     discarded: list[dict] = []
     index = 0
-    for tier in ("background", "topical", "near_miss"):
+    for tier in TIERS:
         made = 0
         attempt = 0
         while made < counts[tier]:
