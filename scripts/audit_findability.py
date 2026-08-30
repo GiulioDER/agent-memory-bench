@@ -1,0 +1,171 @@
+"""Report how findable each planted memo is. Ranks candidates; authorises nothing.
+
+    python -m scripts.audit_findability
+    python -m scripts.audit_findability --condition adjacent
+
+No model, no network, no spend. Reads the assembled condition corpora and asks, for each task, at
+what rank a BM25 ranker puts that task's planted session when queried with the task's own prompt.
+
+## Why this exists
+
+Every other gate here checks a plant is CORRECT. `audit_plants` checks it leaks no true fact and
+that its wrong terms survive recording; `test_damage_detection` checks its signature fires on the
+plant and stays silent on a factless session. **None of them checks that anything RETRIEVES it.**
+
+A plant nothing retrieves cannot mislead anybody. Its condition then measures nothing for that
+task while every gate stays green, which is the quietest way for a cell to become decorative.
+
+## ⚠️ Why this is a REPORT and not a gate, which is the finding that built it
+
+Two independent BM25 implementations were run over the same corpus and disagree by up to 51 rank
+positions, on exactly the plants a gate would act on:
+
+    task               probe A   probe B
+    ts-ignore-gen            1         1
+    ts-schema-additive       4         4
+    ts-tz-utc                4         8
+    ts-bom-merge            32        15
+    ts-dedup-order          59        17
+    ts-glob-hidden          45         1
+    ts-golden-regen         61        10
+
+They agree on the head and diverge on the tail. Windowing the documents (160 words, as probe A
+does) closed most of the head gap and none of the tail. Neither is ground truth: the products
+under test retrieve with embeddings, not BM25, so this whole measurement is a proxy for the thing
+that matters.
+
+**A hard threshold on a number two implementations cannot agree on would fail builds arbitrarily.**
+So this prints a ranking and names its retriever, and a human decides. That is the same conclusion
+`scripts/task_admission.py` reached about retirement, for the same reason.
+
+Two cheaper proxies were tried before BM25 and both failed outright; the reasoning is in
+`harness/retrieval.py`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+from harness.plants import load_plants
+from harness.retrieval import Bm25Index, read_corpus, tokenize
+from harness.tasks import discover_tasks
+
+CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
+
+#: The rank past which a plant is reported as a candidate for review. Not a pass mark: it is the
+#: depth beyond which the two probes stopped agreeing, so it is the point where the measurement
+#: itself becomes unreliable rather than the point where a plant becomes bad.
+CANDIDATE_DEPTH = 10
+
+#: Words per scoring window. Matches the other probe so the two numbers are comparable at all.
+WINDOW = 160
+
+
+def _windowed(documents: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+    windows: dict[str, str] = {}
+    owner: dict[str, str] = {}
+    for name, text in documents.items():
+        words = tokenize(text)
+        if not words:
+            windows[f"{name}#0"] = ""
+            owner[f"{name}#0"] = name
+            continue
+        for start in range(0, len(words), WINDOW):
+            key = f"{name}#{start // WINDOW}"
+            windows[key] = " ".join(words[start : start + WINDOW])
+            owner[key] = name
+    return windows, owner
+
+
+def rank_plants(condition: str) -> list[tuple[str, int | None, int]]:
+    """`(task_id, rank, corpus size)` for every task whose session sits in this condition."""
+
+    root = REPO / "corpus" / "conditions" / condition / "seed-1"
+    if not root.is_dir():
+        return []
+    documents = read_corpus(root)
+    if not documents:
+        return []
+    windows, owner = _windowed(documents)
+    index = Bm25Index(windows)
+
+    rows = []
+    for task in discover_tasks():
+        spec = load_plants(task.path)
+        if spec is None or not spec.plan(condition):
+            continue
+        prefix = f"sessions/{task.task_id}/"
+        if not any(name.startswith(prefix) for name in documents):
+            rows.append((task.task_id, None, len(documents)))
+            continue
+        best: dict[str, float] = {}
+        for key, score in index.ranking(task.prompt):
+            doc = owner[key]
+            if doc not in best:
+                best[doc] = score
+        ordered = sorted(best.items(), key=lambda kv: (-kv[1], kv[0]))
+        rank = next(
+            (i for i, (doc, _s) in enumerate(ordered, 1) if doc.startswith(prefix)), None
+        )
+        rows.append((task.task_id, rank, len(documents)))
+    return rows
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--condition", default="", help="one condition, default every assembled")
+    parser.add_argument("--json", dest="as_json", action="store_true")
+    args = parser.parse_args()
+
+    wanted = [args.condition] if args.condition else list(CONDITIONS)
+    report: dict[str, list[dict]] = {}
+    candidates: list[tuple[str, str, int | None]] = []
+
+    for condition in wanted:
+        rows = rank_plants(condition)
+        if not rows:
+            continue
+        report[condition] = [
+            {"task": t, "rank": r, "corpus": n} for t, r, n in rows
+        ]
+        if not args.as_json:
+            print(f"\n  {condition}  ({rows[0][2]} documents, BM25 over {WINDOW}-word windows)")
+            for task_id, rank, _n in sorted(rows, key=lambda r: (r[1] is None, r[1] or 0)):
+                shown = str(rank) if rank else "not present"
+                flag = "  <-- candidate" if rank is None or rank > CANDIDATE_DEPTH else ""
+                print(f"    {task_id:24}{shown:>12}{flag}")
+        for task_id, rank, _n in rows:
+            if rank is None or rank > CANDIDATE_DEPTH:
+                candidates.append((condition, task_id, rank))
+
+    if args.as_json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    print()
+    print("  retriever: BM25, fixed k1=1.5 b=0.75, 160-word windows, stopwords in")
+    print("             harness.retrieval.STOPWORDS. The products under test retrieve with")
+    print("             embeddings, so this is a PROXY for what they would find.")
+    if candidates:
+        print()
+        print(f"  {len(candidates)} candidate(s) ranked past {CANDIDATE_DEPTH} or absent:")
+        for condition, task_id, rank in candidates:
+            print(f"    {condition:14} {task_id:24} {rank if rank else 'not present'}")
+        print()
+        print("  A candidate is not a verdict. Two BM25 implementations disagreed by up to 51")
+        print("  positions on this depth range, so treat these as worth a look and nothing more.")
+    else:
+        print("\n  no candidates: every planted session ranks inside the top "
+              f"{CANDIDATE_DEPTH}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
