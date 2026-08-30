@@ -42,3 +42,9 @@ pricing.json
 dist/
 build/
 *.egg-info/
+
+# The generated haystack: gitignored, up to ~24 MB of transcripts per scale, and reproducible
+# from `scripts/generate_haystack.py`. `.gitignore` excluded it and this file did not, and
+# `docker/Dockerfile.harness` is `COPY . /bench`, so every local haystack root went into the
+# image layers. Docker ignore is not gitignore: this pattern is relative to the context root.
+corpus/haystack/

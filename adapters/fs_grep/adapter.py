@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import re
 import shutil
+from collections import Counter
 from pathlib import Path
 
 from harness.adapters.base import (
@@ -21,6 +22,8 @@ from harness.adapters.base import (
     MemoryAdapter,
     RankedHit,
     RankedResult,
+    namespace_path,
+    validate_namespace,
 )
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
@@ -57,7 +60,24 @@ _STOP = frozenset(
         "one", "write", "add", "run", "then", "so", "its", "will", "can", "you", "your",
     )
 )
+#: `.` is IN the class so that dotted identifiers (`foo.bar`, `config.json`) survive as one
+#: term, and that is deliberate. What it also did was swallow the sentence-final period, so a
+#: prompt ending "...paths must stay relative." produced the term `relative.`, and
+#: `text.count("relative.")` is 0 against every document containing `relative`. Every
+#: sentence-final content word was silently dropped from the ranking. Stripped at the edges
+#: below, where it can only ever be punctuation.
 _WORD = re.compile(r"[a-z0-9_.]+")
+
+
+def _terms(text: str) -> list[str]:
+    """Content words, with edge punctuation removed and the stoplist applied."""
+
+    out = []
+    for raw in _WORD.findall(text.lower()):
+        word = raw.strip("._")
+        if len(word) > 2 and word not in _STOP:
+            out.append(word)
+    return out
 
 
 class FsGrepAdapter(MemoryAdapter):
@@ -80,6 +100,10 @@ class FsGrepAdapter(MemoryAdapter):
         #: None keeps the historical one-liner, for comparability with `smoke-002`. Pass
         #: `harness.instructions.compose("fs_grep", FS_GREP_SEARCH_SENTENCE)` for the fair variant.
         self.instruction = instruction
+        #: staging dir -> ((file count, newest mtime_ns), {path: term counts}). See `_store`.
+        self._store_cache: dict[Path, tuple[tuple[int, int], dict[Path, Counter]]] = {}
+        #: Manifest keys this instance ingested; empty until `ingest` runs. See `_manifest_key`.
+        self._ingested_keys: set[str] = set()
 
     def _instruction_text(self) -> str:
         if self.instruction is not None:
@@ -93,10 +117,59 @@ class FsGrepAdapter(MemoryAdapter):
         return compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral)
 
     def _staging_dir(self, namespace: str) -> Path:
-        return self.staging_root / namespace / "memory"
+        # Validated HERE rather than at each caller: this is the join, and `ingest` runs
+        # `shutil.rmtree` on what it returns.
+        return self.staging_root / validate_namespace(namespace) / "memory"
+
+    def _store(self, target: Path) -> dict[Path, Counter[str]]:
+        """Term counts per rendered file, read once per staging directory.
+
+        The uncached version globbed and `read_text`'d every `*.md` on EVERY `search()` call. The
+        probe searches once per task, so a 33-task run against a 25x haystack re-read roughly
+        160,000 files to answer 33 queries. The store is written by `ingest` and not touched
+        again, so it is cached on the directory's identity plus its file count and newest mtime:
+        a re-ingest changes both and invalidates it, which matters because `ingest` deliberately
+        rebuilds the directory from scratch.
+        """
+
+        files = sorted(target.glob("*.md"))
+        stamp = (len(files), max((f.stat().st_mtime_ns for f in files), default=0))
+        cached = self._store_cache.get(target)
+        if cached is not None and cached[0] == stamp:
+            return cached[1]
+        store = {
+            path: Counter(_terms(path.read_text(encoding="utf-8", errors="replace")))
+            for path in files
+        }
+        self._store_cache[target] = (stamp, store)
+        return store
+
+    def _manifest_key(self, path: Path) -> str:
+        """Reverse `render_corpus`'s naming, refusing a name the encoding cannot have produced.
+
+        `sessions__ts-dedup-order__p01.md` came from `sessions/ts-dedup-order/p01.jsonl`, and the
+        flattening exists precisely so this is reversible. It is NOT injective, though: the
+        encoding does not escape a `__` that was already in a path component, so
+        `a__b/c.jsonl` and `a/b__c.jsonl` render to the same name. No corpus path contains one
+        today and nothing forbids one, so this checks against the manifest of what was actually
+        ingested rather than trusting the decode, and says so loudly when the check fails.
+        """
+
+        decoded = path.stem.replace("__", "/") + ".jsonl"
+        known = self._ingested_keys
+        if known and decoded not in known:
+            raise RuntimeError(
+                f"{self.name}: rendered file {path.name!r} decodes to {decoded!r}, which is not "
+                f"a document that was ingested. `render_corpus` does not escape `__` inside a "
+                f"path component, so this name is ambiguous; rename the corpus path."
+            )
+        return decoded
 
     def _prompt_path(self, namespace: str) -> Path:
-        return self.staging_root / namespace / "prompt.md"
+        # Same join, same risk: this namespace comes from the same argument as the staging
+        # directory's. Found by widening `tests/test_namespace_guard.py`'s scan, which is a
+        # tripwire for common shapes and NOT a proof that none is left; see that file.
+        return namespace_path(self.staging_root, namespace, "prompt.md")
 
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
@@ -108,6 +181,11 @@ class FsGrepAdapter(MemoryAdapter):
         stored = render_corpus(
             [corpus.root / rel for rel in corpus.sessions], target, root=corpus.root
         )
+        # What `_manifest_key` validates against. Kept per adapter instance rather than written
+        # to disk, because an adapter that did not ingest has nothing to check and says so by
+        # leaving this empty rather than by inventing an authority it does not have.
+        self._ingested_keys = set(corpus.sessions)
+        self._store_cache.clear()
         prompt = self._prompt_path(namespace)
         prompt.parent.mkdir(parents=True, exist_ok=True)
         prompt.write_text(
@@ -206,17 +284,17 @@ class FsGrepAdapter(MemoryAdapter):
             raise FileNotFoundError(
                 f"{self.name}: {target} does not exist; ingest before searching"
             )
-        terms = {w for w in _WORD.findall(query.lower()) if len(w) > 2 and w not in _STOP}
+        terms = set(_terms(query))
         scored: list[tuple[float, str]] = []
-        for path in sorted(target.glob("*.md")):
-            text = path.read_text(encoding="utf-8", errors="replace").lower()
-            score = float(sum(text.count(term) for term in terms))
+        for path, counts in self._store(target).items():
+            # WORD occurrences, not substring occurrences. `text.count(term)` counted one span
+            # once per term that is a substring of it: terms {sort, sorting} over the text
+            # "sorting sorting" scored 4 for two occurrences, so a document was rewarded for the
+            # query's morphology rather than for its own content. This is still plain term
+            # counting, which the docstring above settles; it is counting the right thing.
+            score = float(sum(counts.get(term, 0) for term in terms))
             if score:
-                # `sessions__ts-dedup-order__p01.md` came from `sessions/ts-dedup-order/p01.jsonl`.
-                # render_corpus flattens separators to `__` precisely so this is reversible; a
-                # hit nobody can join back to a corpus document cannot be scored for retrieval.
-                rel = path.stem.replace("__", "/") + ".jsonl"
-                scored.append((score, rel))
+                scored.append((score, self._manifest_key(path)))
         scored.sort(key=lambda item: (-item[0], item[1]))
         hits = tuple(
             RankedHit(source_path=rel, score=score, rank=index + 1)
@@ -227,5 +305,9 @@ class FsGrepAdapter(MemoryAdapter):
             gating="raw",
             abstained=False,
             query_sha256=hashlib.sha256(query.encode("utf-8")).hexdigest(),
-            detail={"terms": sorted(terms), "documents_matched": len(scored)},
+            detail={
+                "terms": sorted(terms),
+                "documents_matched": len(scored),
+                "documents_searched": len(self._store(target)),
+            },
         )

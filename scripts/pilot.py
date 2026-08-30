@@ -56,7 +56,13 @@ from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    namespace_path,
+)
 from harness.adapters.registry import AdapterRegistry
 from harness.claude_exec import ClaudeExecConfig, run_claude_case
 from harness.costs import (
@@ -664,7 +670,12 @@ async def main() -> int:
         )
 
     records_path = run_dir / "records.jsonl"
-    fs_grep_memory = staging / args.namespace / "memory" if "fs_grep" in run_arms else None
+    # `--namespace` is a CLI argument and this path is handed to the fs_grep arm as its
+    # store. Validated here for the same reason the adapter validates its own join.
+    fs_grep_memory = (
+        namespace_path(staging, args.namespace, "memory") if "fs_grep" in run_arms
+        else None
+    )
 
     async def runner(row, arm):
         task_id, seed = str(row["task_id"]), int(row["seed"])

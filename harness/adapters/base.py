@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -114,7 +115,7 @@ class CorpusManifest:
         # from `corpus/` and present only in an assembled haystack root, so listing it here
         # leaves the frozen 195-entry feed byte identical while letting a large corpus be an
         # ordinary corpus root that every adapter already understands.
-        for pattern in ("sessions/**/*.jsonl", "distractors/*.jsonl", "synthetic/**/*.jsonl"):
+        for pattern in CORPUS_GLOBS:
             for path in sorted(root.glob(pattern)):
                 rel = path.relative_to(root).as_posix()
                 sessions[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -211,6 +212,13 @@ def digest_tree(root: Path) -> str:
     return digest.hexdigest()
 
 
+#: The patterns `CorpusManifest.build` globs. Named so that the manifest-completeness test can
+#: IMPORT it instead of copying it: the copy in `tests/test_corpus_manifest_is_complete.py`
+#: claimed in its own docstring that "the two cannot drift apart", and a copy is precisely what
+#: lets them. Adding `synthetic/**/*.jsonl` here was the drift event that made the point.
+CORPUS_GLOBS = ("sessions/**/*.jsonl", "distractors/*.jsonl", "synthetic/**/*.jsonl")
+
+
 #: How a ranked list was obtained, and it must be reported with every number drawn from one.
 #:
 #: ``served``  exactly what a session gets, including whatever trust threshold, reranking or
@@ -224,6 +232,50 @@ def digest_tree(root: Path) -> str:
 #: abstain; `fs_grep` has no trust policy at all and is therefore raw by construction. Reporting
 #: which one produced a number costs one field and removes the ambiguity entirely.
 GATINGS = ("served", "raw")
+
+
+#: A namespace names a directory and a database tenant, so it is joined onto paths that later get
+#: `shutil.rmtree`'d. Anything outside this shape is refused at the boundary.
+#:
+#: ⛔ Verified by execution before this existed: `FsGrepAdapter._staging_dir('../../../../victim')`
+#: resolved to `C:\\Users\\gde00\\victim\\memory`, outside its `tempfile.mkdtemp()` root, and
+#: `ingest` calls `shutil.rmtree` on exactly that path. The repository already owned the right
+#: primitive (`resolve_corpus_path`) and already applied an equivalent check to the assembler's
+#: `--out`; the new `--namespace` flag simply did not go through one.
+_NAMESPACE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def validate_namespace(namespace: str) -> str:
+    """Return ``namespace`` unchanged, or refuse it.
+
+    Rejects `..`, both separators, a leading `-` (which an argv would read as an option) and the
+    empty string.
+
+    ⚠️ Being shared does NOT mean a new vendor cannot arrive without it, and the sentence that
+    said so was wrong when it was written: the guard reached one of the four places a namespace
+    is joined onto a path that is later `rmtree`d. Prefer `namespace_path` below, which puts the
+    check AT the join, and `tests/test_namespace_guard.py`, which fails when an adapter joins a
+    namespace without one. A claim in a security comment that nothing enforces is worse than no
+    comment, because it stops the next reader looking.
+    """
+
+    if not _NAMESPACE.match(namespace or ""):
+        raise ValueError(
+            f"refusing namespace {namespace!r}: a namespace is joined onto paths that are later "
+            f"deleted and passed to a CLI, so it must match {_NAMESPACE.pattern}"
+        )
+    return namespace
+
+
+def namespace_path(root: str | Path, namespace: str, *parts: str) -> Path:
+    """Join ``namespace`` under ``root``, refusing anything that could leave it.
+
+    The validation belongs HERE, at the join, and not at whichever caller happened to remember
+    it. Every one of these paths is passed to `shutil.rmtree` by the adapter that builds it, so
+    a namespace that escapes its root deletes somebody else's directory.
+    """
+
+    return Path(root).joinpath(validate_namespace(namespace), *parts)
 
 
 @dataclass(frozen=True)

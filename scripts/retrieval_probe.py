@@ -76,6 +76,7 @@ hive inspections, the haystack has volume and no difficulty.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -89,7 +90,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.adapters.base import GATINGS, CorpusManifest
+from harness.adapters.base import GATINGS, CorpusManifest, resolve_corpus_path
 from harness.tasks import discover_tasks
 from scripts.audit_corpus import readable_text
 
@@ -133,14 +134,26 @@ def load_windows(corpus_root: Path) -> list[Window]:
     manifest = CorpusManifest.load(corpus_root)
     out: list[Window] = []
     for rel in sorted(manifest.sessions):
-        text = readable_text(corpus_root / rel)
+        # `resolve_corpus_path` exists for this join and `CorpusManifest.verify` already uses it;
+        # this function called neither, so a manifest entry of `../..` was read straight off
+        # disk. A manifest is a file, and a corpus root can come from a vendor's staging area.
+        text = readable_text(resolve_corpus_path(corpus_root, rel))
         for window in windows_for(text):
             out.append(Window(doc=rel, text=window))
     return out
 
 
 class BM25:
-    """Okapi BM25 over the windows. Pure stdlib, so this runs anywhere the harness runs."""
+    """Okapi BM25 over the windows. Pure stdlib, so this runs anywhere the harness runs.
+
+    ⛔ This is the SECOND BM25 in this repository, and it is not the same ranker as
+    `harness/retrieval.py`: they differ in `k1`, in the stoplist, in the tokenizer and in whether
+    query terms are deduplicated. Finding F-24 of the 2026-08-30 audit says so, and the
+    duplication is NOT fixed, deliberately. Every number published under preregistrations 015,
+    016 and 018 was measured on THIS one, so collapsing the two would change committed values
+    under a committed record, and that is a decision for the person who owns those records rather
+    than something an audit may do on its own. Anything comparing a number from here against one
+    from `harness/retrieval.py` is comparing two rankers."""
 
     name = "bm25"
 
@@ -230,6 +243,23 @@ class Voyage:
     BATCH = 96
 
     def __init__(self, windows: list[Window], model: str, max_tokens: int) -> None:
+        self.windows = windows
+        self.model = model
+        texts = [window.text for window in windows]
+
+        # ⛔ The cheap ceiling runs FIRST, before any import. It used to sit fifteen lines below
+        # `import voyageai`, which pulls transformers and sentence_transformers through
+        # langchain_text_splitters and costs about 41 seconds (measured). That made the refusal
+        # unreachable on a host without the client, defeating the very property the ordering was
+        # written for, and made the test that pins the refusal the single most expensive test in
+        # the suite at 8.5% of its runtime.
+        estimate = estimate_tokens(texts)
+        print(
+            f"voyage: {len(windows)} windows, about {estimate:,} tokens to embed (pre-flight)",
+            file=sys.stderr,
+        )
+        self._refuse_over_ceiling(estimate, max_tokens, "pre-flight estimate")
+
         try:
             import voyageai
         except ImportError as error:  # pragma: no cover - environment dependent
@@ -240,42 +270,79 @@ class Voyage:
         import numpy
 
         self.numpy = numpy
-        self.windows = windows
-        self.model = model
-        # The spend ceiling is checked BEFORE the credential, so a run that was going to cost
-        # more than the caller expected is refused whether or not a key happens to be present.
-        # Checking the key first would make the ceiling unreachable on any host without one,
-        # which is every host where somebody would want to sanity check the estimate.
-        estimate = estimate_tokens(window.text for window in windows)
-        print(
-            f"voyage: {len(windows)} windows, about {estimate:,} tokens to embed",
-            file=sys.stderr,
-        )
-        if estimate > max_tokens:
-            raise SystemExit(
-                f"refusing to spend: estimated {estimate:,} tokens is over the --max-tokens "
-                f"ceiling of {max_tokens:,}. Raise it deliberately or probe a smaller corpus."
-            )
         if not os.environ.get("VOYAGE_API_KEY"):
             raise SystemExit(
                 "VOYAGE_API_KEY is not set. This backend calls a paid API and will not guess "
                 "at credentials; run it on the host whose environment already has the key."
             )
         self.client = voyageai.Client()
-        vectors: list[list[float]] = []
-        texts = [window.text for window in windows]
+
+        # ---- F-04b, the second half of F-04's fix and separable from it -------------------
+        #
+        # The AUTHORITATIVE ceiling, from the vendor's own tokenizer, before a single paid call.
+        # The pre-flight estimate above is a character heuristic and is not a guaranteed bound:
+        # the worst window in this corpus carries 2.075x the tokens it predicts. Asking the
+        # client what it will actually bill costs nothing and is the only number that can hold
+        # the promise `--max-tokens` makes.
+        counted = self._count_tokens(texts)
+        if counted is not None:
+            print(f"voyage: {counted:,} tokens by the vendor tokenizer", file=sys.stderr)
+            self._refuse_over_ceiling(counted, max_tokens, "vendor token count")
+
+        chunks = []
         for start in range(0, len(texts), self.BATCH):
             batch = texts[start : start + self.BATCH]
-            vectors.extend(
-                self.client.embed(batch, model=model, input_type="document").embeddings
+            # Converted per batch rather than accumulating list[list[float]] for the whole
+            # corpus: 23,204 windows of 1,024 boxed Python floats is ~776 MB against a 95 MB
+            # matrix, and this host has starved an arm at 421 MB free before now.
+            chunks.append(
+                numpy.asarray(
+                    self.client.embed(batch, model=model, input_type="document").embeddings,
+                    dtype="float32",
+                )
             )
             print(
                 f"  embedded {min(start + self.BATCH, len(texts)):>6} / {len(texts)}",
                 file=sys.stderr,
             )
-        self.matrix = numpy.array(vectors, dtype="float32")
+        self.matrix = numpy.vstack(chunks) if chunks else numpy.zeros((0, 1), dtype="float32")
         norms = numpy.linalg.norm(self.matrix, axis=1, keepdims=True)
-        self.matrix = self.matrix / numpy.where(norms == 0, 1, norms)
+        self.matrix /= numpy.where(norms == 0, 1, norms)
+
+    @staticmethod
+    def _refuse_over_ceiling(tokens: int, ceiling: int, label: str) -> None:
+        if tokens > ceiling:
+            raise SystemExit(
+                f"refusing to spend: {label} of {tokens:,} tokens is over the --max-tokens "
+                f"ceiling of {ceiling:,}. Raise it deliberately or probe a smaller corpus."
+            )
+
+    def _count_tokens(self, texts: list[str]) -> int | None:
+        """The vendor's own count, or None when this client build cannot supply one.
+
+        None is reported rather than silently skipped: a ceiling enforced only by the heuristic
+        is a weaker guarantee than one enforced by the tokenizer, and the run says which it got.
+        """
+
+        counter = getattr(self.client, "count_tokens", None)
+        if counter is None:  # pragma: no cover - depends on the installed client version
+            print(
+                "voyage: this client exposes no count_tokens; the ceiling rests on the "
+                "character heuristic alone, which is NOT a guaranteed upper bound",
+                file=sys.stderr,
+            )
+            return None
+        try:  # pragma: no cover - network/version dependent
+            return int(counter(texts, model=self.model))
+        except Exception as error:  # noqa: BLE001 - see below
+            # Blind catch on purpose. This is a best-effort STRENGTHENING of a ceiling that is
+            # already enforced by the heuristic above, and the vendor client's failure modes vary
+            # by version and by network condition. Narrowing it would mean an unanticipated
+            # exception type turned a spend guard into a crash after the credential check and
+            # before any refund, which is worse than proceeding on the weaker guarantee. The
+            # degradation is printed rather than swallowed.
+            print(f"voyage: count_tokens unavailable ({error}); heuristic only", file=sys.stderr)
+            return None
 
     def scores(self, query: str) -> dict[int, float]:
         vector = self.numpy.array(
@@ -286,14 +353,38 @@ class Voyage:
         return {index: float(value) for index, value in enumerate(self.matrix @ vector)}
 
 
-def estimate_tokens(texts) -> int:
-    """Word count times 1.35, which is the usual English ratio and errs high.
+#: Characters per token, used for the pre-credential estimate. Measured 2026-08-30 over
+#: `load_windows(Path("corpus"))`: 1,220 windows, 1,112,424 chars, 315,734 real cl100k_base
+#: tokens, so **3.523 chars/token corpus-wide**. 3.0 buys a 17% margin on that total.
+#:
+#: Re-measure:
+#:     python -c "import sys;sys.path.insert(0,'.');from pathlib import Path;import tiktoken;\
+#:     from scripts.retrieval_probe import load_windows;e=tiktoken.get_encoding('cl100k_base');\
+#:     t=[w.text for w in load_windows(Path('corpus'))];print(sum(len(e.encode(x)) for x in t))"
+CHARS_PER_TOKEN = 3.0
 
-    Erring high is the point: this number gates a paid run, and an estimate that flatters the
-    corpus would let a run start that the caller would not have approved.
+
+def estimate_tokens(texts) -> int:
+    """A conservative pre-flight estimate, on CHARACTERS. Not a guaranteed upper bound.
+
+    ⛔ This counted WORDS times 1.35 and its docstring claimed it "errs high". It errs LOW.
+    Measured 2026-08-30 against cl100k_base on this repository's own corpus: 247,480 estimated
+    against 315,734 real, a ratio of 0.784. The cause is that the corpus is agent transcripts,
+    so it carries paths, identifiers and `json.dumps` blobs at 6.07 chars/word against English
+    prose's ~5.1, and a word-based constant cannot track character density at all: a single
+    4,000-character run with no spaces estimated as ONE token. A spend gate computed from it let
+    a run bill about 1.27x what was approved.
+
+    ⚠️ **Characters do not make it a guarantee either, and the docstring will not claim one.**
+    Measured on the same corpus, the worst individual window carries 2.075x the tokens
+    ``chars/3.0`` predicts, because BPE can emit a token per character on unusual bytes. The
+    corpus-wide margin is 17%; a pathological corpus could still exceed it. That is why the
+    ceiling is now enforced TWICE: this cheap estimate before the credential, so it stays
+    checkable on a host with no key, and the vendor's own `count_tokens` after the client is
+    built and before the first paid call, which is authoritative.
     """
 
-    return int(sum(len(text.split()) for text in texts) * 1.35)
+    return int(sum(len(text) for text in texts) / CHARS_PER_TOKEN)
 
 
 class ArmBackend:
@@ -326,6 +417,16 @@ class ArmBackend:
         self.limit = limit
         self.name = f"{adapter.name}:{gating}"
         self.abstentions = 0
+        #: Corpus document keys, bound by `probe` before the first query. Everything below is
+        #: about whether the arm's identifiers are the SAME identifiers, which is a different
+        #: failure from ranking badly and must never be published as one.
+        self.documents: set[str] = set()
+        self.hits_returned = 0
+        self.hits_joined = 0
+        self.unjoinable_examples: list[str] = []
+
+    def bind_corpus(self, documents: set[str]) -> None:
+        self.documents = set(documents)
 
     def ranking(self, query: str) -> list[tuple[str, float]]:
         result = self.adapter.search(
@@ -336,7 +437,39 @@ class ArmBackend:
             # A product that declines here has retrieved nothing on purpose and should score as a
             # miss, with the count reported so nobody reads the miss as a ranking failure.
             self.abstentions += 1
-        return [(hit.source_path, hit.score) for hit in result.hits]
+        ranked = [(hit.source_path, hit.score) for hit in result.hits]
+        for source, _score in ranked:
+            self.hits_returned += 1
+            if source in self.documents:
+                self.hits_joined += 1
+            elif len(self.unjoinable_examples) < 5:
+                self.unjoinable_examples.append(source)
+        return ranked
+
+    def assert_joinable(self) -> None:
+        """Refuse to publish a number when the arm's identifiers are not the corpus's.
+
+        A total join failure and a product that retrieves nothing produce the SAME hit@1 of
+        0.000, and only one of them is a fact about the vendor. recall indexes rendered ``.md``
+        filenames while the manifest is keyed by ``.jsonl`` transcript paths, so this is not
+        hypothetical: it is the default outcome until the path mapping is settled, and a run that
+        did not check would have published a structural zero as a measured one.
+
+        Silence on a PARTIAL failure would be the same mistake at smaller scale, so the counts go
+        into the summary AND are printed by `main` with a `[!!]` whenever the rate is below 1.0.
+        This is deliberately not a refusal: a product's store can legitimately hold documents
+        outside the probed corpus, so refusing on any unjoinable hit would refuse a legitimate
+        run. But an unjoinable hit still occupies a rank and pushes gold down, so a partial
+        failure biases the score DOWNWARD against the vendor, and every rate is a lower bound.
+        """
+
+        if self.hits_returned and not self.hits_joined:
+            raise SystemExit(
+                f"{self.name}: {self.hits_returned} hit(s) returned and NONE join the corpus "
+                f"manifest, so every rank is unscoreable and hit@k would be a structural zero "
+                f"rather than a measurement. Examples: {self.unjoinable_examples}. Fix the "
+                f"identifier mapping before reporting this arm."
+            )
 
 
 def build_arm(name: str, corpus_root: Path, gating: str | None, namespace: str | None, top: int):
@@ -431,6 +564,34 @@ def tier_of(rel: str, plan: dict | None, plants: dict[str, set[str]] | None = No
     return "unknown"
 
 
+def _median_rank(scored: list[dict]) -> int | None:
+    """The median rank, or None when the median observation is a miss.
+
+    A miss has no rank. Sorting it as `10**9` keeps it correctly at the end, but that sentinel
+    was then published verbatim as `median_rank` and printed in the results table, where it
+    reads as a number rather than as "at least half these queries found nothing".
+
+    Boundary, stated because it is easy to get wrong when reading this back: for even `n` the
+    upper-middle element is taken, so exactly 50% misses returns None. That is the honest
+    direction (it declines to name a median rather than reporting the better half's), and it is
+    half a step stricter than "above 50%" would be.
+    """
+
+    if not scored:
+        return None
+    ranks = sorted(row["rank"] or 10**9 for row in scored)
+    middle = ranks[len(scored) // 2]
+    return None if middle == 10**9 else middle
+
+
+def _cell(value, width: int, spec: str = "") -> str:
+    """Format a summary cell that is legitimately absent, without crashing the table."""
+
+    if value is None:
+        return f"{'n/a':>{width}}"
+    return f"{value:>{width}{spec}}"
+
+
 def probe(
     corpus_root: Path,
     backend_name: str,
@@ -442,12 +603,17 @@ def probe(
     plan_path = corpus_root / "haystack.json"
     plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.is_file() else None
     if arm is not None:
-        # An arm ranks whole documents itself, so no windowing happens and none is claimed: the
-        # window count below is the corpus's, reported for comparability, not something the arm
-        # was scored over.
+        # An arm ranks whole DOCUMENTS itself, so nothing here is windowed and the summary
+        # says 0 rather than borrowing the corpus's count. The comment that stood here promised
+        # the opposite ("the window count below is the corpus's, reported for comparability"),
+        # and two committed artifacts publish `"windows": 0` against it:
+        # `results/retrieval/arm-fs-grep-25x.json` and `arm-fs-grep-base.json`. Reporting 0 is
+        # correct and comparing it against a ranker's window count is meaningless, so the number
+        # is left alone and the claim is withdrawn.
         windows = []
         documents = set(CorpusManifest.load(corpus_root).sessions)
         backend = arm
+        backend.bind_corpus(documents)
     else:
         windows = load_windows(corpus_root)
         documents = {window.doc for window in windows}
@@ -511,7 +677,13 @@ def probe(
             continue
         positions = [index + 1 for index, rel in enumerate(order) if rel in gold]
         first = min(positions) if positions else None
-        competitors = order[: (first - 1)] if first else order[:top]
+        # TWO POPULATIONS, never one. Above a gold document that WAS retrieved, every entry is a
+        # competitor that genuinely beat the right answer. On a miss there is no gold in the list,
+        # so `order[:top]` is an arbitrary prefix of a ranking that failed: it says what the
+        # ranker liked, not what outranked anything. Summing the two gave a "what beats gold"
+        # histogram of which 70 of 84 entries (83%) in a committed artifact came from misses.
+        above_gold = order[: (first - 1)] if first else []
+        miss_prefix = [] if first else order[:top]
         rows.append(
             {
                 "task_id": task.task_id,
@@ -522,10 +694,17 @@ def probe(
                 "competitors_above_gold": (first - 1) if first else None,
                 "plant_rank": min(plant_positions) if plant_positions else None,
                 "competitor_tiers": dict(
-                    Counter(tier_of(rel, plan, plants) for rel in competitors)
+                    Counter(tier_of(rel, plan, plants) for rel in above_gold)
+                ),
+                # Kept, because what a failed ranking preferred is diagnostic. Named so it can
+                # never be added to the line above by accident.
+                "miss_topk_tiers": dict(
+                    Counter(tier_of(rel, plan, plants) for rel in miss_prefix)
                 ),
             }
         )
+    if isinstance(backend, ArmBackend):
+        backend.assert_joinable()
     scored = [row for row in rows if not row["gold_withheld_by_condition"]]
 
     # Every rate below is over SCORED queries: the ones that have a right answer to find. A task
@@ -535,17 +714,44 @@ def probe(
 
     synthesis = [row for row in scored if row["gold_documents"] > 1]
     plant_ranked = [row for row in rows if row["plant_rank"]]
+    # What was probed, pinned to something that survives the directory being rebuilt. The only
+    # provenance here was `corpus_root.as_posix()`, and `corpus/haystack/` is gitignored, so
+    # every committed `results/retrieval/*.json` names a path that is not in the tree and can be
+    # tied to no particular build of it. `corpus_sha256` is over the manifest, so it moves with
+    # any document; `generator_sha256` and `seed` come from the haystack plan when there is one.
+    manifest_digest = hashlib.sha256(
+        json.dumps(
+            dict(sorted(CorpusManifest.load(corpus_root).sessions.items())),
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
     summary = {
         "corpus": corpus_root.as_posix(),
+        "corpus_sha256": manifest_digest,
+        "generator_sha256": (plan or {}).get("generator_sha256"),
+        "corpus_seed": (plan or {}).get("seed"),
+        "corpus_scale": (plan or {}).get("scale"),
         "backend": backend.name,
         "documents": len(documents),
         "windows": len(windows),
         "gating": getattr(backend, "gating", None),
         "abstentions": getattr(backend, "abstentions", None),
+        "arm_hits_returned": getattr(backend, "hits_returned", None),
+        "arm_hits_joined": getattr(backend, "hits_joined", None),
+        "arm_unjoinable_examples": getattr(backend, "unjoinable_examples", None),
         "queries": len(scored),
         "gold_withheld_by_condition": sorted(withheld),
         "plants_ranked_top10": sum(1 for row in plant_ranked if row["plant_rank"] <= 10),
-        "plants_present": len(plant_ranked),
+        # Tasks that HAVE a plant, whether or not it was retrieved. `len(plant_ranked)`
+        # stood here, which excludes exactly the plants that ranked nowhere: the population
+        # the sentence printed downstream is about. It made an unretrievable plant
+        # invisible instead of reporting it, which is the pre-flight's whole purpose.
+        # Over the rows this run actually probed, so it is the same population as
+        # `plants_ranked_top10`. Counting `condition.json` entries instead would put
+        # a task with a plant but no documents under `sessions/<id>/` into the
+        # denominator only, since the loop above skips it before it becomes a row.
+        "plants_present": sum(1 for row in rows if plants.get(row["task_id"])),
+        "plants_retrieved": len(plant_ranked),
         "hit@1": round(hit_at(1), 4),
         "hit@5": round(hit_at(5), 4),
         "hit@10": round(hit_at(10), 4),
@@ -554,20 +760,26 @@ def probe(
             / max(1, len(scored)),
             4,
         ),
-        "median_rank": (
-            sorted(row["rank"] or 10**9 for row in scored)[len(scored) // 2] if scored else None
-        ),
+        # The sentinel sorts misses last, which is right, but publishing it would print
+        # 1000000000 as a rank. Above 50% misses the median IS a miss, and `None` says so.
+        "median_rank": _median_rank(scored),
         # Averaged over the queries that RETRIEVED the gold session at all. Folding a miss in as
         # zero competitors was the first version of this line and it reports a corpus as easier
         # the harder it gets, since a total failure would have contributed the smallest possible
         # number to the mean. Misses are counted, not absorbed.
+        # `max(1, ...)` on an EMPTY numerator yields 0.0, so a corpus where every single query
+        # missed printed `mean above 0.00`: total retrieval failure rendered as the easiest
+        # possible result. There is no mean over no observations, and None is the honest value.
         "mean_competitors_above_gold": (
             round(
                 sum(row["competitors_above_gold"] for row in scored if row["rank"])
-                / max(1, sum(1 for row in scored if row["rank"])),
+                / sum(1 for row in scored if row["rank"]),
                 2,
             )
+            if any(row["rank"] for row in scored)
+            else None
         ),
+        "mean_competitors_n_queries": sum(1 for row in scored if row["rank"]),
         "misses": sum(1 for row in scored if not row["rank"]),
         "all_shards@10": (
             round(
@@ -582,9 +794,19 @@ def probe(
             if synthesis
             else None
         ),
+        # Over the queries that RETRIEVED gold, and ONLY those. `competitor_tiers_n_queries` is
+        # published beside it because a histogram whose population is not stated cannot be read.
         "competitor_tiers": dict(
-            sum((Counter(row["competitor_tiers"]) for row in scored), Counter())
+            sum((Counter(row["competitor_tiers"]) for row in scored if row["rank"]), Counter())
         ),
+        "competitor_tiers_n_queries": sum(1 for row in scored if row["rank"]),
+        "miss_topk_tiers": dict(
+            sum(
+                (Counter(row["miss_topk_tiers"]) for row in scored if not row["rank"]),
+                Counter(),
+            )
+        ),
+        "miss_topk_tiers_n_queries": sum(1 for row in scored if not row["rank"]),
     }
     return {"summary": summary, "per_task": rows}
 
@@ -628,7 +850,19 @@ def main() -> int:
         "--max-tokens",
         type=int,
         default=2_000_000,
-        help="hard ceiling per corpus for the paid voyage backend; it refuses rather than warns",
+        help="hard ceiling PER CORPUS for the paid voyage backend; it refuses rather than warns",
+    )
+    parser.add_argument(
+        "--max-tokens-total",
+        type=int,
+        default=0,
+        help="hard ceiling across every --corpus in one invocation. --corpus is repeatable, so "
+        "--max-tokens alone caps each root and NOTHING caps the run. ⚠️ The default (0) derives "
+        "this as --max-tokens x the number of roots, which PRESERVES that spend envelope: it "
+        "makes the total visible and refusable, it does not lower it. That is deliberate, "
+        "because the repeatable --corpus is the designed way to probe a difficulty curve and a "
+        "stricter default would refuse the tool's normal use. Pass a real number to bound a run "
+        "below N x the per-corpus ceiling.",
     )
     parser.add_argument("--top", type=int, default=10)
     parser.add_argument("--out", default=None, help="write the full result to this JSON file")
@@ -640,14 +874,53 @@ def main() -> int:
     model = args.model or (
         "voyage-4" if args.backend == "voyage" else "BAAI/bge-small-en-v1.5"
     )
+    # The aggregate ceiling, checked BEFORE the first paid call of the first root rather than
+    # discovered on the last one. Deriving the default keeps single-root behaviour identical.
+    # `--arm` is excluded: an arm ranks through its own product and never constructs
+    # `Voyage`, so `--arm X --backend voyage` spends nothing. Gating on the backend alone made
+    # this pay a full `load_windows` pass and let it refuse a run that could not have cost
+    # anything.
+    priced = args.backend == "voyage" and not args.arm
+    # ⚠️ The derived default preserves the pre-fix spend envelope rather than lowering it. See
+    # --max-tokens-total's help: this makes the aggregate visible and refusable, which is what
+    # F-50 asked for, and deliberately does not make a curve run refuse by default.
+    total_ceiling = args.max_tokens_total or args.max_tokens * len(roots)
+    if priced and len(roots) > 1:
+        print(
+            f"voyage: {len(roots)} corpora, ceiling {args.max_tokens:,} each and "
+            f"{total_ceiling:,} in total",
+            file=sys.stderr,
+        )
+    spent_estimate = 0
+
     results = []
     for root in roots:
         if not (root / "manifest.json").is_file():
             raise SystemExit(f"{root} has no manifest.json; it is not a corpus root")
+        if priced:
+            estimate = estimate_tokens([w.text for w in load_windows(root)])
+            if spent_estimate + estimate > total_ceiling:
+                raise SystemExit(
+                    f"refusing to embed {root.as_posix()}: it would take the run to "
+                    f"{spent_estimate + estimate:,} estimated tokens against a total ceiling of "
+                    f"{total_ceiling:,}. Raise --max-tokens-total deliberately, or probe fewer "
+                    f"roots per invocation."
+                )
+            spent_estimate += estimate
         arm = build_arm(args.arm, root, args.gating, args.namespace, args.top) if args.arm else None
         label = arm.name if arm is not None else f"{args.backend} ({model})"
         print(f"probing {root.as_posix()} with {label} ...", file=sys.stderr)
         results.append(probe(root, args.backend, model, args.top, args.max_tokens, arm))
+
+    # ⛔ WRITTEN FIRST. This used to be the last statement of `main()`, downstream of every
+    # print below, one of which crashes when `scored` is empty (`median_rank` None formatted
+    # with `:>9`). A voyage run can cost real money, and losing its results to a formatting bug
+    # in a summary table is not a trade anybody would make deliberately.
+    if args.out:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n")
+        print(f"wrote {out.as_posix()}")
 
     header = (
         f"{'documents':>10} {'windows':>9} {'hit@1':>7} {'hit@5':>7} {'hit@10':>7} "
@@ -658,8 +931,9 @@ def main() -> int:
         s = result["summary"]
         print(
             f"{s['documents']:>10} {s['windows']:>9} {s['hit@1']:>7.3f} {s['hit@5']:>7.3f} "
-            f"{s['hit@10']:>7.3f} {s['mrr@10']:>7.3f} {s['median_rank']:>9} "
-            f"{s['mean_competitors_above_gold']:>11.2f} {s['misses']:>5}  {s['corpus']}"
+            f"{s['hit@10']:>7.3f} {s['mrr@10']:>7.3f} "
+            f"{_cell(s['median_rank'], 9)} {_cell(s['mean_competitors_above_gold'], 11, '.2f')} "
+            f"{s['misses']:>5}  {s['corpus']}"
         )
 
     for result in results:
@@ -683,6 +957,25 @@ def main() -> int:
                 print(
                     "  gating=raw: no trust policy applied. Not comparable with a served number "
                     "from another arm."
+                )
+        if s.get("arm_hits_returned"):
+            joined, returned = s["arm_hits_joined"], s["arm_hits_returned"]
+            rate = joined / returned
+            print(
+                f"  join rate {joined}/{returned} = {rate:.3f} of this arm's hits are corpus "
+                f"documents."
+            )
+            if rate < 1.0:
+                # ⛔ Loud, and on the human path. `assert_joinable` refuses only a TOTAL failure,
+                # because a product's store can legitimately hold documents outside the probed
+                # corpus. But a PARTIAL failure biases the score DOWNWARD against the vendor,
+                # since an unjoinable hit still occupies a rank and pushes gold down, and that is
+                # this project's own harm class. The counts were in the JSON and nowhere a reader
+                # looks, which made the docstring's promise to report them untrue.
+                print(
+                    f"  [!!] {returned - joined} hit(s) do NOT join the corpus manifest. They "
+                    f"still occupy ranks, so every rate above is a LOWER BOUND on this arm. "
+                    f"Examples: {s['arm_unjoinable_examples']}"
                 )
         if s["gold_withheld_by_condition"]:
             print(
@@ -709,17 +1002,17 @@ def main() -> int:
         for result in results:
             print(f"-- {result['summary']['corpus']}")
             for row in result["per_task"]:
-                tiers = ", ".join(f"{k}:{v}" for k, v in sorted(row["competitor_tiers"].items()))
+                # A miss row has no competitors-above-gold by construction, so printing only
+                # that column would blank it. The top-k prefix is what the failed ranking
+                # preferred, and it is the diagnostic for a miss; it is labelled so nobody
+                # reads it as "these beat the right answer".
+                shown = row["competitor_tiers"] or {
+                    f"miss:{k}": v for k, v in row.get("miss_topk_tiers", {}).items()
+                }
+                tiers = ", ".join(f"{k}:{v}" for k, v in sorted(shown.items()))
                 print(f"{row['task_id']:22s} {row['rank']!s:>6} "
                       f"{row['competitors_above_gold']!s:>6}  {tiers}")
 
-    if args.out:
-        out = Path(args.out)
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(
-            json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n"
-        )
-        print(f"\nwrote {out.as_posix()}")
     return 0
 
 

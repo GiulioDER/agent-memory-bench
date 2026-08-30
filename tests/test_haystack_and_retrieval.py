@@ -291,7 +291,7 @@ def test_a_semantic_neighbourhood_states_no_governing_fact(tasks):
         assert leaked is None, f"{task_id}: neighbourhood states {leaked}'s governing fact"
 
 
-def test_the_generator_digest_covers_the_neighbourhood_data():
+def test_the_generator_digest_covers_the_neighbourhood_data(monkeypatch):
     """A plan that names the code but not the DATA claims a reproducibility it does not have.
 
     The neighbourhood file was wired into the generator before it was wired into the digest,
@@ -299,16 +299,34 @@ def test_the_generator_digest_covers_the_neighbourhood_data():
     those sessions moved underneath it.
     """
 
+    # ⛔ Never mutate the tracked source. This used to append to
+    # `scripts/haystack_neighbourhoods.py` and restore it in a `finally`, so a SIGKILL, a
+    # `--timeout` kill or an xdist worker dying left a corrupted file in the working tree, and
+    # the corruption is a byte appended to the file that decides what every semantic-tier
+    # session says. Redirecting the read is the same assertion with none of that.
+    #
+    # All FOUR files are probed, not one. The old test probed a single file, so the digest could
+    # have dropped any of the other three and stayed green.
     from scripts.generate_haystack import _digest_generator
 
-    path = REPO / "scripts" / "haystack_neighbourhoods.py"
     before = _digest_generator()
-    original = path.read_bytes()
-    try:
-        path.write_bytes(original + b"\n# digest probe\n")
-        assert _digest_generator() != before
-    finally:
-        path.write_bytes(original)
+    for name in (
+        "generate_haystack.py",
+        "haystack_vocab.py",
+        "haystack_neighbourhoods.py",
+        "haystack_neighbourhoods_v3.py",
+    ):
+        real_read_bytes = Path.read_bytes
+
+        def patched(self, *, _target=name, _real=real_read_bytes):
+            data = _real(self)
+            return data + b"\n# digest probe\n" if self.name == _target else data
+
+        monkeypatch.setattr(Path, "read_bytes", patched)
+        assert _digest_generator() != before, f"{name} is not in the generator digest"
+        monkeypatch.undo()
+
+    assert _digest_generator() == before, "the probe leaked past the monkeypatch"
 
 
 def test_a_planted_session_is_never_scored_as_gold(tmp_path):

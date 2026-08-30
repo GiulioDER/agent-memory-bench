@@ -37,7 +37,14 @@ import subprocess
 import time
 from pathlib import Path
 
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    namespace_path,
+    validate_namespace,
+)
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
 
@@ -120,7 +127,8 @@ class MemPalaceAdapter(MemoryAdapter):
         return Path(override) if override else self.staging_root / "mempalace"
 
     def _palace_dir(self, namespace: str) -> Path:
-        palace = self._palace_root() / namespace
+        # `ingest` runs `shutil.rmtree` on what this returns.
+        palace = namespace_path(self._palace_root(), namespace)
         limit = int(self.config["max_palace_path_chars"])
         absolute = str(palace.absolute())
         if len(absolute) > limit:
@@ -136,10 +144,15 @@ class MemPalaceAdapter(MemoryAdapter):
         return palace
 
     def _feed_dir(self, namespace: str) -> Path:
-        return self._palace_root() / f"{namespace}-feed"
+        # Validated BEFORE the f-string, which would otherwise smuggle a traversal
+        # through as a prefix of a name that looks constructed.
+        return self._palace_root() / f"{validate_namespace(namespace)}-feed"
 
     def _prompt_path(self, namespace: str) -> Path:
-        return self.staging_root / namespace / "prompt.md"
+        # Same join, same risk: this namespace comes from the same argument as the staging
+        # directory's. Found by widening `tests/test_namespace_guard.py`'s scan, which is a
+        # tripwire for common shapes and NOT a proof that none is left; see that file.
+        return namespace_path(self.staging_root, namespace, "prompt.md")
 
     # ------------------------------------------------------------------ instruction
 

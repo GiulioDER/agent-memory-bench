@@ -149,7 +149,16 @@ TOPICAL_SUBJECTS: tuple[tuple[str, str], ...] = (
 
 
 def _digest_generator() -> str:
-    """sha256 over this module and its vocabulary, so a plan names the code that produced it."""
+    """sha256 over this module, its vocabulary AND the task data, so a plan names its inputs.
+
+    "The code that produced it" was too narrow, and the omission was exactly the class of input
+    the comment below warns about. `make_session` draws near-miss vocabulary from `task.prompt`
+    and `_fact_phrases` from `task.fact_terms`, so editing a task's prompt changes what every
+    near-miss session in the haystack says while leaving `generator_sha256` untouched: two
+    corpora with the same digest and different text, which is the one thing a digest exists to
+    prevent. Only the two fields that reach the generator are hashed, so unrelated task metadata
+    does not churn the digest for no reason.
+    """
 
     # Every file whose CONTENT decides what a session says has to be in here. The neighbourhood
     # data was added to the generator before it was added to this list, which would have let a
@@ -163,7 +172,15 @@ def _digest_generator() -> str:
             "haystack_neighbourhoods_v3.py",
         )
     )
-    return hashlib.sha256(material).hexdigest()
+    task_material = json.dumps(
+        {
+            task.task_id: {"prompt": task.prompt, "fact_terms": sorted(task.fact_terms)}
+            for task in sorted(discover_tasks(), key=lambda item: item.task_id)
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(material + task_material).hexdigest()
 
 
 def _rng(*parts: object) -> random.Random:
@@ -579,6 +596,17 @@ def _tier_counts(total: int, mix: dict[str, float]) -> dict[str, int]:
 
 
 def main() -> int:
+    # The docstring is this script's `--help` text and carries the house-style U+26D4 / U+26A0
+    # markers, so `--help` died with a UnicodeEncodeError on a cp1252 console: the script was
+    # undocumented on Windows and fine on Linux, which is the failure this project has hit in
+    # both directions already. Replacing unencodable characters degrades the marker rather than
+    # the command, and is scoped to this process's own streams.
+    for stream in (sys.stdout, sys.stderr):
+        if getattr(stream, "reconfigure", None) and (stream.encoding or "").lower() not in (
+            "utf-8",
+            "utf8",
+        ):
+            stream.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--scale",
@@ -620,9 +648,24 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="overwrite an existing root")
     args = parser.parse_args()
 
+    # Per share AND the sum. Validating only the sum let `--near-miss-share -0.5
+    # --topical-share 0.7` through: `_tier_counts` then yields a negative count, the emit loop is
+    # simply skipped, and the negative fraction is written into `plan["mix"]` as provenance for a
+    # tier that was never built. A silently empty tier is worse than a refusal, because the plan
+    # still describes it.
+    shares = {
+        "--near-miss-share": args.near_miss_share,
+        "--topical-share": args.topical_share,
+        "--semantic-share": args.semantic_share,
+    }
+    for flag, value in shares.items():
+        if not 0.0 <= value <= 1.0:
+            raise SystemExit(f"{flag} must be between 0.0 and 1.0, got {value}")
     adversarial = args.near_miss_share + args.topical_share + args.semantic_share
     if not 0.0 <= adversarial <= 1.0:
-        raise SystemExit("topical, near-miss and semantic shares must sum to at most 1.0")
+        raise SystemExit(
+            f"topical, near-miss and semantic shares must sum to at most 1.0, got {adversarial}"
+        )
 
     tasks = [task for task in discover_tasks() if task.fact_terms]
     phrases = _fact_phrases(tasks)
@@ -700,7 +743,50 @@ def main() -> int:
             if stored.get(key) != plan[key]:
                 print(f"MISMATCH on {key}: the haystack on disk is not what this code produces")
                 return 1
-        print(f"OK  {out} matches this generator ({plan['total_documents']} documents)")
+
+        # ---- and now the BYTES, which the key comparison above never touched ----------------
+        #
+        # `haystack.json` is written by this same generator, so comparing the plan against it
+        # compares this code with a record of this code. Every file the plan describes could be
+        # truncated, half-written or absent and `--check` would still print OK. That matters more
+        # here than it would elsewhere: the haystack root is GITIGNORED, so git can never notice
+        # the damage either, and the probe reads these files as the corpus a published retrieval
+        # number was measured over.
+        problems: list[str] = []
+        expected: dict[str, str] = {}
+        for rel, events, _provenance in emitted:
+            body = "\n".join(json.dumps(event, ensure_ascii=False) for event in events) + "\n"
+            expected[rel] = hashlib.sha256(body.encode("utf-8")).hexdigest()
+        for base_dir in ("sessions", "distractors"):
+            for path in sorted((BASE_CORPUS / base_dir).rglob("*.jsonl")):
+                rel = path.relative_to(BASE_CORPUS).as_posix()
+                expected[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+        for rel, digest in expected.items():
+            path = out / rel
+            if not path.is_file():
+                problems.append(f"MISSING   {rel}")
+            elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                problems.append(f"CORRUPT   {rel}")
+        # Extra files are a mismatch in the other direction, and the one a count-based check is
+        # blindest to: a stale document from an earlier scale is a real document the probe would
+        # rank, belonging to no plan.
+        for path in sorted(out.rglob("*.jsonl")):
+            rel = path.relative_to(out).as_posix()
+            if rel not in expected:
+                problems.append(f"UNPLANNED {rel}")
+
+        if problems:
+            print(f"MISMATCH on bytes: {len(problems)} file(s) differ from the plan")
+            for line in problems[:20]:
+                print(f"  {line}")
+            if len(problems) > 20:
+                print(f"  ... and {len(problems) - 20} more")
+            return 1
+        print(
+            f"OK  {out} matches this generator "
+            f"({plan['total_documents']} documents, {len(expected)} files verified by sha256)"
+        )
         return 0
 
     if out.exists():

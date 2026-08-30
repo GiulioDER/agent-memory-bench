@@ -149,7 +149,33 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
     if unknown:
         raise SystemExit(f"unknown task(s) in selection: {unknown}")
 
+    # Defence in depth, at the layer that actually DELETES. The containment check lives in
+    # `main()` and covers `--out` only, so the other four callers reach this `rmtree` with a
+    # constructed path and no check at all. Not exploitable today (the condition is validated
+    # above and every caller builds its own path), which is exactly the state to add a guard in
+    # rather than after.
+    #
+    # The rule is about WHAT is being removed, not where it sits: a location whitelist would
+    # have refused every test that assembles into a tmp directory, which is a legitimate caller.
+    # This function writes exactly the entries below, so a target holding anything else is not a
+    # condition corpus this code built and must not be deleted wholesale.
+    WRITES = {"sessions", "distractors", "condition.json", "manifest.json"}
     if out_root.exists():
+        # `.DS_Store`, `Thumbs.db` and `desktop.ini` are written by a file browser, not by a
+        # person, and refusing a legitimate re-assemble because one appeared would make this
+        # guard a nuisance that gets deleted rather than a guard.
+        IGNORED = {".DS_Store", "Thumbs.db", "desktop.ini"}
+        foreign = sorted(
+            p.name
+            for p in out_root.iterdir()
+            if p.name not in WRITES and p.name not in IGNORED
+        )
+        if foreign:
+            raise SystemExit(
+                f"refusing to delete {out_root.resolve()}: it holds {foreign}, which this "
+                f"function does not write, so it is not a condition corpus built by this code. "
+                f"Remove it deliberately if that is what you meant."
+            )
         shutil.rmtree(out_root)
     (out_root / "sessions").mkdir(parents=True)
     (out_root / "distractors").mkdir(parents=True)

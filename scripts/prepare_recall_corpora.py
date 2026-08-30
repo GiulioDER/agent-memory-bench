@@ -5,7 +5,8 @@ whole point: a generation build embeds the corpus and a calibration fits a thres
 doing either inside a run means a remote failure kills the run mid-flight, and a step that can
 build is a step that can silently REBUILD. A rebuilt corpus mid-run is a different experiment.
 
-    python -m scripts.prepare_recall_corpora --conditions absent,superseded,contradictory,adjacent
+    python -m scripts.prepare_recall_corpora        # every condition in CORPUS_CONDITIONS
+    python -m scripts.prepare_recall_corpora --conditions present,adjacent   # or a subset
 
 Idempotent: a condition whose tenant already serves an active generation stamped with this
 corpus's fingerprint is skipped.
@@ -38,7 +39,8 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from adapters.recall.adapter import corpus_fingerprint, resolve_location
-from harness.adapters.base import CorpusManifest
+from harness.adapters.base import CorpusManifest, namespace_path, validate_namespace
+from harness.damage import CORPUS_CONDITIONS
 from harness.transcripts import render_corpus
 from scripts.abstention import selection_for
 from scripts.assemble_condition_corpus import assemble
@@ -124,7 +126,9 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
             print("  already built, calibrated and promoted for this exact corpus; skipping")
             return
 
-    feed = REPO / "results" / ".prepare-feed" / tenant
+    # `tenant` derives from the --namespace CLI argument, which is the flag F-15
+    # named, and `shutil.rmtree(feed)` is four lines below.
+    feed = namespace_path(REPO / "results" / ".prepare-feed", tenant)
     if feed.exists():
         import shutil
 
@@ -132,7 +136,9 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
     written = render_corpus([corpus_root / rel for rel in corpus.sessions], feed, root=corpus_root)
     print(f"  rendered {written} file(s)")
 
-    archive = REPO / "results" / f".prepare-{tenant}.tgz"
+    # Validated before the f-string, which would otherwise smuggle a traversal through
+    # as a prefix of a name that looks constructed.
+    archive = REPO / "results" / f".prepare-{validate_namespace(tenant)}.tgz"
     subprocess.run(
         ["tar", "-czf", str(archive), "-C", str(feed.parent), feed.name], check=True, timeout=600
     )
@@ -260,7 +266,14 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--conditions", default="absent,superseded,contradictory,adjacent")
+    parser.add_argument(
+        "--conditions",
+        # Derived from the one definition, so adding a condition cannot leave this behind.
+        # The literal that stood here omitted `present`, and this build is the MANDATORY
+        # pre-suite step: the tenant simply would not exist, and the arm would have been
+        # measured on the condition it is the control for.
+        default=",".join(CORPUS_CONDITIONS),
+    )
     parser.add_argument("--namespace", default="bench-official")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--force", action="store_true", help="rebuild even if the stamp matches")

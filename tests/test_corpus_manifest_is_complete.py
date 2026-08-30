@@ -21,15 +21,22 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from harness.adapters.base import CORPUS_GLOBS
+
 REPO = Path(__file__).resolve().parents[1]
 CORPUS = REPO / "corpus"
 
 
 def _on_disk() -> set[str]:
-    """Exactly what `CorpusManifest.build` would glob, so the two cannot drift apart."""
+    """Exactly what `CorpusManifest.build` globs, IMPORTED so the two cannot drift apart.
+
+    This used to copy the tuple while the docstring claimed the drift was impossible. Adding a
+    fourth pattern to `base.py` would have left this test asserting the old three, which is the
+    one moment the test exists for.
+    """
 
     found: set[str] = set()
-    for pattern in ("sessions/**/*.jsonl", "distractors/*.jsonl", "synthetic/**/*.jsonl"):
+    for pattern in CORPUS_GLOBS:
         for path in CORPUS.glob(pattern):
             found.add(path.relative_to(CORPUS).as_posix())
     return found

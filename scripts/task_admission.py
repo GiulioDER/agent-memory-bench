@@ -129,6 +129,12 @@ def load_records() -> tuple[dict[str, dict[str, list[bool]]], list[str], int]:
     pooled: dict[str, dict[str, list[bool]]] = defaultdict(lambda: defaultdict(list))
     used: list[str] = []
     dropped = 0
+    if not RESULTS.is_dir():
+        # `.dockerignore` excludes `results/`, so inside the image built by
+        # `docker/Dockerfile.harness` the command this tool's own docs print raised a bare
+        # `FileNotFoundError` from `iterdir`. An empty pool is a legitimate state with a
+        # legitimate answer (everything UNSCREENED); a traceback is not an answer.
+        return defaultdict(lambda: defaultdict(list)), [], 0
     for run in sorted(p for p in RESULTS.iterdir() if p.is_dir()):
         if run.name in EXCLUDED_RUNS:
             continue
@@ -160,12 +166,26 @@ def load_records() -> tuple[dict[str, dict[str, list[bool]]], list[str], int]:
     return pooled, used, dropped
 
 
+#: Sessions required before a RATE is treated as evidence rather than as an anecdote.
+#:
+#: ⛔ It gates a rate, and never an existence test. The 2026-08-30 audit applied it to the best
+#: arm as well as the baseline, on the reasoning that both feed the same verdict, and that was
+#: wrong in a way the test suite could not see: `FLOOR` asks "has ANY arm ever solved this",
+#: which is a question about whether a solution exists, not about how often one occurs. Gating it
+#: sent three tasks from BENEFIT-ONLY to FLOOR because their only successes came from
+#: `oracle_memory`, which carries 3 sessions. One of them, `ts-log-mask`, is 3/3 for the oracle
+#: against 0 for every real arm: the largest measured memory headroom in the pooled runs, filed
+#: under the label this tool describes as "separates nothing". A thin arm is weak evidence about
+#: a RATE and perfectly good evidence that a solution EXISTS.
+MIN_SESSIONS = 6
+
+
 def verdict(
-    baseline: float | None, sessions: int, any_failure: bool, best_rate: float | None
+    baseline: float | None, sessions: int, any_failure: bool, ever_solved: bool
 ) -> str:
     if baseline is None:
         return "UNSCREENED"
-    if sessions < 6:
+    if sessions < MIN_SESSIONS:
         return "THIN"
     if baseline >= 1.0:
         return "DAMAGE-ONLY" if any_failure else "NO-CAPACITY"
@@ -174,7 +194,20 @@ def verdict(
         # comparison run even though its benefit capacity is intact in principle. That second
         # half is why this is not folded into NO-CAPACITY: a ceiling task is finished, while a
         # floor task is waiting for a product good enough to move it.
-        return "FLOOR" if best_rate is not None and best_rate <= 0.0 else "BENEFIT-ONLY"
+        #
+        # `ever_solved` is a plain existence test over every pooled session of every arm, and it
+        # is symmetric with `any_failure` on the damage side. Both are existence tests; neither
+        # is gated by session count, because one success is proof that a success is possible.
+        #
+        # Equivalence to the pre-audit test, checked exhaustively over every arms-dict of up to
+        # three arms holding up to three outcomes each: `not any(every)` and the old
+        # `best_rate is not None and best_rate <= 0.0` agree on every shape EXCEPT the four where
+        # no arm has a single session, which the old form called BENEFIT-ONLY and this one calls
+        # FLOOR. That case cannot reach here: this branch requires `baseline is not None` and
+        # `sessions >= MIN_SESSIONS`, so the baseline arm contributes at least six outcomes to
+        # `every`. Recorded rather than left for the next reader to rediscover, because "restores
+        # the previous behaviour" is a claim and this is the check behind it.
+        return "BENEFIT-ONLY" if ever_solved else "FLOOR"
     return "BOTH"
 
 
@@ -201,7 +234,22 @@ def main() -> int:
         outcomes = arms.get(baseline_arm, []) if baseline_arm else []
         baseline = (sum(outcomes) / len(outcomes)) if outcomes else None
         every = [value for values in arms.values() for value in values]
-        best = max((sum(v) / len(v) for v in arms.values() if v), default=None)
+        # Two different questions, published separately rather than collapsed into one number.
+        #
+        # `best` is the best rate among arms carrying enough sessions for a rate to be evidence,
+        # which is what F-28 was actually about: `if v` (non-empty) stood here against
+        # `sessions < MIN_SESSIONS` on the baseline, so a reader could not tell a rate resting on
+        # 30 sessions from one resting on 1. `best_all` is the same over every arm, and
+        # `ever_solved` is the existence test the FLOOR verdict turns on.
+        eligible = {arm: v for arm, v in arms.items() if len(v) >= MIN_SESSIONS}
+        best_arm = max(
+            eligible, key=lambda arm: sum(eligible[arm]) / len(eligible[arm]), default=None
+        )
+        best = (
+            sum(eligible[best_arm]) / len(eligible[best_arm]) if best_arm is not None else None
+        )
+        best_all = max((sum(v) / len(v) for v in arms.values() if v), default=None)
+        ever_solved = any(every)
         rows.append(
             {
                 "task_id": task.task_id,
@@ -212,8 +260,16 @@ def main() -> int:
                 "sessions_all_arms": len(every),
                 "failures_all_arms": sum(1 for value in every if not value),
                 "best_arm_rate": round(best, 3) if best is not None else None,
+                "best_arm": best_arm,
+                "best_arm_sessions": len(eligible.get(best_arm, ())),
+                # Ungated, so a rate excluded by MIN_SESSIONS is visible rather than merely
+                # absent. `ts-log-mask` reads best_arm_rate None, best_arm_rate_all_arms 1.0.
+                "best_arm_rate_all_arms": round(best_all, 3) if best_all is not None else None,
+                "ever_solved": ever_solved,
                 "retrieval_rank": ranks.get(task.task_id),
-                "verdict": verdict(baseline, len(outcomes), any(not v for v in every), best),
+                "verdict": verdict(
+                    baseline, len(outcomes), any(not v for v in every), ever_solved
+                ),
             }
         )
 
@@ -227,17 +283,34 @@ def main() -> int:
     print()
     header = (
         f"{'task':22s} {'kind':8s} {'base':>6} {'n':>4} {'all n':>6} {'fails':>6} "
-        f"{'best':>6} {'rank':>5}  verdict"
+        f"{'best g|all':>11} {'rank':>5}  verdict"
     )
     print(header)
+    print(
+        "  best g|all: left = best rate among arms with >= "
+        f"{MIN_SESSIONS} sessions, which is the only rate worth reading as one. Right = best "
+        "over EVERY arm. They differ where a thin arm is the only one that has solved the task, "
+        "and that gap is the memory headroom, not noise: ts-log-mask reads 0.00|1.00 because "
+        "oracle_memory is 3/3 against zero for every other arm."
+    )
     print("-" * len(header))
     for row in rows:
         base = f"{row['baseline']:.2f}" if row["baseline"] is not None else "-"
-        best = f"{row['best_arm_rate']:.2f}" if row["best_arm_rate"] is not None else "-"
+        # BOTH rates, because the gated one alone is actively misleading: `ts-log-mask` reads
+        # 0.00 there while an oracle solved it 3/3, and a reader would take 0.00 for "nothing
+        # has ever worked". The left number is evidence about a rate, the right one is evidence
+        # that a solution exists, and they answer different questions.
+        gated = f"{row['best_arm_rate']:.2f}" if row["best_arm_rate"] is not None else "-"
+        allarms = (
+            f"{row['best_arm_rate_all_arms']:.2f}"
+            if row["best_arm_rate_all_arms"] is not None
+            else "-"
+        )
+        best = gated if gated == allarms else f"{gated}|{allarms}"
         rank = str(row["retrieval_rank"]) if row["retrieval_rank"] else "-"
         print(
             f"{row['task_id']:22s} {row['kind']:8s} {base:>6} {row['baseline_sessions']:>4} "
-            f"{row['sessions_all_arms']:>6} {row['failures_all_arms']:>6} {best:>6} "
+            f"{row['sessions_all_arms']:>6} {row['failures_all_arms']:>6} {best:>11} "
             f"{rank:>5}  {row['verdict']}"
         )
 

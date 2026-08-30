@@ -78,7 +78,15 @@ def test_recall_parsing_preserves_the_api_order():
 
 
 def test_a_hit_with_no_source_is_dropped_and_counted():
-    """It cannot be joined to a corpus document, and a placeholder would score against the wrong one."""
+    """It cannot be joined to a corpus document, and a placeholder would score against the wrong one.
+
+    The counter is `unsourced`, not `unjoinable`, and the rename on 2026-08-30 was the point of
+    the F-05 finding rather than cosmetic. This counts hits carrying NO source field at all.
+    Whether a source that IS present joins the corpus manifest is a different question, it is
+    the one recall actually failed (it returns rendered `.md` names), and it is answered by
+    `ArmBackend.assert_joinable` against a real manifest. One name for both meant the second
+    check looked as though it already existed.
+    """
 
     stdout = json.dumps(
         {
@@ -90,7 +98,7 @@ def test_a_hit_with_no_source_is_dropped_and_counted():
     )
     result = parse_ranked_search(stdout, gating="served", query="q", limit=10)
     assert len(result.hits) == 1
-    assert result.detail["unjoinable"] == 1
+    assert result.detail["unsourced"] == 1
     assert result.hits[0].rank == 1, "ranks must be contiguous after a drop"
 
 

@@ -35,6 +35,8 @@ from harness.adapters.base import (
     MemoryAdapter,
     RankedHit,
     RankedResult,
+    namespace_path,
+    validate_namespace,
 )
 from harness.gate import AdmissionSignal
 from harness.transcripts import render_corpus
@@ -81,6 +83,34 @@ def corpus_fingerprint(corpus: CorpusManifest) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def manifest_key(source: str) -> str:
+    """Invert `render_corpus`'s naming, so a recall hit can be joined to the corpus.
+
+    recall indexes the directory this adapter renders, and `harness.transcripts.render_corpus`
+    names each file from its path relative to the corpus root with separators flattened to
+    ``__`` and the suffix changed: ``sessions/ts-dedup-order/p01.jsonl`` is stored as
+    ``sessions__ts-dedup-order__p01.md``. So a hit's ``source_path`` is that name, possibly with
+    a directory prefix, and it can NEVER be equal to a manifest key. Without this the recall arm
+    scores a structural hit@1 of 0.000 that reads exactly like a product retrieving nothing.
+
+    The inverse is exact rather than heuristic: `render_corpus` raises on a name collision, so
+    the encoding it applies is injective over any corpus it accepted. It is not injective over
+    arbitrary paths, though (a directory literally containing ``__`` would round-trip wrong), so
+    a reconstructed key is a CANDIDATE. `ArmBackend` checks every one against the manifest and
+    refuses to publish a number when none of them join, which is where a wrong guess surfaces
+    rather than being absorbed into a score.
+
+    A name with no ``__`` carries no directory information to restore, so it is returned
+    unchanged: inventing a plausible ``sessions/`` prefix would manufacture a join that might be
+    wrong, and being visibly unjoinable is the better failure.
+    """
+
+    tail = source.replace("\\", "/").rsplit("/", 1)[-1]
+    if not tail.endswith(".md") or "__" not in tail:
+        return source
+    return tail[: -len(".md")].replace("__", "/") + ".jsonl"
+
+
 def parse_ranked_search(
     stdout: str, *, gating: str, query: str, limit: int
 ) -> RankedResult:
@@ -98,33 +128,70 @@ def parse_ranked_search(
       outcome with the same shape.
     """
 
+    # ⛔ Whole-stream first. The reverse line scan below requires a SINGLE line that both starts
+    # with `{` and ends with `}`, and recall's own `_print_evidence` emits
+    # `json.dumps(payload, indent=2)`. Against real output nothing matched, `payload` stayed `{}`,
+    # and every query came back empty, which the probe scored as the vendor retrieving nothing.
     payload: dict[str, Any] = {}
-    for line in reversed(stdout.splitlines()):
-        stripped = line.strip()
-        if stripped.startswith("{") and stripped.endswith("}"):
-            try:
-                payload = json.loads(stripped)
-            except json.JSONDecodeError:
-                continue
-            break
+    found = False
+    stripped_all = stdout.strip()
+    if stripped_all.startswith("{"):
+        try:
+            payload = json.loads(stripped_all)
+            found = True
+        except json.JSONDecodeError:
+            found = False
+    if not found:
+        for line in reversed(stdout.splitlines()):
+            stripped = line.strip()
+            if stripped.startswith("{") and stripped.endswith("}"):
+                try:
+                    payload = json.loads(stripped)
+                except json.JSONDecodeError:
+                    continue
+                found = True
+                break
+    if not found:
+        # ⛔ Raise, never return empty. `MemoryAdapter.search`'s own docstring says an empty list
+        # is a legitimate "found nothing", so conflating it with a parse failure lets a broken
+        # integration score as a product that retrieves badly. This implementation broke that
+        # rule one file away from where it is written down.
+        raise RuntimeError(
+            "recall search produced no JSON object this parser could read; refusing to report "
+            f"an empty result, which would be indistinguishable from a genuine zero-hit answer. "
+            f"First 500 bytes: {stdout[:500]!r}"
+        )
+
     bundle = payload.get("bundle") if isinstance(payload.get("bundle"), dict) else {}
     raw = payload.get(
         "evidence", payload.get("hits", payload.get("results", bundle.get("items", []))))
     if not isinstance(raw, list):
         raw = []
 
+    # Collapse CHUNKS to DOCUMENTS, first occurrence winning so the API's order survives. The
+    # probe treats a position in this list as a document rank: two chunks of one gold shard
+    # satisfied `len(positions) == len(gold)` and published an `xs-*` task as having found both
+    # halves of a two-session fact when it had found one, and every extra chunk of a distractor
+    # counted as another wrong session above gold.
     hits: list[RankedHit] = []
-    unjoinable = 0
+    seen: set[str] = set()
+    unsourced = 0
     for item in raw:
         if not isinstance(item, dict):
             continue
         source = item.get("source_path") or item.get("source")
         if not source:
-            unjoinable += 1
+            unsourced += 1
             continue
+        # Normalised to a manifest key BEFORE dedup, because two chunks of one document can
+        # come back under names that differ only in a prefix recall added.
+        source = manifest_key(str(source))
+        if source in seen:
+            continue
+        seen.add(source)
         hits.append(
             RankedHit(
-                source_path=str(source),
+                source_path=source,
                 score=float(item.get("score", item.get("similarity", 0.0)) or 0.0),
                 rank=len(hits) + 1,
             )
@@ -142,7 +209,15 @@ def parse_ranked_search(
         gating=gating,
         abstained=abstained,
         query_sha256=hashlib.sha256(query.encode("utf-8")).hexdigest(),
-        detail={"returned": len(raw), "unjoinable": unjoinable},
+        detail={
+            "payload_found": found,
+            "chunks_returned": len(raw),
+            "documents": len(hits),
+            # Hits carrying NO source field. This is not the same as a hit whose source does not
+            # join to the corpus, which is what actually happens with recall and which this
+            # counter was mistakenly believed to catch; the probe checks joinability itself.
+            "unsourced": unsourced,
+        },
     )
 
 
@@ -186,6 +261,10 @@ class RecallAdapter(MemoryAdapter):
                 f"require overriding RECALL_TRUST_MODE, which config.frozen.json pins to "
                 f"{self.config['trust_mode']!r}; that measures a configuration no session runs."
             )
+        # Refused before it reaches argv: a namespace beginning with `-` would be read by
+        # the child's argparse as an option rather than as data, and the same string is
+        # joined onto staging paths elsewhere in this adapter.
+        validate_namespace(namespace)
         command = [
             sys.executable,
             "-m",
@@ -297,7 +376,10 @@ class RecallAdapter(MemoryAdapter):
         return int(self.config.get("prefetch_k", 5))
 
     def _prompt_path(self, namespace: str) -> Path:
-        return self.staging_root / namespace / "prompt.md"
+        # Same join, same risk: this namespace comes from the same argument as the staging
+        # directory's. Found by widening `tests/test_namespace_guard.py`'s scan, which is a
+        # tripwire for common shapes and NOT a proof that none is left; see that file.
+        return namespace_path(self.staging_root, namespace, "prompt.md")
 
     def _write_prompt(self, namespace: str) -> Path:
         return self._write_prompt_at(self._prompt_path(namespace))
@@ -477,7 +559,10 @@ class RecallAdapter(MemoryAdapter):
         corpus.verify()
         if str(self.config.get("transport", "local")) in ("ssh", "host"):
             return self._verify_remote_generation(corpus, namespace)
-        staged = self.staging_root / namespace / "feed"
+        # Validated at the join: `shutil.rmtree(staged)` is four lines below. F-15
+        # was demonstrated on fs_grep and fixed there; this is the same line of code
+        # in a different adapter, and the fix did not reach it.
+        staged = namespace_path(self.staging_root, namespace, "feed")
         # Fresh render: leftovers from an earlier feed layout must not survive into the
         # index (and the subsequent re-index prunes what is no longer on disk).
         if staged.exists():

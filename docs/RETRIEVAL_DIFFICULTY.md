@@ -182,11 +182,29 @@ Related, and the other half of "does this benchmark measure anything":
 python -m scripts.task_admission --retrieval results/retrieval/015-bm25-ablation.json
 ```
 
-Pooling seven runs, 22 of 33 tasks can express an outcome today. Six are spend (every arm
-already solves them), two sit on the floor (no arm has ever solved them, so they separate
-nothing until one does), and three `xs-*` tasks have never been screened. The report names the
-capacity rather than passing or failing a task, because benefit capacity and damage capacity are
-independent and a suite that measures only one needs only one.
+Measured 2026-08-30 by the command above, pooling seven runs (diagnostic-010, midband-001,
+pilot-001, pilot-002, pilot-003-deepseek, pilot-004-placebo, resolution-001): **21 of 34 tasks
+can express an outcome today** (BOTH 10, BENEFIT-ONLY 10, DAMAGE-ONLY 1). Seven are spend (every
+arm already solves them), two sit on the floor (no arm has solved them yet, so they separate
+nothing until one does), and four are unscreened. The report names the capacity rather than
+passing or failing a task, because benefit capacity and damage capacity are independent and a
+suite that measures only one needs only one.
+
+⚠️ This paragraph was stale until 2026-08-30, when it read "22 of 33... Six are spend... two on
+the floor... three `xs-*` never screened", against a command printed three lines above it that
+said otherwise. `fa-dedup-key` had been added (33 tasks to 34) and nothing told the prose.
+
+⛔ It was then WRONG for part of the same day, and the way it went wrong is the more useful
+record. An audit fix gave the best-arm rate the same six-session floor the baseline already had,
+which reads as an obvious symmetry and is not one: `FLOOR` asks whether any arm has EVER solved a
+task, and gating that by session count turned an existence test into a rate test. Three tasks
+whose only successes came from `oracle_memory` (3 sessions) were relabelled as unsolved by
+anything, including `ts-log-mask`, where the oracle is 3/3 against zero for every other arm. This
+paragraph published "five sit on the floor: no arm has solved them yet" about three tasks a
+memory arm had already solved. The floor is an existence test again; the session floor applies
+only where a RATE is read as evidence, and the report now prints both.
+
+Re-run the command rather than trusting the prose; these counts move whenever a run lands.
 
 ⚠️ A `bare` rate of 0.00 is **not** a dead task. Section 7 of the instrument review found the
 largest memory effect in this repository on exactly those tasks. Calling them "too hard" is what
