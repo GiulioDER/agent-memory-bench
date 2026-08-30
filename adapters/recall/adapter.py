@@ -35,6 +35,28 @@ _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 
 
 
+
+def resolve_location(config: dict, key: str) -> str:
+    """The value of a host-specific setting, from the environment the frozen config names.
+
+    THE single resolver. `scripts/prepare_recall_corpora.py` carried a second, near-identical one,
+    and two copies of a rule drift: adding a sixth location key could leave one refusing and the
+    other defaulting. The same argument is made in
+    `tests/test_audit_p1_fixes.py::test_both_execution_paths_share_one_allow_list`, about the
+    environment allow-list this file's sibling already unified.
+
+    Raises `KeyError` when the config does not name the variable and `LookupError` when the
+    variable is unset, so each caller can convert to the refusal its own layer wants: the adapter
+    raises `RuntimeError` mid-run, the prepare script exits.
+    """
+
+    var = str(config[f"{key}_env"])
+    value = os.environ.get(var, "")
+    if not value:
+        raise LookupError(var)
+    return value
+
+
 def corpus_fingerprint(corpus: CorpusManifest) -> str:
     """A deterministic identity for the corpus CONTENT this run assembled.
 
@@ -69,15 +91,50 @@ class RecallAdapter(MemoryAdapter):
         #: different treatment from the one it was built to explain.
         self.instruction_override = instruction
 
-    def _dsn(self) -> str:
-        dsn_env = self.config["dsn_env"]
-        dsn = os.environ.get(dsn_env, "")
-        if not dsn:
+    def _location(self, key: str) -> str:
+        """A host-specific value, read from the environment because it is not published.
+
+        The frozen config names the variable and never holds the value. A host inventory is
+        disclosure without a credential attached, this repository's .gitignore says so in its
+        first three lines, and every run publishes the config file. Location is also not a
+        protocol fact, by the same argument ``notes.transport`` makes about the carrier: which
+        machine serves the corpus cannot change what recall returns, so a reader checking the
+        experiment loses nothing.
+
+        Refusing beats defaulting. A default here would point a run at whichever host the
+        string happened to name, which is how the ``dsn`` key this replaced came to sit in a
+        public artifact for a day.
+        """
+
+        try:
+            return resolve_location(self.config, key)
+        except LookupError as exc:
             raise RuntimeError(
-                f"the recall arm needs {dsn_env} in the environment; refusing to guess a "
-                f"database rather than quietly pointing at somebody else's"
-            )
-        return dsn
+                f"the recall arm needs {exc.args[0]} in the environment to know its {key}; "
+                f"refusing to guess rather than quietly reaching for somebody else's host. Put "
+                f"it in the secrets file scripts/launch_official.sh sources, and see "
+                f"adapters/recall/location.example.env for the shape."
+            ) from None
+
+    def _remote_label(self) -> str:
+        """A name for the machine serving recall, for ERROR MESSAGES only. Never raises.
+
+        `_location` refuses on an unset variable, which is right where the value is about to be
+        used and wrong inside a message: an error path that raises while describing its own error
+        replaces the diagnosis with a complaint about configuration. These three call sites fire
+        under `transport: host`, where there is no ssh alias at all, so naming one would be
+        inaccurate as well as fragile.
+        """
+
+        transport = str(self.config.get("transport", "local"))
+        if transport != "ssh":
+            return f"the corpus host ({transport} transport)"
+        return os.environ.get(
+            str(self.config["ssh_host_env"]), f"<{self.config['ssh_host_env']} unset>"
+        )
+
+    def _dsn(self) -> str:
+        return self._location('dsn')
 
     def _server_env(self, namespace: str) -> dict[str, str]:
         # The env block REPLACES the environment: everything the server needs must be here.
@@ -141,7 +198,7 @@ class RecallAdapter(MemoryAdapter):
             f"{self._sql_literal(namespace)}"
         )
         remote = (
-            f"psql {shlex.quote(str(self.config['dsn']))} -tAc {shlex.quote(sql)}"
+            f"psql {shlex.quote(self._dsn())} -tAc {shlex.quote(sql)}"
         )
         result = self._shell(remote, timeout=300)
         if result.returncode != 0:
@@ -169,7 +226,7 @@ class RecallAdapter(MemoryAdapter):
         if str(self.config.get("transport", "local")) == "host":
             argv = ["/bin/bash", "-lc", command]
         else:
-            argv = ["ssh", "-o", "BatchMode=yes", str(self.config["ssh_host"]), command]
+            argv = ["ssh", "-o", "BatchMode=yes", self._location('ssh_host'), command]
         return subprocess.run(
             argv, capture_output=True, text=True, timeout=timeout, check=False
         )
@@ -195,33 +252,50 @@ class RecallAdapter(MemoryAdapter):
         2. The corpus must be FROZEN across arms and cells. A step that can build is a step that
            can silently rebuild, and a rebuilt corpus mid-run is a different experiment.
 
-        So this asserts rather than acts, and what it asserts is the thing that would otherwise
-        fail silently: that an ACTIVE generation exists, that its calibration is CERTIFIED, and
-        that the corpus fingerprint it was built from equals the manifest this run is about to
-        serve. A tenant carrying last week's corpus answers every query happily.
+        So this asserts rather than acts. What it actually checks, which is less than this
+        docstring used to claim:
+
+        - that an ACTIVE generation exists for the tenant, and
+        - that the corpus fingerprint stamped beside it equals the manifest this run is about to
+          serve. A tenant carrying last week's corpus answers every query happily.
+
+        ⚠️ **It does NOT check that the calibration is CERTIFIED**, although this docstring said
+        it did until 2026-08-30. Certification is enforced upstream instead, by recall's own
+        `promote()` when `serving_environment == "production"`, which is what
+        `scripts/prepare_recall_corpora.py` sets. That covers a generation promoted through this
+        pipeline and nothing else: recall's `rollback` does not refuse on certification grounds,
+        so a generation made active by hand can be uncertified and this check will not see it.
+
+        ⚠️ **The stamp is not bound to a generation id either.** It is a bare fingerprint written
+        beside the tenant, so promoting a different generation afterwards leaves the stamp
+        matching and this verification passing. Filed as AMB-009.
+
+        Both gaps are recorded rather than fixed because a false promise in a docstring is the
+        defect this project retired from `harness/stats.py` on the same day, and stating the
+        weaker truth is worth more than a claim nobody has tested.
         """
 
 
         expected = corpus_fingerprint(corpus)
         remote = (
-            f"cd {shlex.quote(str(self.config['remote_root']))} && "
-            f"set -a && . {shlex.quote(str(self.config['remote_env_file']))} && set +a && "
-            f"export RECALL_DSN={shlex.quote(str(self.config['dsn']))} "
+            f"cd {shlex.quote(self._location('remote_root'))} && "
+            f"set -a && . {shlex.quote(self._location('remote_env_file'))} && set +a && "
+            f"export RECALL_DSN={shlex.quote(self._dsn())} "
             f"RECALL_EMBEDDER={shlex.quote(str(self.config['embedder']))} "
             f"RECALL_ENV={shlex.quote(str(self.config['environment']))} && "
-            f"{shlex.quote(str(self.config['remote_python']))} -m recall.cli "
+            f"{shlex.quote(self._location('remote_python'))} -m recall.cli "
             f"--tenant {shlex.quote(namespace)} generation list"
         )
         result = self._shell(remote, timeout=300)
         if result.returncode != 0:
             raise RuntimeError(
                 f"cannot list generations for tenant {namespace!r} on "
-                f"{self.config['ssh_host']}: {result.stderr.strip()[-500:]}"
+                f"{self._remote_label()}: {result.stderr.strip()[-500:]}"
             )
         active = [line for line in result.stdout.splitlines() if " active " in f" {line} "]
         if not active:
             raise RuntimeError(
-                f"tenant {namespace!r} has no ACTIVE generation on {self.config['ssh_host']}. "
+                f"tenant {namespace!r} has no ACTIVE generation on {self._remote_label()}. "
                 f"Run scripts/prepare_recall_corpora.py before the suite: a tenant with no active "
                 f"generation raises NoActiveGeneration under production rather than refusing "
                 f"politely, and one carrying an older corpus would answer every query happily."
@@ -232,14 +306,14 @@ class RecallAdapter(MemoryAdapter):
         # `scripts/prepare_recall_corpora.py`. Compared rather than trusted: a tenant carrying an
         # older corpus answers every query happily and nothing in a session record would say so.
         stamp = self._shell(
-            f"cat {shlex.quote(str(self.config['remote_root']))}/{shlex.quote(namespace)}.corpus",
+            f"cat {shlex.quote(self._location('remote_root'))}/{shlex.quote(namespace)}.corpus",
             timeout=120,
         )
         recorded = stamp.stdout.strip()
         if stamp.returncode != 0 or not recorded:
             raise RuntimeError(
                 f"tenant {namespace!r} has an active generation but no corpus stamp on "
-                f"{self.config['ssh_host']}, so nothing proves WHICH corpus it was built from. "
+                f"{self._remote_label()}, so nothing proves WHICH corpus it was built from. "
                 f"Rebuild with scripts/prepare_recall_corpora.py, which writes the stamp."
             )
         if recorded != expected:
@@ -378,17 +452,17 @@ class RecallAdapter(MemoryAdapter):
         """
 
         exports = {
-            "RECALL_DSN": str(self.config["dsn"]),
+            "RECALL_DSN": self._dsn(),
             "RECALL_EMBEDDER": str(self.config["embedder"]),
             "RECALL_TENANT": namespace,
             "RECALL_ENV": str(self.config["environment"]),
         }
         assignments = " ".join(f"{k}={shlex.quote(v)}" for k, v in exports.items())
         return (
-            f"cd {shlex.quote(str(self.config['remote_root']))} && "
-            f"set -a && . {shlex.quote(str(self.config['remote_env_file']))} && set +a && "
+            f"cd {shlex.quote(self._location('remote_root'))} && "
+            f"set -a && . {shlex.quote(self._location('remote_env_file'))} && set +a && "
             f"export {assignments} && unset RECALL_TRUST_MODE && "
-            f"exec {shlex.quote(str(self.config['remote_python']))} -m recall_mcp.server"
+            f"exec {shlex.quote(self._location('remote_python'))} -m recall_mcp.server"
         )
 
     def _remote_server_argv(self, namespace: str) -> tuple[str, list[str]]:
@@ -403,7 +477,7 @@ class RecallAdapter(MemoryAdapter):
             "BatchMode=yes",
             "-o",
             "ServerAliveInterval=30",
-            str(self.config["ssh_host"]),
+            self._location('ssh_host'),
             self._remote_command(namespace),
         ]
 

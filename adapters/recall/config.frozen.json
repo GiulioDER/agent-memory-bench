@@ -23,15 +23,15 @@
  "package_pin": "recall-rag[fastembed,mcp,voyage]==0.11.0",
  "environment": "production",
  "transport": "host",
- "ssh_host": "vps2",
- "remote_root": "REDACTED_REMOTE_ROOT",
- "remote_python": "REDACTED_REMOTE_PYTHON",
- "remote_env_file": "REDACTED_ENV_FILE",
- "dsn": "REDACTED_DSN_SEE_adapters/recall/location.example.env",
+ "ssh_host_env": "AMB_RECALL_SSH_HOST",
+ "remote_root_env": "AMB_RECALL_REMOTE_ROOT",
+ "remote_python_env": "AMB_RECALL_REMOTE_PYTHON",
+ "remote_env_file_env": "AMB_RECALL_REMOTE_ENV_FILE",
  "notes": {
   "allowed_tools": "Read and navigation surface only, 8 tools. MemPalace's arm allow-lists 20 read and navigation tools including its entire knowledge graph, so recall running with only recall_search and recall_evidence was the ASYMMETRIC configuration, against recall. Every write tool is withheld from BOTH arms because the corpus is frozen after ingest.",
   "reranker": "OFF. Measured on the absent corpus: hit@1 is 20/20 without it, so there is no rank-1 headroom to win. The Voyage path also builds its local cross-encoder fallback eagerly and hung reproducibly on VPS2 with the server idle at 0.3% CPU and every call timing out at 90s; HuggingFace was reachable, so no root cause is claimed. RECALL_RETRIEVAL_PROFILE=quality is separately unusable: it is hard-wired to a pinned local cross-encoder and refuses to start without RECALL_RERANK_PATH.",
   "embedder": "voyage-4 is used for representativeness, not because it measured better. It certified at separability 0.996 [0.977, 1.000] against fastembed's 1.000 on the same corpus and query set, and costs an API call per query. Both saturate retrieval.",
-  "transport": "The MCP server runs on VPS2, which is also where the corpus lives and where the harness itself now runs. Changed from `ssh` to `host` before the first session so that an interruption on the workstation cannot stop the run. The command string the server is started with is BYTE-IDENTICAL on either transport; only its carrier differs, a local shell instead of ssh. This is not a retrieval setting and cannot change what recall returns. It also removes a real asymmetry: under `ssh` recall paid a network hop per tool call while MemPalace answered in-process, and under `host` neither does. The corpus lives here because voyage-4 embedding and the generation pipeline need memory the workstation does not have: three builds died locally on onnxruntime bad_alloc with under 3 GB free."
+  "transport": "The MCP server runs on VPS2, which is also where the corpus lives and where the harness itself now runs. Changed from `ssh` to `host` before the first session so that an interruption on the workstation cannot stop the run. The command string the server is started with is BYTE-IDENTICAL on either transport; only its carrier differs, a local shell instead of ssh. This is not a retrieval setting and cannot change what recall returns. It also removes a real asymmetry: under `ssh` recall paid a network hop per tool call while MemPalace answered in-process, and under `host` neither does. The corpus lives here because voyage-4 embedding and the generation pipeline need memory the workstation does not have: three builds died locally on onnxruntime bad_alloc with under 3 GB free.",
+  "location": "Every host-specific value is named here and supplied by the environment, never stored. This file is published with each run, and a host inventory is disclosure on its own: an ssh alias, a service account's paths, the location of a production .env and another project's socket are worth something to a reader with no credential attached. This repository's .gitignore states that rule in its first three lines and this file broke it between 2026-08-29 and 2026-08-30. Location is also not a PROTOCOL fact: which machine serves the corpus cannot change what recall returns, which is the same argument notes.transport already makes, so nothing a reader needs to check the experiment is lost. adapters/mempalace/config.frozen.json has always done it this way with venv_env and palace_root_env; recall now matches it. See adapters/recall/location.example.env."
  }
 }

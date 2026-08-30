@@ -70,11 +70,34 @@ def test_every_planted_session_is_reachable_at_all():
     it. Skipped when the corpus has not been assembled in this checkout.
     """
 
-    rows = rank_plants("adjacent")
+    rows, skipped = rank_plants("adjacent")
     if not rows:
         pytest.skip("corpus/conditions/adjacent/seed-1 is not assembled here")
+    assert not skipped, (
+        f"`adjacent` places a plant for every task that declares it, so nothing should be "
+        f"skipped as by-design-absent here: {skipped}"
+    )
     missing = [task for task, rank, _n in rows if rank is None]
     assert not missing, f"planted session absent from its own condition corpus: {missing}"
+
+
+def test_a_condition_that_plants_nothing_is_not_reported_as_unfindable():
+    """RED before the fix: all 16 `absent` tasks were reported as candidates for review.
+
+    `absent` sets include_real=False with no plants, because ABSENCE is what it measures. Asking
+    at what rank a ranker finds what was deliberately not placed produced 12 of the 16 candidates
+    the tool printed, and a report that is three-quarters false alarm is one a reader stops
+    believing. That matters more here than in a gate: this tool deliberately does not fail a
+    build, so being read is the only effect it can have.
+    """
+
+    rows, skipped = rank_plants("absent")
+    if not rows and not skipped:
+        pytest.skip("corpus/conditions/absent/seed-1 is not assembled here")
+    assert skipped, "the absent condition places nothing, so its tasks must be skipped by name"
+    assert not rows, (
+        f"nothing is planted in `absent`, so no task can have a findability rank there: {rows}"
+    )
 
 
 def test_the_audit_reports_rather_than_gates():

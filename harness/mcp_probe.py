@@ -32,7 +32,9 @@ whether the server is alive is a precondition.
 from __future__ import annotations
 
 import json
+import queue
 import subprocess
+import threading
 import time
 from collections.abc import Sequence
 from pathlib import Path
@@ -40,6 +42,56 @@ from pathlib import Path
 
 class McpServerUnavailable(RuntimeError):
     """The configured MCP server did not come up, so an arm's search rate would be meaningless."""
+
+
+
+def _bounded_reader(stream):
+    """A daemon thread draining `stream` into a queue, so a read can be given a deadline.
+
+    `proc.stdout.readline()` cannot be interrupted, so the only way to bound it is to do it on
+    another thread and wait on the queue instead. The thread is a daemon and the queue is
+    unbounded, so nothing here can keep the interpreter alive or block on a full queue if the
+    caller gives up.
+
+    `select` is not an option: it does not accept a pipe handle on Windows, and this repository is
+    developed there and run on Linux.
+    """
+
+    lines: queue.Queue[str | None] = queue.Queue()
+
+    def pump() -> None:
+        try:
+            for line in iter(stream.readline, ""):
+                lines.put(line)
+        except (ValueError, OSError):  # pragma: no cover - the pipe closed under us
+            pass
+        finally:
+            lines.put(None)  # EOF sentinel, so a reader can tell "closed" from "still quiet"
+
+    thread = threading.Thread(target=pump, daemon=True, name="mcp-probe-reader")
+    thread.start()
+    return lines
+
+
+def _read_line(lines, deadline: float, proc) -> str:
+    """One line, or "" if the deadline passes or the stream ends. Never blocks past `deadline`."""
+
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return ""
+        try:
+            line = lines.get(timeout=min(remaining, 0.25))
+        except queue.Empty:
+            # Poll for a died-without-answering child, which the queue cannot report until the
+            # pipe closes, and which is a different diagnosis from a silent one.
+            if proc.poll() is not None:
+                return ""
+            continue
+        if line is None:
+            return ""
+        if line.strip():
+            return line
 
 
 def probe(
@@ -106,16 +158,13 @@ def probe(
             }
         )
 
-        deadline = time.monotonic() + timeout_s
-        line = ""
         assert proc.stdout is not None
-        while time.monotonic() < deadline:
+        lines = _bounded_reader(proc.stdout)
+        deadline = time.monotonic() + timeout_s
+        line = _read_line(lines, deadline, proc)
+        if not line.strip():
             if proc.poll() is not None:
                 fail(f"process exited {proc.returncode} before answering initialize")
-            line = proc.stdout.readline()
-            if line.strip():
-                break
-        if not line.strip():
             fail(f"no reply to initialize within {timeout_s:.0f}s")
 
         try:
@@ -125,7 +174,12 @@ def probe(
 
         send({"jsonrpc": "2.0", "method": "notifications/initialized"})
         send({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
-        reply = proc.stdout.readline()
+        # The same bound applies here. A server that answers `initialize` and then wedges is the
+        # shape the config's own `reranker` note records on VPS2: idle at 0.3% CPU, every call
+        # timing out. Without a deadline this read hangs the preflight forever.
+        reply = _read_line(lines, time.monotonic() + timeout_s, proc)
+        if not reply.strip():
+            fail(f"no reply to tools/list within {timeout_s:.0f}s")
         try:
             tools = [t["name"] for t in json.loads(reply)["result"]["tools"]]
         except (json.JSONDecodeError, KeyError, TypeError):

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib.util
+import os
 import subprocess
 from pathlib import Path
 
@@ -302,3 +303,82 @@ def test_salvage_pairs_on_the_cell_not_the_task():
     # And the shipped module must key the same way.
     source = (REPO_ROOT / "scripts" / "salvage.py").read_text(encoding="utf-8")
     assert "by_cell[(record.task_id, record.seed)]" in source
+
+
+# ---------------------------------------------------------------------------------------------
+# AMB-018 / C8. The SESSION path got an environment allow-list (see the test above); the CHECKER
+# path kept `merged = dict(os.environ)` and nobody noticed, because the two live in different
+# modules and nothing compared them.
+#
+# What runs under checker_run is the deliverable the model just wrote plus the task's checker, and
+# scripts/launch_official.sh sources $HOME/amb-secrets.env into the environment they inherit. So a
+# wholesale copy hands model-authored code OPENROUTER_API_KEY and every other arm's credentials.
+# ---------------------------------------------------------------------------------------------
+
+
+def test_the_checker_does_not_copy_the_operators_environment(monkeypatch, tmp_path):
+    """RED before the fix: `dict(os.environ)` put every secret into the deliverable's environment."""
+
+    from harness import checker_run
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-should-not-reach-a-deliverable")
+    monkeypatch.setenv("RECALL_DSN", "postgresql://secret@host/db")
+    monkeypatch.setenv("PATH", os.environ.get("PATH", ""))
+
+    captured: dict[str, dict[str, str]] = {}
+
+    def fake_popen(argv, **kwargs):
+        captured["env"] = dict(kwargs.get("env") or {})
+        raise RuntimeError("stop here; the environment is what is under test")
+
+    monkeypatch.setattr(checker_run.subprocess, "Popen", fake_popen)
+    with pytest.raises(RuntimeError):
+        checker_run.run_bounded(["python", "-c", "pass"], cwd=tmp_path, timeout_s=5.0)
+
+    env = captured["env"]
+    assert "OPENROUTER_API_KEY" not in env, (
+        "the deliverable's environment carries the operator's model credential"
+    )
+    assert "RECALL_DSN" not in env, "the deliverable's environment carries an arm's database URL"
+    assert "PATH" in env, "the allow-list must still pass the platform plumbing through"
+
+
+def test_both_execution_paths_share_one_allow_list(monkeypatch, tmp_path):
+    """Two allow-lists drift, and the drift is invisible until something leaks."""
+
+    import inspect
+
+    from harness import checker_run
+
+    source = inspect.getsource(checker_run.run_bounded)
+    assert "dict(os.environ)" not in source, "the checker copies the whole environment"
+
+    # ⚠️ Two weaker versions of this assertion failed their own mutation test first:
+    #   `"_ENV_PASSTHROUGH" in source`     -- satisfied by the COMMENT that names the symbol
+    #   `checker_run._X is claude_exec._X` -- satisfied by the IMPORT, while the code iterated a
+    #                                         restated tuple
+    # The property is that the shared list is what the checker actually USES, so this drives
+    # run_bounded and asserts every member of that list survives into the child's environment.
+    # A restated subset drops the unusual entries (the CA-certificate and proxy variables), which
+    # is exactly how two allow-lists drift apart in practice.
+    from harness import claude_exec
+
+    probe_vars = [n for n in claude_exec._ENV_PASSTHROUGH if n not in ("PATH", "SystemRoot")]
+    for name in probe_vars:
+        monkeypatch.setenv(name, f"value-of-{name}")
+
+    captured: dict[str, dict[str, str]] = {}
+
+    def fake_popen(argv, **kwargs):
+        captured["env"] = dict(kwargs.get("env") or {})
+        raise RuntimeError("stop here")
+
+    monkeypatch.setattr(checker_run.subprocess, "Popen", fake_popen)
+    with pytest.raises(RuntimeError):
+        checker_run.run_bounded(["python", "-c", "pass"], cwd=tmp_path, timeout_s=5.0)
+
+    dropped = [name for name in probe_vars if name not in captured["env"]]
+    assert not dropped, (
+        f"the checker's environment is not the shared allow-list: it dropped {dropped}. Two "
+        f"allow-lists drift, and the drift is invisible until something leaks."
+    )

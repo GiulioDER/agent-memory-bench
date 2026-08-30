@@ -116,7 +116,9 @@ def test_registry_fills_forbidden_prefixes_for_the_run_roster(tmp_path, base_pro
         registry.get("mem0")
 
 
-def test_the_mcp_server_runs_the_pinned_build_whatever_the_transport(tmp_path, base_prompt, monkeypatch):
+def test_the_mcp_server_runs_the_pinned_build_whatever_the_transport(
+    tmp_path, base_prompt, monkeypatch, recall_location
+):
     """The read path and the write path must be ONE build of recall, on either transport.
 
     Measured 2026-08-29, fourteen sessions into `abstention-002`: the ingest wrote through a pinned
@@ -128,7 +130,7 @@ def test_the_mcp_server_runs_the_pinned_build_whatever_the_transport(tmp_path, b
 
     The invariant survives the move to SSH, it is just enforced differently. Locally the config's
     `"python"` resolves to `sys.executable`. Over SSH the server is started by the interpreter the
-    config PINS as `remote_python`, and that path must appear in the remote command, because SSH
+    config names as `remote_python_env`, and that path must appear in the remote command, because SSH
     forwards no environment and a bare `python` there would resolve against the remote PATH.
 
     Mutation: dropping `remote_python` from the remote command, or returning
@@ -139,7 +141,6 @@ def test_the_mcp_server_runs_the_pinned_build_whatever_the_transport(tmp_path, b
 
     from adapters.recall.adapter import RecallAdapter
 
-    monkeypatch.setenv("RECALL_DSN", "postgresql://unused.invalid/bench")
     adapter = RecallAdapter(tmp_path / "staging", base_prompt)
     spec = adapter.build(tmp_path / "session", "ns")
     server = json.loads(Path(spec.mcp_config).read_text(encoding="utf-8"))["mcpServers"]["recall"]
@@ -148,7 +149,7 @@ def test_the_mcp_server_runs_the_pinned_build_whatever_the_transport(tmp_path, b
     if transport in ("ssh", "host"):
         if transport == "ssh":
             assert server["command"] == "ssh"
-            assert server["args"][-2] == str(adapter.config["ssh_host"])
+            assert server["args"][-2] == adapter._location("ssh_host")
         else:
             # `host` means the harness runs ON the serving host, so the same command string is
             # handed to a shell rather than to ssh. The invariant this test exists for is
@@ -156,7 +157,7 @@ def test_the_mcp_server_runs_the_pinned_build_whatever_the_transport(tmp_path, b
             assert server["command"] == "/bin/bash"
             assert server["args"][0] == "-lc"
         remote = server["args"][-1]
-        assert str(adapter.config["remote_python"]) in remote, (
+        assert adapter._location("remote_python") in remote, (
             "the remote command must name the PINNED interpreter; a bare `python` would resolve "
             "against the remote PATH and could be a different build than the ingest used"
         )

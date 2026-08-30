@@ -55,7 +55,13 @@ def archive(run_id: str, conditions: list[str], *, dry_run: bool) -> int:
             print(f"    would move -> {destination}")
             continue
 
-        destination.mkdir(parents=True, exist_ok=True)
+        # exist_ok=False: `shutil.move` moves a source INTO an existing directory, so a second
+        # archive landing in the same second would nest inside the first and overwrite its README.
+        try:
+            destination.mkdir(parents=True)
+        except FileExistsError:
+            print(f"    REFUSED: {destination} already exists; nothing was moved")
+            continue
         records = 0
         if run_dir.is_dir():
             # `records.jsonl`, a FILE, one JSON object per session. Counted by lines rather
@@ -67,12 +73,11 @@ def archive(run_id: str, conditions: list[str], *, dry_run: bool) -> int:
                 if jsonl.is_file()
                 else 0
             )
-            shutil.move(str(run_dir), str(destination / "results"))
-            print(f"    moved results ({records} record(s))")
-        if work_dir.is_dir():
-            shutil.move(str(work_dir), str(destination / "work"))
-            print("    moved work root")
 
+        # ⚠️ The README is written BEFORE either move, not after both. Everything it says is
+        # already known here, and the two moves are not atomic: a failure between them used to
+        # leave an archive holding run output with nothing saying it is not a result, which is
+        # the one thing this file exists to prevent.
         (destination / "README.md").write_text(
             f"# Archived partial condition: {run_id} / {condition}\n\n"
             f"Archived {stamp} by `scripts/archive_partial.py`.\n\n"
@@ -85,6 +90,24 @@ def archive(run_id: str, conditions: list[str], *, dry_run: bool) -> int:
             f"`results/` holds that attempt's run directory and `work/` its sandboxes.\n",
             encoding="utf-8",
         )
+
+        # Work root first: it is the half that blocks a re-run, and the results move is the half
+        # that makes the condition look absent to --resume. Failing in this order leaves a state
+        # --resume refuses loudly rather than one it silently offers to re-run.
+        try:
+            if work_dir.is_dir():
+                shutil.move(str(work_dir), str(destination / "work"))
+                print("    moved work root")
+            if run_dir.is_dir():
+                shutil.move(str(run_dir), str(destination / "results"))
+                print(f"    moved results ({records} record(s))")
+        except OSError as exc:
+            print(
+                f"    PARTIAL: {exc}. {destination} is labelled and holds whatever moved; the "
+                f"rest is still in place. Finish by hand rather than re-running this script, "
+                f"which would refuse the existing destination."
+            )
+            raise
         moved += 1
 
     if not dry_run and moved:

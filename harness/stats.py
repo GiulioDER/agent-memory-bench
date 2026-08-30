@@ -182,50 +182,32 @@ class TaskRate:
 
 #: Tasks that encode ONE convention, mapped to the unit they should be resampled as.
 #:
-#: `scripts/audit_corpus.py` flags task pairs that share fact vocabulary, on the grounds that two
-#: tasks encoding one convention are not two independent units while the bootstrap assumes they
-#: are. It flags and exits 0, so acting on it is a separate decision; this is where that decision
-#: is recorded.
+#: ⚠️ A `CONVENTION_CLUSTERS` map, with `cluster_key` and `collapse_to_clusters`, stood here
+#: until 2026-08-30. It grouped `ts-golden-regen` and `ts-ignore-gen`, which encode one
+#: convention ("do not hand-edit this generated file, run the script"), so the bootstrap would
+#: resample them as one unit instead of two.
 #:
-#: `ts-golden-regen` and `ts-ignore-gen` are one convention, "do not hand-edit this generated
-#: file, run the script", applied to test goldens and to an ignore file. A product that
-#: misunderstands it fails both, so counting them twice overstates how many independent hazards
-#: agreed. official-001 already measured a memory arm failing ts-ignore-gen in 3 of 12 cells.
+#: It was removed because it never fired. The two tasks sit in different strata, `TWO_SIDED` and
+#: `DAMAGE_ONLY`, and `net_harm_by_stratum` calls `summarize_by_task` once per stratum, so they
+#: could not meet in a single call and `n_clusters == n_tasks` on every number this project ever
+#: published. The correction it existed to make was never being made.
 #:
-#: ⚠️ Collapsing can only WIDEN an interval, never narrow one. That asymmetry is why this is the
-#: safe correction to make from a warning rather than from a measurement: being wrong here costs
-#: confidence, and being wrong the other way costs correctness.
-CONVENTION_CLUSTERS: dict[str, str] = {
-    "ts-golden-regen": "generated-file-has-a-script",
-    "ts-ignore-gen": "generated-file-has-a-script",
-}
-
-
-def cluster_key(task: str) -> str:
-    """The unit `task` is resampled as. Its own name unless it shares a convention."""
-
-    return CONVENTION_CLUSTERS.get(task, task)
-
-
-def collapse_to_clusters(tasks: Sequence[str], deltas: Sequence[float]) -> list[float]:
-    """One delta per convention, averaging the tasks that share one.
-
-    Averaging rather than picking one keeps every task's evidence in the estimate while removing
-    the double count from the resampling weight, which is the part that inflates confidence.
-    """
-
-    if len(tasks) != len(deltas):
-        raise ValueError("tasks and deltas must be the same length")
-    grouped: dict[str, list[float]] = {}
-    for task, delta in zip(tasks, deltas, strict=True):
-        grouped.setdefault(cluster_key(str(task)), []).append(float(delta))
-    return [sum(v) / len(v) for _, v in sorted(grouped.items())]
-
+#: It is worth recording WHY it was deleted rather than repaired, because the reasoning applies
+#: to the next such map. Its own docstring claimed "collapsing can only WIDEN an interval, never
+#: narrow one", and offered that asymmetry as the reason the change was safe to make from a
+#: warning rather than from a measurement. That claim is false: collapsing trades a reduction in
+#: n, which widens, against the deletion of the pair's mutual dispersion, which narrows, and
+#: which term wins depends on how noisy the OTHER tasks are. Measured on the shipped code: 30.6%
+#: to 37.5% of uniform draws narrow, worst ratio 4.72x, and 4.3% of 3-seed-grid draws turn an
+#: interval that includes zero into one that excludes it.
+#:
+#: So `scripts/audit_corpus.py` still FLAGS task pairs that share fact vocabulary, and acting on
+#: a flag is still a decision. If it is ever acted on again, the unit must be chosen before the
+#: run and the direction of its effect on the interval must be measured, not asserted.
 
 def cluster_bootstrap(
     per_task_deltas: Sequence[float],
     *,
-    tasks: Sequence[str] | None = None,
     iterations: int = 10_000,
     confidence: float = 0.95,
     seed: int = 12345,
@@ -243,18 +225,10 @@ def cluster_bootstrap(
     least 0.50. Resampling tasks within one run treats each task's delta as measured without error.
     It is not. Quote this interval with that stated, or report both runs.
 
-    Pass ``tasks`` to collapse convention-sharing tasks into one unit first, per
-    ``CONVENTION_CLUSTERS``. Without it every task counts once, which is right only when no two
-    of them encode the same convention.
+    Every task counts once, which is right only when no two of them encode the same convention.
+    `scripts/audit_corpus.py` flags pairs that share fact vocabulary; see the note above the
+    definition for why the map that used to act on that flag was removed rather than fixed.
     """
-
-    if tasks is not None:
-        keep = [
-            (str(t), float(d))
-            for t, d in zip(tasks, per_task_deltas, strict=True)
-            if d is not None and math.isfinite(float(d))
-        ]
-        per_task_deltas = collapse_to_clusters([t for t, _ in keep], [d for _, d in keep])
 
     usable = [float(d) for d in per_task_deltas if d is not None and math.isfinite(float(d))]
     if len(usable) < 2 or len(set(usable)) == 1:
@@ -344,10 +318,8 @@ def summarize_by_task(
     # every `cluster_ci` the harm suite publishes, so the shared function and the reported number
     # came from different code. That is exactly the condition that docstring was written about,
     # reintroduced one function below it.
-    clusters = collapse_to_clusters([r.task for r in rates], deltas)
     cluster_ci = cluster_bootstrap(
         deltas,
-        tasks=[r.task for r in rates],
         iterations=n,
         confidence=confidence,
         seed=seed,
@@ -358,7 +330,6 @@ def summarize_by_task(
         "n_tasks": len(rates),
         # The resampling unit, which is smaller than n_tasks whenever two tasks share a
         # convention. Published so a reader can see the collapse rather than infer it.
-        "n_clusters": len(clusters),
         "mean_delta": sum(deltas) / len(deltas),
         "improved": improved,
         "worsened": worsened,

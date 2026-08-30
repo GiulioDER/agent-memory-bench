@@ -37,7 +37,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from adapters.recall.adapter import corpus_fingerprint
+from adapters.recall.adapter import corpus_fingerprint, resolve_location
 from harness.adapters.base import CorpusManifest
 from harness.transcripts import render_corpus
 from scripts.abstention import selection_for
@@ -47,9 +47,29 @@ CONFIG = json.loads((REPO / "adapters" / "recall" / "config.frozen.json").read_t
 QUERIES = REPO / "calibration" / "abstention-queryset-v1.json"
 
 
+
+def _location(key: str) -> str:
+    """A host-specific value, named by the frozen config and supplied by the environment.
+
+    The config carries `<key>_env` rather than the value itself, because this tree is public and
+    a host inventory is disclosure on its own, per .gitignore's first three lines. Refusing on an
+    unset variable beats defaulting: a default is how a production .env path and another
+    project's socket reached a published artifact.
+    """
+
+    try:
+        return resolve_location(CONFIG, key)
+    except LookupError as exc:
+        raise SystemExit(
+            f"{exc.args[0]} is unset, so this script does not know the corpus host's {key}. Put "
+            f"it in the secrets file scripts/launch_official.sh sources; see "
+            f"adapters/recall/location.example.env."
+        ) from None
+
+
 def ssh(command: str, *, timeout: float = 3600.0) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["ssh", "-o", "BatchMode=yes", str(CONFIG["ssh_host"]), command],
+        ["ssh", "-o", "BatchMode=yes", _location('ssh_host'), command],
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -61,12 +81,12 @@ def remote_env() -> str:
     """The env prelude every remote recall command needs."""
 
     return (
-        f"cd {shlex.quote(str(CONFIG['remote_root']))} && "
-        f"set -a && . {shlex.quote(str(CONFIG['remote_env_file']))} && set +a && "
-        f"export RECALL_DSN={shlex.quote(str(CONFIG['dsn']))} "
-        f"RECALL_MIGRATION_DSN={shlex.quote(str(CONFIG['dsn']))} "
+        f"cd {shlex.quote(_location('remote_root'))} && "
+        f"set -a && . {shlex.quote(_location('remote_env_file'))} && set +a && "
+        f"export RECALL_DSN={shlex.quote(_location('dsn'))} "
+        f"RECALL_MIGRATION_DSN={shlex.quote(_location('dsn'))} "
         f"RECALL_EMBEDDER={shlex.quote(str(CONFIG['embedder']))} "
-        f"RECALL_LOCAL_ALLOWLIST={shlex.quote(str(CONFIG['remote_root']))}"
+        f"RECALL_LOCAL_ALLOWLIST={shlex.quote(_location('remote_root'))}"
     )
 
 
@@ -75,7 +95,7 @@ def recall(tenant: str, args: str, *, production: bool = False, timeout: float =
     if production:
         env += " RECALL_ENV=production"
     command = (
-        f"{env} && {shlex.quote(str(CONFIG['remote_python']))} -m recall.cli "
+        f"{env} && {shlex.quote(_location('remote_python'))} -m recall.cli "
         f"--tenant {shlex.quote(tenant)} {args}"
     )
     return ssh(command, timeout=timeout)
@@ -97,7 +117,7 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
     fingerprint = corpus_fingerprint(corpus)
     print(f"  corpus fingerprint {fingerprint[:16]}  ({len(corpus.sessions)} sessions)")
 
-    stamp = ssh(f"cat {shlex.quote(str(CONFIG['remote_root']))}/{shlex.quote(tenant)}.corpus")
+    stamp = ssh(f"cat {shlex.quote(_location('remote_root'))}/{shlex.quote(tenant)}.corpus")
     if not force and stamp.returncode == 0 and stamp.stdout.strip() == fingerprint:
         listing = recall(tenant, "generation list", production=True, timeout=300)
         if any(" active " in f" {line} " for line in listing.stdout.splitlines()):
@@ -117,15 +137,39 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
         ["tar", "-czf", str(archive), "-C", str(feed.parent), feed.name], check=True, timeout=600
     )
     subprocess.run(
-        ["scp", "-q", str(archive), f"{CONFIG['ssh_host']}:{CONFIG['remote_root']}/"],
+        ["scp", "-q", str(archive), f"{_location('ssh_host')}:{_location('remote_root')}/"],
         check=True,
         timeout=1800,
     )
     r = ssh(
-        f"cd {shlex.quote(str(CONFIG['remote_root']))} && rm -rf {shlex.quote(tenant)} && "
+        f"cd {shlex.quote(_location('remote_root'))} && rm -rf {shlex.quote(tenant)} && "
         f"tar -xzf {shlex.quote(archive.name)} && ls {shlex.quote(tenant)} | wc -l"
     )
-    print(f"  shipped {r.stdout.strip()} file(s)")
+    # ⚠️ The `rm -rf` above has already run, so the previous good corpus is gone. Everything
+    # downstream succeeds happily over a partial feed -- inventory inventories what is there,
+    # the manifest is built FROM it, and `generation build --manifest-sha256` hashes that
+    # manifest against itself -- and the run then stamps the tenant with the fingerprint of the
+    # FULL LOCAL manifest. The adapter's later identity check compares that same local
+    # fingerprint, so it is circular and cannot see the gap. This is the only place the two
+    # counts exist side by side, so it is the only place the truncation is visible.
+    if r.returncode != 0:
+        raise SystemExit(f"  ship FAILED: {r.stderr.strip()[-600:]}")
+    try:
+        shipped = int(r.stdout.strip())
+    except ValueError:
+        raise SystemExit(
+            f"  ship FAILED: expected a file count, got {r.stdout.strip()[:200]!r}"
+        ) from None
+    if shipped != written:
+        raise SystemExit(
+            f"  ship FAILED: rendered {written} file(s) but {shipped} arrived. The remote FEED "
+            f"directory was removed before extracting, so it now holds a partial corpus. The "
+            f"previously promoted generation is still ACTIVE and still answering from the OLD "
+            f"corpus, and the stamp still names it, so a run will refuse until this is re-run "
+            f"successfully. Re-run rather than continuing: a generation built from a partial feed "
+            f"certifies and promotes normally, and the stamp would then claim the whole corpus."
+        )
+    print(f"  shipped {shipped} file(s), matching what was rendered")
 
     steps = [
         ("inventory", f"manifest inventory {shlex.quote(tenant)} --output {tenant}.objects.json"),
@@ -145,10 +189,17 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
         print(f"  {label}: {r.stdout.strip().splitlines()[-1][:100]}")
 
     digest = ssh(
-        f"cd {shlex.quote(str(CONFIG['remote_root']))} && "
+        f"cd {shlex.quote(_location('remote_root'))} && "
         f"sha256sum {tenant}.manifest.json | cut -d' ' -f1 && stat -c%s {tenant}.manifest.json"
     )
-    sha, size = digest.stdout.split()
+    if digest.returncode != 0:
+        raise SystemExit(f"  manifest digest FAILED: {digest.stderr.strip()[-600:]}")
+    parts = digest.stdout.split()
+    if len(parts) != 2:
+        raise SystemExit(
+            f"  manifest digest FAILED: expected a sha and a size, got {digest.stdout[:200]!r}"
+        )
+    sha, size = parts
     r = recall(
         tenant,
         f"generation build {tenant}.manifest.json --manifest-sha256 {sha} "
@@ -187,11 +238,24 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
         tail = [ln for ln in r.stdout.splitlines() if ln.strip()]
         print(f"  {label}: {tail[-1][:110] if tail else 'ok'}")
 
-    ssh(
+    # The stamp is what `RecallAdapter._verify_remote_generation` reads to confirm the tenant is
+    # serving THIS corpus, so "stamped" printing when nothing was written turns that check into a
+    # check of a stale file. Written, then read back, because a successful `printf` into a full or
+    # read-only filesystem is not a guarantee that the bytes are there.
+    written_stamp = ssh(
         f"printf %s {shlex.quote(fingerprint)} > "
-        f"{shlex.quote(str(CONFIG['remote_root']))}/{shlex.quote(tenant)}.corpus"
+        f"{shlex.quote(_location('remote_root'))}/{shlex.quote(tenant)}.corpus"
     )
-    print(f"  stamped {fingerprint[:16]}")
+    if written_stamp.returncode != 0:
+        raise SystemExit(f"  stamp FAILED: {written_stamp.stderr.strip()[-600:]}")
+    back = ssh(f"cat {shlex.quote(_location('remote_root'))}/{shlex.quote(tenant)}.corpus")
+    if back.returncode != 0 or back.stdout.strip() != fingerprint:
+        raise SystemExit(
+            f"  stamp FAILED: wrote {fingerprint[:16]} but read back "
+            f"{back.stdout.strip()[:64]!r}. The generation is promoted and serving; the stamp "
+            f"that proves which corpus it came from is not."
+        )
+    print(f"  stamped {fingerprint[:16]}, read back and confirmed")
 
 
 def main() -> int:
@@ -203,7 +267,7 @@ def main() -> int:
     args = parser.parse_args()
 
     scp = subprocess.run(
-        ["scp", "-q", str(QUERIES), f"{CONFIG['ssh_host']}:{CONFIG['remote_root']}/"],
+        ["scp", "-q", str(QUERIES), f"{_location('ssh_host')}:{_location('remote_root')}/"],
         capture_output=True,
         text=True,
         timeout=600,

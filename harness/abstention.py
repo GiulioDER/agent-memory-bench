@@ -158,16 +158,31 @@ def stratum_of(task_id: str) -> str:
 def _paired(cells: Sequence[Cell], arm: str, reference: str) -> list[tuple[str, bool, bool]]:
     """(task_id, arm_solved, reference_solved) for every cell present in BOTH arms.
 
-    Pairing is on (task, seed): net harm is a within-cell contrast, and comparing an arm's cell
-    against a different seed of the reference would be comparing two different draws.
+    Pairing is on (task, seed, condition): net harm is a within-cell contrast, and comparing an
+    arm's cell against a different seed OR a different condition of the reference would be
+    comparing two different draws. The condition was missing from that key until 2026-08-30,
+    which silently discarded every condition but one from the pooled endpoint.
     """
 
-    by_key = {(c.task_id, c.seed, c.arm): c for c in cells}
+    # ⚠️ The key includes CONDITION, and used to not. `endpoints()` is called on cells pooled
+    # across every condition (scripts/abstention.py), so a (task, seed, arm) that ran under two
+    # conditions collapsed into ONE entry and the earlier condition was silently overwritten.
+    #
+    # Endpoint 2 filters by condition before pairing and was unaffected. Endpoint 1 is the only
+    # pooled one, and it is the headline. Measured on results/abstention-001-endpoints.json
+    # before this fix: endpoint 2 summed to 57 paired cells per arm (29 absent + 28 superseded)
+    # while endpoint 1 reported 33, so roughly half the evidence never reached the primary
+    # number. On a four-condition run it would have been about a quarter.
+    #
+    # Preregistration 005 defines endpoint 1 as "A rate over admitted paired cells, which is the
+    # denominator that makes it a rate at all", so this restores the preregistered definition
+    # rather than changing it.
+    by_key = {(c.task_id, c.seed, c.condition, c.arm): c for c in cells}
     pairs = []
-    for (task_id, seed, cell_arm), cell in sorted(by_key.items()):
+    for (task_id, seed, condition, cell_arm), cell in sorted(by_key.items()):
         if cell_arm != arm:
             continue
-        other = by_key.get((task_id, seed, reference))
+        other = by_key.get((task_id, seed, condition, reference))
         if other is not None:
             pairs.append((task_id, cell.solved, other.solved))
     return pairs

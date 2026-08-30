@@ -15,8 +15,20 @@ pricing.json
 # and on a developer box this can hold whole worktree checkouts.
 .claude/
 
+# Session scratch: one-off fix scripts and acceptance rigs. Durable guarantees belong in
+# tests/, which is what a reader can run; nothing here is evidence of anything.
+scratch/
+
 # Run artifacts are published deliberately, per run, after review; work dirs never.
 results/*/work/
+# Working state from a prepare or ingest step: a rendered corpus, staged prompts, a pid and a
+# stderr tail. None is evidence and `.prepare-feed/` holds a full corpus render, so a pathspec
+# `git add results/` must not sweep them in.
+results/.prepare-feed/
+results/.ingest-staging/
+results/.prepare-*.tgz
+results/prepare.err
+results/prepare.pid
 staging/
 **/__pycache__/
 *.pyc

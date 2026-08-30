@@ -272,18 +272,19 @@ was that its `package_pin` read `TBD` and published runs resolved recall from a 
 through `PYTHONPATH`. Both are fixed: the arm is pinned to a released
 `recall-rag[fastembed,mcp,voyage]==0.11.0` from PyPI, installed into an isolated environment.
 
-The blocker now is that `adapters/recall/config.frozen.json` encodes **one specific host**. Its
-`ssh_host`, `remote_root`, `remote_python`, `remote_env_file` and `dsn` all name paths on the
-machine the official run executes on, because the corpus and the serving database live there.
-Nothing about that is portable, and moving the harness onto the serving host made it less
-portable rather than more.
+The blocker now is that the arm needs **infrastructure a reader has to supply**, not that the
+config names a machine. As of 2026-08-30 the frozen config carries no host at all: it names the
+environment variables that hold them (`ssh_host_env`, `remote_root_env`, `remote_python_env`,
+`remote_env_file_env`, `dsn_env`) and the values come from an untracked secrets file. Copy
+`adapters/recall/location.example.env`, fill it in, and the config is no longer in your way. That
+change was made because a host inventory in a public tree is disclosure, and it has the side
+effect of making the config portable.
 
-Reproducing the recall arm therefore currently means supplying your own Postgres with pgvector,
-your own Voyage key, building and calibrating your own generation with
-`scripts/prepare_recall_corpora.py`, and rewriting five fields of a config that is deliberately
-frozen. That is not a reproduction path, it is a rebuild. `docker/compose.yaml` brings up a
-pgvector database and the harness image but installs and starts no memory server, so it does not
-close the gap either.
+What still does not reproduce is everything behind those variables: reproducing the recall arm
+means supplying your own Postgres with pgvector, your own Voyage key, and building and
+calibrating your own generation with `scripts/prepare_recall_corpora.py`. That is a rebuild
+rather than a re-run. `docker/compose.yaml` brings up a pgvector database and the harness image
+but installs and starts no memory server, so it does not close the gap either.
 
 **This is the honest state and it is the top of the Phase 3 list.** A benchmark whose own arm
 cannot be re-run by a reader is asking for trust it has not earned, and this section exists so
