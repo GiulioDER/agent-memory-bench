@@ -43,11 +43,12 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.adapters.base import CorpusManifest
-from harness.damage import CONDITIONS
+from harness.damage import CORPUS_CONDITIONS, PRESENT
 from harness.plants import (
     PlantSpecError,
     assign_contradiction_dates,
     load_plants,
+    present_plan,
     sources_for,
 )
 from harness.tasks import discover_tasks
@@ -103,9 +104,45 @@ def _write_jsonl(path: Path, lines: list[dict]) -> None:
     path.write_text(body, encoding="utf-8", newline="\n")
 
 
+def default_selection(condition: str) -> list[str]:
+    """Every task this condition can be built for, before any retirement list is applied.
+
+    ⚠️ The rule differs for `present` and that is the whole point of the condition.
+
+    An adversarial condition is a claim about a planted memo, so a task qualifies by DECLARING
+    one. Section 2 of `docs/reviews/2026-08-30-instrument-review.md` traced official-001's central
+    defect to that rule: plant expressiveness and difficulty are different properties, and
+    admitting on the first silently discarded the second, leaving a suite that could not measure
+    benefit at all.
+
+    `present` needs no plant, so applying the same rule would inherit the same bias and hand the
+    one condition that CAN measure benefit only the 15 tasks somebody has authored plants for.
+    Measured 2026-08-30: the declaring rule gives 15, this one gives 29, and the 14 it adds
+    include `ts-nfc-count`, `ts-round-money` and `ts-quote-shell`, which are precisely the tasks
+    section 7 of that review named as where a memory arm converts impossible into solved.
+
+    ⛔ Note what selection does and does not do here. For `present` the corpus is the identity
+    transform, so selecting a task changes NO bytes; it changes which tasks `condition.json`
+    records as under test, and therefore which cells the run grid covers. Getting it wrong
+    produces a corpus that looks right and a run that measures a third of what it should.
+    """
+
+    if condition == PRESENT:
+        return [
+            task.task_id
+            for task in discover_tasks()
+            if task.fact_terms and any((BASE_CORPUS / "sessions" / task.task_id).glob("*.jsonl"))
+        ]
+    return [
+        task.task_id
+        for task in discover_tasks()
+        if (spec := load_plants(task.path)) is not None and spec.plan(condition)
+    ]
+
+
 def assemble(condition: str, seed: int, selection: list[str], out_root: Path) -> dict:
-    if condition not in CONDITIONS:
-        raise SystemExit(f"unknown condition {condition!r}; expected one of {CONDITIONS}")
+    if condition not in CORPUS_CONDITIONS:
+        raise SystemExit(f"unknown condition {condition!r}; expected one of {CORPUS_CONDITIONS}")
 
     tasks = {task.task_id: task for task in discover_tasks()}
     unknown = [task_id for task_id in selection if task_id not in tasks]
@@ -141,14 +178,21 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
                 shutil.copyfile(path, out_root / "sessions" / task_id / path.name)
             continue
 
-        spec = load_plants(tasks[task_id].path)
-        plan = spec.plan(condition) if spec else None
-        if plan is None:
-            raise SystemExit(
-                f"{task_id} is in the selection but declares no {condition!r} condition in "
-                f"plants.json. A selected task with no plan would silently keep its true fact "
-                f"and be scored as {condition!r}."
-            )
+        if condition == PRESENT:
+            # `present` needs no plants.json and no declaration: it is the task's real session
+            # and nothing else. Requiring a declaration here would make the condition available
+            # only to the tasks somebody has already authored plants for, which is the exact
+            # selection bias section 2 of the instrument review found in the harm suite.
+            plan = present_plan()
+        else:
+            spec = load_plants(tasks[task_id].path)
+            plan = spec.plan(condition) if spec else None
+            if plan is None:
+                raise SystemExit(
+                    f"{task_id} is in the selection but declares no {condition!r} condition in "
+                    f"plants.json. A selected task with no plan would silently keep its true "
+                    f"fact and be scored as {condition!r}."
+                )
 
         dates = (
             assign_contradiction_dates(plan.plants, seed)
@@ -198,7 +242,7 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--condition", required=True, choices=list(CONDITIONS))
+    parser.add_argument("--condition", required=True, choices=list(CORPUS_CONDITIONS))
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument(
         "--tasks",
@@ -218,14 +262,7 @@ def main() -> int:
                 "an arbitrary existing directory"
             )
 
-    if args.tasks:
-        selection = list(args.tasks)
-    else:
-        selection = []
-        for task in discover_tasks():
-            spec = load_plants(task.path)
-            if spec and spec.plan(args.condition):
-                selection.append(task.task_id)
+    selection = list(args.tasks) if args.tasks else default_selection(args.condition)
     if not selection:
         raise SystemExit(
             f"no task declares the {args.condition!r} condition; nothing to assemble"

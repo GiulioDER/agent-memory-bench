@@ -65,7 +65,7 @@ from harness.costs import (
     pricing_from_args,
     summarize,
 )
-from harness.damage import CONDITIONS, outcome_for
+from harness.damage import CORPUS_CONDITIONS, PRESENT, Outcome, outcome_for
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.io import write_jsonl
@@ -283,10 +283,24 @@ def classify_cell(
 
     if not condition:
         return {}
+    abstained, marker = declines(response)
+    if condition == PRESENT:
+        # `present` plants nothing, so there is no wrong fact for a detector to find and
+        # `detect_damage` refuses the condition outright. The cell still needs its outcome and,
+        # more importantly, its ABSTENTION flag: on `present` a decline is the missed-opportunity
+        # cell that the four adversarial conditions cannot express, which is the entire reason
+        # this condition exists. Routing it through the detector would raise ValueError on the
+        # first cell of the run.
+        return {
+            "condition": condition,
+            "outcome": (Outcome.SOLVED if checker_ok else Outcome.NEUTRAL_FAILURE).value,
+            "damage_reason": "no damage detector runs under `present`: nothing is planted",
+            "abstained": abstained,
+            "abstain_marker": marker,
+        }
     outcome, reason = outcome_for(
         task.path, workdir, task.oracle_dir, condition, checker_ok, verdict
     )
-    abstained, marker = declines(response)
     return {
         "condition": condition,
         "outcome": outcome.value,
@@ -413,7 +427,7 @@ async def main() -> int:
     parser.add_argument(
         "--condition",
         default="",
-        choices=("", *CONDITIONS),
+        choices=("", *CORPUS_CONDITIONS),
         help="the corpus condition this run is measuring. When set, every finished cell is "
         "classified through its task's damage detector while the sandbox still exists, and the "
         "outcome is written to the record. Without it a cell records pass or fail only, which is "

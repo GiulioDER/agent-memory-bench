@@ -41,7 +41,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from .damage import CONDITIONS, Outcome
+from .damage import ADVERSARIAL_CONDITIONS, CONDITIONS, PRESENT, Outcome
 from .stats import summarize_by_task
 
 #: The strata preregistration 009 fixed at n = 12. Membership is data, not a judgement, so it
@@ -286,6 +286,85 @@ def wrong_fact_rate(cells: Sequence[Cell], arm: str) -> dict:
     return out
 
 
+def usefulness(cells: Sequence[Cell], arm: str, reference: str = "bare") -> dict:
+    """The composite the four adversarial conditions cannot express on their own.
+
+    ⛔ Why this exists. With only `absent`, `superseded`, `contradictory` and `adjacent`, every
+    condition varies how the evidence is BAD, so the only way to lose is to engage and be misled.
+    Never searching therefore takes zero damage and forfeits nothing: **abstinence is a strictly
+    dominant strategy**, and any ranking drawn from those four rewards the most conservative
+    product rather than the most useful one. That misrepresents every arm, including the
+    third-party ones this project does not own.
+
+    `present` supplies the missing row, and this pairs the two axes:
+
+    * **sensitivity**, on `present`, over the cells where the reference arm FAILED. That
+      restriction is what stops a product being credited for tasks the reference already solves,
+      which would make sensitivity a measure of task difficulty rather than of memory.
+    * **specificity**, on the adversarial conditions: the fraction of cells in which the arm did
+      NOT apply a planted convention. Reported as a BAND, because `AMBIGUOUS_FAILURE` is a real
+      class and collapsing it either way states a point estimate the detectors cannot support.
+
+    The composite is Youden's J, ``sensitivity + specificity - 1``, chosen for one property: it
+    is **zero for both degenerate strategies**. A product that never searches scores sensitivity
+    0 and specificity 1. One that always trusts scores 1 and 0. Both land on zero, which is the
+    behaviour section 3 of the instrument review asked for and the reason a plain average of the
+    two would not do.
+
+    ⚠️ This is defined here and has NEVER been run. No number from it exists.
+    """
+
+    present = [c for c in cells if c.condition == PRESENT]
+    adversarial = [c for c in cells if c.condition in ADVERSARIAL_CONDITIONS]
+
+    winnable = [
+        (task, arm_solved)
+        for task, arm_solved, ref_solved in _paired(present, arm, reference)
+        if not ref_solved
+    ]
+    sensitivity = (
+        sum(1 for _t, solved in winnable if solved) / len(winnable) if winnable else None
+    )
+    missed = [c for c in present if c.arm == arm and c.abstained]
+
+    engaged = [c for c in adversarial if c.arm == arm]
+    damaged = sum(1 for c in engaged if c.damaged)
+    ambiguous = sum(1 for c in engaged if c.outcome is Outcome.AMBIGUOUS_FAILURE)
+    specificity_ceiling = 1.0 - (damaged / len(engaged)) if engaged else None
+    specificity_floor = (
+        1.0 - ((damaged + ambiguous) / len(engaged)) if engaged else None
+    )
+
+    def youden(spec: float | None) -> float | None:
+        if sensitivity is None or spec is None:
+            return None
+        return round(sensitivity + spec - 1.0, 4)
+
+    return {
+        "sensitivity": round(sensitivity, 4) if sensitivity is not None else None,
+        "sensitivity_n_cells": len(winnable),
+        "missed_rate": round(len(missed) / len(present), 4) if present else None,
+        "missed_n_cells": len(missed),
+        "specificity_floor": (
+            round(specificity_floor, 4) if specificity_floor is not None else None
+        ),
+        "specificity_ceiling": (
+            round(specificity_ceiling, 4) if specificity_ceiling is not None else None
+        ),
+        "specificity_n_cells": len(engaged),
+        "youden_j_floor": youden(specificity_floor),
+        "youden_j_ceiling": youden(specificity_ceiling),
+        # Both degenerate strategies land on zero by construction. Stated in the artifact so a
+        # reader does not have to rederive why a conservative product does not win here.
+        "zero_means": (
+            "never searching (sensitivity 0, specificity 1) and always trusting "
+            "(sensitivity 1, specificity 0) both score 0"
+        ),
+        "underpowered": len(winnable) < 8,
+        "never_run": True,
+    }
+
+
 def endpoints(cells: Sequence[Cell], arms: Iterable[str], reference: str = "bare") -> dict:
     """Every endpoint 005 defines, for every arm, in the record's reporting order."""
 
@@ -298,6 +377,11 @@ def endpoints(cells: Sequence[Cell], arms: Iterable[str], reference: str = "bare
             "2_damage_rate_by_condition": damage_rate_by_condition(cells, arm, reference),
             "3_abstention_rate": abstention_rate(cells, arm),
             "4_wrong_fact_applied": wrong_fact_rate(cells, arm),
+            # Reported last and NOT one of 005's four. It needs the `present` condition, which
+            # 005 did not define, so it belongs to whatever record first runs that condition. It
+            # is computed here so the shape is fixed and reviewable before any number exists, and
+            # it returns nulls until a run supplies `present` cells.
+            "5_usefulness_composite": usefulness(cells, arm, reference),
         }
     return report
 

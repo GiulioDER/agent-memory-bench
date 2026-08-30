@@ -52,10 +52,10 @@ if str(REPO) not in sys.path:
 from harness.abstention import cells_from_records, endpoints
 from harness.adapters.base import CorpusManifest
 from harness.costs import add_pricing_arguments, pricing_from_args
-from harness.damage import CONDITIONS
-from harness.plants import load_plants
-from harness.tasks import discover_tasks
-from scripts.assemble_condition_corpus import assemble
+from harness.damage import CORPUS_CONDITIONS
+from scripts.assemble_condition_corpus import assemble, default_selection
+
+CORPUS = REPO / "corpus"
 
 # Tasks retired from the harm suite on 2026-08-30 because **no arm has ever failed them**, across
 # every run in this repository plus official-001. A task nobody fails can record neither damage
@@ -107,13 +107,19 @@ def selection_for(condition: str, *, announce: bool = True) -> list[str]:
     quietly it was an entire product arm missing from MEMORY_ARMS, which cost official-001 its
     search-rate reporting and was invisible in the artifact. A grid that shrinks without saying so
     is the same failure with a different subject.
+
+    ⚠️ `present` is selected differently ON PURPOSE, and the difference is the point.
+
+    For the four adversarial conditions a task qualifies by DECLARING plants, and section 2 of
+    `docs/reviews/2026-08-30-instrument-review.md` traced official-001's central defect to
+    exactly that rule: plant expressiveness and difficulty are different properties, and
+    admitting on the first silently discarded the second. `present` needs no plant, so applying
+    the same rule to it would inherit the same bias and restrict the one condition that can
+    measure BENEFIT to the tasks somebody happened to author plants for. It selects instead on
+    the only thing it actually requires: the task has a recorded governing session to find.
     """
 
-    declared = [
-        task.task_id
-        for task in discover_tasks()
-        if (spec := load_plants(task.path)) is not None and spec.plan(condition)
-    ]
+    declared = default_selection(condition)
     kept = [t for t in declared if t not in RETIRED_TASKS]
     dropped = [t for t in declared if t in RETIRED_TASKS]
     if dropped and announce:
@@ -502,9 +508,9 @@ def main() -> int:
         pricing_from_args(args, model=args.model)
 
     conditions = [c.strip() for c in args.conditions.split(",") if c.strip()]
-    unknown = [c for c in conditions if c not in CONDITIONS]
+    unknown = [c for c in conditions if c not in CORPUS_CONDITIONS]
     if unknown:
-        raise SystemExit(f"unknown condition(s) {unknown}; choose from {CONDITIONS}")
+        raise SystemExit(f"unknown condition(s) {unknown}; choose from {CORPUS_CONDITIONS}")
 
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     if "bare" not in arms:
