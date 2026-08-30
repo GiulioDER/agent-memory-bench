@@ -233,3 +233,201 @@ def test_a_missing_stream_with_no_error_is_still_caught(good_run):
     next((good_run / "streams").glob("ts-b.s0.recall*")).unlink()
     f = verify(good_run)
     assert any("no recorded" in line for line in f.bad), f.bad
+
+
+# ---------------------------------------------------------------------------------------------
+# The endpoints check. Added 2026-08-30 after an audit found it could not fail.
+#
+# It read `f.check(set(got) <= set(want) or bool(got), ...)`. `endpoints()` never returns an empty
+# dict, so `bool(got)` was a constant True: the published file was parsed and thrown away. Four
+# independent verification passes each fabricated a published endpoints file and got a `pass`,
+# including one whose every number was invented and one that was literally `{}`.
+#
+# This section had NO coverage before, and that is why. The only fixture was `good_run`, named
+# `verify-001`, so `_condition_of` returned None and the whole branch was unreachable from the
+# suite. A fixture whose name ends in a condition is what makes these tests possible at all.
+# ---------------------------------------------------------------------------------------------
+
+
+def _harm_record(task: str, seed: int, arm: str, outcome: str) -> dict:
+    record = _record(task, seed, arm)
+    record["metadata"] = {"outcome": outcome}
+    return record
+
+
+@pytest.fixture
+def harm_run(tmp_path):
+    """A one-condition harm-suite run beside the endpoints file it published.
+
+    Two tasks, two arms, `bare` as reference. `ts-b` is damaged under `recall` while `bare`
+    solved it, so the run has a non-zero damage rate and the published file has a number worth
+    doctoring.
+    """
+
+    from harness.abstention import cells_from_records
+    from scripts.verify_run import endpoints as _endpoints
+
+    # Real task ids, because endpoint 2 filters on `stratum_of`, which is a lookup over the
+    # actual task set: a fixture with invented ids lands entirely in BENEFIT_ONLY and publishes
+    # an EMPTY `2_damage_rate_by_condition`, so a test doctoring that block would pass without
+    # ever exercising the comparison.
+    damage_only, two_sided = "ts-append-only", "ts-bom-merge"
+    records = [
+        _harm_record(damage_only, 0, "bare", "solved"),
+        _harm_record(damage_only, 0, "recall", "damaged"),
+        _harm_record(two_sided, 0, "bare", "solved"),
+        _harm_record(two_sided, 0, "recall", "solved"),
+    ]
+    admission = {
+        "admitted_cells": 2,
+        "discarded_cells": [],
+        "required_arms": ["bare", "recall"],
+        "verdicts": [
+            {"task_id": r["task_id"], "seed": r["seed"], "arm": r["arm"], "admitted": True,
+             "reasons": []}
+            for r in records
+        ],
+    }
+    costs = {"total_sessions": 4, "total_tokens": 440}
+    run_dir = tmp_path / "verify-002-absent"
+    _write(run_dir, records, admission, costs)
+
+    truthful = _endpoints(cells_from_records(records, "absent"), ["bare", "recall"])
+    truthful["conditions"] = ["absent"]
+    (tmp_path / "verify-002-endpoints.json").write_text(
+        json.dumps(truthful, indent=1), encoding="utf-8"
+    )
+    return run_dir
+
+
+def _endpoints_path(run_dir: Path) -> Path:
+    return run_dir.parent / "verify-002-endpoints.json"
+
+
+def _published(run_dir: Path) -> dict:
+    return json.loads(_endpoints_path(run_dir).read_text(encoding="utf-8"))
+
+
+def _republish(run_dir: Path, doc: dict) -> None:
+    _endpoints_path(run_dir).write_text(json.dumps(doc, indent=1), encoding="utf-8")
+
+
+def _endpoint_failures(run_dir: Path) -> list[str]:
+    return [line for line in verify(run_dir).bad if "endpoints" in line]
+
+
+def test_an_honest_endpoints_file_verifies(harm_run):
+    """Control. Without this the rest could pass by failing on everything."""
+
+    assert _endpoint_failures(harm_run) == []
+
+
+def test_a_doctored_damage_rate_is_caught(harm_run):
+    """RED before the fix: `bool(got)` made the check true whatever the published number said."""
+
+    doc = _published(harm_run)
+    doc["arms"]["recall"]["2_damage_rate_by_condition"]["absent"]["damage_rate"] = 0.99
+    _republish(harm_run, doc)
+    assert _endpoint_failures(harm_run), "a fabricated damage rate verified clean"
+
+
+def test_a_doctored_net_harm_is_caught(harm_run):
+    """The HEADLINE number, pooled across conditions, recomputed from the sibling run dirs.
+
+    RED twice over: once for the tautology, and once for the first version of this fix, which
+    skipped `1_net_harm_by_stratum` as unrecomputable from one condition and therefore let a
+    sign-flipped net harm through while catching everything else.
+    """
+
+    doc = _published(harm_run)
+    for stratum in doc["arms"]["recall"]["1_net_harm_by_stratum"].values():
+        stratum["net_harm"] = -0.999
+        stratum["harmed"] = 999
+    _republish(harm_run, doc)
+    assert _endpoint_failures(harm_run), "a fabricated net harm verified clean"
+
+
+def test_a_perturbation_inside_the_old_cost_tolerance_is_caught(harm_run):
+    """An endpoint is a deterministic recomputation, so it reconciles exactly or not at all.
+
+    RED before the fix, and still red under `_close`'s 0.5% band, which is right for a cost total
+    that accumulates float error over thousands of additions and wrong for this. Measured: a
+    net_harm shifted by 0.001 verified clean under the loose tolerance.
+    """
+
+    doc = _published(harm_run)
+    block = doc["arms"]["recall"]["2_damage_rate_by_condition"]["absent"]
+    block["damage_rate"] = block["damage_rate"] + 0.001
+    _republish(harm_run, doc)
+    assert _endpoint_failures(harm_run), "a 0.001 perturbation verified clean"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        pytest.param({}, id="empty-object"),
+        pytest.param({"reference_arm": "bare", "arms": {}}, id="no-arms"),
+        pytest.param({"reference_arm": "bare", "arms": {"not-an-arm": {}}}, id="arm-never-ran"),
+        pytest.param({"reference_arm": "claude_md", "arms": {}}, id="wrong-reference-arm"),
+    ],
+)
+def test_a_structurally_wrong_endpoints_file_is_caught(harm_run, payload):
+    """RED before the fix: every one of these verified clean, `{}` included."""
+
+    _republish(harm_run, payload)
+    assert _endpoint_failures(harm_run), "a structurally wrong endpoints file verified clean"
+
+
+@pytest.mark.parametrize("payload", ["null", "0", '[{"a": 1}]', '"a string"'])
+def test_a_malformed_endpoints_file_fails_one_run_rather_than_the_sweep(harm_run, payload):
+    """RED before the fix: `set(want)` raised TypeError, aborting every later run in `--all`."""
+
+    _endpoints_path(harm_run).write_text(payload, encoding="utf-8")
+    findings = verify(harm_run)  # must not raise
+    assert findings.bad, "a malformed endpoints file was not reported"
+
+
+def test_endpoints_without_an_admission_report_do_not_raise(harm_run):
+    """RED before the fix: FileNotFoundError escaped verify() and killed the whole sweep.
+
+    The admission read sat inside a branch guarded on the ENDPOINTS file existing, not on the
+    admission file.
+    """
+
+    (harm_run / "admission.json").unlink()
+    findings = verify(harm_run)  # must not raise
+
+    # The specific NEW message. `"admission" in line` was satisfied by a pre-existing skip
+    # ("no admission.json to check") that fires whether or not the endpoints guard exists, so it
+    # would have stayed green if the endpoints branch were ever moved above the admission check.
+    assert any(
+        "endpoints published but no admission.json" in line for line in findings.skipped
+    ), f"the endpoints branch did not state why it could not run; skipped={findings.skipped}"
+
+
+def test_the_archive_directory_is_not_treated_as_a_run(tmp_path, monkeypatch):
+    """RED before the fix: `results/archive/` went red as a run that never was.
+
+    scripts/archive_partial.py parks an interrupted grid there deliberately. Failing on it makes
+    `--all` exit 1 on a healthy repository, which is the crying-wolf this module warns about
+    ninety lines above the check that was doing it.
+    """
+
+    from scripts import verify_run as vr
+
+    results = tmp_path / "results"
+    (results / "archive" / "20260830-run-absent" / "results").mkdir(parents=True)
+    (results / "logs").mkdir()
+    real = results / "run-001-absent"
+    real.mkdir()
+    (real / "records.final.jsonl").write_text("", encoding="utf-8")
+
+    # The REAL selector, not a copy of it. The first version of this test restated main()'s
+    # comprehension in its own body and stayed green with the fix deleted, which is the defect
+    # class this whole round is about.
+    targets = vr.run_targets(results)
+    assert [d.name for d in targets] == ["run-001-absent"], (
+        "only `archive` and `logs` are excluded; a directory that merely LOOKS empty must still "
+        "be reported, because a gutted run directory is exactly what this verifier exists to "
+        "catch"
+    )
