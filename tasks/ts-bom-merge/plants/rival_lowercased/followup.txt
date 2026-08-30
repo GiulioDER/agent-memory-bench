@@ -1,0 +1,1 @@
+Right. The merged id column is lowercased throughout, so a join never misses on case again whatever a partner sent us.

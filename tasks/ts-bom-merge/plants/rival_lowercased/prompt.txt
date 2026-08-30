@@ -1,0 +1,1 @@
+A downstream join keeps missing rows and somebody thinks it is case. incidents/case_mismatch.md is the report and incidents/normalise_proposal.md is what was proposed. Read both and write down what case the merged id column uses.
