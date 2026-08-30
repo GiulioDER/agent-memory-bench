@@ -353,3 +353,32 @@ def test_an_unclassified_arm_is_refused_rather_than_silently_skipped():
     with pytest.raises(SystemExit) as excinfo:
         _classify_arms(["bare", "recall", "brand_new_product"])
     assert "brand_new_product" in str(excinfo.value)
+
+
+def test_retired_tasks_are_excluded_and_announced(capsys):
+    """A task no arm has ever failed is dropped, and the drop is printed rather than silent.
+
+    Both halves matter. official-001 spent 82.2% of its sessions on cells where every arm produced
+    the same outcome, which is the reason for the exclusion. And the last time this suite dropped
+    something quietly it was a whole product arm missing from MEMORY_ARMS, invisible in the
+    artifact until someone counted rows. A grid that shrinks without saying so is that same
+    failure with a different subject.
+    """
+
+    from scripts.abstention import RETIRED_TASKS, selection_for
+
+    assert RETIRED_TASKS, "the retirement list must not be silently emptied"
+
+    tasks = selection_for("absent")
+    assert tasks, "retiring tasks must not empty a condition"
+    for retired in RETIRED_TASKS:
+        assert retired not in tasks, f"{retired} is retired and must not be selected"
+
+    printed = capsys.readouterr().out
+    for retired in RETIRED_TASKS:
+        assert retired in printed, f"{retired} was dropped without saying so"
+        assert RETIRED_TASKS[retired] in printed, "the reason must travel with the exclusion"
+
+    quiet = selection_for("absent", announce=False)
+    assert quiet == tasks
+    assert not capsys.readouterr().out

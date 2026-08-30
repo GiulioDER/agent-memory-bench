@@ -57,15 +57,44 @@ from harness.plants import load_plants
 from harness.tasks import discover_tasks
 from scripts.assemble_condition_corpus import assemble
 
+# Tasks retired from the harm suite on 2026-08-30 because **no arm has ever failed them**, across
+# every run in this repository plus official-001. A task nobody fails can record neither damage
+# (failing what `bare` solved) nor benefit (solving what `bare` failed). It is spend, not evidence.
+#
+# The value is the number of sessions behind each, which is what makes this a measurement rather
+# than an impression. Retired by list rather than by deleting their plants, so the decision is
+# reversible, the authoring work is preserved, and a future harder model can re-admit them.
+#
+# See docs/reviews/2026-08-30-instrument-review.md. official-001 spent 82.2% of its sessions on
+# cells where every arm produced the same outcome; this is the first cut against that.
+RETIRED_TASKS = {
+    "ts-glob-hidden": "0 failures in 113 sessions, every arm, every run",
+    "ts-bool-env": "0 failures in 62 sessions",
+    "ts-csv-quote": "0 failures in 54 sessions",
+    "ts-append-only": "1 failure in 117 sessions, which cannot separate two arms either",
+}
 
-def selection_for(condition: str) -> list[str]:
-    """Every task declaring this condition. The suite's task set is data, not a flag."""
 
-    return [
+def selection_for(condition: str, *, announce: bool = True) -> list[str]:
+    """Every task declaring this condition, minus the ones retired for carrying no information.
+
+    ⛔ The exclusion is ANNOUNCED rather than silent. The last time this suite dropped something
+    quietly it was an entire product arm missing from MEMORY_ARMS, which cost official-001 its
+    search-rate reporting and was invisible in the artifact. A grid that shrinks without saying so
+    is the same failure with a different subject.
+    """
+
+    declared = [
         task.task_id
         for task in discover_tasks()
         if (spec := load_plants(task.path)) is not None and spec.plan(condition)
     ]
+    kept = [t for t in declared if t not in RETIRED_TASKS]
+    dropped = [t for t in declared if t in RETIRED_TASKS]
+    if dropped and announce:
+        for task in dropped:
+            print(f"[retired] {condition}: {task} excluded ({RETIRED_TASKS[task]})")
+    return kept
 
 
 def ingest_recall(corpus_root: Path, namespace: str, *, dry_run: bool) -> dict | None:
