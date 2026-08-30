@@ -268,10 +268,30 @@ def verify(run_dir: Path) -> Findings:
     # --- the evidence itself ------------------------------------------------------------------
     streams = run_dir / "streams"
     if streams.is_dir():
-        n = len(list(streams.glob("*.jsonl.gz")))
+        # 🔁 This used to demand one stream per record and failed every honest run that contained
+        # a timeout. A session killed at the timeout leaves a record saying so and never flushes
+        # its stream, so the strict form reported `official-001` as defective for four sessions
+        # that behaved exactly as the protocol says they should. Crying wolf here is worse than
+        # not checking, because it trains the reader to skim past the FAIL that matters.
+        #
+        # So a missing stream is a defect only when nothing in the record explains it. A recorded
+        # error is the explanation; silence is not.
+        have = {p.name.rsplit(".jsonl.gz", 1)[0] for p in streams.glob("*.jsonl.gz")}
+        missing = [
+            r
+            for r in records
+            if f"{r['task_id']}.s{r['seed']}.{r['arm']}" not in have
+        ]
+        unexplained = [r for r in missing if not r.get("error")]
         f.check(
-            n >= len(records),
-            f"{run_dir.name}: {n} session stream(s) published for {len(records)} record(s)",
+            not unexplained,
+            f"{run_dir.name}: {len(have)} stream(s) for {len(records)} record(s); "
+            f"{len(missing)} absent, all explained by a recorded error"
+            if missing and not unexplained
+            else f"{run_dir.name}: {len(have)} session stream(s) for {len(records)} record(s)"
+            if not missing
+            else f"{run_dir.name}: {len(unexplained)} session(s) have no stream and no recorded "
+            f"error, so nothing says why the evidence is absent",
         )
     else:
         f.bad.append(
