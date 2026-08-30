@@ -68,7 +68,7 @@ if str(REPO) not in sys.path:
 
 from harness.plants import CONDITION_SHAPE, load_plants, normalise
 from harness.tasks import discover_tasks
-from scripts.assemble_condition_corpus import assemble
+from scripts.assemble_condition_corpus import assemble, haystack_root
 
 BASE_CORPUS = REPO / "corpus"
 BUNDLES = [BASE_CORPUS / "claude_md_bundle_smoke.md"]
@@ -303,7 +303,7 @@ def main() -> int:
             continue
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / condition
-            assemble(condition, args.seed, selection, root)
+            assemble(condition, args.seed, selection, root, haystack=haystack_root())
             for task_id in selection:
                 remaining = sorted((root / "sessions" / task_id).glob("*.jsonl"))
                 text = " ".join(_text(path) for path in remaining)

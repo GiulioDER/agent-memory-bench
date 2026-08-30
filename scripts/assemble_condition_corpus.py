@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from datetime import UTC, datetime, timedelta
@@ -172,7 +173,45 @@ def excluded_by_class(condition: str) -> list[tuple[str, str]]:
     return out
 
 
-def assemble(condition: str, seed: int, selection: list[str], out_root: Path) -> dict:
+
+def haystack_root() -> Path | None:
+    """The haystack every condition corpus is assembled around, or None for the standard feed.
+
+    ⚠️ One switch for the whole run, deliberately. The tenant builder, the grid and the plant
+    audit each assemble a condition corpus, and if they disagree the tenants serve one corpus
+    while the sessions run against another. That is the same class of failure
+    `test_the_assembler_default_matches_what_a_run_would_build` guards in the task dimension.
+
+    Why it exists at all: `docs/RETRIEVAL_DIFFICULTY.md` measures `voyage` hit@10 = 1.000 on the
+    standard 195-document feed. Retrieval is saturated there, so a run cannot separate "the
+    product retrieved badly" from "the agent never searched". With the haystack, BM25 hit@1 falls
+    0.485 -> 0.182 and voyage hit@10 1.000 -> 0.879.
+
+    Unset is the standard feed, which is what every prior run used and what keeps a run
+    comparable to them.
+    """
+
+    value = os.environ.get("AMB_HAYSTACK", "").strip()
+    if not value:
+        return None
+    root = Path(value)
+    if not (root / "synthetic").is_dir():
+        raise SystemExit(
+            f"AMB_HAYSTACK={root} holds no synthetic/ directory. Build one with "
+            f"`python -m scripts.generate_haystack --scale N --seed S`, or unset it to use the "
+            f"standard feed."
+        )
+    return root
+
+
+def assemble(
+    condition: str,
+    seed: int,
+    selection: list[str],
+    out_root: Path,
+    *,
+    haystack: Path | None = None,
+) -> dict:
     if condition not in CORPUS_CONDITIONS:
         raise SystemExit(f"unknown condition {condition!r}; expected one of {CORPUS_CONDITIONS}")
 
@@ -191,7 +230,7 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
     # have refused every test that assembles into a tmp directory, which is a legitimate caller.
     # This function writes exactly the entries below, so a target holding anything else is not a
     # condition corpus this code built and must not be deleted wholesale.
-    WRITES = {"sessions", "distractors", "condition.json", "manifest.json"}
+    WRITES = {"sessions", "distractors", "synthetic", "condition.json", "manifest.json"}
     if out_root.exists():
         # `.DS_Store`, `Thumbs.db` and `desktop.ini` are written by a file browser, not by a
         # person, and refusing a legitimate re-assemble because one appeared would make this
@@ -211,6 +250,31 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
         shutil.rmtree(out_root)
     (out_root / "sessions").mkdir(parents=True)
     (out_root / "distractors").mkdir(parents=True)
+
+    # The generated haystack, when one is supplied. `CorpusManifest.build` already globs
+    # `synthetic/**/*.jsonl`, so a condition corpus carrying one is an ordinary corpus root that
+    # every adapter understands; this is the only place that never populated it.
+    #
+    # It is filler by construction and identical across conditions, so it changes retrieval
+    # difficulty without touching what any condition MEANS: the plants, the withheld sessions and
+    # the real precursors are unaffected.
+    if haystack is not None:
+        source = Path(haystack) / "synthetic"
+        if not source.is_dir():
+            raise SystemExit(
+                f"{haystack} holds no synthetic/ directory; generate one with "
+                f"`python -m scripts.generate_haystack --scale N --seed S`"
+            )
+        target = out_root / "synthetic"
+        target.mkdir(parents=True)
+        copied = 0
+        for path in sorted(source.rglob("*.jsonl")):
+            destination = target / path.relative_to(source)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            copied += 1
+        if copied == 0:
+            raise SystemExit(f"{source} contains no .jsonl; refusing to build an empty haystack")
 
     for path in sorted((BASE_CORPUS / "distractors").glob("*.jsonl")):
         shutil.copyfile(path, out_root / "distractors" / path.name)
@@ -350,7 +414,9 @@ def main() -> int:
 
     out_root = args.out or CONDITIONS_ROOT / args.condition / f"seed-{args.seed}"
     try:
-        provenance = assemble(args.condition, args.seed, selection, out_root)
+        provenance = assemble(
+            args.condition, args.seed, selection, out_root, haystack=haystack_root()
+        )
     except PlantSpecError as exc:
         # A missing recording is the ordinary state before a plant is recorded, not a crash.
         raise SystemExit(str(exc)) from None

@@ -44,7 +44,7 @@ from harness.adapters.base import CorpusManifest, namespace_path, validate_names
 from harness.damage import CORPUS_CONDITIONS
 from harness.transcripts import render_corpus
 from scripts.abstention import selection_for
-from scripts.assemble_condition_corpus import assemble
+from scripts.assemble_condition_corpus import assemble, haystack_root
 
 CONFIG = json.loads((REPO / "adapters" / "recall" / "config.frozen.json").read_text("utf-8"))
 QUERIES = REPO / "calibration" / "abstention-queryset-v1.json"
@@ -152,7 +152,7 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
         raise SystemExit(f"no task declares {condition!r}")
 
     print(f"\n=== {condition} -> tenant {tenant} ({len(selection)} task(s)) ===")
-    assemble(condition, seed, selection, corpus_root)
+    assemble(condition, seed, selection, corpus_root, haystack=haystack_root())
     corpus = CorpusManifest.load(corpus_root)
     corpus.verify()
     fingerprint = corpus_fingerprint(corpus)
