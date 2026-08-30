@@ -1,0 +1,1 @@
+We keep having to trace a migration back to the change that asked for it. notes/traceability.md is the complaint and notes/ticket_proposal.md is what was argued for. Read both and write down what a migration filename must contain.
