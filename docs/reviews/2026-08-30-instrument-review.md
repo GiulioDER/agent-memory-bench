@@ -137,3 +137,34 @@ than convenient.
 
 ⚠️ These figures come from runs on a different instruction variant and are **not** a result. They
 are the reason to build the `present` condition, not a substitute for it.
+
+## 8. Appended 2026-08-30: two tasks encode one convention, and it is now live
+
+Recording `ts-golden-regen`'s plants brought it into the harm suite, and `scripts/audit_corpus`
+immediately flagged a pair it shares vocabulary with:
+
+| task | fact terms | `bare` |
+|---|---|---:|
+| `ts-golden-regen` | "never hand-edit", "regenerated only via the script" | 0.50 |
+| `ts-ignore-gen` | "maintained only via the script", "sorted and deduped", "hand edits get lost" | 1.00 |
+
+That is **one convention**, *do not hand-edit this generated file, run the script*, applied to two
+artefacts: test goldens and an ignore file. The overlap score is 0.33 on `hand`, `only`, `script`,
+`via`.
+
+The overlap is **pre-existing**; both `task.json` files are unchanged on master. What is new is
+that both tasks are now in the same grid, which is when it starts to matter: the per-task cluster
+bootstrap treats them as two independent units, and a product that misunderstands this one
+convention fails both. `official-001` already showed a memory arm failing `ts-ignore-gen` in three
+of twelve cells, so this is not hypothetical.
+
+Three options, none taken yet because each is a measurement decision:
+
+1. **Cluster them as one unit** in the bootstrap. Most honest, costs nothing, and keeps both tasks.
+2. **Retire `ts-ignore-gen`.** It sits at `bare` = 1.00 and can only measure harm, while
+   `ts-golden-regen` at 0.50 measures both, so if one goes it should be the former.
+3. **Re-axe one convention** so the two are genuinely independent. Most work, best instrument.
+
+⚠️ The audit prints this as a warning and exits 0, so CI does not stop it. A warning nobody acts
+on is a warning that will still be there at the next run; this section exists so the decision is
+recorded rather than rediscovered.
