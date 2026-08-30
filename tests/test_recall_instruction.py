@@ -62,7 +62,7 @@ def test_the_two_variants_are_genuinely_different():
     assert skill.startswith("# Check memory before acting")
 
 
-def test_the_adapter_uses_the_override_when_given(tmp_path, monkeypatch):
+def test_the_adapter_uses_the_override_when_given(tmp_path, monkeypatch, recall_location):
     """Mutation: ignoring the override. The diagnostic silently reverts to the one-liner and its
     recall arm stops being the treatment pilot-004 measured."""
 
@@ -76,7 +76,7 @@ def test_the_adapter_uses_the_override_when_given(tmp_path, monkeypatch):
     assert "the governing detail" in text, "the static bundle must still follow the instruction"
 
 
-def test_without_an_override_the_frozen_one_liner_is_used(tmp_path, monkeypatch):
+def test_without_an_override_the_frozen_one_liner_is_used(tmp_path, monkeypatch, recall_location):
     """scripts/smoke.py and any other existing caller must keep the frozen behaviour."""
 
     monkeypatch.setenv("RECALL_DSN", "postgresql://irrelevant/for-this-test")
@@ -88,7 +88,7 @@ def test_without_an_override_the_frozen_one_liner_is_used(tmp_path, monkeypatch)
     assert text.startswith("You have a persistent project memory")
 
 
-def test_the_instruction_leads_the_prompt_in_both_variants(tmp_path, monkeypatch):
+def test_the_instruction_leads_the_prompt_in_both_variants(tmp_path, monkeypatch, recall_location):
     """Buried after the bundle, the instruction measured a 0% search rate, and then the benchmark
     is measuring prompt placement rather than retrieval."""
 

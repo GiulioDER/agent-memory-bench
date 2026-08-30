@@ -301,10 +301,14 @@ Ordered by what has to happen first, not by size.
 1. **Four adapters do not exist.** `adapters/<name>/` holds a docstring and no `adapter.py`.
 2. **No vendor review invitation has gone out**, and no `VENDOR_REVIEW.md` exists for any adapter,
    including `recall`.
-3. **A third party cannot reproduce the `recall` arm.** `config.frozen.json` carries
-   `"package_pin": "TBD"`, the published runs resolved the package from a local checkout through
-   `PYTHONPATH`, there is no `versions.lock`, and `docker/compose.yaml` brings up a database and
-   the harness image but installs no memory server.
+3. **A third party cannot reproduce the `recall` arm**, though less of the reason is the
+   repository's fault than it was. `package_pin` is now
+   `recall-rag[fastembed,mcp,voyage]==0.11.0` from PyPI rather than `TBD`, and as of 2026-08-30
+   the frozen config names environment variables instead of one machine's paths, so it no longer
+   has to be edited (`adapters/recall/location.example.env`). What remains: the published runs
+   resolved the package from a local checkout through `PYTHONPATH`, there is no `versions.lock`,
+   and `docker/compose.yaml` brings up a database and the harness image but installs no memory
+   server. A reader must still supply Postgres, a Voyage key and a calibrated generation.
 4. **MCP startup failed 11.1% of sessions on `pilot-004-placebo`.** A cell is admitted only when
    every arm is wired, so at that rate an eight-arm grid carrying five memory servers would admit
    roughly 55% of cells against an admission rule of 95%. `harness/memory_startup.py` adds a
