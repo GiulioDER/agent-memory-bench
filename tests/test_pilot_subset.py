@@ -201,4 +201,14 @@ def test_the_default_task_set_is_unchanged():
     assert 'parser.add_argument(\n        "--tasks",\n        default="",' in source, (
         "the subset must default to empty, or an ordinary invocation silently changes its grid"
     )
-    assert 'tasks = [task for task in discover_tasks() if task.task_id.startswith("ts-")]' in source
+    # 🔁 This asserted that exact source line until 2026-08-30, which made it break on a
+    # refactor that preserved the behaviour it cares about. It now asserts the PROPERTY: the
+    # default grid is ts-* and nothing else, however that is spelled.
+    from scripts.pilot import EXCLUDED_PREFIXES, GRID_PREFIXES, SELECTABLE_PREFIXES
+
+    assert GRID_PREFIXES == ("ts-",), (
+        f"the default grid is {GRID_PREFIXES}, not the ts-* set the preregistered runs used. "
+        f"Admitting a class changes what every ordinary run measures and needs a preregistration."
+    )
+    assert set(GRID_PREFIXES) <= set(SELECTABLE_PREFIXES)
+    assert not (set(SELECTABLE_PREFIXES) & set(EXCLUDED_PREFIXES))

@@ -1,0 +1,4 @@
+{"order_id": 1001, "qty": 5, "received_at": "2026-08-01T08:00:00Z", "sku": "VLV-3"}
+{"order_id": 1002, "qty": 11, "received_at": "2026-08-01T08:01:00Z", "sku": "WSH-9"}
+{"order_id": 1002, "qty": 11, "received_at": "2026-08-01T12:30:44Z", "sku": "WSH-9"}
+{"order_id": 1003, "qty": 2, "received_at": "2026-08-01T08:02:00Z", "sku": "FLG-5"}

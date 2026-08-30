@@ -335,6 +335,34 @@ def _refuse_a_dirty_work_root(work_root: Path, run_id: str) -> None:
     )
 
 
+#: Task-id prefixes an ordinary run measures when `--tasks` is not given.
+#:
+#: ⛔ This was a bare `startswith("ts-")` until 2026-08-30, and that single string is why the
+#: library stayed monotonic in practice. `xs-*`, the three cross-session synthesis tasks, have
+#: never appeared in a grid: they were authored, they pass their own tests, and the runner has
+#: skipped them since they were written. Nobody decided that. A string comparison decided it.
+#:
+#: ⚠️ **Nothing joins this tuple without a preregistration.** Admitting a class changes what every
+#: default run measures, and the preregistered runs did not contain it, so it is a measurement
+#: decision and not a wiring repair. `tests/test_pilot_subset.py` fired on the first attempt to
+#: add `fa-` here and was right to.
+GRID_PREFIXES = ("ts-",)
+
+#: Prefixes `--tasks` may name. Wider than the default grid on purpose: a new class has to be
+#: runnable before anyone can calibrate it, and calibrating it is the evidence a preregistration
+#: would rest on. Selecting one is explicit and leaves the default grid alone.
+SELECTABLE_PREFIXES = ("ts-", "fa-")
+
+#: Classes in neither, with the reason, so an absence is a decision on the record rather than an
+#: oversight.
+EXCLUDED_PREFIXES = {
+    "xs-": (
+        "cross-session synthesis; needs a corpus shape the grid does not assemble, and admitting "
+        "it changes what every run measures"
+    ),
+}
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="pilot-001")
@@ -438,7 +466,10 @@ async def main() -> int:
     if "recall" in run_arms and not args.dry_run and not os.environ.get("RECALL_DSN"):
         raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
 
-    tasks = [task for task in discover_tasks() if task.task_id.startswith("ts-")]
+    # The default grid, and the wider set a --tasks subset may name. Keeping these apart is what
+    # lets a new class be calibrated without silently changing what an ordinary run measures.
+    prefixes = SELECTABLE_PREFIXES if args.tasks else GRID_PREFIXES
+    tasks = [task for task in discover_tasks() if task.task_id.startswith(prefixes)]
     if args.tasks:
         wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
         available = {task.task_id for task in tasks}
