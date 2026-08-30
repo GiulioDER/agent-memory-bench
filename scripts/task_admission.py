@@ -47,22 +47,34 @@ governing fact no retriever can find is not a task a memory product can win, how
 difficulty band is, and the two failure modes are worth telling apart before a run rather than
 after it.
 
-⛔ What this CANNOT see, and it is enough to make a wrong decision
-------------------------------------------------------------------
+⛔ This report CANNOT support a retirement, and that is a measured claim
+------------------------------------------------------------------------
 
 This pools the runs committed to ``results/``. `official-001` ran to completion on VPS2, 630
 sessions across four conditions and five arms, and was deliberately never committed because the
 instrument was miscalibrated and a ranking from it would misrepresent every arm. **Nothing in
 this report sees it.**
 
-That is not a footnote. On 2026-08-30 this report named `ts-ignore-gen` as having zero failures
-across every arm, it was retired from the harm suite on that basis, and it turned out to carry
-three deterministic failures in admitted cells under `adjacent` in `official-001`: the single
-clearest damage signal that run produced. The retirement was reverted the same day.
+Its NO-CAPACITY verdict has now been checked against that run twice and has been wrong twice:
 
-So: **this report identifies CANDIDATES. It cannot authorise a retirement.** Before removing any
-task, ask whoever holds an uncommitted run. It does not edit any suite list, and which tasks a
-preregistered run admits stays a preregistration decision.
+* `ts-ignore-gen`, retired on this report's evidence on 2026-08-30 and reverted the same day.
+  Three failures in admitted cells with no error, all under `adjacent`, one memory arm, all
+  three seeds. Deterministic, attributable, and the clearest damage signal `official-001`
+  produced.
+* `ts-tz-utc`, flagged as a candidate by this report and checked before anyone acted. **Five**
+  genuine failures spread across four arms including `bare` and `placebo`, so it is not one
+  product's quirk. It is one of only a handful of tasks in the suite with any headroom at all.
+
+Two for two is not bad luck, it is structural, and the mechanism is visible from inside this
+tree. Run this report and read the arm-coverage line it prints: **no committed run contains a
+single `mempalace` session**, and no committed run carries more than four arms while
+`official-001` carried five. A failure that only one arm produces is invisible here by
+construction, and a memory arm is exactly where damage shows up.
+
+So, stated at the strength the evidence supports: **until `official-001` is committed or
+superseded, this report cannot support a retirement at all.** It ranks candidates for somebody
+with access to check them. It does not edit any suite list, and which tasks a preregistered run
+admits stays a preregistration decision.
 """
 
 from __future__ import annotations
@@ -238,12 +250,31 @@ def main() -> int:
     ):
         if counts[name]:
             print(f"  {name:14s} {counts[name]:>3}")
+    seen = sorted({arm for arms in pooled.values() for arm in arms})
+    wired = sorted(
+        path.name
+        for path in sorted((REPO / "adapters").iterdir())
+        if path.is_dir() and (path / "adapter.py").is_file()
+    )
+    unseen = [arm for arm in wired if arm not in seen]
+    print(f"\n  arms present in the pooled runs: {', '.join(seen)}")
+    if unseen:
+        print(
+            f"  arms with a wired adapter and ZERO pooled sessions: {', '.join(unseen)}\n"
+            f"  A failure only one of those produces is invisible to this report by construction."
+        )
+    # ASCII only in PRINTED text. The first version of this banner opened with a U+26D4 and
+    # crashed on Windows, whose stdout is cp1252: exit 1, the banner never shown, and the
+    # `--out` write below skipped silently. A warning that kills the run before it is read is
+    # worse than no warning. Emoji stay fine in docstrings and comments, which are never encoded
+    # to a console.
     print(
-        "\n  ⛔ CANDIDATES, NOT A DECISION. official-001 (630 sessions) was deliberately"
-        "\n     never committed, so nothing above sees it. A NO-CAPACITY verdict here has"
-        "\n     already been wrong once: ts-ignore-gen reads dead in this pool and carries the"
-        "\n     clearest damage signal that run produced. Ask whoever holds an uncommitted run"
-        "\n     before retiring anything."
+        "\n  [!!] THIS REPORT CANNOT SUPPORT A RETIREMENT. official-001 (630 sessions, five arms)"
+        "\n     was deliberately never committed, so nothing above sees it. Its NO-CAPACITY"
+        "\n     verdicts have been checked against that run twice and were wrong twice:"
+        "\n     ts-ignore-gen (3 genuine failures) and ts-tz-utc (5, across four arms)."
+        "\n     Until that run is committed or superseded, this ranks CANDIDATES for somebody"
+        "\n     with access to check them, and authorises nothing."
     )
     informative = counts["BOTH"] + counts["BENEFIT-ONLY"] + counts["DAMAGE-ONLY"]
     print(

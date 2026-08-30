@@ -37,6 +37,27 @@ retriever does when it returns evidence. A task's gold documents are the session
 For a `xs-*` synthesis task no single session suffices, so `all_shards@k` is reported beside
 `hit@k`: finding one half of a two-session fact is not finding the fact.
 
+A per-arm endpoint does not exist yet, and there is a trap in building one
+---------------------------------------------------------------------------
+
+This measures the corpus, not any product. Turning it into a per-arm retrieval endpoint needs
+one thing the harness does not have: an adapter-level method returning, for a namespace and a
+query string, an ordered list of ``(source_document_id, score)``. Everything else here is
+already backend agnostic. ``harness/adapters/base.py`` exposes nothing of the kind today, and
+the only search-adjacent code is ``RecallAdapter.search_env``, which builds environment
+variables; every arm's retrieval happens inside its own MCP server and the harness sees only
+tool calls in a transcript.
+
+Two constraints on whoever builds it, from the session that owns the prefetch arm:
+
+1. It belongs on the base class, not bolted onto one product, or the second vendor inherits a
+   worse interface than the first and every comparison inherits that.
+2. ⚠️ **Decide deliberately whether the ranked list is gated by the trust policy the product
+   serves through in a real session, and say which in the record.** recall's MCP path applies a
+   certified threshold and can abstain; a raw ranked list bypasses both, so a probe built on one
+   would measure a configuration no session ever runs. Ungated retrieval quality and served
+   retrieval quality are different questions and both are legitimate.
+
 Reading the output
 ------------------
 
