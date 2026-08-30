@@ -1,0 +1,5 @@
+{
+  "3b1faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": "lib/libfoo.so",
+  "77cdbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": "lib/libbar.so",
+  "0e42cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc": "share/notice.txt"
+}

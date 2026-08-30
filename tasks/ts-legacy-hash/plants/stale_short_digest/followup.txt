@@ -1,0 +1,1 @@
+That is it. The old rule, written down: a cache key was the digest truncated to four characters, because the cache was capped at a few hundred entries and four characters was thought to be plenty. Nothing used the full width.

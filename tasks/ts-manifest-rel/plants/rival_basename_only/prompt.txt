@@ -1,0 +1,1 @@
+The manifest keys are long and I want to know whether they need to be. audit/name_collisions.md checked whether basenames are unique in this release and audit/short_keys.md is the change that was argued for. Read both and write down what a manifest key should be.
