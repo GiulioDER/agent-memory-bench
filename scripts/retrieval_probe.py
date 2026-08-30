@@ -37,26 +37,32 @@ retriever does when it returns evidence. A task's gold documents are the session
 For a `xs-*` synthesis task no single session suffices, so `all_shards@k` is reported beside
 `hit@k`: finding one half of a two-session fact is not finding the fact.
 
-A per-arm endpoint does not exist yet, and there is a trap in building one
----------------------------------------------------------------------------
+Scoring a PRODUCT instead of the corpus: ``--arm``
+--------------------------------------------------
 
-This measures the corpus, not any product. Turning it into a per-arm retrieval endpoint needs
-one thing the harness does not have: an adapter-level method returning, for a namespace and a
-query string, an ordered list of ``(source_document_id, score)``. Everything else here is
-already backend agnostic. ``harness/adapters/base.py`` exposes nothing of the kind today, and
-the only search-adjacent code is ``RecallAdapter.search_env``, which builds environment
-variables; every arm's retrieval happens inside its own MCP server and the harness sees only
-tool calls in a transcript.
+    python -m scripts.retrieval_probe --corpus corpus --arm fs_grep
+    python -m scripts.retrieval_probe --corpus corpus --arm recall --namespace <tenant>
 
-Two constraints on whoever builds it, from the session that owns the prefetch arm:
+By default this measures the corpus. With ``--arm`` it measures a product, by asking the adapter
+for its own ranked list through ``MemoryAdapter.search`` and scoring that against the same gold
+labels. Everything else is unchanged, which is the point: the hit@k, the competitor tiers and
+the gold labelling are the same code for a vendor as for BM25.
 
-1. It belongs on the base class, not bolted onto one product, or the second vendor inherits a
-   worse interface than the first and every comparison inherits that.
-2. ⚠️ **Decide deliberately whether the ranked list is gated by the trust policy the product
-   serves through in a real session, and say which in the record.** recall's MCP path applies a
-   certified threshold and can abstain; a raw ranked list bypasses both, so a probe built on one
-   would measure a configuration no session ever runs. Ungated retrieval quality and served
-   retrieval quality are different questions and both are legitimate.
+⚠️ **Two things about an arm number are not the same as a backend number, and neither is
+cosmetic.**
+
+1. **``gating`` decides what question is being answered.** ``served`` is retrieval as the product
+   is sold: its threshold applied, abstention possible. ``raw`` is the underlying ranking with
+   the gate bypassed. Each arm supports only what it truthfully has, and the two are never pooled
+   silently: `recall` answers ``served`` only, because a ``raw`` list would need
+   ``RECALL_TRUST_MODE`` moved off the frozen config; `fs_grep` answers ``raw`` only, because it
+   is a directory and ``grep`` and has no trust policy to apply.
+2. **An arm's list is truncated at ``--top``, so ``miss`` means "not in the top k"**, while for
+   `bm25` and `voyage` it means "not retrieved at all". The columns look identical and are not.
+   The run prints this every time rather than relying on anyone reading this paragraph.
+
+An abstention is counted separately and scored as a miss, because a product that declined has
+retrieved nothing ON PURPOSE and that is a different fact from a ranking that failed.
 
 Reading the output
 ------------------
@@ -83,7 +89,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.adapters.base import CorpusManifest
+from harness.adapters.base import GATINGS, CorpusManifest
 from harness.tasks import discover_tasks
 from scripts.audit_corpus import readable_text
 
@@ -290,6 +296,81 @@ def estimate_tokens(texts) -> int:
     return int(sum(len(text.split()) for text in texts) * 1.35)
 
 
+class ArmBackend:
+    """A product's OWN ranked list, instead of one of this probe's rankers.
+
+    This is what turns a corpus difficulty number into a statement about a vendor. Everything
+    else in this file (gold labels, windows, hit@k, MRR, competitor tiers) is backend agnostic
+    already; the missing piece was that no adapter could be asked what it would have retrieved,
+    because every arm's retrieval happens inside its own MCP server and the harness only ever saw
+    tool calls in a transcript.
+
+    ⚠️ **`gating` is not a detail and is carried into every result.** recall answers `served`
+    only, with its certified threshold applied and abstention possible, because a `raw` list
+    would need `RECALL_TRUST_MODE` overridden away from the frozen config. `fs_grep` answers
+    `raw` only, because it is a directory and `grep` and has no trust policy to apply. Those are
+    different questions, both legitimate, and a table that pools them without saying so is
+    measuring two things under one heading.
+    """
+
+    def __init__(self, adapter, namespace: str, gating: str, limit: int) -> None:
+        if gating not in adapter.supported_gatings:
+            raise SystemExit(
+                f"{adapter.name} supports gating {adapter.supported_gatings}, not {gating!r}. "
+                f"Pass --gating with one it supports; the difference is what is being measured, "
+                f"not a formality."
+            )
+        self.adapter = adapter
+        self.namespace = namespace
+        self.gating = gating
+        self.limit = limit
+        self.name = f"{adapter.name}:{gating}"
+        self.abstentions = 0
+
+    def ranking(self, query: str) -> list[tuple[str, float]]:
+        result = self.adapter.search(
+            self.namespace, query, gating=self.gating, limit=self.limit
+        )
+        if result.abstained:
+            # An abstention is a DECISION, not an empty index, and the two must not read alike.
+            # A product that declines here has retrieved nothing on purpose and should score as a
+            # miss, with the count reported so nobody reads the miss as a ranking failure.
+            self.abstentions += 1
+        return [(hit.source_path, hit.score) for hit in result.hits]
+
+
+def build_arm(name: str, corpus_root: Path, gating: str | None, namespace: str | None, top: int):
+    """Construct one arm's adapter and point it at ``corpus_root``.
+
+    `fs_grep` is ingested here into a temporary staging directory, because its whole store IS the
+    rendered corpus and building it takes a second. `recall`'s tenant is built out of band
+    against a frozen manifest, so a namespace must be given rather than guessed: pointing this at
+    the wrong tenant would silently score a different corpus, which is the same class of error as
+    scoring a plant as gold.
+    """
+
+    import tempfile
+
+    from adapters.fs_grep.adapter import FsGrepAdapter
+    from adapters.recall.adapter import RecallAdapter
+
+    bundle = REPO / "corpus" / "claude_md_bundle_smoke.md"
+    if name == "fs_grep":
+        adapter = FsGrepAdapter(staging_root=tempfile.mkdtemp(), base_prompt_file=bundle)
+        namespace = namespace or "probe"
+        adapter.ingest(CorpusManifest.load(corpus_root), namespace)
+    elif name == "recall":
+        if not namespace:
+            raise SystemExit(
+                "--arm recall needs --namespace: its tenant is built out of band and this "
+                "cannot verify that an unnamed one holds the corpus being probed"
+            )
+        adapter = RecallAdapter(staging_root=tempfile.mkdtemp(), base_prompt_file=bundle)
+    else:  # pragma: no cover - argparse constrains this
+        raise SystemExit(f"unknown arm {name!r}")
+    return ArmBackend(adapter, namespace, gating or adapter.supported_gatings[0], top)
+
+
 def rank_documents(backend, windows: list[Window], query: str) -> list[tuple[str, float]]:
     """Score windows, keep each document's best window, and rank documents by it."""
 
@@ -351,18 +432,31 @@ def tier_of(rel: str, plan: dict | None, plants: dict[str, set[str]] | None = No
 
 
 def probe(
-    corpus_root: Path, backend_name: str, model: str, top: int, max_tokens: int = 0
+    corpus_root: Path,
+    backend_name: str,
+    model: str,
+    top: int,
+    max_tokens: int = 0,
+    arm: object | None = None,
 ) -> dict:
-    windows = load_windows(corpus_root)
     plan_path = corpus_root / "haystack.json"
     plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.is_file() else None
-    if backend_name == "bm25":
-        backend = BM25(windows)
-    elif backend_name == "voyage":
-        backend = Voyage(windows, model, max_tokens)
+    if arm is not None:
+        # An arm ranks whole documents itself, so no windowing happens and none is claimed: the
+        # window count below is the corpus's, reported for comparability, not something the arm
+        # was scored over.
+        windows = []
+        documents = set(CorpusManifest.load(corpus_root).sessions)
+        backend = arm
     else:
-        backend = Dense(windows, model)
-    documents = {window.doc for window in windows}
+        windows = load_windows(corpus_root)
+        documents = {window.doc for window in windows}
+        if backend_name == "bm25":
+            backend = BM25(windows)
+        elif backend_name == "voyage":
+            backend = Voyage(windows, model, max_tokens)
+        else:
+            backend = Dense(windows, model)
     plants, include_real = plant_files(corpus_root)
 
     rows = []
@@ -388,7 +482,11 @@ def probe(
                 f"{len(gold)} non-planted session(s) are on disk. Rebuild the condition corpus; "
                 f"a probe cannot say which of the two is right."
             )
-        ranking = rank_documents(backend, windows, task.prompt)
+        ranking = (
+            backend.ranking(task.prompt)
+            if isinstance(backend, ArmBackend)
+            else rank_documents(backend, windows, task.prompt)
+        )
         order = [rel for rel, _ in ranking]
         plant_positions = [index + 1 for index, rel in enumerate(order) if rel in planted]
         if not gold:
@@ -442,6 +540,8 @@ def probe(
         "backend": backend.name,
         "documents": len(documents),
         "windows": len(windows),
+        "gating": getattr(backend, "gating", None),
+        "abstentions": getattr(backend, "abstentions", None),
         "queries": len(scored),
         "gold_withheld_by_condition": sorted(withheld),
         "plants_ranked_top10": sum(1 for row in plant_ranked if row["plant_rank"] <= 10),
@@ -499,6 +599,27 @@ def main() -> int:
     )
     parser.add_argument("--backend", choices=("bm25", "dense", "voyage"), default="bm25")
     parser.add_argument(
+        "--arm",
+        choices=("fs_grep", "recall"),
+        default=None,
+        help="score the PRODUCT's own ranked list instead of this probe's rankers. Turns a "
+        "corpus difficulty number into a statement about a vendor.",
+    )
+    parser.add_argument(
+        "--gating",
+        choices=GATINGS,
+        default=None,
+        help="served (the trust policy the product actually serves through, threshold applied "
+        "and abstention possible) or raw (ungated ranking). NOT interchangeable, and each arm "
+        "supports only what it truthfully has; defaults to the arm's single supported mode.",
+    )
+    parser.add_argument(
+        "--namespace",
+        default=None,
+        help="the arm's store namespace or tenant. Required with --arm recall, whose tenant is "
+        "built out of band; fs_grep ingests into a temporary staging directory.",
+    )
+    parser.add_argument(
         "--model",
         default=None,
         help="embedder id; defaults to bge-small for --backend dense and voyage-4 for voyage",
@@ -514,6 +635,7 @@ def main() -> int:
     parser.add_argument("--per-task", action="store_true", help="print the per-task table too")
     args = parser.parse_args()
 
+    top = args.top
     roots = [Path(root) for root in (args.corpus or ["corpus"])]
     model = args.model or (
         "voyage-4" if args.backend == "voyage" else "BAAI/bge-small-en-v1.5"
@@ -522,8 +644,10 @@ def main() -> int:
     for root in roots:
         if not (root / "manifest.json").is_file():
             raise SystemExit(f"{root} has no manifest.json; it is not a corpus root")
-        print(f"probing {root.as_posix()} with {args.backend} ({model}) ...", file=sys.stderr)
-        results.append(probe(root, args.backend, model, args.top, args.max_tokens))
+        arm = build_arm(args.arm, root, args.gating, args.namespace, args.top) if args.arm else None
+        label = arm.name if arm is not None else f"{args.backend} ({model})"
+        print(f"probing {root.as_posix()} with {label} ...", file=sys.stderr)
+        results.append(probe(root, args.backend, model, args.top, args.max_tokens, arm))
 
     header = (
         f"{'documents':>10} {'windows':>9} {'hit@1':>7} {'hit@5':>7} {'hit@10':>7} "
@@ -540,6 +664,26 @@ def main() -> int:
 
     for result in results:
         s = result["summary"]
+        if s["gating"]:
+            print(
+                f"\n{s['corpus']}: arm {s['backend']}, gating {s['gating']}, "
+                f"{s['abstentions']} abstention(s)."
+            )
+            print(
+                "  [!!] An arm returns at most --top hits, so `miss` here means NOT IN THE TOP "
+                f"{top}, while for bm25 and voyage it means not retrieved at all. The two "
+                "columns do not mean the same thing and must not be differenced."
+            )
+            if s["gating"] == "served":
+                print(
+                    "  gating=served: the product's own threshold applied and it could abstain, "
+                    "so this is retrieval AS SOLD, not the underlying ranking."
+                )
+            else:
+                print(
+                    "  gating=raw: no trust policy applied. Not comparable with a served number "
+                    "from another arm."
+                )
         if s["gold_withheld_by_condition"]:
             print(
                 f"\n{s['corpus']}: [!!] CONDITION CORPUS. The governing session is WITHHELD "

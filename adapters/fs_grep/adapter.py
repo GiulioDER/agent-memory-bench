@@ -10,10 +10,18 @@ notes exist. No extraction, no index, no product.
 from __future__ import annotations
 
 import hashlib
+import re
 import shutil
 from pathlib import Path
 
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    RankedHit,
+    RankedResult,
+)
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
 from harness.transcripts import render_corpus
@@ -40,8 +48,25 @@ FS_GREP_SEARCH_SENTENCE = (
 )
 
 
+#: Words too common in a task prompt to discriminate between transcripts. Deliberately short:
+#: a long stoplist is a tuned retriever, and this arm's whole value is that it is not one.
+_STOP = frozenset(
+    (
+        "the", "a", "an", "is", "are", "to", "of", "in", "on", "and", "or", "not", "for",
+        "with", "as", "it", "be", "by", "at", "from", "into", "that", "this", "must", "every",
+        "one", "write", "add", "run", "then", "so", "its", "will", "can", "you", "your",
+    )
+)
+_WORD = re.compile(r"[a-z0-9_.]+")
+
+
 class FsGrepAdapter(MemoryAdapter):
     name = "fs_grep"
+
+    #: `raw` only, and the absence of `served` is the honest part. This arm has no trust policy,
+    #: no threshold and no abstention: it is a directory and `grep`. There is nothing to gate, so
+    #: claiming a `served` mode would invent a distinction the product does not have.
+    supported_gatings = ("raw",)
 
     def __init__(
         self,
@@ -154,3 +179,53 @@ class FsGrepAdapter(MemoryAdapter):
             "memory": "filesystem+grep",
             "instruction": "shared_protocol" if self.instruction is not None else "legacy_sentence",
         }
+
+    def search(
+        self, namespace: str, query: str, *, gating: str = "served", limit: int = 10
+    ) -> RankedResult:
+        """Rank the rendered transcripts by how many of the query's content words they contain.
+
+        ⚠️ **This is a harness-side model of what the arm's TOOLS afford, not a vendor's ranking
+        function**, and that distinction has to survive into anything published from it. Every
+        other arm has a retriever whose behaviour is the thing being measured; `fs_grep` has an
+        agent holding `Grep`, so what its number means is "what a term search over these files
+        can reach", which is exactly why the arm exists as a no-vendor floor.
+
+        Term counting rather than anything cleverer, for the same reason: a tuned scorer here
+        would quietly turn the floor into a competitor and flatter this arm against products that
+        cannot be tuned by us.
+        """
+
+        if gating != "raw":
+            raise ValueError(
+                f"{self.name} supports {self.supported_gatings} only: it has no trust policy, "
+                f"no threshold and no abstention, so there is nothing for {gating!r} to mean"
+            )
+        target = self._staging_dir(namespace)
+        if not target.is_dir():
+            raise FileNotFoundError(
+                f"{self.name}: {target} does not exist; ingest before searching"
+            )
+        terms = {w for w in _WORD.findall(query.lower()) if len(w) > 2 and w not in _STOP}
+        scored: list[tuple[float, str]] = []
+        for path in sorted(target.glob("*.md")):
+            text = path.read_text(encoding="utf-8", errors="replace").lower()
+            score = float(sum(text.count(term) for term in terms))
+            if score:
+                # `sessions__ts-dedup-order__p01.md` came from `sessions/ts-dedup-order/p01.jsonl`.
+                # render_corpus flattens separators to `__` precisely so this is reversible; a
+                # hit nobody can join back to a corpus document cannot be scored for retrieval.
+                rel = path.stem.replace("__", "/") + ".jsonl"
+                scored.append((score, rel))
+        scored.sort(key=lambda item: (-item[0], item[1]))
+        hits = tuple(
+            RankedHit(source_path=rel, score=score, rank=index + 1)
+            for index, (score, rel) in enumerate(scored[:limit])
+        )
+        return RankedResult(
+            hits=hits,
+            gating="raw",
+            abstained=False,
+            query_sha256=hashlib.sha256(query.encode("utf-8")).hexdigest(),
+            detail={"terms": sorted(terms), "documents_matched": len(scored)},
+        )

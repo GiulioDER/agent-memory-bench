@@ -26,8 +26,16 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    RankedHit,
+    RankedResult,
+)
 from harness.gate import AdmissionSignal
 from harness.transcripts import render_corpus
 
@@ -73,8 +81,137 @@ def corpus_fingerprint(corpus: CorpusManifest) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def parse_ranked_search(
+    stdout: str, *, gating: str, query: str, limit: int
+) -> RankedResult:
+    """Turn `recall search --evidence` output into a ranked list, PRESERVING the API's order.
+
+    Split out from the adapter so the part that can be wrong without a database is the part that
+    is tested. Three things it will not do:
+
+    * **re-sort**. The response order is the ranking, and that is the measurement.
+    * **invent a source**. A hit with no ``source_path`` cannot be joined to a corpus document,
+      so it is dropped and counted in ``detail`` rather than given a placeholder that would score
+      as a miss against the wrong document.
+    * **turn an abstention into an empty result silently**. Abstaining is a decision the product
+      made and is reported as one; an empty list from a product that engaged is a different
+      outcome with the same shape.
+    """
+
+    payload: dict[str, Any] = {}
+    for line in reversed(stdout.splitlines()):
+        stripped = line.strip()
+        if stripped.startswith("{") and stripped.endswith("}"):
+            try:
+                payload = json.loads(stripped)
+            except json.JSONDecodeError:
+                continue
+            break
+    bundle = payload.get("bundle") if isinstance(payload.get("bundle"), dict) else {}
+    raw = payload.get(
+        "evidence", payload.get("hits", payload.get("results", bundle.get("items", []))))
+    if not isinstance(raw, list):
+        raw = []
+
+    hits: list[RankedHit] = []
+    unjoinable = 0
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        source = item.get("source_path") or item.get("source")
+        if not source:
+            unjoinable += 1
+            continue
+        hits.append(
+            RankedHit(
+                source_path=str(source),
+                score=float(item.get("score", item.get("similarity", 0.0)) or 0.0),
+                rank=len(hits) + 1,
+            )
+        )
+        if len(hits) >= limit:
+            break
+    abstained = bool(
+        payload.get(
+            "abstained",
+            payload.get("status") == "abstained" or bundle.get("decision") == "abstain",
+        )
+    )
+    return RankedResult(
+        hits=tuple(hits),
+        gating=gating,
+        abstained=abstained,
+        query_sha256=hashlib.sha256(query.encode("utf-8")).hexdigest(),
+        detail={"returned": len(raw), "unjoinable": unjoinable},
+    )
+
+
 class RecallAdapter(MemoryAdapter):
     name = "recall"
+
+    #: `served` only, and the absence of `raw` is a deliberate refusal rather than a gap.
+    #:
+    #: A `raw` mode would mean overriding `RECALL_TRUST_MODE`, which is `strict` in
+    #: `config.frozen.json`. That would measure a configuration that is neither the frozen one nor
+    #: the one any session runs, and it would do so by editing the single field a vendor is
+    #: invited to review. The number would be better and would mean less. If ungated ranking is
+    #: ever the question, it needs its own record saying so, not a flag on this method.
+    supported_gatings = ("served",)
+
+    def search(
+        self,
+        namespace: str,
+        query: str,
+        *,
+        gating: str = "served",
+        limit: int = 10,
+        runner: Any = None,
+    ) -> RankedResult:
+        """The ranked list recall's own published search path returns, in ITS order.
+
+        ⚠️ Order is the entire payload, and this is where the obvious implementation is wrong.
+        `adapters/recall_prefetch.parse_prefetch_output` ends with
+        ``items.sort(key=lambda item: item.memory_id)``, which is harmless there because a bundle
+        is injected whole, and fatal here: sorting by id discards the ranking and would produce a
+        hit@1 that is an artefact of identifier assignment. This parses the response itself and
+        preserves the order the API returned.
+
+        ``served`` means what a session gets: the certified threshold applies and the product may
+        abstain, which is reported rather than smoothed into an empty list.
+        """
+
+        if gating != "served":
+            raise ValueError(
+                f"{self.name} supports {self.supported_gatings} only. A {gating!r} list would "
+                f"require overriding RECALL_TRUST_MODE, which config.frozen.json pins to "
+                f"{self.config['trust_mode']!r}; that measures a configuration no session runs."
+            )
+        command = [
+            sys.executable,
+            "-m",
+            "recall.cli",
+            "--tenant",
+            namespace,
+            "search",
+            "-k",
+            str(limit),
+            "--evidence",
+            query,
+        ]
+        run = runner or subprocess.run
+        result = run(
+            command,
+            env=self.search_env(namespace),
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"recall search failed with exit {result.returncode}: {result.stderr[-500:]}"
+            )
+        return parse_ranked_search(result.stdout, gating="served", query=query, limit=limit)
 
     def __init__(
         self,

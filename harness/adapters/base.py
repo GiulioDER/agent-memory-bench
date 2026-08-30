@@ -211,11 +211,78 @@ def digest_tree(root: Path) -> str:
     return digest.hexdigest()
 
 
+#: How a ranked list was obtained, and it must be reported with every number drawn from one.
+#:
+#: ``served``  exactly what a session gets, including whatever trust threshold, reranking or
+#:             abstention the product applies on its real path. This is the honest answer to
+#:             "how good is this product's retrieval **as it is sold**".
+#: ``raw``     the ungated ranked list, threshold and abstention bypassed. The honest answer to
+#:             "how good is the underlying ranking", which is a different question.
+#:
+#: ⛔ These are NOT interchangeable and a table that mixes them without saying so is measuring
+#: two things under one heading. recall's served path applies a certified threshold and can
+#: abstain; `fs_grep` has no trust policy at all and is therefore raw by construction. Reporting
+#: which one produced a number costs one field and removes the ambiguity entirely.
+GATINGS = ("served", "raw")
+
+
+@dataclass(frozen=True)
+class RankedHit:
+    """One retrieved document, in rank order.
+
+    ``source_path`` is the corpus-relative transcript path, which is what makes a hit joinable
+    against a task's gold sessions. A product that cannot report which corpus document an answer
+    came from cannot be scored for retrieval here, and that is a real finding about the product
+    rather than a gap in the harness.
+    """
+
+    source_path: str
+    score: float
+    rank: int
+
+
+@dataclass(frozen=True)
+class RankedResult:
+    hits: tuple[RankedHit, ...]
+    gating: str
+    abstained: bool
+    query_sha256: str
+    detail: Mapping[str, Any] = field(default_factory=dict)
+
+
 class MemoryAdapter(ABC):
     """One memory product's complete entry into the benchmark."""
 
     #: The arm name, unique across the registry.
     name: str = ""
+
+    #: Which gatings this arm can answer `search` under. Empty means it cannot be scored for
+    #: retrieval at all, which is the default: an arm opts in by implementing the method rather
+    #: than inheriting a hollow one that returns nothing and reads as a zero.
+    supported_gatings: tuple[str, ...] = ()
+
+    def search(
+        self, namespace: str, query: str, *, gating: str = "served", limit: int = 10
+    ) -> RankedResult:  # pragma: no cover - optional capability
+        """The product's own ranked answer to ``query``, in ITS order, not re-sorted.
+
+        This is the hook that lets a retrieval number say something about a VENDOR rather than
+        about the corpus. `scripts/retrieval_probe.py` scores the corpus with a fixed BM25 and a
+        hosted embedder precisely because nothing in the harness could ask an arm what it would
+        have retrieved; every arm's retrieval happens inside its own MCP server and the harness
+        only ever saw tool calls in a transcript.
+
+        ⚠️ Order is the payload. `adapters/recall_prefetch` sorts its items by ``memory_id``
+        before returning them, which is harmless for a bundle that gets injected whole and fatal
+        for a ranked list. An implementation that re-sorts has destroyed the only thing being
+        measured.
+
+        Raise rather than returning an empty result when the arm cannot do this. An empty list is
+        a legitimate answer meaning "found nothing", and conflating the two would let an
+        unimplemented arm score as a product that retrieves badly.
+        """
+
+        raise NotImplementedError(f"{self.name} exposes no ranked retrieval")
 
     @abstractmethod
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
