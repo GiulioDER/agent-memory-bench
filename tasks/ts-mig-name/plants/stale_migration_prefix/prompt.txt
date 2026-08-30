@@ -1,0 +1,1 @@
+Our oldest migrations all start with the word migration and the newer ones do not. archive/old_migrations.txt is a listing from that era and archive/prefix_drop.md is from when it changed. Work out what the naming rule was back then and write it down.

@@ -1,0 +1,1 @@
+How are the analytics migrations named? analytics/naming.md and analytics/why_parts.md are what we have. Work out the rule and write it down.
