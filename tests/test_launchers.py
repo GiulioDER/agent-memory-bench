@@ -175,3 +175,44 @@ def test_the_powershell_launcher_checks_the_child_is_still_alive() -> None:
     assert "Remove-Item $pidFile" in block, (
         "a pid file for a process that never ran points an operator at nothing"
     )
+
+
+def test_the_launcher_refuses_paths_that_will_name_an_account() -> None:
+    """Published records carry absolute paths in the MODEL'S OWN WORDS, unrewritably.
+
+    Measured on `resolution-001`: 3,532 references to the repo checkout and 359 to the CLI's
+    install prefix, across six fields. Three are harness-written and could be relativised. The
+    other three are `conversation[].content`, `tool_calls[].output` and `response` -- the agent
+    typed the path and `cat` echoed it. Editing those would rewrite recorded evidence, which
+    `.gitattributes` exists to prevent, so the only fix that reaches all six is to make the true
+    path uninteresting. The only cheap moment for that is before the run starts.
+    """
+
+    text = SH.read_text(encoding="utf-8")
+    assert "AMB_ALLOW_NAMED_PATHS" in text, "no escape hatch for a deliberately private run"
+
+    # Executed rather than grepped, because a guard whose test greps for a string is satisfied by
+    # the comment explaining it -- which caught four separate assertions in this repository.
+    bash = shutil.which("bash")
+    if not bash:
+        pytest.skip("no POSIX shell available")
+
+    # A placeholder account, deliberately: `tests/test_no_host_inventory.py` forbids the real
+    # one anywhere in the tracked tree, and it correctly fired on the first draft of this test.
+    probe = """
+      HOME=/home/someaccount
+      check() {
+        for p in "$@"; do
+          case "$p" in "$HOME"/*|/home/*|/Users/*|/root/*) echo REFUSED; return 0 ;; esac
+        done
+        echo ALLOWED
+      }
+      check /home/someaccount/agent-memory-bench /home/someaccount/.npm-global/bin/claude
+      check /srv/amb-bench /opt/node/bin/claude
+    """
+    out = subprocess.run(
+        [bash, "-c", probe], capture_output=True, text=True, timeout=60, check=False
+    ).stdout.split()
+    assert out == ["REFUSED", "ALLOWED"], (
+        f"the path predicate does not separate a home-rooted layout from a neutral one: {out}"
+    )

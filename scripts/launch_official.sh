@@ -66,6 +66,32 @@ command -v claude >/dev/null || { echo "claude is not on PATH" >&2; exit 2; }
 [ -d "$MEMPALACE_PALACE_ROOT" ] || { echo "no palace root at $MEMPALACE_PALACE_ROOT" >&2; exit 2; }
 [ -x "$REPO/.venv/bin/python" ] || { echo "no bench venv at $REPO/.venv" >&2; exit 2; }
 
+# ⚠️ Every absolute path a session touches is recorded verbatim in records.jsonl, and this tree
+# is published. Measured on `resolution-001`: 3,532 references to the repo checkout and 359 to
+# the CLI's install prefix, spread over six fields. Three are written by the harness and could be
+# relativised; the other three are the MODEL'S OWN WORDS and the TOOL'S OWN OUTPUT, where the
+# agent typed the path and `cat` echoed it. Rewriting those would edit recorded evidence, which
+# `.gitattributes` exists to prevent. So the fix is to make the true path uninteresting, and the
+# only moment that is cheap is before the run starts.
+#
+# Set AMB_ALLOW_NAMED_PATHS=1 to proceed anyway, e.g. for a private run whose records will not be
+# published. It is a deliberate word, not a flag anyone passes by accident.
+if [ "${AMB_ALLOW_NAMED_PATHS:-0}" != "1" ]; then
+  CLAUDE_BIN="$(command -v claude || true)"
+  for p in "$REPO" "$CLAUDE_BIN" "$MEMPALACE_PALACE_ROOT"; do
+    case "$p" in
+      "$HOME"/*|/home/*|/Users/*|/root/*)
+        echo "REFUSING: $p sits under a home directory, so every session will record it." >&2
+        echo "  Published records carry absolute paths in the model's own words, which cannot" >&2
+        echo "  be rewritten afterwards without editing recorded evidence." >&2
+        echo "  Move the checkout and the CLI under a neutral root (/srv/amb-bench is the" >&2
+        echo "  convention here), or set AMB_ALLOW_NAMED_PATHS=1 if these records stay private." >&2
+        exit 2
+        ;;
+    esac
+  done
+fi
+
 mkdir -p "$REPO/results/logs"
 STAMP="$(date -u +%Y%m%d-%H%M%SZ)"
 LOG="$REPO/results/logs/$RUN_ID-$STAMP.log"
