@@ -1,0 +1,1 @@
+That is the old rule. Recording it: every migration filename carried the literal word migration after the number, so a file was identifiable as one from its name alone wherever it was copied to.

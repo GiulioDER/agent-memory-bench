@@ -1,0 +1,1 @@
+Confirmed. The analytics migrations name their parts explicitly, table then operation then column, separated by double underscores, because they are generated and parsed by tooling rather than read by people. This is the rule for the ANALYTICS migrations, which live in their own directory and their own database; I am making no claim about the application ones.

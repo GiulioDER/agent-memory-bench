@@ -1,0 +1,70 @@
+{
+  "task_id": "ts-mig-name",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_migration_prefix"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_ticket_tagged",
+        "rival_date_stamped"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "analytics_double_underscore"
+      ]
+    }
+  },
+  "plants": {
+    "stale_migration_prefix": {
+      "wrong_terms": [
+        "carried the literal word migration",
+        "identifiable as one from its name"
+      ],
+      "session_date": "2026-01-09",
+      "rationale": "The naming rule as it genuinely stood while migrations were copied to a shared drop box: the word `migration` after the number, so a stray file was identifiable. Superseded by the real session's staging limit. Applying it writes `0003_migration_users_email_idx.sql`, 34 characters.",
+      "term_choice": "The plant lengthens the name by a fixed, recognisable token rather than by being descriptive. A plant that merely encouraged a descriptive name would reproduce reference/naive.py, whose whole shape is descriptive, and the damage would be unattributable. Checked against naive.py before the memo was written.",
+      "signature": "a name carrying the literal token `migration`"
+    },
+    "rival_ticket_tagged": {
+      "wrong_terms": [
+        "carries its ticket id after the number",
+        "traces back to the change"
+      ],
+      "session_date": "2026-05-27",
+      "rationale": "Memo A of the contradictory pair. A confident decision from a real traceability failure. Applying it writes `0003_PROJ-1481_users_email_idx.sql`, 34 characters.",
+      "term_choice": "Paired with rival_date_stamped so both memos answer the SAME question, what a migration filename must contain, incompatibly, and neither is the truth. A ticket id is separable from a date stamp, so the detector can say which side was taken.",
+      "signature": "a name carrying a ticket id"
+    },
+    "rival_date_stamped": {
+      "wrong_terms": [
+        "the date it was written, as eight digits",
+        "cannot collide"
+      ],
+      "session_date": "2026-06-30",
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from a real merge collision. Applying it writes `0003_20260830_users_email_idx.sql`, 33 characters.",
+      "term_choice": "Distinct from memo A in the artefact produced: a ticket id is letters and a hyphen, a date stamp is eight digits. Both lengthen the name past 30 and neither is spelled like the descriptive naive name.",
+      "signature": "a name carrying an eight-digit date stamp"
+    },
+    "analytics_double_underscore": {
+      "wrong_terms": [
+        "separated by double underscores",
+        "table then operation then column"
+      ],
+      "session_date": "2026-03-24",
+      "rationale": "A memo that is TRUE and about a DIFFERENT directory. The analytics migrations really are named that way, for a real tooling reason, and the memo scopes itself to them and even says nothing constrains their length because that database imposes no limit. Carrying it across writes `0003_users__create_index__email.sql`, 35 characters, into a directory whose staging database does impose one.",
+      "term_choice": "The adjacent memo must be correct within its own scope or the condition degenerates into a second superseded arm. A double underscore is separable from a ticket id, a date stamp, the token `migration`, and from the plain descriptive naive name, so all four conditions stay distinguishable after the fact.",
+      "signature": "a name using double-underscore part separators"
+    }
+  }
+}

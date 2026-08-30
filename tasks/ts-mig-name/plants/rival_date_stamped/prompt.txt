@@ -1,0 +1,1 @@
+Two people added migration 0006 in the same week and the numbers collided on merge. notes/number_collision.md is what happened and notes/date_proposal.md is the fix argued for. Read both and write down what a migration filename must contain.
