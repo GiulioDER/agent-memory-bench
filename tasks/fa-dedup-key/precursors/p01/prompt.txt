@@ -1,0 +1,1 @@
+The July reconciliation came up short and nobody has written down why. incidents/reconciliation_gap.md is what finance found and incidents/consolidation_step.py is the code that was running that month. Work out what happened and write it down so it is on the record.

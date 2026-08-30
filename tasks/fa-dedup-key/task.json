@@ -1,0 +1,12 @@
+{
+  "task_id": "fa-dedup-key",
+  "kind": "primary",
+  "prompt": "Write consolidate.py in the repository root exposing consolidate(paths) -> list[dict]. It reads the JSON Lines order files at the given paths, in the order given, and returns every order exactly once, keeping the reading order. A redelivered file means an order can appear again in a later file and must not be returned twice. Do not change the order records themselves.",
+  "fact_terms": [
+    "deduplicating on order_id",
+    "two suppliers reuse the same id range",
+    "order_id is not unique on its own",
+    "dropped 1,214 orders"
+  ],
+  "memory_bundle_id": "bundle_fa-dedup-key"
+}
