@@ -25,13 +25,13 @@ The first assembles a corpus root of 4,875 documents (20 MB, 20 seconds) beside 
 195-document feed. The second measures how hard it is to retrieve from, with a fixed stdlib
 BM25, no model call and no money, in about 20 seconds. Neither touches `corpus/manifest.json`.
 `--backend voyage` adds the semantic axis and is the one that costs money; see the end of this
-file for how it is run and why it runs on VPS2.
+file for how it is run and why it runs on the benchmark host.
 
 ## What was measured
 
 33 queries, one per task with recorded sessions, each query being the task prompt verbatim. Two
 rankers: a fixed stdlib BM25, and `voyage-4` (the family the production memory corpus is built
-with), the API call originating on VPS2 so no model runs on this workstation.
+with), the API call originating on the benchmark host so no model runs on this workstation.
 
 | corpus | documents | near-miss | `bm25` hit@1 | `voyage` hit@1 | `voyage` hit@10 | `bm25` above | `voyage` above |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -137,7 +137,10 @@ control. A tier that provably competes with neither ranker is what makes the oth
 concentrations readable.
 
 ```bash
-ssh vps2 'cd ~/bench-probe && set -a && . ~/recall-repos/.env && set +a && ~/recall-repos/.venv/bin/python -m scripts.retrieval_probe --backend voyage --corpus corpus/haystack/scale-25/seed-1'
+# On the benchmark host, with the location variables set. See
+# adapters/recall/location.example.env; nothing here has a default, because a wrong host
+# answers confidently instead of failing.
+ssh "$AMB_RECALL_SSH_HOST" "cd \"$AMB_RECALL_REMOTE_ROOT\" && set -a && . \"$AMB_RECALL_REMOTE_ENV_FILE\" && set +a && \"$AMB_RECALL_REMOTE_PYTHON\" -m scripts.retrieval_probe --backend voyage --corpus corpus/haystack/scale-25/seed-1"
 ```
 
 About 25 minutes for 46,000 windows across four corpora, roughly 9.1M tokens. ⚠️ There is no

@@ -50,10 +50,10 @@ after it.
 ⛔ This report CANNOT support a retirement, and that is a measured claim
 ------------------------------------------------------------------------
 
-This pools the runs committed to ``results/``. `official-001` ran to completion on VPS2, 630
-sessions across four conditions and five arms, and was deliberately never committed because the
-instrument was miscalibrated and a ranking from it would misrepresent every arm. **Nothing in
-this report sees it.**
+This pools the runs committed to ``results/``. `official-001` ran to completion on the
+benchmark host, 630 sessions across four conditions and five arms, and was deliberately never
+committed because the instrument was miscalibrated and a ranking from it would misrepresent
+every arm. **Nothing in this report sees it.**
 
 Its NO-CAPACITY verdict has now been checked against that run twice and has been wrong twice:
 

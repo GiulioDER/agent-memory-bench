@@ -168,8 +168,8 @@ is the parameter to sweep, not scale.
 ### Prediction 6 was not run, and why that matters
 
 The dense backend was **not** run. The user's standing instruction is that embedding runs on
-VPS2 and not on this workstation, for every project, and `fastembed` is recorded as absent on
-VPS2. So the semantic axis is unmeasured, and the honest statement of what is known is narrower
+the benchmark host and not on this workstation, for every project, and `fastembed` is recorded as absent
+there. So the semantic axis is unmeasured, and the honest statement of what is known is narrower
 than this record was written to claim:
 
 ⚠️ **Everything above shows that near-misses generated from prompt vocabulary defeat a TERM
@@ -193,7 +193,7 @@ corpus behind it had few competitors, which is what the review already argued.
 
 Prediction 6 was recorded above as "not run". It was then run, on the same four corpora, with
 `voyage-4` (1024 dimensions, the family the production memory corpus is built with), the API
-call originating on VPS2 so no model runs on this workstation. 9,072,053 tokens estimated across
+call originating on the benchmark host so no model runs on this workstation. 9,072,053 tokens estimated across
 the four corpora. Artifact: `results/retrieval/015-voyage.json`.
 
 | corpus | documents | near-miss | `bm25` hit@1 | `voyage` hit@1 | `voyage` hit@10 | `voyage` mean above |
@@ -259,7 +259,9 @@ where a corpus with competitors starts to bite.
 ### Cost and reproduction
 
 ```bash
-ssh vps2 'cd ~/bench-probe && set -a && . ~/recall-repos/.env && set +a && ~/recall-repos/.venv/bin/python -m scripts.retrieval_probe --backend voyage --max-tokens 5000000 --corpus corpus --corpus corpus/haystack/scale-25/seed-1'
+# On the benchmark host, with the location variables set. See
+# adapters/recall/location.example.env.
+ssh "$AMB_RECALL_SSH_HOST" "cd \"$AMB_RECALL_REMOTE_ROOT\" && set -a && . \"$AMB_RECALL_REMOTE_ENV_FILE\" && set +a && \"$AMB_RECALL_REMOTE_PYTHON\" -m scripts.retrieval_probe --backend voyage --max-tokens 5000000 --corpus corpus --corpus corpus/haystack/scale-25/seed-1"
 ```
 
 Roughly 25 minutes for 46,000 windows. ⚠️ The run has no incremental caching, so a failure on
@@ -325,3 +327,17 @@ Full account: `docs/audit/2026-08-30-audit-fix-record.md`. Re-measure:
 ```bash
 python -m scripts.retrieval_probe --corpus corpus --corpus corpus/haystack/scale-25/seed-1 --backend bm25 --top 10
 ```
+
+
+## 🔁 Redaction, 2026-08-30: the reproduction command named the host
+
+The `ssh` line in this record spelled out an ssh alias, a service account's paths and the
+location of a production `.env`. That is a host inventory, which this repository's `.gitignore`
+forbids in its first three lines and which was removed from
+`adapters/recall/config.frozen.json` on the same day. It is replaced above with the
+variable-named form; `adapters/recall/location.example.env` says what to set.
+
+**Only the command changed. No prediction, no measured value, and no citation was touched**, and
+this note exists so the edit is visible rather than silent. Location is not a protocol fact:
+which machine served the corpus cannot change what the probe measured, which is the argument
+`notes.transport` in the frozen config already makes.

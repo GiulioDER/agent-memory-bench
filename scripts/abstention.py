@@ -74,7 +74,8 @@ CORPUS = REPO / "corpus"
 # arm, and both were added here. Both were wrong, for a reason no amount of care with the
 # committed data could have caught:
 #
-# `official-001` ran to completion on VPS2 (630 sessions, four conditions, five arms) and its
+# `official-001` ran to completion on the benchmark host (630 sessions, four conditions,
+# five arms) and its
 # results were deliberately NOT committed, because the instrument was miscalibrated and a ranking
 # from it would misrepresent every arm. It is therefore invisible to any analysis over this tree.
 # Checked against that run's records by the session that holds them:
