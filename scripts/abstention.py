@@ -53,7 +53,12 @@ from harness.abstention import cells_from_records, endpoints
 from harness.adapters.base import CorpusManifest
 from harness.costs import add_pricing_arguments, pricing_from_args
 from harness.damage import CORPUS_CONDITIONS
-from scripts.assemble_condition_corpus import assemble, default_selection, excluded_by_class
+from scripts.assemble_condition_corpus import (
+    assemble,
+    default_selection,
+    excluded_by_class,
+    haystack_root,
+)
 
 CORPUS = REPO / "corpus"
 
@@ -265,7 +270,9 @@ def run_condition(args, condition: str) -> Path:
         )
 
     corpus_root = REPO / "corpus" / "conditions" / condition / f"seed-{args.seed}"
-    provenance = assemble(condition, args.seed, selection, corpus_root)
+    provenance = assemble(
+        condition, args.seed, selection, corpus_root, haystack=haystack_root()
+    )
     print(
         f"[{condition}] {len(selection)} task(s), "
         f"{provenance['sessions_total']} session file(s) in the feed"
