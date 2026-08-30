@@ -1,0 +1,1 @@
+Confirmed. The vendor manifest is keyed by the content digest, with the path as the value, so an identical blob shipped at two paths appears once. This is the rule for the vendor manifest, which is a deduplicating index; our own release manifest is a different artefact and I am making no claim about it.

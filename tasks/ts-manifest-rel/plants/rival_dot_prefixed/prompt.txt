@@ -1,0 +1,1 @@
+Some of our generated files use `./` in front of relative paths and some do not, and a script broke on the difference. notes/path_ambiguity.md is the incident and notes/explicit_relative.md is what was proposed. Read both and write down how a manifest key should be spelled.

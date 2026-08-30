@@ -1,0 +1,1 @@
+That is the old rule. Recording it: while one manifest covered every release, each key was prefixed with the release version, so `1.3.0/release/app/main.py` and `1.4.0/release/app/main.py` could sit in the same file without colliding. The version came from release/VERSION.

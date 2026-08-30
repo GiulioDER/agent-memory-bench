@@ -1,0 +1,1 @@
+I need to know how the vendor manifest is keyed before I touch the importer. vendor/manifest_sample.json and vendor/dedup_rationale.md are what we have. Work out the rule and write it down.
