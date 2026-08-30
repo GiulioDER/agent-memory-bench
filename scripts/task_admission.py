@@ -47,8 +47,22 @@ governing fact no retriever can find is not a task a memory product can win, how
 difficulty band is, and the two failure modes are worth telling apart before a run rather than
 after it.
 
-This reports. It does not edit any suite list: which tasks a preregistered run admits is a
-preregistration decision.
+⛔ What this CANNOT see, and it is enough to make a wrong decision
+------------------------------------------------------------------
+
+This pools the runs committed to ``results/``. `official-001` ran to completion on VPS2, 630
+sessions across four conditions and five arms, and was deliberately never committed because the
+instrument was miscalibrated and a ranking from it would misrepresent every arm. **Nothing in
+this report sees it.**
+
+That is not a footnote. On 2026-08-30 this report named `ts-ignore-gen` as having zero failures
+across every arm, it was retired from the harm suite on that basis, and it turned out to carry
+three deterministic failures in admitted cells under `adjacent` in `official-001`: the single
+clearest damage signal that run produced. The retirement was reverted the same day.
+
+So: **this report identifies CANDIDATES. It cannot authorise a retirement.** Before removing any
+task, ask whoever holds an uncommitted run. It does not edit any suite list, and which tasks a
+preregistered run admits stays a preregistration decision.
 """
 
 from __future__ import annotations
@@ -82,11 +96,27 @@ EXCLUDED_RUNS = {
 }
 
 
-def load_records() -> tuple[dict[str, dict[str, list[bool]]], list[str]]:
-    """Pool every admissible run into ``task -> arm -> [success, ...]``."""
+def load_records() -> tuple[dict[str, dict[str, list[bool]]], list[str], int]:
+    """Pool every admissible run into ``task -> arm -> [success, ...]``.
+
+    ⛔ **The unit is a failure in an ADMITTED cell with no recorded error, not ``success ==
+    False``.** The first version of this counted raw outcomes, and that is wrong in the direction
+    that matters: a session that crashed reads as a task the arm failed, so a task nobody can
+    actually fail looks alive and stays in a suite. Across the seven pooled runs, 18 records
+    carry an ``error`` and every one of them has ``success`` false.
+
+    Two filters, and they catch different things:
+
+    * ``admission.json`` lists the ``(task, seed)`` cells a run DISCARDED, usually because one
+      arm never produced a comparable session. Those cells were excluded from the run's own
+      analysis and including them here would contradict the run's published numbers.
+    * ``error`` marks a session that did not complete. That is a harness outcome, not a task
+      outcome.
+    """
 
     pooled: dict[str, dict[str, list[bool]]] = defaultdict(lambda: defaultdict(list))
     used: list[str] = []
+    dropped = 0
     for run in sorted(p for p in RESULTS.iterdir() if p.is_dir()):
         if run.name in EXCLUDED_RUNS:
             continue
@@ -96,6 +126,13 @@ def load_records() -> tuple[dict[str, dict[str, list[bool]]], list[str]]:
         if not path.is_file():
             continue
         used.append(run.name)
+        discarded: set[tuple[str, int]] = set()
+        admission = run / "admission.json"
+        if admission.is_file():
+            data = json.loads(admission.read_text(encoding="utf-8"))
+            discarded = {
+                (str(cell[0]), int(cell[1])) for cell in data.get("discarded_cells", ())
+            }
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
@@ -103,8 +140,12 @@ def load_records() -> tuple[dict[str, dict[str, list[bool]]], list[str]]:
             success = record.get("success")
             if success is None:
                 continue
-            pooled[str(record["task_id"])][str(record["arm"])].append(bool(success))
-    return pooled, used
+            task_id = str(record["task_id"])
+            if record.get("error") or (task_id, int(record.get("seed", -1))) in discarded:
+                dropped += 1
+                continue
+            pooled[task_id][str(record["arm"])].append(bool(success))
+    return pooled, used, dropped
 
 
 def verdict(
@@ -131,7 +172,7 @@ def main() -> int:
     parser.add_argument("--out", default=None, help="write the table to this JSON file")
     args = parser.parse_args()
 
-    pooled, used = load_records()
+    pooled, used, dropped = load_records()
     ranks: dict[str, int | None] = {}
     if args.retrieval:
         payload = json.loads(Path(args.retrieval).read_text(encoding="utf-8"))
@@ -165,6 +206,10 @@ def main() -> int:
         )
 
     print(f"pooled {len(used)} runs: {', '.join(used)}")
+    print(
+        f"  dropped {dropped} records: errored sessions and cells the run itself discarded. "
+        f"A crashed session is a harness outcome, not a task outcome."
+    )
     for run, why in sorted(EXCLUDED_RUNS.items()):
         print(f"  excluded {run}: {why}")
     print()
@@ -193,6 +238,13 @@ def main() -> int:
     ):
         if counts[name]:
             print(f"  {name:14s} {counts[name]:>3}")
+    print(
+        "\n  ⛔ CANDIDATES, NOT A DECISION. official-001 (630 sessions) was deliberately"
+        "\n     never committed, so nothing above sees it. A NO-CAPACITY verdict here has"
+        "\n     already been wrong once: ts-ignore-gen reads dead in this pool and carries the"
+        "\n     clearest damage signal that run produced. Ask whoever holds an uncommitted run"
+        "\n     before retiring anything."
+    )
     informative = counts["BOTH"] + counts["BENEFIT-ONLY"] + counts["DAMAGE-ONLY"]
     print(
         f"\n  {informative} of {len(rows)} tasks can express an outcome today.\n"

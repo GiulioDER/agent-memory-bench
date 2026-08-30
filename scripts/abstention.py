@@ -68,23 +68,35 @@ from scripts.assemble_condition_corpus import assemble
 # See docs/reviews/2026-08-30-instrument-review.md. official-001 spent 82.2% of its sessions on
 # cells where every arm produced the same outcome; this is the first cut against that.
 #
-# Extended 2026-08-30 by `scripts/task_admission.py`, which pools the seven committed runs and
-# reports capacity per task. It found two more with zero failures across every arm. Their counts
-# are lower than the four above because this pooling sees only what is COMMITTED to `results/`,
-# and official-001's records are not in the tree; that is a smaller evidence base, not a
-# different verdict, and it is stated here rather than smoothed over.
+# ⛔ **This list may not be extended from the COMMITTED results tree alone, and one attempt to do
+# so on 2026-08-30 was reverted the same day.** `scripts/task_admission.py` pooled the seven
+# committed runs, found `ts-ignore-gen` and `ts-natural-order` with zero failures across every
+# arm, and both were added here. Both were wrong, for a reason no amount of care with the
+# committed data could have caught:
 #
-#     python -m scripts.task_admission --retrieval results/retrieval/015-bm25-ablation.json
+# `official-001` ran to completion on VPS2 (630 sessions, four conditions, five arms) and its
+# results were deliberately NOT committed, because the instrument was miscalibrated and a ranking
+# from it would misrepresent every arm. It is therefore invisible to any analysis over this tree.
+# Checked against that run's records by the session that holds them:
+#
+#   ts-ignore-gen     3 failures, all in ADMITTED cells, no error, all under `adjacent`, all one
+#                     memory arm, all three seeds. Deterministic, reproducible and attributable:
+#                     the single clearest damage signal official-001 produced. Retiring it would
+#                     have deleted exactly the evidence this suite exists to collect.
+#   ts-natural-order  2 failures in admitted cells, one memory arm and one bare, plus 1 errored.
+#
+# The four entries below were re-checked the same way and all four stand: their apparent failures
+# are errored sessions in DISCARDED cells, so zero genuine failures between them.
+#
+# 🔑 The transferable rule, which cost a wrong retirement to learn: **a retirement needs evidence
+# from every run that exists, not from every run that is committed.** Ask the holder of an
+# uncommitted run before removing a task. `task_admission.py` reports candidates; it cannot
+# authorise a retirement.
 RETIRED_TASKS = {
     "ts-glob-hidden": "0 failures in 113 sessions, every arm, every run",
     "ts-bool-env": "0 failures in 62 sessions",
     "ts-csv-quote": "0 failures in 54 sessions",
     "ts-append-only": "1 failure in 117 sessions, which cannot separate two arms either",
-    "ts-ignore-gen": "0 failures in 60 committed sessions across 7 runs",
-    # ⚠️ Thinner than every other entry: 18 sessions is enough to see that nothing has failed and
-    # not enough to be confident nothing would. Re-admit this one first if the suite ever needs
-    # tasks back, and re-screen it against a harder model before trusting the retirement.
-    "ts-natural-order": "0 failures in 18 committed sessions, a thin base; re-screen before reuse",
 }
 
 

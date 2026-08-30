@@ -90,10 +90,51 @@ top ten 12% of the time, so reranking now has work to do and 12% of tasks are be
 entirely. Preregistration 014's configuration should not be carried onto a haystack corpus
 without re-deciding this.
 
-To go further, the near-miss construction has to move from lexical to semantic adjacency: same
-meaning neighbourhood, different scope, rather than same words. The `topical` tier is the
-evidence that this works, since it is the largest competitor source for `voyage` while costing
-BM25 nothing.
+## The obvious next lever was tried, and it did not work
+
+The inference from the table above is that the near-miss construction should move from lexical to
+semantic adjacency: same meaning neighbourhood, different words. That was built, preregistered as
+`016`, and measured. **It failed**, and four of its five predictions were wrong.
+
+`scripts/haystack_neighbourhoods.py` holds one authored neighbourhood per task, each sharing zero
+distinctive words with its task's prompt and settling a question on an axis the task does not ask
+about. Competitor yield per document on the 25x corpus, against `voyage-4`:
+
+| tier | documents | Voyage competitors | concentration |
+|---|---:|---:|---:|
+| `near_miss`, built from prompt WORDS | 468 (9.6%) | 117 (33.3%) | **3.47x** |
+| `topical`, generic software-convention prose | 702 (14.4%) | 96 (27.4%) | **1.90x** |
+| `semantic`, authored neighbourhoods | 702 (14.4%) | 29 (8.3%) | **0.57x** |
+| `background`, unrelated domain work | 2,808 (57.6%) | 51 (14.5%) | 0.25x |
+
+The lexical near-miss is the strongest hard negative against the **embedder** too, by 1.8x over
+`topical` and 6x over the tier built specifically to beat it. Adding the semantic tier moved
+`voyage` hit@1 not at all: 0.333 before, 0.333 after.
+
+**Why, and this is the transferable part.** Two rules governed the neighbourhoods. Rule 1 removed
+every shared word. Rule 3 required an orthogonal decision axis, because a document that is
+adjacent **and** answers the task's question in the wrong direction is a `contradictory` plant
+rather than a hard negative. Rule 3 was necessary and it is what broke the tier: together the two
+rules moved the documents out of the neighbourhood altogether. What was left was business-process
+prose (retention windows, approval workflows, currency and jurisdiction) while the task prompts
+are technical-convention prose about files.
+
+So the lesson is not that meaning is a weaker lever than words. It is that **semantic adjacency
+for an embedder is dominated by register and genre, not by which artefact a document is about.**
+`topical` beats `semantic` 3.3x per document while being generic, because it is written in the
+same register: encodings, ordering, configuration, logs, retries, paths. Two documents can
+concern the same file and sit far apart in embedding space if one is a technical decision and the
+other is a policy decision.
+
+A third generation should keep rule 3 and change the register, writing each neighbourhood as a
+technical decision adjacent to the task's technical decision. For `ts-crlf-export` that is "which
+order the columns are written in", not "who consumes the extract and on what schedule". Failing
+that, hard-negative mining is the named fallback, with its circularity disclosed: mining with one
+embedder and scoring with another is the version worth doing.
+
+The `semantic` tier stays in the generator at share 0.15, not as a lever but as a measured
+control. A tier that provably competes with neither ranker is what makes the other tiers'
+concentrations readable.
 
 ```bash
 ssh vps2 'cd ~/bench-probe && set -a && . ~/recall-repos/.env && set +a && ~/recall-repos/.venv/bin/python -m scripts.retrieval_probe --backend voyage --corpus corpus/haystack/scale-25/seed-1'

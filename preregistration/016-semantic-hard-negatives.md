@@ -107,3 +107,85 @@ corrupt task-success runs, and the response is to fix the neighbourhood, not to 
 result.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Results, measured 2026-08-30
+
+Artifacts: `results/retrieval/016-bm25.json`, `results/retrieval/016-voyage.json`. Generator
+digest `3124e4108026`, 33 queries, zero misses, zero sessions discarded for containment.
+5,669,392 tokens estimated on `voyage-4`.
+
+**The falsifier fires. The authored-neighbourhood idea failed on its own terms.**
+
+| corpus | documents | `bm25` hit@1 | `voyage` hit@1 | `voyage` hit@10 | `voyage` mean above |
+|---|---:|---:|---:|---:|---:|
+| real feed (`015`) | 195 | 0.485 | 0.394 | 1.000 | 1.79 |
+| 780 docs, 60% **lexical** near-miss (`015`) | 780 | 0.242 | **0.333** | 0.879 | 5.36 |
+| 780 docs, 60% **semantic** near-miss | 780 | 0.515 | **0.394** | 0.970 | 2.67 |
+| 25x, `015` mix | 4,875 | 0.182 | 0.333 | 0.879 | 10.67 |
+| 25x, with the semantic tier | 4,875 | 0.182 | **0.333** | 0.879 | 10.64 |
+
+### The predictions, scored
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| 1 | `voyage` hit@1 on corpus A is 0.24 | **0.333**, unchanged from `015` | falsified: no movement at all |
+| 2 | semantic supplies ≥ 30% of Voyage competitors at 15% of the corpus, ≥ 2x | **8.3% at 14.4%, 0.57x** | falsified, and below its population share |
+| 3 | corpus B `voyage` hit@1 is 0.27, beating the lexical arm's 0.333 | **0.394**, worse than the lexical arm and equal to the 195-document feed | falsified in the opposite direction |
+| 4 | `bm25` moves < 3 points; semantic supplies < 10% of BM25 competitors | 0.182 against 0.182; **0%** | confirmed exactly |
+| 5 | `voyage` hit@10 on corpus A is 0.79 | **0.879**, unchanged | falsified |
+
+Four of five wrong. The one that held is the one that says the construction is what it claims to
+be: the semantic tier is completely invisible to BM25. It is also very nearly invisible to the
+embedder, which is the problem.
+
+### Competitor yield per document, which is the number that explains it
+
+On the 25x corpus, concentration is a tier's share of Voyage's competitors divided by its share
+of the corpus. Above 1.0 a tier is pulling its weight as a hard negative.
+
+| tier | documents | Voyage competitors | concentration |
+|---|---:|---:|---:|
+| `near_miss`, built from prompt WORDS | 468 (9.6%) | 117 (33.3%) | **3.47x** |
+| `topical`, generic software-convention prose | 702 (14.4%) | 96 (27.4%) | **1.90x** |
+| `semantic`, authored neighbourhoods | 702 (14.4%) | 29 (8.3%) | **0.57x** |
+| `background`, unrelated domain work | 2,808 (57.6%) | 51 (14.5%) | 0.25x |
+
+The lexical near-miss is the strongest hard negative against the EMBEDDER too, by a factor of
+1.8 over `topical` and 6 over the tier built specifically to beat it.
+
+### Why it failed, which is the useful part
+
+The preregistration's rule 3 required each neighbourhood to settle a question on an axis the task
+does not ask about, because a semantically adjacent document that answers the task's question in
+the wrong direction is a `contradictory` plant rather than a hard negative. That rule was
+necessary and it is what broke the tier.
+
+**Rule 1 removed the shared words. Rule 3 removed the shared subject. Together they moved the
+documents out of the neighbourhood entirely.** What was left was business-process prose:
+retention windows, approval workflows, currency and jurisdiction, who countersigns a handover.
+The task prompts are technical-convention prose about files. `topical` outperforms `semantic` by
+3.3x per document while being generic, because it is written in the same register: encodings,
+ordering, configuration, logs, retries, paths.
+
+So the lesson is not that meaning is a weaker lever than words. It is that **semantic adjacency
+for an embedder is dominated by register and genre, not by which artefact a document is about.**
+Two documents can concern the same file and sit far apart in embedding space if one is a
+technical decision and the other is a policy decision. I had assumed same-artefact implied
+same-neighbourhood, and it does not.
+
+### What follows
+
+1. **The semantic tier stays in the generator at share 0.15 and is not the default lever.** It is
+   retained because it is a measured control: a tier that provably competes with neither ranker
+   is what makes the other tiers' concentrations readable.
+2. **A third generation should keep rule 3 and change the register**, writing each neighbourhood
+   as a technical decision adjacent to the task's technical decision rather than as a policy
+   decision about the same artefact. For `ts-crlf-export` that is "which order the columns are
+   written in", not "who consumes the extract and on what schedule". That is a rewrite of
+   `scripts/haystack_neighbourhoods.py` and needs its own record.
+3. **Hard-negative mining is now the named fallback**, as this preregistration said it would be.
+   Its circularity is real and would have to be disclosed: mining with `voyage-4` and scoring
+   with `voyage-4` measures the selection. Mining with one embedder and scoring with another is
+   the version worth doing.
+4. **Nothing about the corpus published in `015` changes.** The 25x corpus with the `015` mix
+   remains the hardest measured configuration, at `voyage` hit@1 0.333 and `bm25` 0.182.
