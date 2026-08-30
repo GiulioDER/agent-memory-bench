@@ -84,22 +84,37 @@ def _windowed(documents: dict[str, str]) -> tuple[dict[str, str], dict[str, str]
     return windows, owner
 
 
-def rank_plants(condition: str) -> list[tuple[str, int | None, int]]:
-    """`(task_id, rank, corpus size)` for every task whose session sits in this condition."""
+def rank_plants(condition: str) -> tuple[list[tuple[str, int | None, int]], list[str]]:
+    """`(rows, skipped)`: a rank per task that HAS something placed here, plus those that do not.
 
+    A task appears in `skipped` when its plan for this condition places nothing at all
+    (`include_real=False` with no plants), which is the whole of the `absent` condition. Those are
+    not findable and are not supposed to be.
+    """
+
+    skipped: list[str] = []
     root = REPO / "corpus" / "conditions" / condition / "seed-1"
     if not root.is_dir():
-        return []
+        return [], skipped
     documents = read_corpus(root)
     if not documents:
-        return []
+        return [], skipped
     windows, owner = _windowed(documents)
     index = Bm25Index(windows)
 
     rows = []
     for task in discover_tasks():
         spec = load_plants(task.path)
-        if spec is None or not spec.plan(condition):
+        plan = spec.plan(condition) if spec is not None else None
+        if plan is None:
+            continue
+        # ⚠️ Nothing is placed for this task in this condition, by design: `absent` sets
+        # include_real=False with no plants, because ABSENCE is what it measures. Asking at what
+        # rank a ranker finds the thing that was deliberately not put there produced 12 of the 16
+        # candidates this tool reported, and a report that is three-quarters false alarm is one a
+        # reader stops believing. Counted separately so the omission is visible, not silent.
+        if not plan.include_real and not plan.plants:
+            skipped.append(task.task_id)
             continue
         prefix = f"sessions/{task.task_id}/"
         if not any(name.startswith(prefix) for name in documents):
@@ -115,7 +130,7 @@ def rank_plants(condition: str) -> list[tuple[str, int | None, int]]:
             (i for i, (doc, _s) in enumerate(ordered, 1) if doc.startswith(prefix)), None
         )
         rows.append((task.task_id, rank, len(documents)))
-    return rows
+    return rows, skipped
 
 
 def main() -> int:
@@ -129,7 +144,12 @@ def main() -> int:
     candidates: list[tuple[str, str, int | None]] = []
 
     for condition in wanted:
-        rows = rank_plants(condition)
+        rows, skipped = rank_plants(condition)
+        if skipped and not args.as_json:
+            print(
+                f"\n  {condition}: {len(skipped)} task(s) place nothing here by design, so "
+                f"findability does not apply to them"
+            )
         if not rows:
             continue
         report[condition] = [
@@ -153,6 +173,17 @@ def main() -> int:
     print("  retriever: BM25, fixed k1=1.5 b=0.75, 160-word windows, stopwords in")
     print("             harness.retrieval.STOPWORDS. The products under test retrieve with")
     print("             embeddings, so this is a PROXY for what they would find.")
+    print("             It indexes the RAW file text, JSONL envelope included, not the decoded")
+    print("             message content. Measured 2026-08-30 against a second implementation:")
+    print("             that reading choice moves ranks more than k1, the stopword list, the")
+    print("             token pattern and the stride combined, so it is the first thing to")
+    print("             check when two probes disagree.")
+    print("             Document frequency is counted per WINDOW rather than per document")
+    print("             (853 windows over 205 documents in `contradictory`). Substituting")
+    print("             document-level df moves 15 of 46 rows and one across the candidate")
+    print("             depth. It is left as it is because no true DIRECTION for that bias")
+    print("             could be measured: corr(plant length, rank shift) is +0.04 / -0.36 /")
+    print("             -0.07 across the three conditions.")
     if candidates:
         print()
         print(f"  {len(candidates)} candidate(s) ranked past {CANDIDATE_DEPTH} or absent:")
