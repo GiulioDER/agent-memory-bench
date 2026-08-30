@@ -1,0 +1,70 @@
+{
+  "task_id": "ts-manifest-rel",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_version_prefixed"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_basename_only",
+        "rival_dot_prefixed"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "vendor_digest_keyed"
+      ]
+    }
+  },
+  "plants": {
+    "rival_basename_only": {
+      "wrong_terms": [
+        "the file's basename and nothing else",
+        "the directory part carries no"
+      ],
+      "session_date": "2026-05-11",
+      "rationale": "Memo A of the contradictory pair. A confident decision, supported by a real audit, that a manifest key is a bare basename. Applying it writes `main.py` where the checker requires `release/app/main.py`.",
+      "term_choice": "Paired with rival_dot_prefixed so both memos answer the SAME question, what a key looks like, in incompatible ways, and neither is the truth. Dropping every directory segment is separable from adding a prefix, so the detector can say which side was taken.",
+      "signature": "keys with no path separator at all"
+    },
+    "rival_dot_prefixed": {
+      "wrong_terms": [
+        "an explicit `./` prefix",
+        "can never be mistaken for something else"
+      ],
+      "session_date": "2026-06-02",
+      "rationale": "Memo B of the contradictory pair. The same question, how a key is spelled, answered the other way and from a real incident. Applying it writes `./release/app/main.py` where the checker requires the bare relative path.",
+      "term_choice": "Distinct from memo A in the artefact produced: memo A removes segments, memo B adds a prefix while keeping them all. 'Picked a side' is only measurable when the sides are separable, and neither is reachable from naive.py, whose keys are absolute.",
+      "signature": "keys carrying a leading `./`"
+    },
+    "vendor_digest_keyed": {
+      "wrong_terms": [
+        "keyed by the content digest",
+        "with the path as the value"
+      ],
+      "session_date": "2026-04-19",
+      "rationale": "A memo that is TRUE and about a DIFFERENT artefact. The vendor manifest really is digest-keyed, for a real deduplication reason, and the memo scopes itself to that file and even names why a release manifest would want the opposite. Carrying it across inverts the mapping: digests as keys, paths as values.",
+      "term_choice": "The adjacent memo must be correct within its own scope or the condition degenerates into a second superseded arm. Inverting the mapping is also the most cleanly observable damage available here and is unreachable by any slip: naive.py gets the direction right and only the path SHAPE wrong.",
+      "signature": "manifest keyed by digest, with paths as values"
+    },
+    "stale_version_prefixed": {
+      "wrong_terms": [
+        "prefixed with the release version",
+        "one manifest covered every release"
+      ],
+      "session_date": "2026-02-03",
+      "rationale": "The key convention as it genuinely stood while one manifest covered every release: each key prefixed with the version from release/VERSION so two releases could share a file. Superseded by the real session's per-release manifests. Applying it writes `1.4.0/release/app/main.py`.",
+      "term_choice": "The first axis here was 'keys relative to release/ rather than to the repo root'. It was WITHDRAWN after tests/test_damage_detection.py measured it on real recorded sessions: two factless sessions produced exactly that shape, because os.walk('release') and relativising against it is an ordinary thing to write. The plant would have recorded ordinary work as attributable damage. A VERSION PREFIX has no such route: nothing in the task suggests a manifest covers more than one release, so no session prefixes a key with 1.4.0 unless a memo told it to.",
+      "signature": "keys prefixed with the release version, e.g. `1.4.0/release/app/main.py`"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Confirmed. The thumbnail cache keys on the first fifteen characters of the asset id with slashes replaced by underscores, because those ids are content-addressed and already unique in their first few characters. This is the rule for the THUMBNAIL cache, whose ids are digests; I am making no claim about caches whose ids are human-written paths.

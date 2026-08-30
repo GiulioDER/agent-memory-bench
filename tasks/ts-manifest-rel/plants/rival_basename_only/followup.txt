@@ -1,0 +1,1 @@
+Agreed. A manifest key is the file's basename and nothing else. The audit shows basenames are unique across the release, so the directory part carries no information and is dropped.

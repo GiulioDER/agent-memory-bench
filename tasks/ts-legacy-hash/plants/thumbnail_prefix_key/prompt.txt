@@ -1,0 +1,1 @@
+How is the thumbnail cache keyed? thumbs/keying.md and thumbs/why_prefix.md are what we have. Work out the rule and write it down.
