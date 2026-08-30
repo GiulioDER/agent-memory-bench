@@ -85,6 +85,11 @@ def _stub_everything_remote(mod, monkeypatch, *, ship_rc: int, ship_out: str, re
 
     monkeypatch.setattr(mod, "ssh", fake_ssh)
     monkeypatch.setattr(mod, "recall", fake_recall)
+    # `_deliver` puts a file on the serving host by the declared carrier. Under `host` transport
+    # that is a real `shutil.copy2` into `remote_root`, and this fixture's remote_root is
+    # deliberately unroutable, so the transfer is stubbed rather than performed. What is under
+    # test is the ship VERIFICATION, not the copy.
+    monkeypatch.setattr(mod, "_deliver", lambda *a, **k: None)
     monkeypatch.setattr(mod, "assemble", lambda *a, **k: None)
     monkeypatch.setattr(mod, "selection_for", lambda *a, **k: ["ts-a"])
     monkeypatch.setattr(mod.CorpusManifest, "load", classmethod(lambda cls, root: _Corpus()))
@@ -165,3 +170,50 @@ def test_an_unset_location_refuses_rather_than_guessing(mod, monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         mod._location("remote_root")
     assert "AMB_RECALL_REMOTE_ROOT" in str(excinfo.value)
+
+
+def test_the_carrier_follows_the_declared_transport(mod, monkeypatch, tmp_path):
+    """Under `host` the harness is ON the serving machine, so nothing should reach ssh or scp.
+
+    `RecallAdapter._shell` has honoured `transport` since it was introduced and this script did
+    not: it always shelled out over ssh, so running it on the serving host made it ssh to itself.
+    That needs an alias the `host` transport otherwise has no use for, a key authenticating the
+    machine to itself, and a network hop per step of a corpus build.
+
+    The command string is byte-identical either way, which is the property `notes.transport`
+    rests on: the carrier cannot change what recall returns.
+    """
+
+    seen: list[list[str]] = []
+    monkeypatch.setattr(mod.subprocess, "run", lambda argv, **kw: seen.append(list(argv)) or _result())
+
+    mod.CONFIG["transport"] = "host"
+    mod.ssh("echo hello")
+    assert seen, "no command was issued"
+    assert seen[-1][0] == "/bin/bash", f"host transport used {seen[-1][0]!r}, not a local shell"
+    assert "ssh" not in seen[-1], "host transport reached for ssh"
+
+    seen.clear()
+    mod.CONFIG["transport"] = "ssh"
+    monkeypatch.setenv("AMB_RECALL_SSH_HOST", "unused.invalid")
+    mod.ssh("echo hello")
+    assert seen[-1][0] == "ssh", "ssh transport did not use ssh"
+
+    mod.CONFIG["transport"] = "host"
+
+
+def test_delivery_under_host_transport_is_a_copy_not_a_loopback_scp(mod, monkeypatch, tmp_path):
+    """`scp` to the machine you are already on is a network transfer of a file that never moved."""
+
+    root = tmp_path / "serving"
+    monkeypatch.setenv("AMB_RECALL_REMOTE_ROOT", str(root))
+    source = tmp_path / "feed.tgz"
+    source.write_bytes(b"payload")
+
+    called: list[list[str]] = []
+    monkeypatch.setattr(mod.subprocess, "run", lambda argv, **kw: called.append(list(argv)) or _result())
+
+    mod.CONFIG["transport"] = "host"
+    mod._deliver(source)
+    assert (root / "feed.tgz").read_bytes() == b"payload", "the file did not arrive"
+    assert not called, f"host transport shelled out: {called}"

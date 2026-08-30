@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -70,12 +71,50 @@ def _location(key: str) -> str:
 
 
 def ssh(command: str, *, timeout: float = 3600.0) -> subprocess.CompletedProcess:
+    """Run `command` on the serving host, by whichever carrier the frozen config declares.
+
+    ⚠️ Named `ssh` for history rather than accuracy. Under `transport: host` the harness runs ON
+    the serving machine, so the command goes to a local login shell and no network is involved;
+    under `transport: ssh` it is carried. The command string is byte-identical either way, which
+    is the property `notes.transport` rests on: the carrier cannot change what recall returns.
+
+    `RecallAdapter._shell` has honoured this since the transport was introduced and this script
+    did not, so running it on the serving host made it ssh to itself. That needs an alias the
+    `host` transport otherwise has no use for, a key authenticating the machine to itself, and a
+    network hop per step of a corpus build.
+    """
+
+    if str(CONFIG.get("transport", "local")) == "host":
+        argv = ["/bin/bash", "-lc", command]
+    else:
+        argv = ["ssh", "-o", "BatchMode=yes", _location("ssh_host"), command]
     return subprocess.run(
-        ["ssh", "-o", "BatchMode=yes", _location('ssh_host'), command],
+        argv,
         capture_output=True,
         text=True,
         timeout=timeout,
         check=False,
+    )
+
+
+
+def _deliver(path: Path, *, timeout: float = 1800.0) -> None:
+    """Put a local file into the serving host's root, by the declared carrier.
+
+    Under `host` the harness is already ON that machine, so this is a copy and `scp` would be a
+    loopback network transfer of a file that never needed to move.
+    """
+
+    destination = Path(_location("remote_root")) / path.name
+    if str(CONFIG.get("transport", "local")) == "host":
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if path.resolve() != destination.resolve():
+            shutil.copy2(path, destination)
+        return
+    subprocess.run(
+        ["scp", "-q", str(path), f"{_location('ssh_host')}:{_location('remote_root')}/"],
+        check=True,
+        timeout=timeout,
     )
 
 
@@ -142,11 +181,7 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
     subprocess.run(
         ["tar", "-czf", str(archive), "-C", str(feed.parent), feed.name], check=True, timeout=600
     )
-    subprocess.run(
-        ["scp", "-q", str(archive), f"{_location('ssh_host')}:{_location('remote_root')}/"],
-        check=True,
-        timeout=1800,
-    )
+    _deliver(archive)
     r = ssh(
         f"cd {shlex.quote(_location('remote_root'))} && rm -rf {shlex.quote(tenant)} && "
         f"tar -xzf {shlex.quote(archive.name)} && ls {shlex.quote(tenant)} | wc -l"
@@ -279,15 +314,13 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="rebuild even if the stamp matches")
     args = parser.parse_args()
 
-    scp = subprocess.run(
-        ["scp", "-q", str(QUERIES), f"{_location('ssh_host')}:{_location('remote_root')}/"],
-        capture_output=True,
-        text=True,
-        timeout=600,
-        check=False,
-    )
-    if scp.returncode != 0:
-        raise SystemExit(f"could not ship the query set: {scp.stderr.strip()}")
+    # By the declared carrier, like every other transfer here. Under `host` the harness is
+    # already on the serving machine and this is a copy; `scp` would be a loopback transfer of a
+    # file that never needed to move, and would need an ssh alias that transport has no use for.
+    try:
+        _deliver(QUERIES, timeout=600)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise SystemExit(f"could not ship the query set: {exc}") from None
 
     for condition in [c.strip() for c in args.conditions.split(",") if c.strip()]:
         prepare(condition, args.seed, args.namespace, force=args.force)
