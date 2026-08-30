@@ -194,3 +194,42 @@ def test_the_published_runs_that_carry_records_still_verify():
             if "total tokens" in line or "session count" in line or "re-derives" in line
         ]
         assert not recompute, f"{run_dir.name}: {recompute}"
+
+
+def test_a_timed_out_session_may_lack_its_stream(good_run):
+    """A session killed at the timeout never flushes a stream, and that is not a defect.
+
+    Measured on `official-001`: four sessions across three conditions hit
+    `ClaudeSessionTimeout: claude exceeded timeout_s=600.0`, leaving a record with the error and
+    no stream. An earlier version of the stream check demanded one stream per record and reported
+    three of the four conditions as defective for behaving exactly as the protocol says they
+    should. A verifier that cries wolf trains the reader to skim past the FAIL that matters.
+    """
+
+    stream = next((good_run / "streams").glob("ts-b.s0.recall*"))
+    stream.unlink()
+    path = good_run / "records.final.jsonl"
+    lines = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        record = json.loads(line)
+        if record["task_id"] == "ts-b" and record["arm"] == "recall":
+            record["error"] = "ClaudeSessionTimeout: claude exceeded timeout_s=600.0"
+            record["success"] = False
+        lines.append(json.dumps(record))
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    f = verify(good_run)
+    assert not f.bad, f.bad
+    assert any("explained by a recorded error" in line for line in f.ok), f.ok
+
+
+def test_a_missing_stream_with_no_error_is_still_caught(good_run):
+    """The other half: silence is not an explanation.
+
+    Without this, the fix above would have turned a real check into no check at all, since every
+    absent stream would pass by simply not being accounted for.
+    """
+
+    next((good_run / "streams").glob("ts-b.s0.recall*")).unlink()
+    f = verify(good_run)
+    assert any("no recorded" in line for line in f.bad), f.bad
