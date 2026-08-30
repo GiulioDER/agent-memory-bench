@@ -1,0 +1,1 @@
+That is the rule. Recording it: the docs snapshot carries the full sha256, all sixty-four characters, because truncation was dropped after the near-collision below. This is the rule for the docs snapshot and I am making no claim about any other checksummed file in the tree; the test fixtures in particular are somebody else's decision.

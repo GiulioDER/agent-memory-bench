@@ -1,0 +1,1 @@
+Right. The checksum goes at the TOP of the golden as a header line, `# checksum: <digest>`, before the body. A body change then shows as one diff hunk instead of two, and the footer is dropped entirely.

@@ -1,0 +1,1 @@
+docs/api-snapshot.md has a checksum line and I want to know why it is so much longer than the ones elsewhere in the tree. snapshots/regen_docs.py writes it and snapshots/collision.md is why it changed. Work out the rule the docs snapshot follows and write it down.
