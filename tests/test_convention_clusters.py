@@ -55,21 +55,120 @@ def test_collapsing_averages_within_a_cluster_and_keeps_everything_else():
     assert collapsed[1] == pytest.approx(0.3), "the pair is averaged, not dropped"
 
 
-def test_clustering_never_narrows_the_interval():
-    """The asymmetry that makes this safe to do from a warning rather than a measurement.
+def test_the_collapsed_interval_cannot_see_the_split_and_so_must_cross_the_uncollapsed_one():
+    """⚠️ This asserts the OPPOSITE of what stood here, because what stood here was false.
 
-    Being wrong about a cluster costs confidence. Being wrong the other way, treating correlated
-    tasks as independent, costs correctness, and a published interval would be too tight.
+    The previous test was `test_clustering_never_narrows_the_interval`, asserting
+    `width(collapsed) >= width(loose)` on the single fixture `deltas = [0.4, 0.4, -0.2, 0.1]`.
+    That gives the clustered pair IDENTICAL values, the one sub-region where averaging removes no
+    dispersion and only the reduction in n operates, so widening is guaranteed by construction.
+    It asserted a universal from the one point of it that holds, and it is the reason the false
+    claim in `harness/stats.py` survived long enough to become the justification for the change.
+
+    Hold the pair MEAN fixed and move the split. Measured on the shipped code with this fixture's
+    own co-tasks:
+
+        pair          uncollapsed   collapsed   narrows
+        (+0.4, +0.4)     0.4500      0.6000       no
+        (+0.6, +0.2)     0.5750      0.6000       no
+        (+0.7, +0.1)     0.6750      0.6000      YES
+        (+1.0, -0.2)     0.9000      0.6000      YES
+
+    The mechanism, which is what this pins rather than any single verdict: the collapsed width is
+    INVARIANT in the split, because averaging erases the pair's disagreement before the bootstrap
+    ever sees it, while the uncollapsed width grows with that disagreement. Two lines, one flat
+    and one rising, therefore cross. Where they cross depends on the co-tasks and is not asserted.
     """
 
     tasks = [PAIR[0], PAIR[1], "ts-tz-utc", "ts-semver-pin"]
-    deltas = [0.4, 0.4, -0.2, 0.1]
+    # Generated rather than listed, so "the pair mean is fixed" is structural instead of an
+    # assertion about this function's own constant, which could not fail.
+    splits = [(0.4 + i * 0.1, 0.4 - i * 0.1) for i in range(7)]
+
+    widths = []
+    for pair in splits:
+        deltas = [pair[0], pair[1], -0.2, 0.1]
+        loose = cluster_bootstrap(deltas)
+        tight = cluster_bootstrap(deltas, tasks=tasks)
+        assert loose and tight
+        widths.append((loose[1] - loose[0], tight[1] - tight[0]))
+
+    collapsed = {round(t, 6) for _l, t in widths}
+    assert len(collapsed) == 1, (
+        f"the collapsed width must not depend on the split, since the pair is averaged before "
+        f"the bootstrap sees it; got {sorted(collapsed)}"
+    )
+
+    uncollapsed = [loose for loose, _t in widths]
+    assert uncollapsed == sorted(uncollapsed), (
+        f"the uncollapsed width must grow as the pair disagrees more; got {uncollapsed}"
+    )
+
+    assert widths[0][1] > widths[0][0], "the concordant split is the case that genuinely widens"
+    assert widths[-1][1] < widths[-1][0], (
+        "a fully discordant pair at the same mean must NARROW the interval, which is the claim "
+        "`can only widen` denied"
+    )
+
+
+def test_a_discordant_cluster_can_manufacture_a_significant_result():
+    """The consequence that sets the severity, and the reason this is not a documentation nit.
+
+    Measured over the stated domain: 13 of 300 draws on a 3-seed grid (4.3%) turn an interval
+    that includes zero into one that excludes it. A benchmark whose author's own product is under
+    test cannot publish an interval that can acquire significance from a modelling choice.
+    """
+
+    # ⚠️ The first fixture here ([1.0, -1.0, 0.2, -0.2, 0.1, -0.1]) narrowed the interval but did
+    # NOT flip it: the collapsed interval still contained zero, so the test's own headline was the
+    # one thing it did not assert. These deltas are multiples of 1/3, i.e. what a 3-seed grid
+    # actually produces, and were found by sweeping that lattice for a case that genuinely flips.
+    tasks = [PAIR[0], PAIR[1], "ts-tz-utc", "ts-semver-pin", "ts-atomic-write", "ts-bom-merge"]
+    deltas = [2 / 3, -2 / 3, -1 / 3, -1 / 3, -1 / 3, -2 / 3]
 
     loose = cluster_bootstrap(deltas)
     tight = cluster_bootstrap(deltas, tasks=tasks)
     assert loose and tight
-    assert (tight[1] - tight[0]) >= (loose[1] - loose[0]), (
-        "collapsing correlated tasks must not produce a narrower interval"
+    assert loose[0] <= 0 <= loose[1], (
+        f"the uncollapsed interval must include zero for this test to mean anything; got {loose}"
+    )
+    assert not (tight[0] <= 0 <= tight[1]), (
+        f"THE CLAIM: collapsing a discordant convention pair turns a null result into a "
+        f"significant one. Uncollapsed {loose} includes zero; collapsed {tight} must not."
+    )
+    assert (tight[1] - tight[0]) < (loose[1] - loose[0])
+
+
+def test_collapsing_can_destroy_the_interval_entirely():
+    """When every collapsed unit is identical, `cluster_bootstrap` returns None.
+
+    A published `cluster_ci: null` where an interval stood is a silent loss, not an error.
+    """
+
+    deltas = [1.0, -1.0, 0.0, 0.0]
+    tasks = [PAIR[0], PAIR[1], "ts-tz-utc", "ts-semver-pin"]
+    assert cluster_bootstrap(deltas) is not None
+    assert cluster_bootstrap(deltas, tasks=tasks) is None
+
+
+def test_the_source_no_longer_claims_the_collapse_only_widens():
+    """Mutation guard: restoring the sentence must fail, because it is the load-bearing claim.
+
+    It was offered as the reason the change was safe to make from a warning rather than from a
+    measurement, so a reader who finds it will not re-derive the direction themselves.
+    """
+
+    import inspect
+    import re
+
+    import harness.stats as stats_module
+
+    # Case-insensitive and on the semantic core, not one spelling: the first version grepped for
+    # "can only WIDEN" and the same false claim in lowercase passed straight through it.
+    source = inspect.getsource(stats_module)
+    assert not re.search(r"only\s+(ever\s+)?widen", source, re.IGNORECASE), (
+        "harness/stats.py claims collapsing can only widen the interval; it can narrow it, by up "
+        "to 8.3x, and can turn a null result significant"
     )
 
 

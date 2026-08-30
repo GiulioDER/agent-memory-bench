@@ -42,7 +42,7 @@ import json
 import subprocess
 import sys
 import tempfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -358,6 +358,50 @@ def load_cells(run_dir: Path, condition: str):
     return cells_from_records(admitted, condition)
 
 
+
+def fill_missing_search_rates(
+    search_rates: dict[str, float | None],
+    arms: Sequence[str],
+    conditions: Sequence[str],
+) -> dict[str, float | None]:
+    """Give every requested memory arm a rate in every condition, `None` where it has no records.
+
+    `search_rate_for` keys its result off the arms it OBSERVES, so an arm that produced no records
+    is simply absent. The floor is then applied to a dict the arm is not in, `any(...)` over the
+    survivors is False, and the gate passes BECAUSE the evidence is missing. `_classify_arms`
+    validates arm NAMES and cannot catch it.
+    """
+
+    filled = dict(search_rates)
+    for arm in arms:
+        if arm not in MEMORY_ARMS:
+            continue
+        for condition in conditions:
+            filled.setdefault(f"{arm}[{condition}]", None)
+    return filled
+
+
+def interpretability(search_rates: dict[str, float | None]) -> dict[str, bool]:
+    """Which arms' endpoints mean anything, at `SEARCH_RATE_FLOOR`.
+
+    `None` means the arm produced no records, which is LESS interpretable than a low rate, not
+    more. This read `rate is None or rate >= FLOOR`, a branch that could never fire because
+    `search_rate_for` returns `dict[str, float]`, and that had the polarity backwards if it ever
+    did.
+    """
+
+    return {
+        arm: rate is not None and rate >= SEARCH_RATE_FLOOR
+        for arm, rate in search_rates.items()
+    }
+
+
+def below_the_floor(search_rates: dict[str, float | None]) -> bool:
+    """True when any arm is under the floor OR has no rate at all."""
+
+    return any(rate is None or rate < SEARCH_RATE_FLOOR for rate in search_rates.values())
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="abstention-001")
@@ -453,6 +497,9 @@ def main() -> int:
     if not cells:
         raise SystemExit("no admitted cells across any condition; nothing to report")
 
+    # An arm with NO records never reaches `search_rates`, so without this the floor cannot see it.
+    search_rates = fill_missing_search_rates(search_rates, arms, conditions)
+
     report = endpoints(cells, arms)
     report["conditions"] = conditions
     report["n_cells"] = len(cells)
@@ -461,17 +508,20 @@ def main() -> int:
     # low rate does not weaken these endpoints, it voids them. Preregistration 002 already uses
     # 0.50 as a floor for model eligibility; the same number is applied here rather than a new
     # one invented for the occasion.
-    report["interpretable"] = {
-        arm: rate is None or rate >= SEARCH_RATE_FLOOR for arm, rate in search_rates.items()
-    }
+    report["interpretable"] = interpretability(search_rates)
     out = REPO / "results" / f"{args.run_id}-endpoints.json"
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
     print(f"\n[abstention] {len(cells)} admitted cell(s) across {len(conditions)} condition(s)")
     for label, rate in sorted(search_rates.items()):
+        if rate is None:
+            print(
+                f"  search rate {label:26s}   none  <-- NO RECORDS, ENDPOINTS NOT INTERPRETABLE"
+            )
+            continue
         flag = "" if rate >= SEARCH_RATE_FLOOR else "  <-- BELOW FLOOR, ENDPOINTS NOT INTERPRETABLE"
         print(f"  search rate {label:26s} {rate:.3f}{flag}")
-    if any(rate < SEARCH_RATE_FLOOR for rate in search_rates.values()):
+    if below_the_floor(search_rates):
         print(
             f"\n  A memory arm searched in fewer than {SEARCH_RATE_FLOOR:.0%} of its cells. It "
             f"cannot be damaged by evidence it never retrieved, so every figure below describes "

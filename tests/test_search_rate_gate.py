@@ -86,3 +86,62 @@ def test_the_published_pilots_clear_the_floor():
             f"{run_id} recall search rate {rate} is below the floor this benchmark applies to new "
             f"runs; the floor cannot be stricter than the runs it was drawn from"
         )
+
+
+# ---------------------------------------------------------------------------------------------
+# AMB-034, found by an adversarial verifier during the 2026-08-30 audit and by no auditor.
+#
+# `search_rate_for` keys its result off the arms it OBSERVES in the records, so a memory arm that
+# produced none never appears. The floor is then applied to a dict it is not in, and
+# `any(rate < FLOOR for rate in search_rates.values())` is False because nothing is left to be
+# below it. The gate passed BECAUSE the evidence was missing.
+#
+# This is the same defect class as the endpoints tautology in scripts/verify_run.py, and it is the
+# exact silence `_classify_arms` was added to end: "a reader sees a table with one fewer row
+# rather than a warning". That guard validates arm NAMES, so it could not catch this.
+# ---------------------------------------------------------------------------------------------
+
+
+def test_a_memory_arm_with_no_records_is_not_interpretable():
+    """RED before the fix: the arm was absent from `interpretable`, so nothing said it was unknown."""
+
+    from scripts.abstention import fill_missing_search_rates, interpretability
+
+    filled = fill_missing_search_rates(
+        {"recall[absent]": 0.9}, ["bare", "recall", "mempalace"], ["absent"]
+    )
+    assert filled["mempalace[absent]"] is None, "the absent arm was not filled in"
+    assert "bare[absent]" not in filled, "only MEMORY arms carry a search rate"
+
+    interpretable = interpretability(filled)
+    assert interpretable["mempalace[absent]"] is False, (
+        "an arm that produced no records is LESS interpretable than one with a low rate, not more"
+    )
+    assert interpretable["recall[absent]"] is True
+
+
+def test_the_floor_fires_when_a_rate_is_missing_entirely():
+    """RED before the fix: `any()` over the surviving rates could not see the absent arm."""
+
+    from scripts.abstention import below_the_floor
+
+    assert below_the_floor({"recall[absent]": 0.9, "mempalace[absent]": None}), (
+        "a missing rate must trip the floor; it is a stronger signal than a low one"
+    )
+
+
+def test_the_gate_fills_every_requested_memory_arm():
+    """The source-level guarantee: the fill covers memory arms x completed conditions."""
+
+    import inspect
+
+    from scripts import abstention
+
+    source = inspect.getsource(abstention.main)
+    assert "fill_missing_search_rates(" in source, (
+        "main() does not fill missing memory arms, so an arm with no records vanishes silently"
+    )
+    assert "below_the_floor(" in source, "main() does not use the floor check that sees a None"
+
+    # and the honest case must still pass, or the guard above is satisfied by refusing everything
+    assert abstention.below_the_floor({"recall[absent]": 0.9}) is False

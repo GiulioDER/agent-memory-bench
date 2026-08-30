@@ -192,9 +192,31 @@ class TaskRate:
 #: misunderstands it fails both, so counting them twice overstates how many independent hazards
 #: agreed. official-001 already measured a memory arm failing ts-ignore-gen in 3 of 12 cells.
 #:
-#: ⚠️ Collapsing can only WIDEN an interval, never narrow one. That asymmetry is why this is the
-#: safe correction to make from a warning rather than from a measurement: being wrong here costs
-#: confidence, and being wrong the other way costs correctness.
+#: ⚠️ Collapsing does NOT always widen the interval, and the sentence that used to stand here
+#: said it did: it asserted a one-directional guarantee, that the collapse was conservative by
+#: construction, and offered that asymmetry as the reason this correction was safe to make from a
+#: warning rather than from a measurement. (Described rather than restated, because
+#: `test_the_source_no_longer_claims_the_collapse_only_widens` greps this file for the claim and a
+#: paraphrase close enough to match would satisfy its own guard. That trap has now caught three
+#: separate comments in this repository, so it is worth stating: a note explaining a retracted
+#: claim must not contain the claim.) Measured 2026-08-30, on the shipped code: collapsing trades a reduction in n,
+#: which widens, against the deletion of the pair's mutual dispersion, which narrows. Which term
+#: wins depends on how noisy the OTHER tasks are. Uniform draws over 6 to 12 tasks narrow in
+#: 30.6% to 37.5% of cases, worst ratio 4.72x; with the co-tasks quiet, 76% to 100%, worst 8.3x.
+#: A discordant pair can turn an interval that INCLUDES zero into one that EXCLUDES it, and
+#: `cluster_bootstrap([1.0, -1.0, 0.0, 0.0], tasks=...)` returns None where the uncollapsed call
+#: returns (-0.75, 0.75).
+#:
+#: So there is no asymmetry to lean on: quote the collapsed interval only alongside the
+#: uncollapsed one, or state which is published. `n_clusters` exists so a reader can see that a
+#: collapse happened at all.
+#:
+#: ⛔ It fires on NOTHING today. `ts-golden-regen` is TWO_SIDED and `ts-ignore-gen` is
+#: DAMAGE_ONLY, and `net_harm_by_stratum` calls `summarize_by_task` once per stratum, so the two
+#: members never meet in one call and `n_clusters == n_tasks` on every published number. The
+#: double-counting correction this map was added to make is therefore not being made. Removing
+#: the machinery, moving a stratum, or collapsing before stratifying are all open; each changes
+#: what is published, so none of them is a tidy-up.
 CONVENTION_CLUSTERS: dict[str, str] = {
     "ts-golden-regen": "generated-file-has-a-script",
     "ts-ignore-gen": "generated-file-has-a-script",
