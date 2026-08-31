@@ -35,18 +35,23 @@ def _generator():
 
 
 def _undisclosed_names() -> list[str]:
-    """Internal names of arms the site may not print, read from the single source of truth.
+    """Product names the site may not print, read from the single source of truth.
 
-    Derived rather than restated, so disclosing an arm removes it from this test in the
-    same edit that discloses it, and a new undisclosed arm is covered without anybody
-    remembering to come here.
+    Two sources, and the second is why this is not derived from the leaderboard alone.
+    ``public_arms()`` covers an arm that is ON the board under a placeholder.
+    ``UNDISCLOSED_PRODUCTS`` covers the ones that are not on the board at all: the four
+    vendor stubs, and any arm deferred out of a run. Deriving only from the board meant
+    that removing an arm from it also removed it from this guard, which is backwards, and
+    it left the four stubs unguarded the whole time.
     """
     generator = _generator()
-    return [
+    names = [
         internal
         for internal, public, _, _ in generator.public_arms()
         if public.startswith(generator.UNDISCLOSED_PREFIX)
     ]
+    names += [n for n in generator.UNDISCLOSED_PRODUCTS if n not in names]
+    return names
 
 
 def _site_files() -> list[Path]:

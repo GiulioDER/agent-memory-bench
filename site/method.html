@@ -111,9 +111,9 @@
     </div>
     <div class="prose mt-s">
       <p>An arm is not a contestant. Each one exists to <strong>remove a competing
-      explanation</strong> for whatever the products do, so that a difference at the end has only
-      one story left that fits it. Read down the table and the design is the argument: by the
-      last row, "the memory layer did it" is the only surviving account.</p>
+      explanation</strong> for what the product does, so that a difference at the end has one
+      story left that fits it. Read down the table and the design is the argument: by the last
+      row, "the memory layer did it" is the only surviving account.</p>
     </div>
     <div class="table-scroll mt-s">
       <table>
@@ -146,32 +146,37 @@
             budget.</strong> It is the baseline, and every delta is quoted against it</td>
           </tr>
           <tr>
+            <td><span class="m">fs_grep</span></td>
+            <td>the whole corpus on disk, and grep</td>
+            <td>"a memory product beats searching the transcripts." The cheap answer costs no
+            index, no embedding and no server. A product is worth its infrastructure only if it
+            beats this, and it is a <em>non-memory</em> retrieval baseline, so a gap here is
+            about the memory layer rather than about having the text at all</td>
+          </tr>
+          <tr>
             <td><span class="m">recall</span></td>
             <td>MCP server, 8 read and navigation tools including its reasoning and graph surface</td>
             <td>product under test</td>
           </tr>
           <tr>
-            <td><span class="m">product_a</span></td>
-            <td>MCP server running locally, 20 read and navigation tools including its full
-            knowledge graph</td>
-            <td>product under test, unnamed until its maintainers have had the review window</td>
+            <td><span class="m">recall_prefetch</span></td>
+            <td>the same retrieval, run in the harness with the task prompt already in hand</td>
+            <td>"the product cannot find it." Query formulation is removed, so this is the
+            ceiling the live arm is reaching for. It is a reference track, never ranked</td>
           </tr>
         </tbody>
       </table>
     </div>
     <div class="prose mt-m">
-      <p><strong>Write tools and write-side hooks are withheld from both products.</strong> Both
-      ship them, and both would use them: session-end and pre-compact hooks that write what a
-      session learned back into the store. They are withheld because the corpus must be frozen
-      across arms and cells. A session that wrote would change what the next seed reads, and a
-      session that solved a task could write its answer where the next cell retrieves it. That is
-      a real limitation rather than a neutral choice, and it is stated in the scope line above
-      every ranking: <strong>this measures retrieval, not memory formation.</strong> A product
-      whose value is extraction and consolidation at write time gets no credit for either.</p>
-      <p>Each product carries <strong>its own shipped instruction</strong>, not a common one. The
-      alternative, equalising the text across arms, measures a denominator neither vendor ships;
-      this way measures what a user actually installs. Per-arm instruction sizes are published
-      with every run so the asymmetry is visible rather than hidden.</p>
+      <p><strong>Write tools and write-side hooks are withheld.</strong> The product ships them
+      and would use them, but the corpus has to be frozen across arms and cells: a session that
+      wrote would change what the next seed reads, and one that solved a task could write its
+      answer where the next cell retrieves it. That limitation is stated in the scope line above
+      every ranking rather than in a footnote: <strong>this measures retrieval, not memory
+      formation</strong>, and gives no credit for extraction or consolidation at write time.</p>
+      <p>Each product carries <strong>its own shipped instruction</strong>. Equalising the text
+      measures a denominator no vendor ships; this measures what a user installs. Per-arm
+      instruction sizes are published with every run so the asymmetry is visible.</p>
     </div>
   </section>
 
@@ -184,10 +189,11 @@
     <div class="prose mt-s">
       <p>A task is a fixture repository, a task spec, and an executable checker. Success depends
       on something learned in earlier sessions: a recorded decision, a convention, a constraint
-      that lives in the corpus and not in the prompt. The current suite holds
-      <strong>30 tasks</strong> (identifiers like <code>ts-tz-utc</code>,
-      <code>ts-stable-sort</code>, <code>ts-log-mask</code>); the frozen pilot grid used 24 of
-      them, and six more were calibrated against the memory-free arm on 2026-08-27.</p>
+      that lives in the corpus and not in the prompt. The suite holds <strong>34 tasks</strong>
+      (identifiers like <code>ts-tz-utc</code>, <code>ts-stable-sort</code>,
+      <code>ts-log-mask</code>). Three of them, the <code>xs-</code> set, state their governing
+      rule across two sessions rather than one, so no single document answers them: a suite where
+      combining sessions is never necessary cannot detect a product that combines them.</p>
       <p>Every task ships two reference solutions, asserted in CI on every commit:</p>
     </div>
     <div class="table-scroll mt-s">
@@ -239,10 +245,9 @@
       without the recorded knowledge, and CI asserts it <strong>fails</strong>. <code>informed/</code>
       uses the recorded fact and CI asserts it <strong>passes</strong>. If the naive solution ever
       starts passing, the task has stopped measuring memory and is rejected rather than kept.</p>
-      <p>The official harm run uses the subset of tasks that carry planted corpus conditions:
-      eleven of the thirty, ten under <code>contradictory</code>, since one task cannot express
-      that condition observably and says so in its own directory rather than being quietly
-      dropped.</p>
+      <p>The official run works the subset that carries planted corpus conditions: <strong>73
+      task-conditions</strong> in all. One task cannot express <code>contradictory</code>
+      observably and says so in its own directory rather than being quietly dropped.</p>
     </div>
 
   </section>
@@ -255,12 +260,19 @@
     </div>
     <div class="prose mt-s">
       <p>The experience feed is <strong>verbatim recorded agent session transcripts</strong>,
-      pinned by a sha256 manifest. It is deliberately not a curated fact list: it contains the
-      noise, the dead ends, and the distractor sessions that real agent history contains.
-      Distilling signal from that stream is the product's job, and the benchmark refuses to do
-      it for anyone.</p>
-      <p>No arm gets a different feed. The only asymmetry any product can gain is what it
-      extracts.</p>
+      pinned by a sha256 manifest. It is deliberately not a curated fact list: it carries the
+      noise, the dead ends and the distractor sessions real agent history carries. No arm gets a
+      different feed, and the only asymmetry a product can gain is what it extracts.</p>
+      <p><strong>It is 4,900 documents per condition, and it was made harder on purpose.</strong>
+      The 196-document feed every earlier run used was saturated: hit@10 was 1.000, so every
+      memory arm found the governing session every time and the grid could not separate "the
+      product retrieved badly" from "the agent never searched". On the current corpus
+      <code>bm25</code> hit@1 is 0.182 against 0.485, and <code>voyage</code> hit@10 is 0.879
+      against 1.000. Containment is checked against the built corpus rather than trusted: no fact
+      term of any task appears in any synthetic document, or the <code>absent</code> condition
+      would be silently broken for that task.</p>
+      <p class="dim">That change breaks comparability. No number measured on this corpus may be
+      differenced against a number from any earlier run.</p>
     </div>
   </section>
 
@@ -303,17 +315,20 @@
               <td>a confident, high-similarity memo governing a <em>different</em> subsystem</td>
               <td>recognise that it does not apply here</td>
               <td>applies the other subsystem's rule</td></tr>
+          <tr><td><span class="m">present</span></td>
+              <td>the governing fact, plainly, with nothing done to it</td>
+              <td>find it and apply it</td>
+              <td>none; this is the condition memory should win</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="prose mt-m dim">A plant is only measurable if every reading of it produces a
-    different observable outcome, which is why one task carries two conditions rather than four:
-    its <code>adjacent</code> damage would be byte-identical to the factless answer, so the harm
-    would be real and unattributable. As of 2026-08-29, eleven tasks carry all four conditions.
-    The suite's first run, covering two of the four conditions, is published as an artifact with
-    all four of its endpoints computed. It is <strong>not</strong> a result: nothing has been
-    appended under its preregistration, so it has not been written up, defended or interpreted,
-    and no number from it should be quoted.</p>
+    <p class="prose mt-m dim">The fifth condition exists because the other four all vary how the
+    evidence is <em>bad</em>, which made never searching a dominant strategy: an arm that ignored
+    its memory entirely forfeited nothing. <code>present</code> is the identity transform, and it
+    is what a degenerate strategy loses. A plant is measurable only if every reading of it gives a
+    different observable outcome, which is why one task carries two damage conditions rather than
+    four: its <code>adjacent</code> damage would be byte-identical to the factless answer. Eleven
+    tasks carry all four.</p>
   </section>
 
   <section class="pad-y-s" id="gate">
@@ -343,28 +358,14 @@
     <p class="prose mt-s dim">Discard counts are published per arm, so a product that only runs
     cleanly half the time cannot hide it in a smaller denominator.</p>
 
-    <div class="prose mt-l">
-      <p>Three things the gate has had to learn, each of which cost a measured run something.</p>
-      <p><strong>Only an arm with a memory surface can fail to wire.</strong> So the discard rule
-      protects one class of arm's worst outcome and no other's, and the published rate for such
-      an arm is conditional on its having started at all. Every headline is therefore published
-      beside an intention-to-treat column over all complete cells, scoring the dropped sessions
-      exactly as they were recorded.</p>
-      <p><strong>A startup failure is a transient, and a transient is not an outcome.</strong> On
-      one four-arm run, 8 of 72 memory sessions failed to start, all of them in the first half of
-      the run. A preflight now speaks the protocol to the configured server before any session is
-      paid for, capturing the server's own stderr, and a session whose treatment failed to wire
-      is retried under a bounded rule that reads the admission surface and never reads
-      <code>success</code>, the checker verdict, or anything the model did. A rule that could see
-      the outcome would be a rule for rerunning losses until they win. Recovered cells are
-      published as such, because reporting the discard count alone would quietly change what that
-      count means.</p>
-      <p><strong>A crash in a checker is a failure, not a discard.</strong> Letting the exception
-      propagate discarded the whole paired cell, taking every other arm's paid session with it,
-      on a trigger the agent controls: an artifact written in the wrong encoding. A task whose
-      deliverable the grader cannot read is a task that was not solved. A genuine fault in the
-      instrument, a missing checker or a syntax error in one, still raises.</p>
-    </div>
+    <p class="prose mt-s dim">Two consequences the gate cannot state for itself. Only an arm
+    with a memory surface can fail to wire, so the rule protects one class of arm's worst outcome
+    and no other's, and every headline is published beside an intention-to-treat column over all
+    complete cells. And a startup failure is a transient, not an outcome: a preflight speaks the
+    protocol to the server before a session is paid for, and a session whose treatment failed to
+    wire is retried under a rule that reads the admission surface and never reads
+    <code>success</code>, the checker verdict, or anything the model did.</p>
+
   </section>
 
   <section class="pad-y-s" id="scoring">
@@ -378,24 +379,19 @@
       not. Analysis is paired per task, arms are contrasted against the
       <code>claude_md</code> baseline, and deltas below the preregistered minimum effect are
       reported as noise rather than dressed up as findings.</p>
-      <p>Costs are end-to-end. Ingestion tokens, session tokens, wall time, and
-      negative-transfer counts (tasks where memory made the agent <em>worse</em>) land in one
-      per-arm ledger and are published beside the success rate, because a memory layer that
-      buys two points of success for triple the tokens is a different product than its
-      headline number suggests. The ledger carries success per million tokens for exactly that
-      reason: no arm has yet been run at a matched budget, and the asymmetry is reported rather
-      than smoothed away.</p>
-      <p>Two details that sound like bookkeeping and are not. <strong>Input is not one price.</strong>
-      Fresh input, cache reads and cache creation are metered and priced separately, and a run
-      publishes the rates that produced its dollars, because one arm's input can be two-thirds
-      cache reads while a baseline's is under half, and a single rate then overstates spend
-      unevenly between the two arms being compared. <strong>Prices are stated, never
-      defaulted.</strong> A run refuses to start without them, so that no result is ever priced
-      on a basis nobody chose, and two runs are never silently priced on different ones. Compare
-      runs on tokens.</p>
-      <p>An arm that ingests with a model running on the benchmark host reports zero hosted
-      tokens and names the model, so its zero is never read as a zero cost beside a competitor's
-      extraction bill.</p>
+      <p>Costs are end-to-end. Ingestion tokens, session tokens, wall time and negative-transfer
+      counts land in one per-arm ledger beside the success rate, because a layer that buys two
+      points for triple the tokens is a different product than its headline suggests. No arm has
+      been run at a matched budget, so the ledger carries success per million tokens and reports
+      the asymmetry rather than smoothing it.</p>
+      <p>Two details that sound like bookkeeping and are not. <strong>Input is not one
+      price:</strong> fresh input, cache reads and cache creation are metered separately, because
+      one arm's input can be two-thirds cache reads while a baseline's is under half, and a single
+      rate then overstates spend unevenly between exactly the two arms being compared.
+      <strong>Prices are stated, never defaulted:</strong> a live run refuses to start without
+      them. Compare runs on tokens.</p>
+      <p>An arm that ingests with a model on the benchmark host reports zero hosted tokens and
+      names the model, so its zero is never read as zero cost.</p>
     </div>
   </section>
 
@@ -406,17 +402,18 @@
       <span class="aside">unranked, by design</span>
     </div>
     <div class="prose mt-s">
-      <p>Task success says whether the memory path worked, not which part failed. Two reference
-      tracks decompose it. <code>oracle_memory</code> injects the exact relevant corpus evidence
-      before the session: a ceiling control that removes retrieval and query formulation
-      entirely. <code>recall_prefetch</code> runs retrieval in the harness with the exact task
-      prompt and injects the returned evidence, measuring retrieval quality when the query is
-      already known. The natural <code>recall</code> arm still measures whether the agent
-      decides to search at all, and what it asks.</p>
-      <p class="dim">Both are <strong>excluded from the official run</strong>, and are named here
-      so their absence is a recorded choice rather than an oversight. They are diagnostics: they
-      answer where a memory path breaks, not which product is better, and adding an arm that
-      cannot lose to a leaderboard would misdescribe both.</p>
+      <p>Task success says whether the memory path worked, not which part failed. A memory arm can
+      lose three ways: the agent never searched, it searched badly, or the store did not hold the
+      answer. <code>recall_prefetch</code> separates the first from the rest by running retrieval
+      in the harness with the exact task prompt and injecting what comes back. It <strong>is</strong>
+      in the official run, as an upper bound; it is never ranked against the products, because an
+      arm that cannot lose does not belong in a ranking.</p>
+      <p class="dim"><code>oracle_memory</code>, which injects the exact evidence and removes
+      retrieval altogether, is <strong>not</strong> in the run. Its bundles are keyed by task and
+      carry no corpus condition, so under <code>absent</code> it would supply an answer that
+      condition is defined not to contain. It returns when its bundles are condition-aware. The
+      contrasts below are the decomposition it belongs to, stated so its absence is a recorded
+      choice.</p>
     </div>
     <div class="mt-m">
       <div class="contrast">
@@ -451,37 +448,30 @@
       <span class="aside">and not of retrieval prose</span>
     </div>
     <div class="prose mt-s">
-      <p>Most memory benchmarks ask a model questions about synthetic conversations and score the
-      answers with another model. That measures whether a system can find a needle someone
-      deliberately planted, and it scores the finding with a judge whose failure modes correlate
-      with the thing being judged. Five properties here are chosen against that.</p>
-      <p><strong>The grade is execution.</strong> A checker runs the artifact the agent left
-      behind against oracle inputs the sandbox never contained. Tests pass or they do not. There
-      is no partial credit, no rubric and no judge anywhere in the primary endpoint, so a fluent
-      wrong answer scores exactly what a silent one does: zero.</p>
-      <p><strong>The corpus is raw, not curated.</strong> The feed is verbatim recorded agent
-      sessions, including the dead ends, the noise and the distractor work. Nobody extracted the
-      facts first. Distilling signal from that stream is precisely what a memory product claims
-      to do, so the benchmark refuses to do it for anyone. Every arm ingests identical bytes, and
-      the only asymmetry available is what a product keeps.</p>
-      <p><strong>Harm is measured, not assumed away.</strong> A suite where every governing fact
-      sits in the corpus can only ask whether memory helps. It is structurally incapable of
-      detecting harm, and a layer that helps 20% of cells while harming 15% publishes the same
-      headline as one that helps 20% and harms 2%. Four corpus conditions vary what the store
-      holds, including facts that are stale, contradictory, or confidently about a different
-      subsystem, and ask whether the product notices.</p>
-      <p><strong>The comparison is paired.</strong> Every arm meets the same task, the same seed
-      and the same fixture, so a cell is a within-subject comparison rather than a difference of
-      averages across arms that met different work. Arm order is randomised per cell and
-      recorded, so an order effect is testable afterwards instead of assumed absent.</p>
-      <p><strong>Treatment is proved, not trusted.</strong> A stdio server that fails to start is
-      invisible in a transcript: it produces a session with no memory tool calls, which looks
-      exactly like a model that chose not to search. The admission gate discards any cell where
-      an arm cannot prove its treatment was applied, and discard counts are published per arm
-      precisely because that rule protects one class of arm's worst outcome and no other's.</p>
-      <p>The result is a benchmark that can return a null and is designed to survive returning
-      one. If memory layers do not beat a good static instruction file on real coding work, that
-      is the finding, and it will be published as readily as the opposite.</p>
+      <p>Most memory benchmarks ask a model questions about synthetic conversations and score
+      the answers with another model: a needle someone planted, found under a judge whose failure
+      modes correlate with the thing being judged. Five properties here are chosen against
+      that.</p>
+      <p><strong>The grade is execution.</strong> A checker runs the artifact against oracle
+      inputs the sandbox never contained. No partial credit, no rubric, no judge in the primary
+      endpoint, so a fluent wrong answer scores what a silent one does: zero.</p>
+      <p><strong>The corpus is raw.</strong> Verbatim recorded sessions, dead ends and noise
+      included. Distilling signal from that stream is what a memory product claims to do, so the
+      benchmark refuses to do it for anyone. The only asymmetry available is what a product
+      keeps.</p>
+      <p><strong>Harm is measured.</strong> A suite where every governing fact sits in the corpus
+      can only ask whether memory helps, and a layer that helps 20% of cells while harming 15%
+      publishes the same headline as one that helps 20% and harms 2%. The corpus conditions ask
+      whether the product notices stale, contradictory and off-subsystem evidence.</p>
+      <p><strong>The comparison is paired.</strong> Every arm meets the same task, seed and
+      fixture, so a cell is a within-subject comparison rather than a difference of averages
+      across arms that met different work. Arm order is randomised per cell and recorded.</p>
+      <p><strong>Treatment is proved.</strong> A stdio server that fails to start is invisible in
+      a transcript: no memory tool calls, which looks exactly like a model that chose not to
+      search. The gate discards any cell where an arm cannot prove its treatment applied.</p>
+      <p>The result is a benchmark that can return a null and survive it. If memory layers do not
+      beat a good static instruction file on real coding work, that is the finding, and it is
+      published as readily as the opposite.</p>
     </div>
   </section>
 

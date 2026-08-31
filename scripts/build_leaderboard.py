@@ -53,10 +53,7 @@ from pathlib import Path
 PRODUCT_ARMS = [
     # internal name, integration, role, public name (None while undisclosed)
     ("recall", "MCP server", None, "recall"),
-    # Undisclosed until its maintainers have had the review window that every vendor gets.
-    # The adapter is public in this repository; the SITE is what enters a product into a
-    # benchmark it was never told about, and that is the thing a name cannot be recalled from.
-    ("mempalace", "MCP server, local", None, None),
+    ("fs_grep", "transcripts on disk plus grep", "control", "fs_grep"),
     ("placebo", "inert prose, no memory content", "control", "placebo"),
     ("claude_md", "CLAUDE.md bundle", "baseline", "claude_md"),
     ("bare", "no memory", "floor", "bare"),
@@ -65,11 +62,20 @@ PRODUCT_ARMS = [
 # ⛔ This list is the arms that are MEASURED, not the arms that are hoped for. `mem0`,
 # `supermemory`, `zep` and `cognee` sat here for weeks with no adapter behind any of them, which
 # put four permanently null rows on a public leaderboard and read as "measured, scored nothing"
-# rather than "not built". An arm returns here when its adapter exists and it runs.
+# rather than "not built".
 #
-# `fs_grep` was removed for the same reason in reverse: it is a real control with a real adapter,
-# and it is deliberately NOT in the official run, so listing it would advertise a column that the
-# published numbers do not contain.
+# `mempalace` left for the same reason on 2026-08-31: preregistration 021's second amendment
+# defers it from `official-002` on a measured ingest cost, so it is built, not running, and a row
+# for it would be null for the length of a run it is not in. `fs_grep` arrived by the reverse
+# move: it was excluded while it was not in the official roster, and the same amendment puts it in
+# as the non-memory retrieval control. An arm belongs here when the approved run runs it.
+
+# Third-party products this repository holds material about, and which `site/` may NOT name.
+# Kept apart from PRODUCT_ARMS on purpose: leaderboard membership tracks what a run MEASURES,
+# disclosure tracks what has had its review window, and the two came apart the moment an arm was
+# deferred. Removing an arm from the board must not quietly remove it from this guard.
+# `tests/test_site_vendor_disclosure.py` reads this.
+UNDISCLOSED_PRODUCTS = ("mempalace", "mem0", "supermemory", "zep", "cognee")
 
 # What an undisclosed arm looks like on the page. The integration description is withheld
 # with the name, because "SaaS API" against a short field of candidates is most of an
@@ -90,14 +96,17 @@ UNDISCLOSED_PREFIX = "product_"
 # and flipping it without naming the longitudinal run that justifies it is refused below.
 RETRIEVAL_ONLY_TITLE = "Retrieval over a bulk-ingested corpus"
 RETRIEVAL_ONLY_QUALIFICATION = (
-    "The write path is not measured. Every arm was handed the same 125 pre-authored transcripts "
-    "before the grid and never wrote to its own store, so this ranks retrieval, not memory "
-    "formation, and it gives no credit to extraction or consolidation at write time."
+    "The write path is not measured. Every arm was handed the same corpus before the grid and "
+    "never wrote to its own store, so this ranks retrieval, not memory formation, and it gives "
+    "no credit to extraction or consolidation at write time."
 )
 FULL_TITLE = "Memory layers, read and write path"
 
+# Diagnostics, never ranked. `oracle_memory` left on 2026-08-31: its bundles carry no corpus
+# condition, so it would supply verified evidence under `absent`, the condition whose whole point
+# is that the corpus does not hold the answer. Preregistration 021 does not run it, and a track
+# the approved run does not run is a null row, not a diagnostic.
 REFERENCE_TRACKS = [
-    ("oracle_memory", "exact evidence injected; ceiling control"),
     ("recall_prefetch", "harness-side retrieval with the exact task prompt"),
 ]
 

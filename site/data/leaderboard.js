@@ -3,12 +3,12 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; numbers enter
    only through results/<run_id>/leaderboard_summary.json. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-08-29",
+  "updated": "2026-08-31",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
     "title": "Retrieval over a bulk-ingested corpus",
-    "qualification": "The write path is not measured. Every arm was handed the same 125 pre-authored transcripts before the grid and never wrote to its own store, so this ranks retrieval, not memory formation, and it gives no credit to extraction or consolidation at write time.",
+    "qualification": "The write path is not measured. Every arm was handed the same corpus before the grid and never wrote to its own store, so this ranks retrieval, not memory formation, and it gives no credit to extraction or consolidation at write time.",
     "longitudinalRun": null
   },
   "run": null,
@@ -24,8 +24,9 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
-      "name": "product_a",
-      "type": "third-party product, not yet named",
+      "name": "fs_grep",
+      "type": "transcripts on disk plus grep",
+      "role": "control",
       "success": null,
       "delta": null,
       "ci": null,
@@ -68,12 +69,6 @@ window.AMB_LEADERBOARD = {
     }
   ],
   "reference": [
-    {
-      "name": "oracle_memory",
-      "what": "exact evidence injected; ceiling control",
-      "success": null,
-      "delta": null
-    },
     {
       "name": "recall_prefetch",
       "what": "harness-side retrieval with the exact task prompt",

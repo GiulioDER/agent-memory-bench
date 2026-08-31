@@ -71,7 +71,6 @@ def _summary():
         },
         "arms": arms,
         "reference": {
-            "oracle_memory": {"success": 0.8, "delta": 0.4},
             "recall_prefetch": {"success": 0.6, "delta": 0.2},
         },
     }
@@ -157,26 +156,34 @@ def test_a_moved_baseline_is_refused(tmp_path):
 def test_an_undisclosed_arm_never_reaches_the_page(tmp_path):
     """The point of the disclosure layer, asserted with numbers present.
 
-    An arm is easy to anonymise while it is empty. This fills every arm from a summary, so
-    a generator that passed the internal name through anywhere - the label, the type, a
-    stray key - is caught with the page in the state it will actually ship in.
+    An arm is easy to anonymise while it is empty, so this fills every arm from a summary
+    and checks the page in the state it will actually ship in: a generator that passed the
+    internal name through anywhere, the label, the type or a stray key, is caught.
+
+    The roster carries no undisclosed arm today, and the mechanism still has to work the
+    day one arrives. So the arm is INJECTED rather than borrowed from the live list: a
+    guard that only runs while somebody happens to be undisclosed is a guard that rots
+    unwatched, and skipping here would have been a vacuous pass by another name. Injection
+    means calling ``build`` in process, since the generator otherwise runs in a subprocess
+    no monkeypatch reaches.
     """
     generator = _generator()
-    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
-    assert _run(root=root).returncode == 0
-    text = (root / "site" / "data" / "leaderboard.js").read_text(encoding="utf-8")
-
-    undisclosed = [
-        internal
-        for internal, public, _, _ in generator.public_arms()
-        if public.startswith(generator.UNDISCLOSED_PREFIX)
+    secret = "acme_memory"
+    generator.PRODUCT_ARMS = [
+        (secret, "SaaS API", None, None),
+        *generator.PRODUCT_ARMS,
     ]
-    assert undisclosed, "nothing is undisclosed; delete this test rather than passing it vacuously"
-    for internal in undisclosed:
-        assert internal not in text, f"{internal!r} leaked into the generated page"
 
-    data = _payload(root)
-    assert [a["name"] for a in data["arms"]] == PUBLIC_ARMS
+    summary = _summary()
+    summary["arms"][secret] = dict(next(iter(summary["arms"].values())))
+    root = _scaffold(tmp_path, summary=summary, official_run="run-x")
+
+    text = generator.build(root)
+    assert secret not in text, f"{secret!r} leaked into the generated page"
+    assert "SaaS API" not in text, "the integration description identifies the arm on its own"
+
+    data = json.loads(text.split("window.AMB_LEADERBOARD = ", 1)[1].rstrip().rstrip(";"))
+    assert [a["name"] for a in data["arms"]] == ["product_a", *PUBLIC_ARMS]
     anonymous = next(a for a in data["arms"] if a["name"] == "product_a")
     assert anonymous["success"] == 0.5, "an undisclosed arm still carries its real numbers"
 
