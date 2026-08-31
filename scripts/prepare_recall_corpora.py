@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shlex
 import shutil
 import subprocess
@@ -142,6 +143,33 @@ def recall(tenant: str, args: str, *, production: bool = False, timeout: float =
     return ssh(command, timeout=timeout)
 
 
+# A generation id, however the CLI happens to announce it.
+#
+# 🔁 This used to match ONLY a line starting with `candidate:`, and recall stopped printing one.
+# `generation build` now says `built gen_...: N objects, M chunks, K objects reused`, so the parse
+# returned None, the script raised "build produced no generation id", and the run stopped after
+# ONE condition -- with that condition fully embedded, 27,063 chunks paid for, and left stranded
+# in `validating` because nothing went on to validate it.
+#
+# The failure is worth naming: a SUCCESSFUL build was reported as a failed one, and the cost was
+# not the crash but the four conditions that never ran overnight. A brittle parse of another
+# program's prose is a coupling nobody declares and no test covers.
+#
+# So this matches the id itself rather than the sentence around it, and accepts both spellings.
+_GENERATION_ID = re.compile(r"^\s*(?:candidate:\s*|built\s+)(gen_[0-9a-f]+)", re.MULTILINE)
+
+
+def _generation_id(stdout: str) -> str | None:
+    """The generation id `recall generation build` just created, or None.
+
+    Deliberately anchored to the START of a line. `built gen_X: ... run `recall generation validate
+    gen_X`` mentions the id twice, and a loose search anywhere in the text would also match the id
+    inside an unrelated instruction, so the anchor is what keeps one build's output unambiguous.
+    """
+    match = _GENERATION_ID.search(stdout)
+    return match.group(1) if match else None
+
+
 def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
     # Same shape the runner uses, `<namespace>-<condition>`, so the suite and this script
     # cannot disagree about which tenant holds which condition.
@@ -249,16 +277,15 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
     )
     if r.returncode != 0:
         raise SystemExit(f"  build FAILED: {r.stderr.strip()[-800:]}")
-    generation = next(
-        (
-            line.split()[-1]
-            for line in r.stdout.splitlines()
-            if line.strip().startswith("candidate:")
-        ),
-        None,
-    )
+    generation = _generation_id(r.stdout)
     if not generation:
-        raise SystemExit(f"  build produced no generation id:\n{r.stdout[-600:]}")
+        raise SystemExit(
+            "  build produced no generation id, but the BUILD MAY HAVE SUCCEEDED and only the\n"
+            "  parse failed. Look for a `built gen_...` line below before rebuilding: if one is\n"
+            "  there, the corpus is embedded and paid for, and the generation is merely sitting\n"
+            "  unvalidated. Abandon the orphan or validate it by hand rather than paying twice.\n"
+            f"{r.stdout[-600:]}"
+        )
     print(f"  built {generation}")
 
     for label, args, prod in (
