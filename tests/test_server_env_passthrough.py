@@ -29,7 +29,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from adapters.recall.adapter import RecallAdapter  # noqa: E402
+from adapters.recall.adapter import RecallAdapter
 
 CONFIG = json.loads((REPO / "adapters" / "recall" / "config.frozen.json").read_text("utf-8"))
 
@@ -85,3 +85,17 @@ def test_the_environment_is_replaced_not_extended(adapter, monkeypatch):
     monkeypatch.setenv("SOME_UNRELATED_VARIABLE", "leaked")
     env = adapter.search_env("bench-test")
     assert "SOME_UNRELATED_VARIABLE" not in env
+
+
+def test_the_search_path_runs_under_the_frozen_environment(adapter):
+    """`production` is the only switch that routes search through `GenerationStore`.
+
+    Without it recall answers from the legacy path, reports `generation -` and
+    `calibration status missing`, and a strict policy refuses. The frozen config declared
+    `environment: production` all along; it reached the remote command and the MCP server env but
+    not this one, so the published search path and the prefetch path disagreed about which store
+    they read. That cost a launch.
+    """
+    env = adapter.search_env("bench-test")
+    assert env.get("RECALL_ENV") == str(CONFIG["environment"])
+    assert env["RECALL_ENV"] == "production", "the frozen config must keep serving from generations"
