@@ -359,6 +359,13 @@ class RecallAdapter(MemoryAdapter):
             "RECALL_EMBEDDER": str(self.config["embedder"]),
             "RECALL_TRUST_MODE": str(self.config["trust_mode"]),
             "RECALL_TENANT": namespace,
+            # ⛔ Without this the search takes recall's LEGACY path, which never consults
+            # `GenerationStore`, so it reports `generation -` and `calibration status missing` and
+            # a strict policy refuses -- correctly, since an uncalibrated answer has no threshold
+            # behind it. The frozen config has declared `environment: production` all along and it
+            # was applied to the remote command and the MCP server env but NOT here, so the
+            # published search path and the prefetch path disagreed about which store they read.
+            "RECALL_ENV": str(self.config["environment"]),
         }
         # ⚠️ The list below is the WHOLE environment the child gets, and it was written when the
         # embedder was a local model that needed no credential. `voyage:voyage-4` is hosted, so
