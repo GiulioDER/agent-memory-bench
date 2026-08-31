@@ -27,6 +27,7 @@ from harness.adapters.base import (
 )
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
+from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus
 
 #: The one-line nudge this arm carried until 2026-08-28, kept because `smoke-002` ran it and a
@@ -178,8 +179,9 @@ class FsGrepAdapter(MemoryAdapter):
         # along invisibly (the flat-name collision bug left exactly such files behind).
         if target.exists():
             shutil.rmtree(target)
+        _paths = [corpus.root / rel for rel in corpus.sessions]
         stored = render_corpus(
-            [corpus.root / rel for rel in corpus.sessions], target, root=corpus.root
+            _paths, target, root=corpus.root, lineage=lineage_from_env(_paths, corpus.root)
         )
         # What `_manifest_key` validates against. Kept per adapter instance rather than written
         # to disk, because an adapter that did not ingest has nothing to check and says so by

@@ -43,6 +43,7 @@ if str(REPO) not in sys.path:
 from adapters.recall.adapter import corpus_fingerprint, resolve_location
 from harness.adapters.base import CorpusManifest, namespace_path, validate_namespace
 from harness.damage import CORPUS_CONDITIONS
+from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus
 from scripts.abstention import selection_for
 from scripts.assemble_condition_corpus import assemble, haystack_root
@@ -200,7 +201,10 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
         import shutil
 
         shutil.rmtree(feed)
-    written = render_corpus([corpus_root / rel for rel in corpus.sessions], feed, root=corpus_root)
+    _paths = [corpus_root / rel for rel in corpus.sessions]
+    written = render_corpus(
+        _paths, feed, root=corpus_root, lineage=lineage_from_env(_paths, corpus_root)
+    )
     print(f"  rendered {written} file(s)")
 
     # Validated before the f-string, which would otherwise smuggle a traversal through
