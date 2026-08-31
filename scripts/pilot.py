@@ -405,6 +405,50 @@ EXCLUDED_PREFIXES = {
 }
 
 
+def block_concurrency() -> int:
+    """How many (task, seed) cells run at once. `AMB_BLOCK_CONCURRENCY`, default 1.
+
+    Every arm of a cell already runs concurrently (`arm_concurrency` is None), so the default of 1
+    still puts one session per arm in flight. This multiplies that, and the multiplier is the whole
+    wall clock of a run: 2,555 sessions at seven-in-flight is hours.
+
+    ⛔ **The ceiling is host memory, and exceeding it does not raise, it DELETES DATA.** Three arms
+    spawn a per-session MCP server. Starve the host and the server never answers `initialize`,
+    Claude Code reports the server failed with an EMPTY error list, the session runs with no memory
+    tools, the model answers from its own knowledge, and the record looks perfectly ordinary. The
+    admission gate then discards the cell, correctly. So contention does not produce errors, it
+    produces missing cells, and a run can be quietly hollowed out while every log looks clean.
+    Measured in `diagnostic-002`: 421 MB free, and the recall arm failed nearly every session after
+    the first six.
+
+    ⚠️ It also widens the STARTUP race, which is the documented binding constraint on grid width.
+    The server takes ~12.3s to answer, `pilot-004` lost 8 of 72 recall sessions to it (11.1%), and
+    a cell is admitted only when EVERY arm wired: at that rate five memory servers admit a cell
+    with probability 0.889^5 = 0.55 against a 95% admission rule. `harness/memory_startup.py`
+    probes and retries, which is what makes raising this survivable rather than safe.
+
+    So this is bounded deliberately, and the bound is memory per concurrent memory-arm server
+    rather than CPU: the sessions are waiting on an API, not computing.
+    """
+    raw = os.environ.get("AMB_BLOCK_CONCURRENCY", "").strip()
+    if not raw:
+        return 1
+    try:
+        value = int(raw)
+    except ValueError:
+        print(f"[pilot] AMB_BLOCK_CONCURRENCY={raw!r} is not an integer; using 1", flush=True)
+        return 1
+    if value < 1:
+        print(f"[pilot] AMB_BLOCK_CONCURRENCY={value} is not positive; using 1", flush=True)
+        return 1
+    # A hard ceiling, not advice. Three memory arms at roughly 815 MB per server means 8 cells is
+    # ~20 GB of servers alone, which is the shape that produced the starvation above.
+    if value > 8:
+        print(f"[pilot] AMB_BLOCK_CONCURRENCY={value} exceeds the ceiling; using 8", flush=True)
+        return 8
+    return value
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="pilot-001")
@@ -754,7 +798,7 @@ async def main() -> int:
         flush=True,
     )
     started = time.monotonic()
-    records = await run_grid(rows, run_arms, runner, block_concurrency=1)
+    records = await run_grid(rows, run_arms, runner, block_concurrency=block_concurrency())
     wall_min = (time.monotonic() - started) / 60
 
     write_jsonl(run_dir / "records.final.jsonl", records)
