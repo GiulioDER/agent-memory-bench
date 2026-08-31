@@ -195,3 +195,62 @@ Post-549 prints all three; PyPI 0.11.0 prints none.
 
 `pip install recall-rag==0.11.0` restores the released version. The pinned worktree stays on the
 host so the exact tree under test can be re-read after the fact.
+
+
+## Amendment 2, 2026-08-31: official-002 runs SIX arms; `mempalace` is deferred
+
+Written before the run, after a first launch was stopped with zero session records written.
+
+### What changed
+
+The roster drops `mempalace`:
+
+    before: bare, claude_md, placebo, recall, mempalace, fs_grep, recall_prefetch
+    after:  bare, claude_md, placebo, recall, fs_grep, recall_prefetch
+
+### Why, with the measurement that decided it
+
+MemPalace re-embeds the whole condition corpus with a local model at ingest, once per condition.
+Measured on the live run by counting distinct `source_file` values in its Chroma store:
+
+| | |
+|---|---:|
+| documents ingested | 1,053 of 4,889 |
+| elapsed | 35 min |
+| rate | ~30 documents/min |
+| projected, one condition | ~2.1 h |
+| projected, five conditions | **~10.5 h** |
+
+That is ingest alone, before any session runs. The comparison that makes it a defect rather than a
+cost: recall's ingest for the same corpus took **seconds**, because `RecallAdapter.ingest` verifies
+an already-promoted generation instead of embedding anything, and because #549 gave recall a
+content-addressed embedding cache. The five conditions share one 4,704-document haystack, so
+MemPalace embeds those same documents five times over.
+
+### What this costs the run, stated plainly
+
+**The vendor comparison this run was widened to provide is not in it.** The user asked for at least
+one other vendor so that a completed run would give a real-world comparison for recall, and that is
+exactly what is being dropped. `fs_grep` remains as a non-memory retrieval baseline and
+`recall_prefetch` as an upper bound, so the grid still has controls on both sides, but neither is a
+third-party memory product and neither substitutes for one.
+
+**No endpoint is voided.** The five endpoints are computed per arm and per stratum; removing an arm
+removes its rows and changes nothing about how the others are derived. The predictions in the
+frozen section that name `recall` and the controls stand unchanged.
+
+⚠️ **Any comparison against official-001, which DID run `mempalace`, must not treat the two rosters
+as the same experiment.** Report the arm set with every figure.
+
+### Deferred, not abandoned
+
+The grid runs one condition at a time and writes one directory per condition, so `mempalace` can be
+run later as its own pass and joined on `(task_id, seed, condition)`. Its partially built store for
+`absent` (1,053 documents, 62 MB) is left on the host rather than deleted, so a later pass can
+resume rather than restart. A cheap fix exists and is not attempted today: ingest the shared
+haystack once and reuse it across conditions, which is the same insight #549 applied to recall.
+
+### What was thrown away to get here
+
+One launch, stopped after 41 minutes with **zero session records**, having spent only MemPalace
+ingest CPU. Both condition directories are archived under `results/archive/` rather than deleted.
