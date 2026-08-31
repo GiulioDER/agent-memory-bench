@@ -180,6 +180,61 @@ class MemPalaceAdapter(MemoryAdapter):
 
     # ------------------------------------------------------------------ ingest
 
+    @staticmethod
+    def base_palace() -> Path | None:
+        """A prebuilt palace to copy, or None to mine every condition from scratch.
+
+        Off unless `MEMPALACE_BASE_PALACE` names a real palace, so the default behaviour is
+        byte-for-byte what it was and no run changes shape by accident.
+        """
+        raw = os.environ.get("MEMPALACE_BASE_PALACE", "").strip()
+        if not raw:
+            return None
+        base = Path(raw).expanduser()
+        if not (base / "chroma.sqlite3").is_file():
+            raise RuntimeError(
+                f"MEMPALACE_BASE_PALACE={raw!r} is not a MemPalace palace: no chroma.sqlite3 in it."
+            )
+        return base
+
+    @staticmethod
+    def filed_document_count(palace: Path) -> int:
+        """How many distinct source documents a palace has filed.
+
+        Read from MemPalace's own store rather than counted from a manifest, because the question
+        is what the store ACTUALLY holds. Counting the input would re-derive it and could not
+        detect a base built from a different corpus, which is the one failure this exists to catch.
+        """
+        import sqlite3
+
+        with sqlite3.connect(f"file:{palace / 'chroma.sqlite3'}?mode=ro", uri=True) as db:
+            row = db.execute(
+                "select count(distinct string_value) from embedding_metadata "
+                "where key='source_file'"
+            ).fetchone()
+        return int(row[0]) if row else 0
+
+    @staticmethod
+    def check_base_covers_shared(base: Path, reused: int, shared: int, prefix: str) -> None:
+        """Refuse a base palace that does not hold EXACTLY the corpus's shared documents.
+
+        ⛔ This is the guard against a silently thinner corpus. If the base was built from a
+        different haystack, every condition copied from it loses the documents it lacks, the arm is
+        measured on a corpus nobody described, and nothing downstream can tell: ingest reports
+        success, the sessions run, the records look ordinary, and the endpoints are computed over
+        an index quietly missing evidence.
+
+        Exact equality rather than `>=` on purpose. A base holding MORE than the shared set is also
+        wrong: those extra documents are in no condition's corpus yet would be retrievable in all
+        five, which is contamination rather than a shortfall and is harder to see.
+        """
+        if reused != shared:
+            raise RuntimeError(
+                f"base palace {base} holds {reused} document(s) but this corpus has {shared} "
+                f"shared document(s) under {prefix!r}. Rebuild the base from this corpus's "
+                f"haystack, or unset MEMPALACE_BASE_PALACE to mine in full."
+            )
+
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
         palace = self._palace_dir(namespace)
@@ -192,9 +247,41 @@ class MemPalaceAdapter(MemoryAdapter):
                 shutil.rmtree(stale)
         feed.mkdir(parents=True, exist_ok=True)
 
+        # A prebuilt base palace holding the documents every condition SHARES, so they are mined
+        # once rather than once per condition.
+        #
+        # Measured 2026-08-31: ingest runs at ~30 documents/min, and the hard corpus is 4,889
+        # documents per condition of which 4,704 are the identical haystack. Mining all five from
+        # scratch is ~10.5 hours, nearly all of it re-embedding the same synthetic documents.
+        # recall avoids this with a content-addressed cache (RE-call #549); MemPalace has none, so
+        # the reuse has to happen here.
+        #
+        # Verified on a 20-document probe BEFORE being relied on, because "faster" is worthless if
+        # it measures something else: a copied palace retains its contents, accepts further mining,
+        # leaves the original untouched, retrieves newly mined content, and returns identical top-3
+        # results to a palace built monolithically from the same documents across three queries.
+        #
+        # `mine` also skips a file it has already filed (measured: 10 already-filed documents in 3s
+        # against 20s to file 10 new ones, reporting "Files skipped (already filed): 10"), which
+        # makes the copy safe without filtering but NOT free: skipping 4,704 documents costs about
+        # 23 minutes per condition. So the shared documents are left out of the feed instead.
+        base = self.base_palace()
+        shared_prefix = str(self.config.get("shared_prefix", "synthetic/"))
+        if base is not None:
+            shutil.rmtree(palace, ignore_errors=True)
+            shutil.copytree(base, palace)
+            shared = [rel for rel in corpus.sessions if rel.startswith(shared_prefix)]
+            self.check_base_covers_shared(
+                base, self.filed_document_count(palace), len(shared), shared_prefix
+            )
+
         # The corpus bytes, flattened into one directory. Names mirror their corpus paths so a
         # retrieval result identifies its own source, matching `harness.transcripts.render_corpus`.
+        # `mine` dedups on this flattened name, which is what makes a base palace's documents
+        # recognisable across conditions.
         for rel in sorted(corpus.sessions):
+            if base is not None and rel.startswith(shared_prefix):
+                continue
             shutil.copyfile(corpus.root / rel, feed / rel.replace("/", "__"))
 
         start = time.monotonic()
