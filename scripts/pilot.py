@@ -42,8 +42,10 @@ import json
 import os
 import sys
 import time
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
@@ -405,6 +407,32 @@ EXCLUDED_PREFIXES = {
 }
 
 
+def diagnostic_metadata(spec: Any) -> dict[str, Any]:
+    """The adapter's `memory_diagnostic`, to be merged into the session record.
+
+    ⛔ Without this the admission gate discards EVERY cell of EVERY condition.
+
+    A diagnostic adapter returns `AdmissionSignal(metadata={"diagnostic_kind": <arm>})` and puts a
+    matching `memory_diagnostic` on its `ArmSpec`. `harness.gate._check_diagnostic` compares the
+    two and refuses when they disagree, and a cell is admitted only when EVERY arm is admitted, so
+    one unstamped arm voids the whole grid.
+
+    `scripts/diagnostic.py` copied the spec metadata across and this runner never did, which is why
+    `recall_prefetch` worked in `diagnostic-010` (70 of 72 cells admitted) and destroyed
+    `official-002`: 360 sessions run, 44 of 60 prefetch sessions successful, and **0 cells
+    admitted**, all 60 discarded with
+    `diagnostic arm 'recall_prefetch' expected memory treatment 'recall_prefetch', got None`.
+
+    ⚠️ Only `memory_diagnostic` is carried, never the whole spec metadata. The adapter also sets
+    `prompt_sha256`, and the runner computes that itself from the file it actually used; a blanket
+    merge would silently let the adapter's value win.
+    """
+    metadata = getattr(spec, "metadata", None)
+    if isinstance(metadata, Mapping) and "memory_diagnostic" in metadata:
+        return {"memory_diagnostic": metadata["memory_diagnostic"]}
+    return {}
+
+
 def block_concurrency() -> int:
     """How many (task, seed) cells run at once. `AMB_BLOCK_CONCURRENCY`, default 1.
 
@@ -750,7 +778,26 @@ async def main() -> int:
         digest = sandbox.restore(task_id, workdir, overlay=overlay)
         record = await run_claude_case(row, arm, config_for(task_id, seed, arm, workdir))
         ok, verdict = run_checker(by_id[task_id], workdir)
-        prompt_file = specs[(task_id, arm)].append_system_prompt_file
+        spec = specs[(task_id, arm)]
+        prompt_file = spec.append_system_prompt_file
+
+        # ⛔ Carry the adapter's diagnostic metadata into the RECORD, or the admission gate
+        # discards every cell of every condition.
+        #
+        # A diagnostic adapter returns `AdmissionSignal(metadata={"diagnostic_kind": <arm>})` and
+        # puts the matching `memory_diagnostic` on its `ArmSpec`. `harness.gate._check_diagnostic`
+        # compares the two and refuses when they disagree. `scripts/diagnostic.py` copied the spec
+        # metadata across; this runner never did, so `recall_prefetch` sessions RAN, SUCCEEDED, and
+        # were then discarded to a cell with
+        #     diagnostic arm 'recall_prefetch' expected memory treatment 'recall_prefetch', got None
+        # and because a cell is admitted only when EVERY arm is admitted, one unstamped arm voids
+        # the entire grid. Measured 2026-08-31 on official-002: 360 sessions run, 0 cells admitted,
+        # 60 of 60 discarded, all attributed to recall_prefetch.
+        #
+        # ⚠️ Only `memory_diagnostic` is carried, not the whole spec metadata: the adapter also
+        # sets `prompt_sha256`, which this runner computes itself from the file it actually used,
+        # and a blanket merge would let the adapter's value win.
+        diagnostic_extra = diagnostic_metadata(spec)
 
         # Classify HERE, not in the analysis. A damage detector needs the finished working tree,
         # and by the time anything reads records.jsonl the sandbox is gone. Without this the
@@ -762,6 +809,7 @@ async def main() -> int:
         extra = {
             "checker": verdict,
             **condition_extra,
+            **diagnostic_extra,
             # Compared ACROSS a cell's arms by harness.gate.admit_cells. Recorded since the first
             # commit and, until 2026-08-28, read by nothing.
             "sandbox_digest": digest,
