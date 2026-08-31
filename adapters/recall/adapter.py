@@ -360,7 +360,20 @@ class RecallAdapter(MemoryAdapter):
             "RECALL_TRUST_MODE": str(self.config["trust_mode"]),
             "RECALL_TENANT": namespace,
         }
-        for passthrough in ("APPDATA", "SystemRoot", "PYTHONPATH", "PATH"):
+        # ⚠️ The list below is the WHOLE environment the child gets, and it was written when the
+        # embedder was a local model that needed no credential. `voyage:voyage-4` is hosted, so
+        # without its key the child dies with
+        #     embedder 'voyage:voyage-4': RuntimeError: VoyageEmbedder needs VOYAGE_API_KEY
+        # which surfaces as `PrefetchError: recall prefetch failed with exit 1` and stops the whole
+        # run at the first task of the first condition.
+        #
+        # This is the same failure as an MCP `env` block replacing rather than extending the
+        # environment, and it is worth naming twice: a hand-written passthrough list is correct
+        # only for the configuration it was written against, and nothing re-checks it when the
+        # configuration moves. Switching from a local embedder to a hosted one is exactly such a
+        # move, and it changes no line of this file.
+        credentials = ("VOYAGE_API_KEY", "OPENAI_API_KEY", "COHERE_API_KEY", "ANTHROPIC_API_KEY")
+        for passthrough in ("APPDATA", "SystemRoot", "PYTHONPATH", "PATH", *credentials):
             value = os.environ.get(passthrough)
             if value:
                 env[passthrough] = value
