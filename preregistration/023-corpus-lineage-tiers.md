@@ -98,3 +98,25 @@ wrong-field reads.
 **~$2.40**.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Execution note, appended 2026-08-31 before any tier was run
+
+**Tier 1 is DEFERRED, not cancelled. Tier 0 and Tier 2 run first.** The design above is unchanged
+and nothing in it is edited; this records only the order in which it is executed.
+
+Reasoning, the user's: Tier 0 and Tier 2 together answer "does declared lineage help at all", and
+that is the question worth the compute. Tier 1 earns its own run only if Tier 2 shows an effect; if
+the ceiling is flat, timestamps alone cannot move it.
+
+Two consequences that must be stated rather than discovered later:
+
+* **Prediction 1 is unscored for now.** It compares Tier 1 against Tier 0 and no Tier 1 exists yet.
+  It is not withdrawn.
+* **The "Tier 1 matches Tier 2" falsifier cannot fire in this pass.** That check exists to catch a
+  broken render before it is read as a finding, so the Tier 2 `verdict == "superseded"` guard is now
+  carrying that load alone, which makes it strictly more load-bearing than when it was written.
+
+Cost of the deferral, measured rather than assumed: `declared` annotates **all 207 sessions** with
+`valid_from`, so Tier 2 needs a full embedding pass whatever the order. Tier 1 and Tier 2 differ on
+only **22 of 207** documents, so a later Tier 1 is largely served from the content-addressed cache.
+Deferring costs nothing and makes the deferred run cheaper.
