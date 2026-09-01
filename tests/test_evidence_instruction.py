@@ -13,6 +13,8 @@ experiment turns on is the one difference the existing guard is blind to. Hence 
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from harness import instructions
@@ -20,9 +22,12 @@ from scripts.pilot import (
     PROTOCOL_FAMILY,
     RECALL_EVIDENCE_SENTENCE,
     RECALL_SEARCH_SENTENCE,
+    instruction_arms_matched,
     memory_instructions,
     recall_instruction,
 )
+
+REPO = Path(__file__).resolve().parents[1]
 
 
 def test_evidence_differs_from_protocol_only_in_the_search_sentence():
@@ -108,3 +113,40 @@ def test_the_frozen_variants_are_untouched_by_the_new_one():
         recall_instruction("protocol"),
         recall_instruction("evidence"),
     )
+
+
+def test_the_published_fairness_flag_agrees_with_the_check_actually_run():
+    """The predicate itself: true for the whole family, false for the unmatched variants.
+
+    ⚠️ Measured, not assumed: this test does NOT catch the bug it was written for. Restoring
+    `args.memory_instruction == "protocol"` at the environment.json site leaves this green, because
+    it exercises the predicate and the bug is at the CALL SITE. The next test is the one that goes
+    red, and the pair is kept because a behavioural check that silently covers nothing is how a
+    guard comes to be believed without ever having been watched fail.
+    """
+
+    for variant in PROTOCOL_FAMILY:
+        assert instruction_arms_matched(variant) is True
+        # the same predicate must be the one gating the assertion
+        instructions.assert_shared_protocol(memory_instructions(variant, ("bare", "recall", "fs_grep")))
+
+    for variant in ("skill", "oneliner"):
+        assert instruction_arms_matched(variant) is False
+
+
+def test_the_environment_artifact_uses_the_predicate_and_not_a_literal():
+    """Mutation: restore `args.memory_instruction == "protocol"` at the environment.json site.
+
+    That literal was a FOURTH site keying on the variant name, missed when PROTOCOL_FAMILY replaced
+    the other three, and missed again by a grep whose own exclude pattern contained the word `arms`.
+    Under `evidence` the enforcement ran while the artifact published
+    `instruction_arms_matched: false`, so the run would have disclosed that its arms were unmatched
+    immediately after the code asserted they were.
+
+    This reads the SOURCE rather than the behaviour, deliberately: nothing downstream consumes the
+    flag, so no behavioural assertion can reach the call site. Verified red under the mutation.
+    """
+
+    source = (REPO / "scripts" / "pilot.py").read_text(encoding="utf-8")
+    assert '"instruction_arms_matched": instruction_arms_matched(' in source
+    assert '"instruction_arms_matched": args.memory_instruction ==' not in source

@@ -151,6 +151,20 @@ RECALL_EVIDENCE_SENTENCE = (
 #: exists to remove.
 PROTOCOL_FAMILY = ("protocol", "evidence")
 
+
+def instruction_arms_matched(variant: str) -> bool:
+    """Whether this variant gives every memory arm the shared protocol byte for byte.
+
+    ⚠️ One predicate, called by the ENFORCEMENT (`memory_instructions` runs
+    `assert_shared_protocol`) and by the DISCLOSURE (`environment.json`'s
+    `instruction_arms_matched`), because they were separate literals and went out of step the
+    moment a second family member existed: the assertion ran for `evidence` while the artifact
+    published `false`. A published fairness claim that contradicts the check actually performed is
+    worse than either alone, and nothing downstream could have caught it.
+    """
+
+    return variant in PROTOCOL_FAMILY
+
 #: The instruction-only control arm's slot. It has no memory layer, so it is pointed at the only
 #: thing it does have. This is what isolates the coaching from the retrieval: if `protocol` moves
 #: against `claude_md`, part of any memory arm's lift is the instruction rather than the store.
@@ -213,7 +227,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     if "fs_grep" in texts:
         texts["fs_grep"] = (
             FsGrepAdapter.shared_instruction(neutral=neutral)
-            if variant in PROTOCOL_FAMILY
+            if instruction_arms_matched(variant)
             # The historical sentence, so a `skill`/`oneliner` rerun reproduces the old asymmetry
             # rather than half-fixing it and being comparable to neither.
             else instructions.compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral)
@@ -227,7 +241,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["protocol"] = instructions.compose(
             "protocol", PROTOCOL_SEARCH_SENTENCE, neutral=neutral
         )
-    if variant in PROTOCOL_FAMILY:
+    if instruction_arms_matched(variant):
         instructions.assert_shared_protocol(texts, neutral=neutral)
     return texts
 
@@ -741,7 +755,7 @@ async def main() -> int:
                 "instruction_excess_bytes": instructions.excess_over_protocol(
                     texts, neutral=args.neutral_protocol
                 ),
-                "instruction_arms_matched": args.memory_instruction == "protocol",
+                "instruction_arms_matched": instruction_arms_matched(args.memory_instruction),
                 "placebo_length_metric": "whitespace_tokens_and_lines",
                 "placebo_length_match": {
                     task_id: length_metadata(
