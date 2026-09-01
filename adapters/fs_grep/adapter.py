@@ -112,10 +112,14 @@ class FsGrepAdapter(MemoryAdapter):
         return FS_GREP_SENTENCE
 
     @staticmethod
-    def shared_instruction(*, neutral: bool = False) -> str:
-        """The fair instruction: the shared protocol plus this arm's own capped appendix."""
+    def shared_instruction(*, neutral: bool = False, variant: str = "protocol") -> str:
+        """The fair instruction: the shared protocol plus this arm's own capped appendix.
 
-        return compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral)
+        ``variant`` selects WHICH shared protocol, never a per-arm one, so every memory arm in a
+        run carries the same text and a protocol variant stays a fair comparison.
+        """
+
+        return compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral, variant=variant)
 
     def _staging_dir(self, namespace: str) -> Path:
         # Validated HERE rather than at each caller: this is the join, and `ingest` runs

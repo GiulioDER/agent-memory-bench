@@ -25,7 +25,10 @@ if [[ -z "${CONDITIONS:-}" ]]; then
   # Assigned in two steps ON PURPOSE. Written as CONDITIONS="${CONDITIONS:-$(...)}", a failing
   # command substitution aborts the script under `set -e` BEFORE the guard below can run, so the
   # script exited 1 with no diagnostic and the guard was dead code that read as a safety net.
-  CONDITIONS="$(cd "$REPO" && python -c 'from harness.damage import CORPUS_CONDITIONS; print(",".join(CORPUS_CONDITIONS))')" || CONDITIONS=""
+    # `.venv/bin/python`, not bare `python`, which is what every other invocation in this script
+    # uses. A caller whose PATH has no `python` (a detached chain, a cron job) hit the guard below
+    # instead of running, which is the right failure but the wrong reason for it.
+    CONDITIONS="$(cd "$REPO" && .venv/bin/python -c 'from harness.damage import CORPUS_CONDITIONS; print(",".join(CORPUS_CONDITIONS))')" || CONDITIONS=""
 fi
 if [[ -z "$CONDITIONS" ]]; then
   echo "could not read CORPUS_CONDITIONS from $REPO/harness/damage.py" >&2
@@ -33,6 +36,13 @@ if [[ -z "$CONDITIONS" ]]; then
 fi
 ARMS="${ARMS:-bare,placebo,claude_md,recall,mempalace}"
 SEEDS="${SEEDS:-3}"
+# Hardcoded to `skill` until 2026-09-01, which is why every run from pilot-002 to official-002
+# used it: the FAIR variant existed in scripts/pilot.py and was unreachable from the script that
+# launches every run. Under `skill` the recall arm carried 1,958 bytes over the shared protocol
+# against mempalace's 853; under `protocol` it is 735 against 853. Default stays `skill` so a
+# rerun remains comparable to the runs that used it; pass MEMORY_INSTRUCTION=protocol for a fair
+# cross-product comparison, or =draft for preregistration 024.
+MEMORY_INSTRUCTION="${MEMORY_INSTRUCTION:-skill}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 SECRETS="${SECRETS:-$HOME/amb-secrets.env}"
 
@@ -112,7 +122,7 @@ LOG="$REPO/results/logs/$RUN_ID-$STAMP.log"
 ARGV=(.venv/bin/python -m scripts.abstention
       --run-id "$RUN_ID" --namespace "$NAMESPACE" --conditions "$CONDITIONS"
       --arms "$ARMS" --seeds "$SEEDS" --model "$MODEL"
-      --memory-instruction skill --resume
+      --memory-instruction "$MEMORY_INSTRUCTION" --resume
       --price-in "$PRICE_IN" --price-out "$PRICE_OUT" --price-as-of "$PRICE_AS_OF")
 [ "${DRY_RUN:-0}" = "1" ] && ARGV+=(--dry-run)
 

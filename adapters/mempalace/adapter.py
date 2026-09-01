@@ -157,11 +157,17 @@ class MemPalaceAdapter(MemoryAdapter):
     # ------------------------------------------------------------------ instruction
 
     @staticmethod
-    def shared_instruction(*, neutral: bool = False) -> str:
-        """The shared protocol with this arm's search sentence, plus its own capped appendix."""
+    def shared_instruction(*, neutral: bool = False, variant: str = "protocol") -> str:
+        """The shared protocol with this arm's search sentence, plus its own capped appendix.
+
+        ``variant`` selects WHICH shared protocol, never a per-arm one, so every memory arm in a
+        run carries the same text and a protocol variant stays a fair comparison.
+        """
 
         config = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
-        return compose("mempalace", str(config["search_sentence"]), neutral=neutral)
+        return compose(
+            "mempalace", str(config["search_sentence"]), neutral=neutral, variant=variant
+        )
 
     def _instruction_text(self) -> str:
         if self.instruction_override is not None:

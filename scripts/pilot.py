@@ -157,42 +157,57 @@ def recall_instruction(variant: str, *, neutral: bool = False) -> str:
         if text.startswith("---"):
             text = text.split("---", 2)[2]
         return text.strip()
-    if variant == "protocol":
-        return instructions.compose("recall", RECALL_SEARCH_SENTENCE, neutral=neutral)
+    if variant in SHARED_PROTOCOL_VARIANTS:
+        return instructions.compose(
+            "recall", RECALL_SEARCH_SENTENCE, neutral=neutral, variant=variant
+        )
     raise ValueError(f"unknown recall instruction variant {variant!r}")
+
+
+#: Variants where every memory arm carries one shared protocol byte for byte, so the fairness
+#: assertion is meaningful and a run is a comparison between PRODUCTS. `draft` is preregistration
+#: 024's variant and differs from `protocol` in exactly one section, generated rather than written.
+#: `skill` and `oneliner` are not here: they exist to reproduce runs that were never matched.
+SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
 
 
 def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = False) -> dict[str, str]:
     """The instruction each arm carries, keyed by arm. Arms with no memory surface carry "".
 
-    Under ``protocol`` every memory arm gets `adapters/_shared/memory_protocol.md` verbatim plus its
-    own capped appendix, and the fairness assertion below is meaningful. Under ``skill`` or
-    ``oneliner`` the arms are deliberately NOT matched, because those variants exist to reproduce
-    runs that were not matched, and the assertion is skipped with that stated in the artifact.
+    Under a shared-protocol variant every memory arm gets that protocol verbatim plus its own capped
+    appendix, and the fairness assertion below is meaningful. Under ``skill`` or ``oneliner`` the
+    arms are deliberately NOT matched, because those variants exist to reproduce runs that were not
+    matched, and the assertion is skipped with that stated in the artifact.
     """
 
+    shared = variant in SHARED_PROTOCOL_VARIANTS
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
         texts["recall"] = recall_instruction(variant, neutral=neutral)
     if "fs_grep" in texts:
         texts["fs_grep"] = (
-            FsGrepAdapter.shared_instruction(neutral=neutral)
-            if variant == "protocol"
+            FsGrepAdapter.shared_instruction(neutral=neutral, variant=variant)
+            if shared
             # The historical sentence, so a `skill`/`oneliner` rerun reproduces the old asymmetry
             # rather than half-fixing it and being comparable to neither.
             else instructions.compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral)
         )
     if "mempalace" in texts:
-        # No historical variant to reproduce: this arm has never run, so it always carries the
+        # No historical variant to reproduce: this arm has never run, so it always carries a
         # shared protocol. Under `skill`/`oneliner` that leaves it matched against an
         # unmatched recall arm, which `instruction_manifest` publishes rather than hides.
-        texts["mempalace"] = MemPalaceAdapter.shared_instruction(neutral=neutral)
+        texts["mempalace"] = MemPalaceAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
-            "protocol", PROTOCOL_SEARCH_SENTENCE, neutral=neutral
+            "protocol",
+            PROTOCOL_SEARCH_SENTENCE,
+            neutral=neutral,
+            variant=variant if shared else "protocol",
         )
-    if variant == "protocol":
-        instructions.assert_shared_protocol(texts, neutral=neutral)
+    if shared:
+        instructions.assert_shared_protocol(texts, neutral=neutral, variant=variant)
     return texts
 
 
@@ -489,13 +504,16 @@ async def main() -> int:
         "--memory-instruction",
         "--recall-instruction",
         dest="memory_instruction",
-        choices=("oneliner", "skill", "protocol"),
+        choices=("oneliner", "skill", "protocol", "draft"),
         default="oneliner",
-        help="which instruction the memory arms carry; recorded in the artifacts. `protocol` is "
-        "the only variant in which the arms are matched: it gives every memory arm the shared "
-        "adapters/_shared/memory_protocol.md plus that product's own capped appendix. `skill` "
-        "reproduces pilot-002 through pilot-004, in which the recall arm carried 5,428 characters "
-        "and no other arm carried more than 231.",
+        help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
+        "`draft` are the matched variants: each gives every memory arm one shared protocol plus "
+        "that product's own capped appendix. `draft` is preregistration 024's variant and differs "
+        "from `protocol` in exactly one section, `## How to search`, telling the agent to search "
+        "with the text it is about to write rather than by decomposing the task into operations; "
+        "it is generated by scripts/build_draft_protocol.py so the one-variable claim is checkable. "
+        "`skill` reproduces pilot-002 through pilot-004, in which the recall arm carried 5,428 "
+        "characters and no other arm carried more than 231.",
     )
     parser.add_argument(
         "--neutral-protocol",
@@ -562,12 +580,12 @@ async def main() -> int:
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
-    if "protocol" in run_arms and args.memory_instruction != "protocol":
+    if "protocol" in run_arms and args.memory_instruction not in SHARED_PROTOCOL_VARIANTS:
         raise SystemExit(
             "the `protocol` arm is the instruction-only control for the shared memory protocol, "
-            "so it is only meaningful with --memory-instruction protocol. With `skill` or "
-            "`oneliner` it would carry a different instruction from the memory arms it exists to "
-            "be compared against."
+            f"so it is only meaningful with --memory-instruction in {SHARED_PROTOCOL_VARIANTS}. "
+            "With `skill` or `oneliner` it would carry a different instruction from the memory "
+            "arms it exists to be compared against."
         )
     # Only the recall arm reads a corpus through a database. Demanding a DSN for a run that has no
     # recall arm would make a bare-only calibration impossible without standing up a database it
