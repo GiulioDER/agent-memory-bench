@@ -672,6 +672,43 @@ async def main() -> int:
             f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
         )
     self_ingesting = [arm for arm in SELF_INGESTING_ARMS if arm in run_arms]
+
+    # ⛔ The instruction invariants are checked HERE as well as after ingest, because "nothing has
+    # been spent beyond ingest" stopped being a cheap sentence on 2026-09-01. It was true while
+    # every self-ingesting arm paid in host compute; `cognee` extracts its graph with a hosted LLM,
+    # so its ingest is a bill that scales with the corpus, and a run refused for a misconfigured
+    # instruction after ingest would have paid that bill in full for nothing.
+    #
+    # Only the checks that do not need ingest can run this early. `check_corpus_reached` reads the
+    # ingest reports and reports SKIP without them, which is why passing a partial environment is
+    # honest rather than a way of dodging a check: the same `validate` runs again below over the
+    # complete artifact, and the corpus floor is enforced there.
+    early = validate_setup(
+        {
+            "arms": list(run_arms),
+            "memory_instruction": args.memory_instruction,
+            "instruction_manifest": instructions.instruction_manifest(texts),
+            "instruction_excess_bytes": instructions.excess_over_protocol(
+                texts, neutral=args.neutral_protocol
+            ),
+            "instruction_arms_matched": args.memory_instruction == "protocol",
+            "sandbox_inside_repo": False,
+        }
+    )
+    if any(check.ok is False for check in early):
+        for check in early:
+            if check.ok is not True:
+                print(f"[setup] {check.mark} {check.name}: {check.detail}", flush=True)
+        print(
+            "\n[setup] REFUSING before ingest: this run is not configured to measure what it "
+            "claims, and at least one arm's ingest costs money rather than time. NOTHING has been "
+            "spent. Fix the setup, or say why the check is wrong and change the check; do not "
+            "route around it.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 2
+
     if self_ingesting:
         corpus = CorpusManifest.load(corpus_root)
         for arm in self_ingesting:

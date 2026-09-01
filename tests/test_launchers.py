@@ -265,3 +265,25 @@ def test_the_setup_gate_refuses_rather_than_warns() -> None:
     gate = pilot[pilot.index("setup_checks = validate_setup(") :][:1400]
     assert "return 2" in gate, "the gate does not stop the run"
     assert "REFUSING" in gate, "the gate does not say what it did"
+
+
+def test_the_instruction_gate_also_runs_before_ingest() -> None:
+    """The post-ingest gate's own comment says "nothing has been spent beyond ingest".
+
+    That was true while every self-ingesting arm paid in host compute. `cognee` extracts its
+    knowledge graph with a hosted LLM, so its ingest is a bill that scales with the corpus, and a
+    run refused after ingest for a misconfigured instruction would have paid it in full for
+    nothing. The invariants that do not need the ingest reports are therefore checked twice, and
+    the first time is before the ingest loop.
+
+    Source order is the check, because running pilot.main would start a real run.
+    """
+
+    pilot = (SH.parent / "pilot.py").read_text(encoding="utf-8")
+    early = pilot.index("early = validate_setup(")
+    ingest_loop = pilot.index("if self_ingesting:")
+    late = pilot.index("setup_checks = validate_setup(")
+    assert early < ingest_loop < late, "the early gate is not before the ingest loop"
+    block = pilot[early:][:1600]
+    assert "return 2" in block, "the early gate does not stop the run"
+    assert "REFUSING before ingest" in block, "the early gate does not say what it did"
