@@ -35,6 +35,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -182,17 +184,40 @@ def check_configuration(adapter: CogneeAdapter, namespace: str) -> bool:
     )
 
 
-def check_mcp_tools(adapter: CogneeAdapter, namespace: str) -> bool:
+def _read_line(stream, seconds: float) -> str:
+    """One line, or "" if the server did not produce one within ``seconds``.
+
+    A bare `readline` cannot tell a server that is BROKEN from one that is merely SLOW, and this
+    server is very slow: `import cognee` alone pulls litellm, torch, transformers, unstructured
+    and magic, and was measured taking minutes on a loaded workstation. Reporting "no answer" for
+    a server that would have answered in another minute is a wrong verdict about a vendor, which
+    is the one mistake this benchmark cannot afford, so the wait is bounded and the bound is
+    named in the failure.
+    """
+
+    box: list[str] = []
+    reader = threading.Thread(target=lambda: box.append(stream.readline()), daemon=True)
+    reader.start()
+    reader.join(seconds)
+    return box[0] if box else ""
+
+
+def check_mcp_tools(adapter: CogneeAdapter, namespace: str, handshake_timeout: float) -> bool:
     """Every tool the frozen config allows still exists on the server it will be served by.
 
     A vendor rename between versions would otherwise surface as the agent never using its memory,
     which the gate ADMITS as a behavioural result. That would publish a wiring fault as a finding
     about discoverability, which is the one mistake this benchmark cannot afford to make.
+
+    The elapsed time is reported on success as well as on failure, because it is a cost the run
+    pays once per SESSION: the harness starts one server per session, so a start measured in
+    minutes is a fact about whether a grid is affordable, not a detail of this check.
     """
 
     server = adapter._venv_bin(str(CONFIG["mcp_entrypoint"]))
     env = adapter.cognee_env(namespace)
     adapter._store_dir(namespace).mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
     proc = subprocess.Popen(
         [str(server), "--transport", "stdio"],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -207,15 +232,36 @@ def check_mcp_tools(adapter: CogneeAdapter, namespace: str) -> bool:
         send({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
             "protocolVersion": "2025-06-18", "capabilities": {},
             "clientInfo": {"name": "preflight", "version": "0"}}})
-        init = json.loads(proc.stdout.readline())
+        line = _read_line(proc.stdout, handshake_timeout)
+        if not line.strip():
+            return report(
+                False,
+                f"MCP server did not answer initialize within {handshake_timeout:.0f}s",
+                f"exit code so far: {proc.poll()}\n"
+                f"This is a BOUND, not a proof that the server is broken: `import cognee` alone "
+                f"is minutes of work on a loaded host. Raise it with --handshake-timeout, or run "
+                f"the arm somewhere with more free memory, before concluding anything about the "
+                f"product.",
+            )
+        init = json.loads(line)
         version = init.get("result", {}).get("serverInfo", {}).get("version", "?")
         send({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}})
         send({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
-        served = {t["name"] for t in json.loads(proc.stdout.readline())["result"]["tools"]}
+        line = _read_line(proc.stdout, handshake_timeout)
+        if not line.strip():
+            return report(
+                False,
+                f"MCP server {version} answered initialize but not tools/list within "
+                f"{handshake_timeout:.0f}s",
+                "The server is up, so this is a protocol or advertising problem rather than a "
+                "startup one. COGNEE_MCP_TOOL_MODE decides what it advertises.",
+            )
+        served = {t["name"] for t in json.loads(line)["result"]["tools"]}
     except Exception as exc:  # noqa: BLE001 - any failure here is a failed check, reported
         return report(False, "MCP server answers tools/list", f"{type(exc).__name__}: {exc}")
     finally:
         proc.terminate()
+    elapsed = time.monotonic() - started
 
     missing = sorted(set(CONFIG["allowed_tools"]) - served)
     if missing:
@@ -230,7 +276,7 @@ def check_mcp_tools(adapter: CogneeAdapter, namespace: str) -> bool:
     return report(
         True,
         f"MCP server {version} serves {len(served)} tools, "
-        f"all {len(CONFIG['allowed_tools'])} allowed ones present",
+        f"all {len(CONFIG['allowed_tools'])} allowed ones present, in {elapsed:.1f}s",
     )
 
 
@@ -349,6 +395,12 @@ def main() -> int:
         help="also ingest a corpus subset and probe it. SPENDS: extraction is an LLM pass.",
     )
     parser.add_argument("--smoke-sessions", type=int, default=4)
+    parser.add_argument(
+        "--handshake-timeout", type=float, default=600.0,
+        help="seconds to wait for the MCP server to answer. Generous on purpose: `import cognee` "
+             "pulls litellm, torch, transformers and unstructured, and the harness pays that "
+             "start once per session.",
+    )
     args = parser.parse_args()
 
     if not os.environ.get(str(CONFIG["venv_env"])):
@@ -377,7 +429,7 @@ def main() -> int:
         check_configuration(adapter, args.namespace),
     ]
     if all(checks):
-        checks.append(check_mcp_tools(adapter, args.namespace))
+        checks.append(check_mcp_tools(adapter, args.namespace, args.handshake_timeout))
         if args.estimate and checks[-1]:
             checks.append(check_estimate(adapter, Path(args.corpus_root), args.namespace))
         if args.ingest_smoke and checks[-1]:
