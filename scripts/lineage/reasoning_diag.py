@@ -8,11 +8,16 @@ model, two bundles.
 Uses only paths verified on 2026-08-31: the arm's own _server_env, `recall search --evidence`,
 and PR #553's OpenAI-compatible provider against OpenRouter.
 """
-import json, os, re, subprocess, sys
+import json
+import re
+import subprocess
+import sys
 from pathlib import Path
+
 sys.path.insert(0, ".")
-from adapters.recall.adapter import RecallAdapter
 from recall.answer_provider import resolve_answer_provider
+
+from adapters.recall.adapter import RecallAdapter
 
 PAIRS = [("bench-lineage-t0-superseded", "t0"), ("bench-lineage-t2-superseded", "t2")]
 adapter = RecallAdapter(Path("results/.diag"), Path("corpus/README.md"))
@@ -48,7 +53,7 @@ for task in tasks:
             try:
                 payload = json.loads(s[i:])
                 bundle = json.dumps(payload)[:6000]
-            except Exception:
+            except Exception:  # noqa: BLE001 - a malformed payload is data, not a crash
                 bundle = s[i:i + 6000]
         ans, err = None, None
         if bundle:
@@ -57,15 +62,15 @@ for task in tasks:
                     "Answer ONLY from the evidence. Be one sentence.",
                     "Evidence:\n" + bundle + "\n\nQuestion: what is the CURRENT convention for "
                     + q + "?"))[:400]
-            except Exception as e:
-                err = "%s: %s" % (type(e).__name__, str(e)[:200])
+            except Exception as e:  # noqa: BLE001 - a provider error is recorded, not raised
+                err = f"{type(e).__name__}: {str(e)[:200]}"
         row[label] = {"verdicts": verdicts, "answer": ans, "error": err,
                       "bundle_chars": len(bundle)}
     out.append(row)
     print(json.dumps(row)[:400])
 
 Path("results/reasoning-diag.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
-print("\nwrote results/reasoning-diag.json  rows=%d" % len(out))
+print(f"\nwrote results/reasoning-diag.json  rows={len(out)}")
 for r in out:
     t0 = r.get("t0", {}); t2 = r.get("t2", {})
-    print("  %-22s t0 %-28s | t2 %s" % (r["task"], t0.get("verdicts"), t2.get("verdicts")))
+    print(f"  {r['task']:<22} t0 {t0.get('verdicts')!s:<28} | t2 {t2.get('verdicts')}")
