@@ -119,6 +119,29 @@ REFERENCE_TRACKS = [
     ("protocol", "the shared memory instruction, with no memory behind it"),
 ]
 
+# Arms whose numbers are withheld from the board while their vendor's review window is open.
+#
+# This is a PUBLIC COMMITMENT, made in an issue on the vendor's own repository, so it needs a
+# mechanism and not a note: the whole lesson of this project is that a recorded intention nobody
+# checks reads exactly like an enforced one.
+#
+# 🔑 The hold is keyed on PRESENCE, not on a date comparison, and that is deliberate twice over.
+# A date-computed hold would make `build()` time-dependent, so the committed `leaderboard.js`
+# would drift from its regeneration the moment the date passed and
+# `tests/test_leaderboard_generated.py` would fail for no reason connected to any change. And a
+# hold that expires on its own expires silently: somebody must delete the entry, which is exactly
+# the moment to confirm the window actually closed rather than merely elapsed.
+#
+# `until` and `issue` are published on the page so a reader can check the promise against the
+# vendor's own thread rather than taking this repository's word for it.
+VENDOR_REVIEW_HOLDS: dict[str, dict[str, str]] = {
+    "mempalace": {
+        "until": "2026-09-15",
+        "issue": "https://github.com/MemPalace/mempalace/issues/2414",
+        "reason": "held for vendor review",
+    },
+}
+
 ARM_FIELDS = ("success", "delta", "ci", "discarded", "tokensPerTask", "costPerTask")
 RUN_FIELDS = ("id", "date", "cli", "model", "tasks", "sessionsPerCell", "prereg")
 
@@ -236,6 +259,16 @@ def build(repo_root: str | Path) -> str:
             entry[field] = numbers.get(field)
         if internal == "claude_md" and entry["delta"] is None:
             entry["delta"] = 0  # the page renders the baseline row from this sentinel
+        hold = VENDOR_REVIEW_HOLDS.get(internal)
+        if hold:
+            # Blank the numbers AFTER they were read, not by skipping the read: the summary must
+            # still contain this arm, so a held arm cannot be used to smuggle a missing one past
+            # `_load_summary`'s every-arm-present check.
+            for field in ARM_FIELDS:
+                entry[field] = None
+            entry["held"] = hold["reason"]
+            entry["heldUntil"] = hold["until"]
+            entry["heldIssue"] = hold["issue"]
         arms.append(entry)
 
     reference = []

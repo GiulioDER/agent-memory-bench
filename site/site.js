@@ -66,11 +66,30 @@
   arms.forEach(function (a, i) {
     var tr = document.createElement("tr");
 
-    tr.appendChild(cell("num", official ? span("m", String(i + 1)) : span("m-dim", "·")));
+    /* A held arm is NOT ranked. Its numbers exist and are withheld while its vendor's review
+       window is open, so it must not carry a rank that implies it placed there. */
+    tr.appendChild(cell("num",
+      (official && !a.held) ? span("m", String(i + 1)) : span("m-dim", "·")));
 
     var nameTd = cell(null, span("m", "", false));
     nameTd.firstChild.appendChild(span(null, a.name, true));
     if (a.role) nameTd.appendChild(span("m-dim", " · " + a.role));
+    /* Say WHY the row is blank. A blank row with no reason reads as "measured nothing", which is
+       the opposite of what a hold means. */
+    if (a.held) {
+      nameTd.appendChild(span("m-dim", " · " + a.held +
+        (a.heldUntil ? " until " + a.heldUntil : "")));
+      /* The thread is the evidence for the promise, so a reader can check it against the
+         vendor's own repository rather than taking this page's word for it. */
+      if (a.heldIssue) {
+        var hi = document.createElement("a");
+        hi.href = a.heldIssue;
+        hi.rel = "noopener";
+        hi.className = "m-dim";
+        hi.appendChild(document.createTextNode(" · thread"));
+        nameTd.appendChild(hi);
+      }
+    }
     tr.appendChild(nameTd);
 
     tr.appendChild(cell(null, span("dim", a.type)));

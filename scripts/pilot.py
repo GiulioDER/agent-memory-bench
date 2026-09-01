@@ -83,6 +83,7 @@ from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
+from scripts.validate_run_setup import validate as validate_setup
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
 #: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30, `cognee` on 2026-09-01.
@@ -763,6 +764,40 @@ async def main() -> int:
         ),
         encoding="utf-8",
     )
+    # Refuse a misconfigured run HERE, before a single session is spent.
+    #
+    # This is the cheapest point there is: ingest is done (~20 min on the official corpus) and
+    # the sessions are not (~11 h, and the whole model bill). Both of this project's expensive
+    # failures were plainly visible in the dict written just above, and nobody compared it to an
+    # expectation. `official-002` published `instruction_excess_bytes` showing recall at 1,958
+    # bytes against mempalace's 853 for the whole of its life and its headline finding had to be
+    # withdrawn; the haystackless corpora published `sessions_offered: 207`. Recording a number
+    # is not checking it, and provenance without assertion reads exactly like provenance with it.
+    #
+    # The instruction checks are INVARIANTS and are always enforced: a roster whose arms do not
+    # share one protocol byte for byte is not measuring what it claims, whatever the run is for.
+    #
+    # The corpus floor is an EXPECTATION and is enforced only when supplied, because small
+    # corpora are legitimate here: `diagnostic-010` ran 125 sessions deliberately.
+    # `launch_official.sh` exports AMB_CORPUS_FLOOR because an official run always uses the
+    # haystack; a pilot leaves it unset and that check reports SKIP rather than passing.
+    setup_env = json.loads((run_dir / "environment.json").read_text(encoding="utf-8"))
+    setup_checks = validate_setup(
+        setup_env, corpus_floor=int(os.environ.get("AMB_CORPUS_FLOOR", "0"))
+    )
+    for check in setup_checks:
+        if check.ok is not True:
+            print(f"[setup] {check.mark} {check.name}: {check.detail}", flush=True)
+    if any(check.ok is False for check in setup_checks):
+        print(
+            "\n[setup] REFUSING to run sessions: this run is not configured to measure what it "
+            "claims. Nothing has been spent beyond ingest. Fix the setup, or say why the check is "
+            "wrong and change the check; do not route around it.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 2
+
     by_id = {task.task_id: task for task in tasks}
 
     env = {
