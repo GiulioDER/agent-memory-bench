@@ -98,8 +98,12 @@
       a.delta === 0 ? span("m-dim", "baseline") : (pts(a.delta) && span("m", pts(a.delta)))));
     tr.appendChild(cell("num", ciTxt(a.ci) && span("m", ciTxt(a.ci))));
     tr.appendChild(cell("num", a.discarded == null ? null : span("m", String(a.discarded))));
-    tr.appendChild(cell("num",
-      a.costPerTask == null ? null : span("m", "$" + a.costPerTask.toFixed(2))));
+    /* Costs here are sub-cent per task: toFixed(2) rendered every arm as $0.00 and made the
+       column useless. Scale the precision to the magnitude so a real difference is visible. */
+    tr.appendChild(cell("num", a.costPerTask == null ? null : span("m", "$" + (
+      a.costPerTask >= 1 ? a.costPerTask.toFixed(2)
+      : a.costPerTask >= 0.01 ? a.costPerTask.toFixed(3)
+      : a.costPerTask.toFixed(4)))));
 
     board.appendChild(tr);
   });

@@ -1,0 +1,89 @@
+{
+  "run": {
+    "id": "official-003",
+    "date": "2026-09-02",
+    "cli": "claude-code",
+    "model": "deepseek/deepseek-v4-flash",
+    "tasks": 26,
+    "sessionsPerCell": 1,
+    "prereg": "preregistration/026-official-003-fair-instruction.md"
+  },
+  "arms": {
+    "recall": {
+      "success": 0.6593,
+      "delta": 0.082,
+      "ci": [
+        -0.0063,
+        0.1808
+      ],
+      "discarded": 28,
+      "tokensPerTask": 66337,
+      "costPerTask": 0.0044
+    },
+    "mempalace": {
+      "success": 0.6057,
+      "delta": 0.0284,
+      "ci": [
+        -0.0195,
+        0.0863
+      ],
+      "discarded": 5,
+      "tokensPerTask": 104451,
+      "costPerTask": 0.007
+    },
+    "fs_grep": {
+      "success": 0.6309,
+      "delta": 0.0536,
+      "ci": [
+        -0.0031,
+        0.123
+      ],
+      "discarded": 2,
+      "tokensPerTask": 43766,
+      "costPerTask": 0.0031
+    },
+    "placebo": {
+      "success": 0.6719,
+      "delta": 0.0946,
+      "ci": [
+        -0.0369,
+        0.2493
+      ],
+      "discarded": 8,
+      "tokensPerTask": 19189,
+      "costPerTask": 0.0014
+    },
+    "claude_md": {
+      "success": 0.5773,
+      "delta": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "discarded": 6,
+      "tokensPerTask": 17954,
+      "costPerTask": 0.0013
+    },
+    "bare": {
+      "success": 0.6593,
+      "delta": 0.082,
+      "ci": [
+        -0.0195,
+        0.1963
+      ],
+      "discarded": 5,
+      "tokensPerTask": 18457,
+      "costPerTask": 0.0014
+    }
+  },
+  "reference": {
+    "recall_prefetch": {
+      "success": 0.612,
+      "delta": 0.0347
+    },
+    "protocol": {
+      "success": 0.612,
+      "delta": 0.0347
+    }
+  }
+}
