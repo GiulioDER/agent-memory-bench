@@ -29,8 +29,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BUILD = REPO_ROOT / "build" / "hf"
 
-DATASET_REPO = "GiulioDER/agent-memory-bench-corpus"
-SPACE_REPO = "GiulioDER/agent-memory-bench"
+DATASET_REPO = "Gde05/agent-memory-bench-corpus"
+SPACE_REPO = "Gde05/agent-memory-bench"
 
 # What the dataset ships. Task statements, checkers and reference solutions are deliberately NOT
 # here: they are the graded artifacts, and mirroring them onto a platform that is scraped for

@@ -101,8 +101,8 @@ Docker harness, where paths and users are neutral by construction. See the hygie
 ```python
 from datasets import load_dataset
 
-sessions = load_dataset("GiulioDER/agent-memory-bench-corpus", "sessions", split="train")
-distractors = load_dataset("GiulioDER/agent-memory-bench-corpus", "distractors", split="train")
+sessions = load_dataset("Gde05/agent-memory-bench-corpus", "sessions", split="train")
+distractors = load_dataset("Gde05/agent-memory-bench-corpus", "distractors", split="train")
 ```
 
 To verify integrity against the manifest, clone the GitHub repository and run

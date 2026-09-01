@@ -1,8 +1,14 @@
-# Before anything is pushed to Hugging Face
+# Hugging Face publication: the gate, and what it caught
 
-Prepared 2026-09-01. **Nothing has been uploaded.** Two repositories are staged by
-`scripts/hf_stage.py` and neither is published by it, because a username, a host path or an
-unannounced product name cannot be recalled once it has shipped.
+Prepared 2026-09-01 and **published the same day**:
+
+- dataset: https://huggingface.co/datasets/Gde05/agent-memory-bench-corpus
+- Space: https://huggingface.co/spaces/Gde05/agent-memory-bench
+
+`scripts/hf_stage.py` assembles both payloads and still uploads neither, and that stays true now
+that the first upload has happened. The separation is the point: a username, a host path or an
+unannounced product name cannot be recalled once it has shipped, so the act of publishing is a
+person's, and this document is what they read first.
 
 Everything below that is a number was measured on 2026-09-01 against `origin/master` at `13df300`,
 and each carries the command that re-measures it.
@@ -107,14 +113,30 @@ Claims on the cards:
 
 Mechanics:
 
-- [ ] `hf auth login` with a **write** token. Checked 2026-09-01: `huggingface_hub` 1.24.0 is
-      installed on this workstation and **no token is stored**, so `whoami` raises
-      `LocalTokenNotFoundError`. Only a person can supply that token.
-- [ ] Create the **Space** `GiulioDER/agent-memory-bench` in the web UI first, with SDK
-      **Static**. This is required, not tidiness: `hf upload` has no `--space-sdk` option
-      (verified against 1.24.0 with `hf upload --help`), so it cannot create a Space with the
-      right SDK and the repository must already exist. The **dataset** repo does not need this;
-      `hf upload --repo-type=dataset` creates it.
+- [x] `hf auth login` with a **write** token. Only a person can supply that token.
+- [x] ⚠️ **The Hugging Face namespace is `Gde05`, not the GitHub handle `GiulioDER`.** Uploading
+      to the GitHub handle fails with `403 Forbidden: You don't have the rights to create a
+      dataset under the namespace "GiulioDER"`, which reads as a token-permission problem and is
+      not one. Confirm the namespace before assuming a scope issue:
+
+      ```bash
+      python -c "from huggingface_hub import HfApi; print(HfApi().whoami()['name'])"
+      ```
+
+- [x] `short_description` in the Space card must be **60 characters or fewer**. The API validates
+      the README frontmatter before it uploads anything, so a 61-character line aborts the whole
+      folder upload with `Invalid metadata in README.md`.
+- [x] Creating the Space with `space_sdk="static"` leaves a stub `style.css` behind. The site
+      ships `styles.css`, so the stub is dead weight and was deleted after the first upload.
+- [x] The **Space** must exist with SDK **Static** before its payload is uploaded. `hf upload` has
+      no `--space-sdk` option (verified against 1.24.0 with `hf upload --help`), so the CLI cannot
+      create one; either make it in the web UI, or use the API, which can:
+
+      ```bash
+      python -c "from huggingface_hub import HfApi; HfApi().create_repo('Gde05/agent-memory-bench', repo_type='space', space_sdk='static', exist_ok=True)"
+      ```
+
+      The **dataset** repo needs no such step: `hf upload --repo-type=dataset` creates it.
 - [ ] `python scripts/hf_stage.py`, then read `build/hf/dataset/README.md` and
       `build/hf/space/README.md` as they will appear, not as they were authored.
 - [ ] Upload by hand, dataset first, so the Space card's link to it resolves on first view.

@@ -7,7 +7,7 @@ sdk: static
 app_file: index.html
 pinned: false
 license: apache-2.0
-short_description: Execution-graded benchmark of memory layers for coding agents
+short_description: Execution-graded benchmark of memory for coding agents
 tags:
   - leaderboard
   - agents
@@ -23,7 +23,7 @@ appears anywhere in the primary endpoint.
 
 - Canonical site: **https://giulioder.github.io/agent-memory-bench/**
 - Repository: **https://github.com/GiulioDER/agent-memory-bench**
-- Corpus: **https://huggingface.co/datasets/GiulioDER/agent-memory-bench-corpus**
+- Corpus: **https://huggingface.co/datasets/Gde05/agent-memory-bench-corpus**
 
 This Space is a mirror. The canonical site is the GitHub Pages deployment above, and the two are
 built from the same `site/` directory, so if they ever disagree the Pages copy is the one to
