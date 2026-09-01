@@ -327,6 +327,7 @@ class CogneeAdapter(MemoryAdapter):
                 str(feed),
                 self.dataset(namespace),
                 str(float(self.config["ingest_cost_ceiling_usd"])),
+                str(int(self.config["ingest_token_ceiling"])),
             ],
             cwd=str(store),
             env=self.cognee_env(namespace),
@@ -388,9 +389,11 @@ class CogneeAdapter(MemoryAdapter):
                     "run was authorised against, not as measured spend"
                 ),
                 (
-                    f"estimated cost ${float(estimate.get('estimated_cost_usd') or 0.0):.4f} "
-                    f"against the ${float(self.config['ingest_cost_ceiling_usd']):.2f} ceiling "
-                    f"in config.frozen.json, on model {estimate.get('model')!r}"
+                    f"estimated {int(estimate.get('total_tokens') or 0):,} token(s) against the "
+                    f"{int(self.config['ingest_token_ceiling']):,} ceiling in config.frozen.json, "
+                    f"on model {estimate.get('model')!r}; cognee's own cost figure was "
+                    f"${float(estimate.get('estimated_cost_usd') or 0.0):.4f}, which is $0 for a "
+                    f"model absent from its price table and is therefore not the binding check"
                 ),
                 (
                     "embeddings are computed locally by fastembed and cost no tokens; that half "
@@ -475,6 +478,7 @@ class CogneeAdapter(MemoryAdapter):
             "extraction_model": str(self.config["llm"]["model"]),
             "embedding_model": str(self.config["embedding"]["model"]),
             "ingest_cost_ceiling_usd": float(self.config["ingest_cost_ceiling_usd"]),
+            "ingest_token_ceiling": int(self.config["ingest_token_ceiling"]),
             "tools_allowed": len(self.config["allowed_tools"]),
             "config_sha256": hashlib.sha256(_CONFIG_PATH.read_bytes()).hexdigest(),
             "driver_sha256": hashlib.sha256(_DRIVER_PATH.read_bytes()).hexdigest(),

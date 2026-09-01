@@ -302,7 +302,7 @@ def check_estimate(adapter: CogneeAdapter, corpus_root: Path, namespace: str) ->
         [
             str(adapter._venv_bin("python")), str(DRIVER), str(feed),
             adapter.dataset(namespace), str(float(CONFIG["ingest_cost_ceiling_usd"])),
-            "--estimate-only",
+            str(int(CONFIG["ingest_token_ceiling"])), "--estimate-only",
         ],
         cwd=str(store), env=adapter.cognee_env(namespace),
         capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
@@ -313,20 +313,28 @@ def check_estimate(adapter: CogneeAdapter, corpus_root: Path, namespace: str) ->
             False, "dry-run estimate", (result.stderr or result.stdout)[-800:]
         )
     cost = float(estimate.get("estimated_cost_usd") or 0.0)
+    tokens = int(estimate.get("total_tokens") or 0)
     ceiling = float(CONFIG["ingest_cost_ceiling_usd"])
+    token_ceiling = int(CONFIG["ingest_token_ceiling"])
+    calls = sum(int(stage.get("calls") or 0) for stage in estimate.get("stages") or [])
+    per_document = tokens / rendered if rendered else 0.0
     detail = (
         f"model {estimate.get('model')}\n"
-        f"chunks {estimate.get('chunks')}, "
-        f"input {estimate.get('input_tokens')}, output {estimate.get('output_tokens')} tokens\n"
-        f"ESTIMATE ${cost:.4f} against the ${ceiling:.2f} ceiling in config.frozen.json\n"
-        f"cognee's estimator excludes embeddings and uses output heuristics, so this is a bound "
-        f"to decide by, not measured spend."
+        f"chunks {estimate.get('chunks')}, {calls} LLM call(s)\n"
+        f"input {estimate.get('input_tokens')}, output {estimate.get('output_tokens')} tokens; "
+        f"TOTAL {tokens:,} against the {token_ceiling:,} ceiling in config.frozen.json\n"
+        f"{per_document:,.0f} token(s) per document, which is what extrapolates to a bigger "
+        f"corpus\n"
+        f"cognee's own cost figure is ${cost:.4f}; it prices from its own table, so an unpriced "
+        f"model reads as $0 and the TOKEN ceiling is what actually binds\n"
+        f"the estimator excludes embeddings and uses output heuristics, so this is a bound to "
+        f"decide by, not measured spend."
     )
     for warning in estimate.get("warnings") or []:
         detail += f"\nvendor warning: {warning}"
     return report(
-        cost <= ceiling,
-        f"ingest of {rendered} document(s) estimated at ${cost:.4f}",
+        tokens <= token_ceiling and cost <= ceiling,
+        f"ingest of {rendered} document(s) estimated at {tokens:,} token(s)",
         detail,
     )
 

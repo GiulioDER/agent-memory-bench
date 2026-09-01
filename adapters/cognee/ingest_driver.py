@@ -5,7 +5,7 @@ the harness: cognee lives in a separate environment and importing it here would 
 dependency tree into every arm. Its bytes are hashed into the arm's ``config_dir_digest``, so
 the driver a run used is provable from the run record.
 
-    python ingest_driver.py <feed_dir> <dataset> <ceiling_usd> [--estimate-only]
+    python ingest_driver.py <feed_dir> <dataset> <ceiling_usd> <token_ceiling> [--estimate-only]
 
 Prints exactly one machine-readable line to stdout::
 
@@ -62,7 +62,9 @@ def _probe_text(files: list[Path]) -> str:
     return lines[len(lines) // 2][:200]
 
 
-async def _run(feed: Path, dataset: str, ceiling: float, estimate_only: bool) -> dict:
+async def _run(
+    feed: Path, dataset: str, ceiling: float, token_ceiling: int, estimate_only: bool
+) -> dict:
     import cognee
     from cognee.modules.search.types import SearchType
 
@@ -77,14 +79,41 @@ async def _run(feed: Path, dataset: str, ceiling: float, estimate_only: bool) ->
     report = {"files": len(files), "dataset": dataset, "estimate": estimate_dict}
 
     cost = float(estimate_dict.get("estimated_cost_usd") or 0.0)
-    if cost > ceiling:
+    tokens = int(estimate_dict.get("total_tokens") or 0)
+
+    def refuse(message: str) -> None:
         report["refused"] = True
         print("COGNEE_JSON " + json.dumps(report))
-        raise SystemExit(
+        raise SystemExit(message)
+
+    # ⛔ TOKENS are the authority here, not the vendor's dollar figure. Measured 2026-09-01 on the
+    # 196-document corpus: the dry run returned `estimated_cost_usd: 0.0` alongside 316,674
+    # tokens, warning "no pricing entry for model 'openai/deepseek/deepseek-v4-flash'". cognee
+    # prices from its own table and an unknown model costs $0 there, so the dollar ceiling this
+    # file shipped with would have waved through a bill of any size while reading as a guard.
+    # Tokens are also the unit this benchmark compares runs in, because its published dollar
+    # bases have differed and a rate belongs to a run rather than to a frozen adapter config.
+    if token_ceiling and tokens > token_ceiling:
+        refuse(
+            f"cognee's own dry run estimates {tokens:,} token(s) for this corpus, over the "
+            f"{token_ceiling:,} in adapters/cognee/config.frozen.json. Nothing has been spent. "
+            f"Raise the ceiling deliberately in that file, which re-hashes the frozen config and "
+            f"is recorded in every session record, or ingest a smaller corpus."
+        )
+    if cost > ceiling:
+        refuse(
             f"cognee's own dry run estimates ${cost:.2f} for this corpus, over the "
             f"${ceiling:.2f} ceiling in adapters/cognee/config.frozen.json. Nothing has been "
             f"spent. Raise the ceiling deliberately in that file, which re-hashes the frozen "
             f"config and is recorded in every session record, or ingest a smaller corpus."
+        )
+    if tokens and not cost and not token_ceiling:
+        refuse(
+            f"cognee estimates {tokens:,} token(s) and cannot price them: "
+            f"{'; '.join(estimate_dict.get('warnings') or ['no warning given'])}. With no token "
+            f"ceiling configured, nothing is holding this run: a guard that cannot fire is worse "
+            f"than no guard, because it reads as one. Set ingest_token_ceiling in "
+            f"adapters/cognee/config.frozen.json."
         )
     if estimate_only:
         report["cognified"] = False
@@ -109,9 +138,10 @@ def main() -> int:
     arguments = sys.argv[1:]
     estimate_only = "--estimate-only" in arguments
     positional = [argument for argument in arguments if argument != "--estimate-only"]
-    if len(positional) != 3:
+    if len(positional) != 4:
         raise SystemExit(__doc__)
-    feed, dataset, ceiling = Path(positional[0]), positional[1], float(positional[2])
+    feed, dataset = Path(positional[0]), positional[1]
+    ceiling, token_ceiling = float(positional[2]), int(positional[3])
 
     # cognee's package __init__ calls `dotenv.load_dotenv(override=True)`, so a stray .env BEATS
     # the environment the adapter passes in and silently redirects the LLM, the embedder and the
@@ -135,7 +165,7 @@ def main() -> int:
                 f"provider nobody chose. The adapter sets all four; this is the backstop."
             )
 
-    asyncio.run(_run(feed, dataset, ceiling, estimate_only))
+    asyncio.run(_run(feed, dataset, ceiling, token_ceiling, estimate_only))
     return 0
 
 

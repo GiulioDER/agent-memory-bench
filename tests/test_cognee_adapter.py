@@ -266,6 +266,30 @@ def test_the_cost_ceiling_is_a_number_the_driver_can_enforce():
     assert driver.index("dry_run=True") < driver.index("await cognee.cognify(datasets=[dataset])")
 
 
+def test_the_binding_ceiling_is_in_tokens_because_the_dollar_one_cannot_fire():
+    """MEASURED 2026-09-01, and the reason this arm was chosen makes the defect worse.
+
+    Running the dry run in Docker over the 196-document corpus returned 316,674 tokens with
+    `estimated_cost_usd: 0.0` and the warning "no pricing entry for model
+    'openai/deepseek/deepseek-v4-flash'". cognee prices from its own table, so the model this
+    benchmark runs on is unpriced there and a dollar-only ceiling would wave through a bill of any
+    size. The arm was selected precisely because its bill is visible in advance, so a guard that
+    cannot fire is the worst possible defect to leave in it.
+    """
+
+    ceiling = int(CONFIG["ingest_token_ceiling"])
+    assert ceiling > 0
+    # 1,616 tokens per document measured; the hard corpus is 4,889 documents per condition.
+    assert ceiling > 1616 * 4889, "the ceiling would refuse the corpus this arm exists to ingest"
+
+    driver = (REPO / "adapters" / "cognee" / "ingest_driver.py").read_text(encoding="utf-8")
+    assert "token_ceiling and tokens > token_ceiling" in driver
+    # The token check must be reached before the dollar one, and a priced-at-zero estimate with
+    # no token ceiling must refuse rather than proceed.
+    assert driver.index("tokens > token_ceiling") < driver.index("if cost > ceiling")
+    assert "tokens and not cost and not token_ceiling" in driver
+
+
 def test_the_arm_exposes_no_ranked_search(adapter):
     """cognee's recall answers from a graph of extracted entities, so a hit cannot yet be mapped
     back to the corpus-relative path that makes a ranked list joinable against gold sessions.
