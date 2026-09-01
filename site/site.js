@@ -108,6 +108,51 @@
     board.appendChild(tr);
   });
 
+  /* Products, condition by condition. Columns are built from the data rather than the markup,
+     because which arms are products is decided by the generator and can change between runs. */
+  var condHead = document.getElementById("condition-head");
+  var condBody = document.getElementById("condition-body");
+  if (condHead && condBody) {
+    var products = D.arms.filter(function (a) { return "byCondition" in a; });
+    var conds = [];
+    products.forEach(function (a) {
+      if (a.byCondition) {
+        Object.keys(a.byCondition).forEach(function (c) {
+          if (conds.indexOf(c) === -1) conds.push(c);
+        });
+      }
+    });
+
+    if (products.length && conds.length) {
+      var hc = document.createElement("th");
+      hc.appendChild(document.createTextNode("condition"));
+      condHead.appendChild(hc);
+      products.forEach(function (a) {
+        var th = document.createElement("th");
+        th.className = "num";
+        th.appendChild(document.createTextNode(a.name));
+        condHead.appendChild(th);
+      });
+
+      conds.forEach(function (c) {
+        var tr = document.createElement("tr");
+        tr.appendChild(cell(null, span("m", c)));
+        products.forEach(function (a) {
+          if (!a.byCondition) {
+            tr.appendChild(cell("num", span("m-dim", "pending")));
+            return;
+          }
+          var v = a.byCondition[c];
+          if (!v || !v.cells) { tr.appendChild(cell("num", null)); return; }
+          var td = cell("num", span("m", v.solved + "/" + v.cells));
+          td.appendChild(span("m-dim", " " + Math.round((v.solved / v.cells) * 100) + "%"));
+          tr.appendChild(td);
+        });
+        condBody.appendChild(tr);
+      });
+    }
+  }
+
   var ref = document.getElementById("reference-body");
   if (ref) {
     D.reference.forEach(function (r) {

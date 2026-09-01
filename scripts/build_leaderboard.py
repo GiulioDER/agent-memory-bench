@@ -259,6 +259,11 @@ def build(repo_root: str | Path) -> str:
             entry[field] = numbers.get(field)
         if internal == "claude_md" and entry["delta"] is None:
             entry["delta"] = 0  # the page renders the baseline row from this sentinel
+        # Per-condition detail is published for PRODUCTS only. The controls exist to price the
+        # grid, not to be studied condition by condition, and putting five more columns on
+        # `bare` and `placebo` would bury the comparison the table is for.
+        if role is None:
+            entry["byCondition"] = numbers.get("byCondition")
         hold = VENDOR_REVIEW_HOLDS.get(internal)
         if hold:
             # Blank the numbers AFTER they were read, not by skipping the read: the summary must
@@ -266,6 +271,10 @@ def build(repo_root: str | Path) -> str:
             # `_load_summary`'s every-arm-present check.
             for field in ARM_FIELDS:
                 entry[field] = None
+            # The hold covers the per-condition detail too. Publishing a product's condition
+            # breakdown while withholding its headline would defeat the point of the hold.
+            if "byCondition" in entry:
+                entry["byCondition"] = None
             entry["held"] = hold["reason"]
             entry["heldUntil"] = hold["until"]
             entry["heldIssue"] = hold["issue"]
