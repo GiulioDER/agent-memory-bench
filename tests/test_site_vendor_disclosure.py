@@ -1,4 +1,4 @@
-"""The published site names no third-party product before that product has been told.
+"""No published surface names a third-party product before that product has been told.
 
 ``site/`` is what ``.github/workflows/pages.yml`` deploys, verbatim and with no build step,
 so anything committed under it is published. The benchmark's own rule is that a vendor is
@@ -10,6 +10,18 @@ The generator already withholds those names (``scripts/build_leaderboard.py``). 
 is the reason the withholding survives: the leaderboard is generated, but the four hand
 written pages are not, and a name reaches them through an ordinary edit that looks
 harmless in review.
+
+``site/`` was the only published surface until 2026-09-01, when the Hugging Face cards were
+written. ``huggingface/dataset-card.md`` and ``huggingface/space-card.md`` are uploaded
+VERBATIM as the README of a dataset repository and of a Space, so they are published in
+exactly the sense this test means, and a guard scoped to one directory is not a guard on the
+other. The failure would have been silent: a card can be written, reviewed and pushed with
+``site/`` untouched and this file green.
+
+Scope is the two cards, not the directory. ``huggingface/PRE-UPLOAD.md`` is an internal
+checklist that is never uploaded, and it has to name the guarded words to tell a reader what
+the guard covers. ``scripts/hf_stage.py`` repeats the check over the assembled payload, so a
+name cannot enter between the tree and the upload either.
 """
 
 from __future__ import annotations
@@ -19,6 +31,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SITE = REPO_ROOT / "site"
+HUGGINGFACE = REPO_ROOT / "huggingface"
 GENERATOR = REPO_ROOT / "scripts" / "build_leaderboard.py"
 
 # Brand words that are not arm names and so cannot be derived from PRODUCT_ARMS: a backing
@@ -58,6 +71,15 @@ def _site_files() -> list[Path]:
     return sorted(p for p in SITE.rglob("*") if p.is_file())
 
 
+def _card_files() -> list[Path]:
+    """The Hugging Face cards, which are uploaded verbatim as a README."""
+    return sorted(HUGGINGFACE.glob("*-card.md"))
+
+
+def _published_files() -> list[Path]:
+    return _site_files() + _card_files()
+
+
 def _names_in(path: Path, names) -> list[str]:
     """Which of ``names`` occur in the file, as SUBSTRINGS, case-insensitively.
 
@@ -77,22 +99,34 @@ def test_the_site_directory_is_not_empty():
     assert len(files) >= 5, f"expected the published pages under {SITE}, found {files}"
 
 
-def test_no_undisclosed_arm_is_named_anywhere_under_site():
+def test_both_hugging_face_cards_are_present():
+    """The same reason as above, for the surface added on 2026-09-01.
+
+    If the cards are renamed or moved, the glob quietly returns nothing and the two guards
+    below go on passing over ``site/`` alone, which is the state this test exists to end.
+    """
+    cards = {p.name for p in _card_files()}
+    assert cards == {"dataset-card.md", "space-card.md"}, (
+        f"expected the two uploaded cards under {HUGGINGFACE}, found {sorted(cards)}"
+    )
+
+
+def test_no_undisclosed_arm_is_named_on_any_published_surface():
     forbidden = _undisclosed_names()
     assert forbidden, "nothing is undisclosed; delete this test rather than passing it vacuously"
 
     leaks = [
         f"{path.relative_to(REPO_ROOT).as_posix()} names {name!r}"
-        for path in _site_files()
+        for path in _published_files()
         for name in _names_in(path, forbidden)
     ]
-    assert not leaks, "the published site names an unannounced product: " + "; ".join(leaks)
+    assert not leaks, "a published surface names an unannounced product: " + "; ".join(leaks)
 
 
-def test_no_adjacent_brand_is_named_anywhere_under_site():
+def test_no_adjacent_brand_is_named_on_any_published_surface():
     leaks = [
         f"{path.relative_to(REPO_ROOT).as_posix()} names {brand!r}"
-        for path in _site_files()
+        for path in _published_files()
         for brand in _names_in(path, ADJACENT_BRANDS)
     ]
-    assert not leaks, "the published site names a third-party brand: " + "; ".join(leaks)
+    assert not leaks, "a published surface names a third-party brand: " + "; ".join(leaks)
