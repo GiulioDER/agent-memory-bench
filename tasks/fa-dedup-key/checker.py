@@ -24,6 +24,7 @@ import json
 import shutil
 import sys
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 from harness.checker_run import run_bounded
@@ -54,7 +55,66 @@ def _expected(oracle_dir: Path) -> list[tuple]:
     return seen
 
 
+def _oracle_defect(oracle_dir: Path) -> str | None:
+    """Why this oracle could no longer tell a wrong key from a right one, or None.
+
+    This checker asserts properties rather than one expected output, and every property is read
+    off the same oracle the driver consumes. That makes a thinned oracle self-consistent instead
+    of detectable, and it disarms the two wrong answers independently:
+
+        one supplier file, or no reused id  ->  `order_id` alone loses nothing, and the failed
+                                                approach the corpus records scores as correct
+        no redelivery                       ->  keying on the WHOLE record drops nothing, and
+                                                the other wrong answer scores as correct
+
+    Either way the verdict below still reports "N distinct orders, N expected, order preserved".
+    Both conditions live entirely in the oracle's contents, so both are asserted.
+
+    See `tasks/ts-natural-order/checker.py::_oracle_defect` for why this fails closed with a
+    verdict rather than raising.
+    """
+
+    orders = oracle_dir / "orders"
+    if not orders.is_dir():
+        return f"{orders} does not exist"
+    if not (oracle_dir / "driver.py").is_file():
+        return f"{oracle_dir / 'driver.py'} is missing"
+    files = sorted(orders.glob("*.jsonl"))
+    if len(files) < 2:
+        return (
+            f"{len(files)} supplier file(s) under {orders.name}/; an id range can only be "
+            f"reused ACROSS suppliers, so one file cannot carry the trap"
+        )
+
+    orders_per_id: dict[object, set[tuple]] = {}
+    occurrences: Counter[tuple] = Counter()
+    for path in files:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            key = _key(record)
+            orders_per_id.setdefault(record.get("order_id"), set()).add(key)
+            occurrences[key] += 1
+
+    if not any(len(keys) > 1 for keys in orders_per_id.values()):
+        return (
+            "no order_id carries two different orders, so keying on order_id alone loses "
+            "nothing and the recorded failed approach scores as correct"
+        )
+    if not any(count > 1 for count in occurrences.values()):
+        return (
+            "no order is redelivered, so keying on the whole record duplicates nothing and "
+            "the second wrong answer scores as correct"
+        )
+    return None
+
+
 def check(workdir: Path, oracle_dir: Path) -> tuple[bool, str]:
+    defect = _oracle_defect(oracle_dir)
+    if defect is not None:
+        return False, f"oracle is not well formed: {defect}"
+
     script = workdir / "consolidate.py"
     if not script.is_file():
         return False, "consolidate.py was never written"

@@ -322,3 +322,80 @@ def test_the_page_does_not_rank_a_held_arm():
     js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
     assert "!a.held" in js, "site.js ranks held arms"
     assert "a.held" in js and "heldUntil" in js, "site.js does not render the hold reason"
+
+
+def test_the_front_page_arm_count_matches_the_generator():
+    """The hand-written stat tile on index.html must agree with `public_arms()`.
+
+    Everything on leaderboard.html is generated, which is why this file exists. The stat band on
+    index.html is not: it is four numbers typed into HTML, and one of them counts arms. It read
+    "6 arms in the official run" until 2026-09-01, which was wrong twice over. There is no
+    official run (`site/data/leaderboard.config.json` carries `"official_run": null`, and the
+    methods table on the same page calls every run so far bring-up rather than result), and no
+    run has ever had exactly that set: official-002 paired six arms but a DIFFERENT six,
+    including `recall_prefetch` and excluding `mempalace`, which ran as a separate two-arm pass.
+
+    The number was right and the sentence around it was not, which is the hard case: nothing
+    fails, and a reader who counts the eight arms in the strip below it gets no explanation of
+    the gap. So the tile now names what it counts, and this pins it to the source that decides
+    the count rather than to a literal.
+    """
+    import re
+
+    index = (REPO_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+    tiles = re.findall(
+        r'<div class="n">(\d+)</div><div class="l">([^<]*arms[^<]*)</div>', index
+    )
+    assert len(tiles) == 1, f"expected exactly one arm tile in the stat band, found {tiles}"
+
+    count, label = tiles[0]
+    expected = len(_public_arms())
+    assert int(count) == expected, (
+        f"index.html says {count} arms, public_arms() has {expected}"
+    )
+    assert "official run" not in label, (
+        f"the tile claims an official run, which does not exist: {label!r}"
+    )
+
+
+def test_the_front_page_task_and_condition_counts_match_their_sources():
+    """The other two countable tiles, pinned the same way and for the same reason.
+
+    The arm tile drifted because a number typed into HTML has nothing holding it to the code
+    that decides it. That is a property of the stat band, not of the arm tile, so the two
+    neighbouring counts get the same treatment: `executable tasks` against the directories that
+    actually carry a `task.json`, and `corpus conditions` against `CORPUS_CONDITIONS`.
+
+    Both were correct when this was written (34 and 5, checked 2026-09-01). The point is not
+    that they were wrong; it is that nothing would have said so.
+
+    The fourth tile, `LLM judges in the endpoint`, is deliberately not pinned. It is a design
+    commitment rather than a count, and a test asserting 0 == 0 against a literal would pass
+    for the wrong reason forever.
+    """
+    import re
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT))
+    from harness.damage import CORPUS_CONDITIONS
+
+    index = (REPO_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+
+    def tile(label_fragment: str) -> int:
+        found = re.findall(
+            r'<div class="n">(\d+)</div><div class="l">([^<]*' + label_fragment + r'[^<]*)</div>',
+            index,
+        )
+        assert len(found) == 1, f"expected one {label_fragment!r} tile, found {found}"
+        return int(found[0][0])
+
+    executable = sum(1 for d in (REPO_ROOT / "tasks").iterdir() if (d / "task.json").is_file())
+    assert tile("executable tasks") == executable, (
+        f"index.html says {tile('executable tasks')} executable tasks, "
+        f"{executable} directories under tasks/ carry a task.json"
+    )
+
+    assert tile("corpus conditions") == len(CORPUS_CONDITIONS), (
+        f"index.html says {tile('corpus conditions')} corpus conditions, "
+        f"CORPUS_CONDITIONS has {len(CORPUS_CONDITIONS)}: {CORPUS_CONDITIONS}"
+    )
