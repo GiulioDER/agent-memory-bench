@@ -1,7 +1,17 @@
 # Vendor review: MemPalace (`mempalace`)
 
-Status: **adapter landed, awaiting the pre-review window.** Nothing has been run and no number
-exists. This file states every judgement call the adapter makes, so MemPalace's maintainers can
+Status: **invited 2026-09-01, window open until 2026-09-15. The leaderboard row is HELD.**
+
+🔁 This line used to read *"adapter landed, awaiting the pre-review window. Nothing has been run
+and no number exists."* That was true when written on 2026-08-29 and stopped being true when
+`protocol-025` ran and its numbers were discussed publicly. Corrected rather than deleted, because
+the more useful fact is that the window opened AFTER a run rather than before one, which is the
+opposite of what the section below promises.
+
+What is being done about it: MemPalace's row is withheld from the leaderboard until the window
+closes or the vendor waives it, so the review lands before the canonical record carries anything.
+That is enforced by `VENDOR_REVIEW_HOLDS` in `scripts/build_leaderboard.py` and by five tests, not
+by this paragraph. This file states every judgement call the adapter makes, so MemPalace's maintainers can
 dispute any of them before a run is preregistered rather than after a number is published.
 
 Wired against `mempalace==3.8.0` (PyPI, released 2026-08-23), measured 2026-08-29 on Windows 11,
@@ -83,3 +93,20 @@ python -m venv C:/mpb/v && C:/mpb/v/Scripts/python -m pip install mempalace==3.8
 MEMPALACE_VENV=C:/mpb/v MEMPALACE_PALACE_ROOT=C:/mpb/palaces \
   python scripts/mempalace_preflight.py --ingest-smoke
 ```
+
+
+## Record
+
+| date | event |
+|---|---|
+| 2026-09-01 | invitation sent: https://github.com/MemPalace/mempalace/issues/2414 |
+| 2026-09-15 | window closes unless extended |
+
+⛔ **The row stays off the board until this window closes or MemPalace waives it.** Removing
+`mempalace` from `VENDOR_REVIEW_HOLDS` is the deliberate act that publishes it, and it should be
+done at the moment somebody confirms the window actually closed rather than merely elapsed. The
+hold is keyed on presence rather than on a date comparison for exactly that reason.
+
+### Vendor response, verbatim
+
+(none received)

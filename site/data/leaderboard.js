@@ -31,7 +31,10 @@ window.AMB_LEADERBOARD = {
       "ci": null,
       "discarded": null,
       "tokensPerTask": null,
-      "costPerTask": null
+      "costPerTask": null,
+      "held": "held for vendor review",
+      "heldUntil": "2026-09-15",
+      "heldIssue": "https://github.com/MemPalace/mempalace/issues/2414"
     },
     {
       "name": "fs_grep",
