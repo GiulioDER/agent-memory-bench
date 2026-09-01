@@ -213,3 +213,95 @@ paid for that twice.
   `pilot-004`.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Amendment 1 (2026-09-01, before any session runs)
+
+Nothing above this line is edited. Two design facts were found while building the variant, and the
+user chose the corpus. Both are recorded here because a prediction that moves after the fact is not
+a prediction, and this moves BEFORE.
+
+### 1. The baseline is `protocol`, not `skill`. The record's choice was not buildable.
+
+The frozen text says the two variants are "the existing `skill` (baseline) and a new `evidence`
+variant", differing by the tool name and one sentence, with "no other wording moves".
+
+**Those two requirements cannot both hold.** `adapters/recall/skill.md` is the provenance anchor for
+`pilot-002` through `pilot-004`, its sha256 is pinned by `tests/test_recall_instruction.py`, and it
+names `recall_search` in its own prose. Varying the tool against it means editing the anchor, which
+`test_the_skill_still_matches_the_one_pilot_004_ran` exists to prevent.
+
+So the baseline is `protocol`, and `evidence` is `protocol` with the one sentence filling
+`{search_instruction}` replaced. **That is a cleaner contrast than the one registered**, not a
+weaker one: the two arms are now byte-identical apart from a single sentence, `assert_shared_protocol`
+covers the protocol half, and `tests/test_evidence_instruction.py` covers the sentence half, which
+that assertion is structurally blind to because it substitutes the sentence out before comparing.
+Mutation-tested three ways, including one mutation that passes `assert_shared_protocol` and is caught
+only by the new test.
+
+### 2. The corpus is `bench-official-002`, not `bench-lineage-t2-superseded`.
+
+The user's decision, taken on cost. A `protocol` recall arm on `present`, `superseded` and
+`contradictory` at 5 seeds, on `deepseek/deepseek-v4-flash` at the same frozen prices, is being
+produced right now by an unrelated live run, so the baseline is contemporaneous and free and this
+record's run is one arm rather than two.
+
+⚠️ **What that costs, stated before measuring rather than after.** `bench-official-002` declares no
+lineage. No document has a successor, so `_verdict` can never return `superseded`, and the strip
+that was directly observed on `bench-lineage-t2-superseded` (5 hits returned, 3 marked superseded,
+`trusted_evidence.items` holding only the 2 current ones) **cannot occur here**. What remains is the
+`low_confidence` filter, which is real and large (147 of 307 hits in official-002's `superseded`
+condition) but is the weaker half of the mechanism.
+
+🔑 **Therefore a null on this run does NOT close the enforcement lane**, and must not be reported as
+if it did. It closes only the low-confidence-filter half. The lineage-t2 form stays unrun and its
+prize is undiminished by anything measured here.
+
+### 3. New predictions for the corpus actually being run
+
+The frozen predictions were written for t2 and stand as written. These are additional, made now:
+
+1b. **Both-plant share falls from 0.17 to 0.13** (range 0.10 to 0.17), less than half the frozen
+    prediction's move, because only the low-confidence filter is available. Probability it moves in
+    the predicted direction at all: **0.55**, down from 0.70.
+3b. Prediction 3 (`contradictory` does not improve) is UNCHANGED and if anything strengthened: with
+    no lineage the bundle has even less basis to choose between rivals. Probability **0.75**.
+5b. **The bundle omits at least one returned hit in more than 0.30 of calls.** If it omits nothing,
+    the treatment is inert on this corpus and every other endpoint is uninterpretable.
+
+### 4. The apparatus check that had to change, and it is now the binding one
+
+Frozen check 3 was a positive control on the supersession strip. It is impossible on this corpus, so
+it is replaced, not dropped:
+
+> Re-issue a recorded query against the run's own tenant and generation through both tools, and
+> confirm the evidence bundle omits at least one hit that `recall_search` returns. **If the bundle
+> equals the hits on every probe query, the mechanism is absent on this corpus and the run is
+> cancelled before it is paid for.**
+
+Frozen checks 1 and 2 are unchanged and still apply.
+
+### 5. A name collision worth recording
+
+A live run on the serving host carries `--run-id protocol-025` and writes to `results/protocol-025-*`.
+It is an unrelated experiment: the shared-protocol fairness grid, arms `bare,protocol,recall,mempalace`,
+`--memory-instruction protocol`, five conditions. **It is not this record**, no preregistration 025
+exists on that checkout or on any branch but this one, and a later reader who joins the two by number
+will be wrong. This record's run will carry a run id naming the treatment rather than the number.
+
+### 6. A confound apparatus check 1 found, and the direction it runs in
+
+The rendered `evidence` prompt still contains the string `recall_search` **once**: in the heading of
+`adapters/recall/instruction_appendix.md`, *"## Reading a `recall_search` result"*. The appendix body
+describes the verdict vocabulary (`ok`, `superseded`, `low_confidence`, abstention), which applies to
+both tools, since `recall_evidence` filters on exactly those verdicts.
+
+**The appendix is held BYTE-IDENTICAL across the two arms** rather than rewritten for the treatment,
+because rewriting it would move a second thing and the record's whole constraint is that one sentence
+moves. Verified: the two rendered prompts have the same line count and differ on exactly one line.
+
+⚠️ **It is still a confound and it runs AGAINST the treatment.** The evidence arm is pointed at
+`recall_evidence` by its instruction and handed a schema note headed with the other tool's name, which
+can only push compliance (prediction 4) down. That is the conservative direction: it makes the
+treatment harder to detect, not easier, so a positive result is not explained by it and a null is
+partly attributable to it. If compliance lands below 0.50, this heading is the first thing to suspect
+and the rerun should vary the appendix heading alone.

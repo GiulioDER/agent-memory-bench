@@ -124,6 +124,33 @@ RECALL_SEARCH_SENTENCE = (
     f"`{RECALL_PREFIX}recall_search` tool before acting."
 )
 
+#: The `evidence` variant's slot: the SAME protocol, naming recall's enforcing surface instead of
+#: its advisory one. Preregistration 025.
+#:
+#: `recall_search` returns hits each carrying a trust verdict; `recall_evidence` returns only the
+#: passages the trust layer cleared, and an EMPTY bundle when it abstains. Three measurements say
+#: the first is ignored: `abstained: true` changed no answer in 686 responses across three models,
+#: `verdict: superseded` arrives on 3 of 5 hits and is answered from anyway, and the appendix prose
+#: explaining both moved nothing. So this variant asks whether a gate that WITHHOLDS beats a gate
+#: that ANNOTATES, which is a retrieval-side question rather than a prompt-strength one.
+#:
+#: ⚠️ It differs from `RECALL_SEARCH_SENTENCE` by the tool name and one clause and by nothing else,
+#: because the contrast is interpretable only if the rest is byte-identical. `assert_shared_protocol`
+#: enforces the protocol half; the sentence half is pinned by
+#: `test_evidence_differs_from_protocol_only_in_the_search_sentence`, which the assertion cannot see.
+RECALL_EVIDENCE_SENTENCE = (
+    "This project keeps a searchable memory of past work sessions; consult it with the "
+    f"`{RECALL_PREFIX}recall_evidence` tool before acting, and when it returns an empty bundle, "
+    "say you do not know rather than answering from memory."
+)
+
+#: Variants built ON the shared protocol. Membership decides three things at once: whether the
+#: other arms carry the shared protocol, whether `assert_shared_protocol` runs, and whether the
+#: `protocol` control arm is meaningful. A literal `== "protocol"` in any of those three places is
+#: how `evidence` would silently become an unmatched arm, which is the asymmetry the protocol
+#: exists to remove.
+PROTOCOL_FAMILY = ("protocol", "evidence")
+
 #: The instruction-only control arm's slot. It has no memory layer, so it is pointed at the only
 #: thing it does have. This is what isolates the coaching from the retrieval: if `protocol` moves
 #: against `claude_md`, part of any memory arm's lift is the instruction rather than the store.
@@ -145,6 +172,12 @@ def recall_instruction(variant: str, *, neutral: bool = False) -> str:
     5,428 characters against `fs_grep`'s 231 and `claude_md`'s zero, and most of it is generic
     coaching rather than anything about recall. ``protocol`` is the fair variant: the shared
     `adapters/_shared/memory_protocol.md` plus recall's own capped result-schema appendix.
+
+    ``evidence`` is ``protocol`` with one sentence changed, naming `recall_evidence` rather than
+    `recall_search`. Its baseline is therefore ``protocol`` and never ``skill``: skill.md is the
+    sha256-pinned provenance anchor for `pilot-002` through `pilot-004` and names `recall_search`
+    in prose, so there is no way to vary the tool against it without editing the anchor. See
+    preregistration 025, Amendment 1.
     """
 
     if variant == "oneliner":
@@ -159,14 +192,17 @@ def recall_instruction(variant: str, *, neutral: bool = False) -> str:
         return text.strip()
     if variant == "protocol":
         return instructions.compose("recall", RECALL_SEARCH_SENTENCE, neutral=neutral)
+    if variant == "evidence":
+        return instructions.compose("recall", RECALL_EVIDENCE_SENTENCE, neutral=neutral)
     raise ValueError(f"unknown recall instruction variant {variant!r}")
 
 
 def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = False) -> dict[str, str]:
     """The instruction each arm carries, keyed by arm. Arms with no memory surface carry "".
 
-    Under ``protocol`` every memory arm gets `adapters/_shared/memory_protocol.md` verbatim plus its
-    own capped appendix, and the fairness assertion below is meaningful. Under ``skill`` or
+    Under any variant in :data:`PROTOCOL_FAMILY` every memory arm gets
+    `adapters/_shared/memory_protocol.md` verbatim plus its own capped appendix, and the fairness
+    assertion below is meaningful. Under ``skill`` or
     ``oneliner`` the arms are deliberately NOT matched, because those variants exist to reproduce
     runs that were not matched, and the assertion is skipped with that stated in the artifact.
     """
@@ -177,7 +213,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     if "fs_grep" in texts:
         texts["fs_grep"] = (
             FsGrepAdapter.shared_instruction(neutral=neutral)
-            if variant == "protocol"
+            if variant in PROTOCOL_FAMILY
             # The historical sentence, so a `skill`/`oneliner` rerun reproduces the old asymmetry
             # rather than half-fixing it and being comparable to neither.
             else instructions.compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral)
@@ -191,7 +227,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["protocol"] = instructions.compose(
             "protocol", PROTOCOL_SEARCH_SENTENCE, neutral=neutral
         )
-    if variant == "protocol":
+    if variant in PROTOCOL_FAMILY:
         instructions.assert_shared_protocol(texts, neutral=neutral)
     return texts
 
@@ -489,7 +525,7 @@ async def main() -> int:
         "--memory-instruction",
         "--recall-instruction",
         dest="memory_instruction",
-        choices=("oneliner", "skill", "protocol"),
+        choices=("oneliner", "skill", "protocol", "evidence"),
         default="oneliner",
         help="which instruction the memory arms carry; recorded in the artifacts. `protocol` is "
         "the only variant in which the arms are matched: it gives every memory arm the shared "
@@ -562,12 +598,12 @@ async def main() -> int:
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
-    if "protocol" in run_arms and args.memory_instruction != "protocol":
+    if "protocol" in run_arms and args.memory_instruction not in PROTOCOL_FAMILY:
         raise SystemExit(
             "the `protocol` arm is the instruction-only control for the shared memory protocol, "
-            "so it is only meaningful with --memory-instruction protocol. With `skill` or "
-            "`oneliner` it would carry a different instruction from the memory arms it exists to "
-            "be compared against."
+            f"so it is only meaningful with --memory-instruction in {list(PROTOCOL_FAMILY)}. With "
+            "`skill` or `oneliner` it would carry a different instruction from the memory arms it "
+            "exists to be compared against."
         )
     # Only the recall arm reads a corpus through a database. Demanding a DSN for a run that has no
     # recall arm would make a bare-only calibration impossible without standing up a database it

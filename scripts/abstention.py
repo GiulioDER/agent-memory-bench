@@ -517,7 +517,9 @@ def main() -> int:
         "SHIPS ITS OWN, because preregistration 006 requires every arm to be wired through its "
         "own official integration and forbids prescribing the route. `protocol` equalises the "
         "text across arms, which is a useful ablation and is NOT the product comparison: it "
-        "measures a common denominator none of the products actually ships.",
+        "measures a common denominator none of the products actually ships. `evidence` is "
+        "`protocol` with recall pointed at recall_evidence rather than recall_search "
+        "(preregistration 025). scripts/pilot.py owns the list of valid values.",
     )
     parser.add_argument(
         "--resume",
