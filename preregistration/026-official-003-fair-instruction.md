@@ -80,3 +80,39 @@ instruction sizes for the three memory arms do not match the launch-time asserti
 schema, so this is verifiable only from the launch-time dry run and the harness assertion, not
 from the records. That is a gap in the harness and it should be closed by recording the
 instruction digest per session.
+
+---
+
+## 🔁 Correction, same evening, before any result: the falsification clause above is WRONG
+
+The section above says instruction size "is **not** in the record schema, so this is verifiable
+only from the launch-time dry run and the harness assertion, not from the records", and calls that
+a gap to close by recording a digest per session.
+
+**It is already recorded, per arm, with digests.** I looked for `instruction_bytes` in
+`records.jsonl`, did not find it, and concluded it was unrecorded, without opening
+`environment.json`, which every condition writes at its start. That file carries
+`instruction_manifest` (bytes, chars and sha256 per arm), `instruction_excess_bytes`, and
+`instruction_arms_matched`.
+
+The correction is left as an append rather than an edit, per the standing rule, and the wrong
+claim above is the more informative artefact: it is the FOURTH time in this project that I have
+read metadata about an artefact instead of the artefact, and the first three cost a closed
+research lane and two wrong statements about instruction asymmetry.
+
+Measured from `results/official-003-present/environment.json`, live:
+
+| arm | total bytes | excess over shared protocol |
+|---|---:|---:|
+| mempalace | 4,325 | 853 |
+| recall | 4,207 | **735** |
+| fs_grep | 4,021 | 549 |
+| protocol | 3,610 | 138 |
+
+`instruction_arms_matched: True`. Every arm's total minus its excess is **3,472**, so the shared
+protocol is byte identical across all four, which is the fairness claim and it holds.
+
+🔑 **The direction of the old confound is reversed, not merely reduced.** Under `skill`, `recall`
+carried 1,958 excess bytes against `mempalace`'s 853. Under `protocol` it carries **735 against
+853**, so if any arm now holds a coaching advantage it is MemPalace, by 118 bytes of its own
+result-schema appendix. The predictions above were written before I knew this and are unchanged.
