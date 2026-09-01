@@ -18,7 +18,34 @@ from pathlib import Path
 from harness.checker_run import run_bounded
 
 
+def _oracle_defect(oracle_dir: Path) -> str | None:
+    """Why this oracle could no longer tell the naive solution from the informed one, or None.
+
+    `expected` is built by walking the same staged tree the artifact walked, so an empty release
+    tree makes the produced manifest and the expectation both `{}`. They compare equal, every key
+    convention scores as correct, and the verdict below reports "0 entries, root-relative POSIX
+    keys, digests correct" having graded no key at all.
+
+    See `tasks/ts-natural-order/checker.py::_oracle_defect` for why this fails closed with a
+    verdict rather than raising.
+    """
+
+    release = oracle_dir / "release"
+    if not release.is_dir():
+        return f"{release} does not exist"
+    if not any(path.is_file() for path in release.rglob("*")):
+        return (
+            f"{release.name}/ holds no files, so the manifest and the expectation are both "
+            f"empty and any key convention compares equal"
+        )
+    return None
+
+
 def check(workdir: Path, oracle_dir: Path) -> tuple[bool, str]:
+    defect = _oracle_defect(oracle_dir)
+    if defect is not None:
+        return False, f"oracle is not well formed: {defect}"
+
     script = workdir / "make_manifest.py"
     if not script.is_file():
         return False, "make_manifest.py was never written"
