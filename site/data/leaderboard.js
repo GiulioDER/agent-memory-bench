@@ -32,7 +32,29 @@ window.AMB_LEADERBOARD = {
       ],
       "discarded": 28,
       "tokensPerTask": 66337,
-      "costPerTask": 0.0044
+      "costPerTask": 0.0044,
+      "byCondition": {
+        "present": {
+          "solved": 56,
+          "cells": 111
+        },
+        "absent": {
+          "solved": 41,
+          "cells": 52
+        },
+        "superseded": {
+          "solved": 37,
+          "cells": 46
+        },
+        "contradictory": {
+          "solved": 37,
+          "cells": 51
+        },
+        "adjacent": {
+          "solved": 38,
+          "cells": 57
+        }
+      }
     },
     {
       "name": "mempalace",
@@ -43,6 +65,7 @@ window.AMB_LEADERBOARD = {
       "discarded": null,
       "tokensPerTask": null,
       "costPerTask": null,
+      "byCondition": null,
       "held": "held for vendor review",
       "heldUntil": "2026-09-15",
       "heldIssue": "https://github.com/MemPalace/mempalace/issues/2414"

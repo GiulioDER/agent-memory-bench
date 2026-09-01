@@ -39,6 +39,17 @@
     <p class="dek reveal r3">Task success on executable checkers, paired per task against the
     <code>claude_md</code> baseline. Every number on this page traces to a published run
     directory; nothing is typed in by hand.</p>
+
+    <div class="callout callout-invert mt-l reveal r4">
+      <span class="kicker">Adversarial by design</span>
+      <p><strong>This benchmark is built to break a memory system, not to demo one.</strong>
+      Sixty-five percent of the cells scored here are conditions where the corpus is outdated,
+      contradictory, inapplicable, or simply empty, and the best available outcome is to waste
+      nothing. A memory layer is only handed a clean, governing fact in <strong>35%</strong> of
+      them.</p>
+      <p class="mt-s">A benchmark where memory can only help is a demo. The numbers below are
+      what survives a corpus that is mostly trying to mislead.</p>
+    </div>
   </section>
 
   <div class="status-line" id="run-meta" role="status"></div>
@@ -79,9 +90,32 @@
     the cell is thrown out rather than scored. Cost is end-to-end, ingestion included.</p>
   </section>
 
-  <section class="pad-y-s" id="reference">
+  <section class="pad-y-s" id="by-condition">
     <div class="section-head">
       <span class="no">02</span>
+      <h2>Products, condition by condition</h2>
+      <span class="aside">where a memory layer earns and where it costs</span>
+    </div>
+
+    <p class="prose mt-s">Only the products appear here. The controls exist to price the grid,
+    not to be studied condition by condition. <code>present</code> is the one condition holding a
+    clean governing fact; the other four are the traps, and a product's row across them is the
+    honest picture of what it does when memory is a liability rather than an asset.</p>
+
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr id="condition-head"></tr></thead>
+        <tbody id="condition-body"></tbody>
+      </table>
+    </div>
+
+    <p class="prose mt-m dim">Solved cells over admitted cells. A held product publishes nothing
+    here either: withholding a headline while publishing its breakdown would defeat the hold.</p>
+  </section>
+
+  <section class="pad-y-s" id="reference">
+    <div class="section-head">
+      <span class="no">03</span>
       <h2>Reference tracks</h2>
       <span class="aside">diagnostics, never ranked</span>
     </div>
@@ -114,7 +148,7 @@
 
   <section class="pad-y-s" id="official">
     <div class="section-head">
-      <span class="no">03</span>
+      <span class="no">04</span>
       <h2>What makes a result official</h2>
       <span class="aside">or it does not appear here</span>
     </div>
