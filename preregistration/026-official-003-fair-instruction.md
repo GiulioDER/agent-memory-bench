@@ -138,8 +138,8 @@ Nothing above this line was edited.
 | harness, adapters, `pilot.py`, `abstention.py` | `bb25d343` (2026-08-31T19:13:35+02:00) | yes, ancestor |
 | `scripts/launch_official.sh` | byte-identical to `a3fb01b` (2026-09-01T11:20:58+02:00) | yes, ancestor |
 
-Established by sha256 over the LF-normalised file, not by reading the diff: VPS2's launcher hashes
-to the same value as `a3fb01b:scripts/launch_official.sh`. Against current master it differs by
+Established by sha256 over the LF-normalised file, not by reading the diff: the execution host's
+launcher hashes to the same value as `a3fb01b:scripts/launch_official.sh`. Against current master it differs by
 exactly six lines, the `AMB_CORPUS_FLOOR` export added by PR #59 **after** this run launched.
 
 Launched 2026-09-01T16:09:46Z.
