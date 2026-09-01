@@ -216,3 +216,52 @@ def test_the_launcher_refuses_paths_that_will_name_an_account() -> None:
     assert out == ["REFUSED", "ALLOWED"], (
         f"the path predicate does not separate a home-rooted layout from a neutral one: {out}"
     )
+
+
+# --- the setup gate, and the corpus floor that only an OFFICIAL run sets --------------------
+
+
+def test_both_launchers_set_the_corpus_floor() -> None:
+    """An official run always uses the ~4,900 document haystack, so both launchers must say so.
+
+    Asymmetry here is the exact failure this module was written for: the PowerShell twin once
+    omitted the price flags and produced no run at all. A twin that skipped the corpus floor
+    would produce something worse, a run that looks fine and measures a 207 document corpus.
+    """
+
+    for script in (SH, PS1):
+        text = script.read_text(encoding="utf-8")
+        assert "AMB_CORPUS_FLOOR" in text, f"{script.name} does not set the corpus floor"
+        assert "4000" in text, f"{script.name} sets no floor value"
+
+
+def test_the_corpus_floor_is_overridable_rather_than_hardcoded() -> None:
+    """A caller measuring a deliberately small corpus must be able to say so."""
+
+    sh = SH.read_text(encoding="utf-8")
+    assert '${AMB_CORPUS_FLOOR:-4000}' in sh, "the shell launcher hardcodes the floor"
+    ps1 = PS1.read_text(encoding="utf-8")
+    assert "if (-not $env:AMB_CORPUS_FLOOR)" in ps1, "the PowerShell launcher hardcodes the floor"
+
+
+def test_the_setup_gate_runs_before_any_session() -> None:
+    """The gate is worthless after the sessions: that is where the eleven hours go.
+
+    Source order is the check, because running pilot.main would start a real run. The gate must
+    sit after environment.json is written (it reads it) and before the session loop.
+    """
+
+    pilot = (SH.parent / "pilot.py").read_text(encoding="utf-8")
+    gate = pilot.index("setup_checks = validate_setup(")
+    wrote_env = pilot.index('(run_dir / "environment.json").write_text')
+    sessions = pilot.index("by_id = {task.task_id: task for task in tasks}")
+    assert wrote_env < gate < sessions, "the setup gate is not between the manifest and the run"
+
+
+def test_the_setup_gate_refuses_rather_than_warns() -> None:
+    """A warning in a detached log nobody reads is not a guard."""
+
+    pilot = (SH.parent / "pilot.py").read_text(encoding="utf-8")
+    gate = pilot[pilot.index("setup_checks = validate_setup(") :][:1400]
+    assert "return 2" in gate, "the gate does not stop the run"
+    assert "REFUSING" in gate, "the gate does not say what it did"

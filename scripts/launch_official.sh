@@ -67,6 +67,12 @@ export MEMPALACE_VENV="${MEMPALACE_VENV:-$HOME/mp-venv}"
 export MEMPALACE_PALACE_ROOT="${MEMPALACE_PALACE_ROOT:-$HOME/mp}"
 export PATH="$HOME/.npm-global/bin:$PATH"
 export PYTHONUNBUFFERED=1
+# The official corpus is the ~4,900 document haystack, always. scripts/pilot.py refuses the
+# run if what actually reached the arms is below this, BEFORE spending a session: corpora
+# built without AMB_HAYSTACK published `sessions_offered: 207` and cost 94 discarded
+# sessions and a rebuild. Unset means the check reports SKIP, which is right for a pilot
+# (diagnostic-010 ran 125 sessions deliberately) and wrong for an official run.
+export AMB_CORPUS_FLOOR="${AMB_CORPUS_FLOOR:-4000}"
 
 # Fail here rather than at the first cell. Each of these has cost a run somewhere.
 [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "OPENROUTER_API_KEY is unset. Put it in $SECRETS" >&2; exit 2; }

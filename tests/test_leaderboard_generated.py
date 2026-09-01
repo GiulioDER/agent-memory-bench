@@ -239,3 +239,74 @@ def test_the_scope_note_is_rendered_by_the_page(tmp_path):
     js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
     assert 'id="scope-note"' in html
     assert "scope-note" in js and "D.scope.qualification" in js
+
+
+# --- the vendor review hold, which is a PUBLIC COMMITMENT and therefore a mechanism ----------
+
+
+def test_a_held_arm_publishes_no_numbers_even_when_the_summary_has_them(tmp_path):
+    """The promise made in the vendor's own issue thread, enforced rather than remembered."""
+
+    held = sorted(_generator().VENDOR_REVIEW_HOLDS)
+    assert held, "no arm is held; this test is vacuous and should be deleted with the last hold"
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    assert _run(root=root).returncode == 0
+    public = dict(zip([a for a, *_ in _generator().PRODUCT_ARMS], _public_arms()))
+    for internal in held:
+        row = next(a for a in _payload(root)["arms"] if a["name"] == public[internal])
+        assert row["success"] is None, f"{internal} published a success while held"
+        assert row["delta"] is None and row["ci"] is None
+        assert row["costPerTask"] is None
+
+
+def test_a_held_arm_says_why_and_links_the_thread(tmp_path):
+    """A blank row with no reason reads as "measured nothing", the opposite of a hold."""
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    _run(root=root)
+    holds = _generator().VENDOR_REVIEW_HOLDS
+    public = dict(zip([a for a, *_ in _generator().PRODUCT_ARMS], _public_arms()))
+    for internal, hold in holds.items():
+        row = next(a for a in _payload(root)["arms"] if a["name"] == public[internal])
+        assert row["held"] == hold["reason"]
+        assert row["heldUntil"] == hold["until"]
+        assert row["heldIssue"].startswith("http"), "the promise must be checkable by a reader"
+
+
+def test_a_hold_cannot_smuggle_a_missing_arm_past_the_summary_check(tmp_path):
+    """Blanking happens AFTER the read, so a held arm still has to be in the summary."""
+
+    internal = min(_generator().VENDOR_REVIEW_HOLDS)
+    summary = _summary()
+    del summary["arms"][internal]
+    root = _scaffold(tmp_path, summary=summary, official_run="run-x")
+    result = _run(root=root)
+    assert result.returncode != 0, "a held arm absent from the summary was accepted"
+
+
+def test_the_hold_is_keyed_on_presence_not_on_a_date(tmp_path):
+    """Two builds must agree. A date-computed hold would make the generated file drift.
+
+    It would also expire SILENTLY, where deleting an entry is a deliberate act performed at
+    exactly the moment somebody should confirm the window closed rather than merely elapsed.
+    """
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    _run(root=root)
+    first = (root / "site" / "data" / "leaderboard.js").read_text(encoding="utf-8")
+    _run(root=root)
+    second = (root / "site" / "data" / "leaderboard.js").read_text(encoding="utf-8")
+    assert first == second
+
+    source = (REPO_ROOT / "scripts" / "build_leaderboard.py").read_text(encoding="utf-8")
+    hold_block = source[source.index("VENDOR_REVIEW_HOLDS") :][:2000]
+    for forbidden in ("date.today", "datetime.now", "time.time"):
+        assert forbidden not in hold_block, f"the hold consults the clock via {forbidden}"
+
+
+def test_the_page_does_not_rank_a_held_arm():
+    """A withheld row must not carry a rank number implying it placed there."""
+
+    js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
+    assert "!a.held" in js, "site.js ranks held arms"
+    assert "a.held" in js and "heldUntil" in js, "site.js does not render the hold reason"
