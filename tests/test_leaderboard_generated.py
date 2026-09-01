@@ -344,3 +344,46 @@ def test_the_front_page_arm_count_matches_the_generator():
     assert "official run" not in label, (
         f"the tile claims an official run, which does not exist: {label!r}"
     )
+
+
+def test_the_front_page_task_and_condition_counts_match_their_sources():
+    """The other two countable tiles, pinned the same way and for the same reason.
+
+    The arm tile drifted because a number typed into HTML has nothing holding it to the code
+    that decides it. That is a property of the stat band, not of the arm tile, so the two
+    neighbouring counts get the same treatment: `executable tasks` against the directories that
+    actually carry a `task.json`, and `corpus conditions` against `CORPUS_CONDITIONS`.
+
+    Both were correct when this was written (34 and 5, checked 2026-09-01). The point is not
+    that they were wrong; it is that nothing would have said so.
+
+    The fourth tile, `LLM judges in the endpoint`, is deliberately not pinned. It is a design
+    commitment rather than a count, and a test asserting 0 == 0 against a literal would pass
+    for the wrong reason forever.
+    """
+    import re
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT))
+    from harness.damage import CORPUS_CONDITIONS
+
+    index = (REPO_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+
+    def tile(label_fragment: str) -> int:
+        found = re.findall(
+            r'<div class="n">(\d+)</div><div class="l">([^<]*' + label_fragment + r'[^<]*)</div>',
+            index,
+        )
+        assert len(found) == 1, f"expected one {label_fragment!r} tile, found {found}"
+        return int(found[0][0])
+
+    executable = sum(1 for d in (REPO_ROOT / "tasks").iterdir() if (d / "task.json").is_file())
+    assert tile("executable tasks") == executable, (
+        f"index.html says {tile('executable tasks')} executable tasks, "
+        f"{executable} directories under tasks/ carry a task.json"
+    )
+
+    assert tile("corpus conditions") == len(CORPUS_CONDITIONS), (
+        f"index.html says {tile('corpus conditions')} corpus conditions, "
+        f"CORPUS_CONDITIONS has {len(CORPUS_CONDITIONS)}: {CORPUS_CONDITIONS}"
+    )
