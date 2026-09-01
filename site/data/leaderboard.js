@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; numbers enter
    only through results/<run_id>/leaderboard_summary.json. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-08-31",
+  "updated": "2026-09-02",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
@@ -11,17 +11,28 @@ window.AMB_LEADERBOARD = {
     "qualification": "The write path is not measured. Every arm was handed the same corpus before the grid and never wrote to its own store, so this ranks retrieval, not memory formation, and it gives no credit to extraction or consolidation at write time.",
     "longitudinalRun": null
   },
-  "run": null,
+  "run": {
+    "id": "official-003",
+    "date": "2026-09-02",
+    "cli": "claude-code",
+    "model": "deepseek/deepseek-v4-flash",
+    "tasks": 26,
+    "sessionsPerCell": 1,
+    "prereg": "preregistration/026-official-003-fair-instruction.md"
+  },
   "arms": [
     {
       "name": "recall",
       "type": "MCP server",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
+      "success": 0.6593,
+      "delta": 0.082,
+      "ci": [
+        -0.0063,
+        0.1808
+      ],
+      "discarded": 28,
+      "tokensPerTask": 66337,
+      "costPerTask": 0.0044
     },
     {
       "name": "mempalace",
@@ -40,59 +51,71 @@ window.AMB_LEADERBOARD = {
       "name": "fs_grep",
       "type": "transcripts on disk plus grep",
       "role": "control",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
+      "success": 0.6309,
+      "delta": 0.0536,
+      "ci": [
+        -0.0031,
+        0.123
+      ],
+      "discarded": 2,
+      "tokensPerTask": 43766,
+      "costPerTask": 0.0031
     },
     {
       "name": "placebo",
       "type": "inert prose, no memory content",
       "role": "control",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
+      "success": 0.6719,
+      "delta": 0.0946,
+      "ci": [
+        -0.0369,
+        0.2493
+      ],
+      "discarded": 8,
+      "tokensPerTask": 19189,
+      "costPerTask": 0.0014
     },
     {
       "name": "claude_md",
       "type": "CLAUDE.md bundle",
       "role": "baseline",
-      "success": null,
-      "delta": 0,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
+      "success": 0.5773,
+      "delta": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "discarded": 6,
+      "tokensPerTask": 17954,
+      "costPerTask": 0.0013
     },
     {
       "name": "bare",
       "type": "no memory",
       "role": "floor",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null
+      "success": 0.6593,
+      "delta": 0.082,
+      "ci": [
+        -0.0195,
+        0.1963
+      ],
+      "discarded": 5,
+      "tokensPerTask": 18457,
+      "costPerTask": 0.0014
     }
   ],
   "reference": [
     {
       "name": "recall_prefetch",
       "what": "harness-side retrieval with the exact task prompt",
-      "success": null,
-      "delta": null
+      "success": 0.612,
+      "delta": 0.0347
     },
     {
       "name": "protocol",
       "what": "the shared memory instruction, with no memory behind it",
-      "success": null,
-      "delta": null
+      "success": 0.612,
+      "delta": 0.0347
     }
   ]
 };
