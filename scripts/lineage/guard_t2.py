@@ -18,8 +18,11 @@ rather than assuming a shape:
   broken apparatus that renders as a finding is the exact failure this guard exists to prevent,
   so it must not commit that failure itself.
 """
-import re, subprocess, sys
+import re
+import subprocess
+import sys
 from pathlib import Path
+
 sys.path.insert(0, ".")
 from adapters.recall.adapter import RecallAdapter
 
@@ -43,51 +46,53 @@ for q in QUERIES:
     cmd = [sys.executable, "-m", "recall.cli", "--tenant", TENANT, "search", "-k", "5", q]
     r = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=180, check=False)
     if r.returncode != 0:
-        print("  ! search failed for %r: %s" % (q, r.stderr[-300:]))
+        print(f"  ! search failed for {q!r}: {r.stderr[-300:]}")
         continue
     ok_searches += 1
-    print("")
-    print("  query: %s" % q)
+    print()
+    print(f"  query: {q}")
     for line in r.stdout.splitlines():
         m = HIT.match(line)
         if m:
             v, conf, cos, src = m.groups()
             total += 1
             verdicts[v] = verdicts.get(v, 0) + 1
-            print("    %-15s conf=%s cos=%s  %s" % (v, conf, cos, src))
+            print(f"    {v:<15} conf={conf} cos={cos}  {src}")
             if v == "superseded":
                 superseded.append((q, src))
         vm = META.search(line)
         if vm and vm.group(1) != "-":
             lineage_seen += 1
 
-print("")
-print("  searches ok=%d/%d  hits=%d  verdicts=%s  hits with a real valid_from=%d"
-      % (ok_searches, len(QUERIES), total, verdicts, lineage_seen))
-print("  superseded hits: %d" % len(superseded))
+print()
+print(
+    f"  searches ok={ok_searches}/{len(QUERIES)}  hits={total}  verdicts={verdicts}  "
+    f"hits with a real valid_from={lineage_seen}"
+)
+print(f"  superseded hits: {len(superseded)}")
 for q, src in superseded[:6]:
-    print("    %-36s %s" % (q[:36], src))
+    print(f"    {q[:36]:<36} {src}")
 
 if ok_searches == 0:
-    print("")
+    print()
     print("  APPARATUS FAILED: not one search completed, so this run says NOTHING about lineage.")
     print("  Do not read it as a guard result. Fix the search first.")
     sys.exit(2)
 
 if EXPECT == "none":
     ok = lineage_seen == 0 and not superseded
-    print("")
+    print()
     print("  CONTROL %s: expected no lineage on this tenant." % ("OK" if ok else "UNEXPECTED"))
     sys.exit(0 if ok else 3)
 
 if lineage_seen == 0:
-    print("")
+    print()
     print("  GUARD FAILED: every hit reported valid_from=-, so no frontmatter was parsed at all.")
     sys.exit(1)
 if not superseded:
-    print("")
+    print()
     print("  GUARD FAILED: frontmatter parsed, but no hit carried verdict == 'superseded'.")
     print("  Tier 2 would be Tier 0 with extra fields and no comparison would mean anything.")
     sys.exit(1)
-print("")
+print()
 print("  GUARD PASSED: recall parses declared lineage and demotes the stale plant.")
