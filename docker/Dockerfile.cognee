@@ -1,0 +1,42 @@
+# The `cognee` arm's environment, pinned, so the arm can be brought up somewhere other than one
+# workstation.
+#
+# It exists because the arm could not be verified on the development host at all: that box ran out
+# of COMMIT charge (pagefile down to 339 MB with 2 GB of RAM still free), and in that state pip
+# died with MemoryError, pytest with WinError 1450, and three attempts to time the imports exited
+# 5, 9 and 127 with no output. None of that is a fact about cognee, and a verdict about a vendor
+# taken from a starved host would be worthless.
+#
+# Same base and same digest as Dockerfile.harness, so the layer is shared rather than duplicated,
+# and Python 3.12 rather than the host's 3.14: cognee accepts <3.15, and fastembed's own pin
+# (onnxruntime<=1.23.2 below 3.14) resolves differently on the two, which is one more reason to
+# name the interpreter rather than inherit it.
+FROM python:3.12-slim@sha256:09f7da3bc104798d0afb40bc08d23ab2da20a76130cec1f2ef170848f5d85217
+
+# libmagic1 is the Linux half of python-magic, which cognee imports at load. On Windows the
+# python-magic-bin wheel carries the DLL; on Debian the library is a system package, and without
+# it the import fails rather than degrading.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# The pins are the frozen config's, and `scripts/cognee_preflight.py` asserts them at run time
+# against the installed distributions, so an image that drifts from the config is caught rather
+# than silently measured.
+ARG COGNEE_PIN="cognee[fastembed]==1.5.3"
+ARG COGNEE_MCP_PIN="cognee-mcp==0.5.5"
+RUN pip install --no-cache-dir "${COGNEE_PIN}" "${COGNEE_MCP_PIN}"
+
+# The harness's own dependencies. Copied on its own layer so a change to the benchmark does not
+# re-resolve the vendor's tree above it.
+COPY requirements-dev.txt /tmp/requirements-dev.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-dev.txt
+
+# `COGNEE_VENV` names a prefix holding `bin/python` and `bin/cognee-mcp`; in this image that is
+# the interpreter's own prefix rather than a virtualenv, which the adapter's resolver accepts.
+ENV COGNEE_VENV=/usr/local \
+    COGNEE_STORE_ROOT=/cgn/stores \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /bench
+CMD ["python", "scripts/cognee_preflight.py", "--estimate"]
