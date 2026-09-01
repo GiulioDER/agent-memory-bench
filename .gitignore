@@ -49,3 +49,7 @@ results/logs/
 # Generated haystack corpora: reproducible from the generator digest, the scale and the seed.
 # 25x is ~24 MB of transcripts, so the plan is the artefact and the corpus is rebuilt on demand.
 corpus/haystack/
+
+# Hugging Face payloads assembled by scripts/hf_stage.py. Reproducible from the tree and the
+# two cards, and a staged copy that drifts from its source is worse than no copy at all.
+build/

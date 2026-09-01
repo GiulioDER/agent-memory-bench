@@ -33,6 +33,18 @@ distractor-to-signal ratio of at least 4:1. Measured 2026-08-29 after the d100 t
 session that is on disk and NOT in the manifest is invisible to every arm and makes its task
 unwinnable by retrieval; six tasks sat that way until that date.
 
+🔁 **Re-measured 2026-09-01: 40 sessions, 156 distractors, 196 entries in `manifest.json`.** The
+count above is dated rather than wrong: `sessions/fa-dedup-key/p01.jsonl` arrived with #34 on
+2026-08-30. Two of the 40 are `sessions/smoke/`, which are bring-up wiring rather than signal, so
+the ratio is 4.11:1 over the 38 real signal sessions and 3.90:1 counting every entry. Corrected
+in place rather than left to the reader because this file **ships inside the Hugging Face
+dataset**, where a stale count becomes a published claim. Manifest and disk agreed in both
+directions at that measurement, which matters more than the count itself:
+
+```bash
+python -c "import json;m=json.load(open('corpus/manifest.json'))['sessions'];print(len(m),sum(k.startswith('sessions/') for k in m),sum(k.startswith('distractors/') for k in m))"
+```
+
 Because content is verbatim, tool results carry the recording environment's paths and
 usernames; redacting them afterwards would break the verbatim rule, so the fix is
 prevention. Sessions recorded on the Windows dev machine are **pipeline-validation
