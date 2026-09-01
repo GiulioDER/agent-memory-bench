@@ -52,6 +52,12 @@ if ($PalaceRoot.Length -gt 60) { throw "palace root is too long; onnxruntime fai
 $env:MEMPALACE_VENV        = $MemPalaceVenv
 $env:MEMPALACE_PALACE_ROOT = $PalaceRoot
 $env:PYTHONUNBUFFERED      = "1"   # so the log is readable while it runs, not only afterwards
+# The official corpus is the ~4,900 document haystack, always. scripts/pilot.py refuses the
+# run if what actually reached the arms is below this, BEFORE spending a session: corpora
+# built without AMB_HAYSTACK published `sessions_offered: 207` and cost 94 discarded
+# sessions and a rebuild. Unset means the check reports SKIP, which is right for a pilot
+# (diagnostic-010 ran 125 sessions deliberately) and wrong for an official run.
+if (-not $env:AMB_CORPUS_FLOOR) { $env:AMB_CORPUS_FLOOR = "4000" }
 
 $logDir = Join-Path $repo "results/logs"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
