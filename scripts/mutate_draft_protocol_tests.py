@@ -32,18 +32,23 @@ MUTANTS = [
     (
         "an unknown variant falls back to the standard protocol",
         REPO / "harness" / "instructions.py",
-        "        raise InstructionError(\n"
-        "            f\"unknown protocol variant {variant!r}; known: {sorted(PROTOCOL_VARIANTS)}\"\n"
-        "        ) from None",
+        (
+            "        raise InstructionError(\n"
+            "            f\"unknown protocol variant {variant!r}; known: "
+            "{sorted(PROTOCOL_VARIANTS)}\"\n"
+            "        ) from None"
+        ),
         "        return PROTOCOL_PATH",
         "test_an_unknown_variant_never_falls_back_to_the_standard_protocol",
     ),
     (
         "only recall gets the draft protocol, mempalace keeps the standard one",
         REPO / "scripts" / "pilot.py",
-        "        texts[\"mempalace\"] = MemPalaceAdapter.shared_instruction(\n"
-        "            neutral=neutral, variant=variant if shared else \"protocol\"\n"
-        "        )",
+        (
+            "        texts[\"mempalace\"] = MemPalaceAdapter.shared_instruction(\n"
+            "            neutral=neutral, variant=variant if shared else \"protocol\"\n"
+            "        )"
+        ),
         "        texts[\"mempalace\"] = MemPalaceAdapter.shared_instruction(neutral=neutral)",
         "test_every_memory_arm_gets_the_draft_protocol_not_just_recall",
     ),
