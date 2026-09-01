@@ -27,9 +27,18 @@ ARMS = [name for name, *_ in _generator().PRODUCT_ARMS]
 
 # What the PAGE is allowed to print. The third-party arms are unannounced, so they reach the
 # site as neutral placeholders; the mapping lives in the generator's PRODUCT_ARMS.
-def _public_arms() -> list[str]:
+def _public_arms(roster=None) -> list[str]:
+    """The names the page may print, for a roster.
+
+    ``roster`` is a parameter because the placeholder letters are assigned in ORDER over the
+    undisclosed arms, so a test that injects one shifts every letter after it. Computing the
+    expectation from the module-level roster and then comparing it against a page built from a
+    mutated one compares two different rosters, which is how this helper failed the day a second
+    undisclosed arm arrived.
+    """
+
     names, anonymous = [], 0
-    for *_, public in _generator().PRODUCT_ARMS:
+    for *_, public in roster if roster is not None else _generator().PRODUCT_ARMS:
         if public is None:
             names.append("product_" + chr(ord("a") + anonymous))
             anonymous += 1
@@ -163,12 +172,15 @@ def test_an_undisclosed_arm_never_reaches_the_page(tmp_path):
     and checks the page in the state it will actually ship in: a generator that passed the
     internal name through anywhere, the label, the type or a stray key, is caught.
 
-    The roster carries no undisclosed arm today, and the mechanism still has to work the
-    day one arrives. So the arm is INJECTED rather than borrowed from the live list: a
-    guard that only runs while somebody happens to be undisclosed is a guard that rots
-    unwatched, and skipping here would have been a vacuous pass by another name. Injection
-    means calling ``build`` in process, since the generator otherwise runs in a subprocess
-    no monkeypatch reaches.
+    The arm is INJECTED rather than borrowed from the live list: a guard that only runs while
+    somebody happens to be undisclosed is a guard that rots unwatched, and skipping would have
+    been a vacuous pass by another name. Injection means calling ``build`` in process, since the
+    generator otherwise runs in a subprocess no monkeypatch reaches.
+
+    ⚠️ This docstring used to open "the roster carries no undisclosed arm today", and that stopped
+    being true when `cognee` joined with `public=None` on 2026-09-02. The injected arm now shifts
+    every placeholder letter after it, so the expectation is derived from the roster this test
+    actually built rather than from the module-level one.
     """
     generator = _generator()
     secret = "acme_memory"
@@ -186,7 +198,7 @@ def test_an_undisclosed_arm_never_reaches_the_page(tmp_path):
     assert "SaaS API" not in text, "the integration description identifies the arm on its own"
 
     data = json.loads(text.split("window.AMB_LEADERBOARD = ", 1)[1].rstrip().rstrip(";"))
-    assert [a["name"] for a in data["arms"]] == ["product_a", *PUBLIC_ARMS]
+    assert [a["name"] for a in data["arms"]] == _public_arms(generator.PRODUCT_ARMS)
     anonymous = next(a for a in data["arms"] if a["name"] == "product_a")
     assert anonymous["success"] == 0.5, "an undisclosed arm still carries its real numbers"
 

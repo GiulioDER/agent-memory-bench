@@ -36,6 +36,8 @@ param(
   [string]$PriceAsOf   = "2026-08-22",
   [string]$MemPalaceVenv = "C:/mpb/v",
   [string]$PalaceRoot    = "C:/mpb/palaces",
+  [string]$CogneeVenv    = "C:/cgn/v",
+  [string]$CogneeStoreRoot = "C:/cgn/stores",
   [switch]$DryRun
 )
 
@@ -48,6 +50,22 @@ if (-not $env:OPENROUTER_API_KEY) { throw "OPENROUTER_API_KEY is not set; the mo
 if (-not (Test-Path "$MemPalaceVenv/Scripts/python.exe")) { throw "no MemPalace venv at $MemPalaceVenv" }
 if (-not (Test-Path $PalaceRoot)) { throw "no palace root at $PalaceRoot" }
 if ($PalaceRoot.Length -gt 60) { throw "palace root is too long; onnxruntime fails to load from a deep path on Windows." }
+
+# cognee's preconditions, checked only when the roster actually names it. MemPalace's above are
+# unconditional, which is a wart rather than a model: a run without that arm is refused for a venv
+# it never uses. Conditional here so adding a vendor does not add a precondition to every run.
+if ($Arms -split "," -contains "cognee") {
+  if (-not (Test-Path "$CogneeVenv/Scripts/python.exe")) { throw "no cognee venv at $CogneeVenv; build it with the line in adapters/cognee/VENDOR_REVIEW.md" }
+  if (-not (Test-Path "$CogneeVenv/Scripts/cognee-mcp.exe")) { throw "no cognee-mcp entry point in $CogneeVenv; install cognee-mcp there" }
+  if ($CogneeStoreRoot.Length -gt 60) { throw "cognee store root is too long; fastembed embeds through onnxruntime, which fails to load from a deep path on Windows." }
+  New-Item -ItemType Directory -Force -Path $CogneeStoreRoot | Out-Null
+  $env:COGNEE_VENV       = $CogneeVenv
+  $env:COGNEE_STORE_ROOT = $CogneeStoreRoot
+  # ⛔ Its ingest extracts a knowledge graph with a HOSTED LLM, per document, per condition, so
+  # unlike every other arm here it spends money before a single session runs. Price it first:
+  #   python scripts/cognee_preflight.py --estimate
+  Write-Host "cognee arm: ingest is a hosted LLM pass; run scripts/cognee_preflight.py --estimate first"
+}
 
 $env:MEMPALACE_VENV        = $MemPalaceVenv
 $env:MEMPALACE_PALACE_ROOT = $PalaceRoot

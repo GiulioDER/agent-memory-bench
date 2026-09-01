@@ -37,6 +37,16 @@ window.AMB_LEADERBOARD = {
       "heldIssue": "https://github.com/MemPalace/mempalace/issues/2414"
     },
     {
+      "name": "product_a",
+      "type": "third-party product, not yet named",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null
+    },
+    {
       "name": "fs_grep",
       "type": "transcripts on disk plus grep",
       "role": "control",

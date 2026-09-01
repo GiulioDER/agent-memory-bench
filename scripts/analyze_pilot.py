@@ -35,10 +35,32 @@ from harness.tasks import discover_tasks
 
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
-#: Every arm `scripts/pilot.py` can run. `protocol` and `fs_grep` were missing here long after
-#: the runner grew them, so the arm that exists to separate the instruction from the store could
-#: be run and then not analysed: `--arms bare,claude_md,protocol,recall` exited `unknown arms`.
-SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall")
+
+def _pilot_arms() -> tuple[str, ...]:
+    """The runner's own roster, so this analyser cannot fall behind it.
+
+    The import sits inside a function to keep it off this module's top level, but it still runs at
+    import time because `SUPPORTED_ARMS` calls it immediately. So it is NOT protection against a
+    circular import: if `scripts.pilot` ever imports this module, this breaks and the fix is to
+    make `SUPPORTED_ARMS` lazy at its two call sites rather than to move this line.
+    """
+
+    from scripts.pilot import ARMS
+
+    return tuple(ARMS)
+
+#: Every arm `scripts/pilot.py` can run, DERIVED from that runner rather than restated here.
+#:
+#: ⛔ The restated copy is how this list fell behind three times. `protocol` and `fs_grep` were
+#: missing long after the runner grew them, so the arm that exists to separate the instruction
+#: from the store could be run and then not analysed: `--arms bare,claude_md,protocol,recall`
+#: exited `unknown arms`. The comment recording that was written, and the list was NOT made
+#: derived, so `mempalace`, `recall_prefetch` and `cognee` went the same way afterwards. A note
+#: about a defect is not a fix for it.
+#:
+#: The import costs about 0.4s and pulls in the adapters, which read their frozen configs and
+#: nothing else at import time; no vendor package is touched.
+SUPPORTED_ARMS = _pilot_arms()
 
 
 #: Re-exported so `scripts/discard_sensitivity.py` keeps importing it from here, while there is

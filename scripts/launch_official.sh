@@ -90,6 +90,26 @@ for v in $REQUIRED_LOCATIONS; do
   eval "val=\${$v:-}"
   [ -n "$val" ] || { echo "$v is unset. Put it in $SECRETS; see adapters/recall/location.example.env" >&2; exit 2; }
 done
+# cognee's preconditions, checked only when the roster actually names it. MemPalace's below are
+# unconditional, which is a wart rather than a model: a run without that arm is refused for a venv
+# it never uses. Conditional here so adding a vendor does not add a precondition to every run.
+case ",$ARMS," in
+  *,cognee,*)
+    # Defaults under the neutral root this launcher already requires for the checkout and the
+    # CLI, NOT under $HOME: the adapter records the store path in every session's ArmSpec
+    # metadata, and published records carry absolute paths in the model's own words.
+    export COGNEE_VENV="${COGNEE_VENV:-/srv/amb-bench/cgn-venv}"
+    export COGNEE_STORE_ROOT="${COGNEE_STORE_ROOT:-/srv/amb-bench/cgn}"
+    [ -x "$COGNEE_VENV/bin/python" ] || { echo "no cognee venv at $COGNEE_VENV" >&2; exit 2; }
+    [ -x "$COGNEE_VENV/bin/cognee-mcp" ] || { echo "no cognee-mcp entry point in $COGNEE_VENV" >&2; exit 2; }
+    mkdir -p "$COGNEE_STORE_ROOT"
+    # ⛔ Its ingest extracts a knowledge graph with a HOSTED LLM, per document, per condition, so
+    # unlike every other arm here it spends money before a single session runs. Price it first:
+    #   python scripts/cognee_preflight.py --estimate
+    echo "cognee arm: ingest is a hosted LLM pass; run scripts/cognee_preflight.py --estimate first"
+    ;;
+esac
+
 command -v claude >/dev/null || { echo "claude is not on PATH" >&2; exit 2; }
 [ -x "$MEMPALACE_VENV/bin/python" ] || { echo "no MemPalace venv at $MEMPALACE_VENV" >&2; exit 2; }
 [ -d "$MEMPALACE_PALACE_ROOT" ] || { echo "no palace root at $MEMPALACE_PALACE_ROOT" >&2; exit 2; }
@@ -107,7 +127,10 @@ command -v claude >/dev/null || { echo "claude is not on PATH" >&2; exit 2; }
 # published. It is a deliberate word, not a flag anyone passes by accident.
 if [ "${AMB_ALLOW_NAMED_PATHS:-0}" != "1" ]; then
   CLAUDE_BIN="$(command -v claude || true)"
-  for p in "$REPO" "$CLAUDE_BIN" "$MEMPALACE_PALACE_ROOT"; do
+  # COGNEE_STORE_ROOT joins this list because the cognee adapter records the store path in every
+  # session's ArmSpec metadata, so a home-directory store is published exactly like a palace one.
+  # Empty when the arm is not in the roster, and the case below ignores an empty entry.
+  for p in "$REPO" "$CLAUDE_BIN" "$MEMPALACE_PALACE_ROOT" "${COGNEE_STORE_ROOT:-}"; do
     case "$p" in
       "$HOME"/*|/home/*|/Users/*|/root/*)
         echo "REFUSING: $p sits under a home directory, so every session will record it." >&2

@@ -54,6 +54,10 @@ PRODUCT_ARMS = [
     # internal name, integration, role, public name (None while undisclosed)
     ("recall", "MCP server", None, "recall"),
     ("mempalace", "MCP server", None, "mempalace"),
+    # The second third-party product. Public name None, so the page prints the neutral
+    # placeholder: it has an adapter, a frozen config and a VENDOR_REVIEW.md, and its maintainers
+    # have not had their review window yet. Naming it here is a one-word edit when they have.
+    ("cognee", "MCP server", None, None),
     ("fs_grep", "transcripts on disk plus grep", "control", "fs_grep"),
     ("placebo", "inert prose, no memory content", "control", "placebo"),
     ("claude_md", "CLAUDE.md bundle", "baseline", "claude_md"),
