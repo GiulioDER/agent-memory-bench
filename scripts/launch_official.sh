@@ -25,7 +25,10 @@ if [[ -z "${CONDITIONS:-}" ]]; then
   # Assigned in two steps ON PURPOSE. Written as CONDITIONS="${CONDITIONS:-$(...)}", a failing
   # command substitution aborts the script under `set -e` BEFORE the guard below can run, so the
   # script exited 1 with no diagnostic and the guard was dead code that read as a safety net.
-  CONDITIONS="$(cd "$REPO" && python -c 'from harness.damage import CORPUS_CONDITIONS; print(",".join(CORPUS_CONDITIONS))')" || CONDITIONS=""
+    # `.venv/bin/python`, not bare `python`, which is what every other invocation in this script
+    # uses. A caller whose PATH has no `python` (a detached chain, a cron job) hit the guard below
+    # instead of running, which is the right failure but the wrong reason for it.
+    CONDITIONS="$(cd "$REPO" && .venv/bin/python -c 'from harness.damage import CORPUS_CONDITIONS; print(",".join(CORPUS_CONDITIONS))')" || CONDITIONS=""
 fi
 if [[ -z "$CONDITIONS" ]]; then
   echo "could not read CORPUS_CONDITIONS from $REPO/harness/damage.py" >&2
