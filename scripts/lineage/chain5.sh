@@ -11,7 +11,14 @@ cd "$HOME/amb-lineage"
 log(){ echo "[chain5 $(date -u +%H:%M:%SZ)] $*"; }
 
 set -a; . "$HOME/amb-secrets.env"; set +a
-export VOYAGE_API_KEY=$(set -a; . "$HOME/recall-repos/.env"; set +a; printf '%s' "$VOYAGE_API_KEY")
+# The env file is NAMED, never hardcoded. This tree is public and .gitignore's first three
+# lines forbid a remote path in it: an inventory of which machines exist and what runs on
+# them is worth something with no credential attached. AMB_RECALL_REMOTE_ENV_FILE is the
+# variable launch_official.sh already requires, so this adds no new configuration.
+: "${AMB_RECALL_REMOTE_ENV_FILE:?set it in the secrets file; it holds VOYAGE_API_KEY}"
+export VOYAGE_API_KEY=$(
+  set -a; . "$AMB_RECALL_REMOTE_ENV_FILE"; set +a; printf '%s' "$VOYAGE_API_KEY"
+)
 export AMB_HAYSTACK="$HOME/amb-repo/corpus/haystack/scale-25/seed-1"
 [ ${#VOYAGE_API_KEY} -eq 46 ] || { log "voyage key wrong length"; exit 2; }
 
