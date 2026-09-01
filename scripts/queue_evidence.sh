@@ -11,7 +11,11 @@ set -uo pipefail
 
 REPO="$HOME/amb-evidence"
 PYBIN="$HOME/amb-repo/.venv/bin/python"
-RUN_ID="${RUN_ID:-evidence-tool-001}"
+# evidence-tool-001 is BURNED and must never be reused: its first attempt discarded all 490 cells
+# on a missing PATH, and the three conditions it wrote read as COMPLETE to
+# scripts/archive_partial.py (admission.json present, zero admitted), so `--resume` would skip
+# every one of them and the run would exit 1 again having spent nothing and explained nothing.
+RUN_ID="${RUN_ID:-evidence-tool-002}"
 NAMESPACE="bench-official-002"
 CONDITIONS="${CONDITIONS:-superseded,present,contradictory}"
 ARMS="bare,recall"
@@ -51,6 +55,20 @@ sleep 60
 # ---------------------------------------------------------------- 2. preconditions
 set -a; . "$HOME/amb-secrets.env"; set +a
 [ -n "${OPENROUTER_API_KEY:-}" ] || { log "REFUSE: OPENROUTER_API_KEY unset"; exit 2; }
+
+# ⛔ The CLI is not on PATH in a non-interactive shell, and its absence is not an error the run
+# reports as one: every session fails instantly, every cell is DISCARDED, and the grid ends in
+# three minutes with `admitted cells 0` and $0 spent. That is what happened on the first attempt,
+# 490 cells, and both arms discarded equally so it looked environmental rather than like a
+# treatment defect, which it was.
+#
+# scripts/launch_official.sh exports this and then checks it. This script deliberately does not use
+# that launcher (it hardcodes the five-arm roster and refuses a home-directory checkout), and the
+# first version copied its REFUSALS while dropping its environment setup. The check below is the
+# one that catches the export above going missing again.
+export PATH="$HOME/.npm-global/bin:$PATH"
+command -v claude >/dev/null || { log "REFUSE: claude is not on PATH"; exit 2; }
+[ -x "$PYBIN" ] || { log "REFUSE: no bench venv python at $PYBIN"; exit 2; }
 : "${AMB_RECALL_REMOTE_ENV_FILE:?}"
 export AMB_HAYSTACK="$HOME/amb-repo/corpus/haystack/scale-25/seed-1"
 [ -d "$AMB_HAYSTACK" ] || { log "REFUSE: no haystack at AMB_HAYSTACK"; exit 2; }
@@ -79,6 +97,24 @@ log "commit: $(git rev-parse --short HEAD)  branch: $(git branch --show-current)
 # readable rather than arriving 200 lines into a launch.
 if ! git diff --quiet -- preregistration/ || [ -n "$(git status --porcelain -- preregistration/)" ]; then
   log "REFUSE: preregistration/ is dirty"; exit 2
+fi
+
+# ⛔ Refuse a run id that already has artifacts. `--resume` SKIPS a condition that wrote
+# admission.json, and a condition that admitted zero cells wrote one just the same, so restarting
+# into a burned id silently runs nothing and exits 1. archive_partial.py cannot clear it either:
+# it refuses such a condition as COMPLETE, because zero-admitted and finished are the same shape
+# on disk. Pick a fresh id instead; nothing is ever deleted.
+for existing in "$REPO/results/$RUN_ID"-*; do
+  [ -e "$existing" ] || continue
+  log "REFUSE: $RUN_ID already has artifacts at $(basename "$existing")."
+  log "  A run id is single-use here. Set RUN_ID to a fresh one and requeue."
+  exit 2
+done
+if [ -d "/tmp/agent-memory-bench-work/$RUN_ID" ] || \
+   compgen -G "/tmp/agent-memory-bench-work/$RUN_ID-*" >/dev/null 2>&1; then
+  log "REFUSE: a work root for $RUN_ID survives; every cell whose sandbox is there would be"
+  log "  DISCARDED rather than re-run. Move it aside or pick a fresh RUN_ID."
+  exit 2
 fi
 
 # ---------------------------------------------------------------- 3. apparatus checks

@@ -339,3 +339,61 @@ Two things this also settles before the run rather than after:
 ⚠️ It does NOT settle that the bundle's field layout is what the checker expects. That is still
 apparatus check 3's job against a live server, and the checker discovers the field rather than
 assuming it, having already been wrong once this session about a record field it guessed.
+
+### 8. Attempt 1 aborted on the apparatus, 2026-09-01, $0 spent
+
+`evidence-tool-001` launched at 14:44:23Z and exited 1 at 14:47:21Z with **every cell discarded**:
+55, 135 and 55 cells across the three conditions, both arms equally, `admitted cells 0`, estimated
+spend `$0.0`.
+
+**Cause: `claude` is not on PATH in a non-interactive shell** (it lives under the user's npm prefix).
+`scripts/launch_official.sh` exports that PATH and then checks `command -v claude`; the queue script
+deliberately does not use that launcher, and its first version copied the launcher's REFUSALS while
+dropping its environment setup. The check that was dropped is the one that catches the export that
+was dropped. Both are now in `scripts/queue_evidence.sh`.
+
+⚠️ **Nothing about the treatment was measured and nothing may be inferred from it.** Both arms
+discarded identically, which is the signature of an environmental failure rather than a treatment
+defect. The admission gate did exactly its job: it refused to score sessions that never ran.
+
+**Apparatus checks 1 and 3 both PASSED before that launch, and check 3's result stands as a
+measurement**, taken against the live server on `bench-official-002-superseded` with 12 real agent
+queries harvested from the baseline run's records:
+
+| | value |
+|---|---:|
+| queries where the bundle withheld at least one returned hit | **8 / 12 = 0.667** |
+| queries where the bundle was empty (`decision: abstain`) | 2 / 12 |
+| registered floor (prediction 5b) | 0.30 |
+
+Observed shapes included `5 hits -> 3 items`, `5 hits -> 0 items (abstain)` and `5 hits -> 5 items`.
+So the registered CANCEL condition does not fire: the treatment is live on this corpus and the two
+arms genuinely receive different text.
+
+🔑 **One field name is now verified rather than assumed.** `recall_evidence` returns its cleared
+passages under a top-level **`items`** key, alongside `decision`, `trust_state`, `system_prompt` and
+`user_message`. Section 7 said this was unverified; it is verified now, read off a live response.
+
+### 9. Restart procedure, prepared 2026-09-01
+
+The queue was removed from the host at the user's instruction while `official-003` was still
+running. Nothing is pending and nothing is half-done. To restart:
+
+On the serving host, whose alias this repository does not carry (see `.gitignore`'s first three
+lines), run:
+
+```bash
+cd ~ && setsid nohup bash ~/amb-evidence/scripts/queue_evidence.sh \
+  > ~/amb-evidence/results/logs/queue-boot.log 2>&1 < /dev/null &
+```
+
+Preconditions the script now checks for itself, each refusing rather than proceeding: the host is
+free of any grid, `claude` is on PATH, the venv python exists, the haystack holds more than 4,000
+documents, OpenRouter credit is above the $4 reserve, `preregistration/` is clean, the run id has no
+existing artifacts or work root, and apparatus checks 1 and 3 pass.
+
+⛔ **`evidence-tool-001` is a burned run id.** Its three conditions wrote `admission.json` with zero
+admitted cells, which reads as COMPLETE to `archive_partial.py` and as "skip" to `--resume`, so
+restarting into it would run nothing and exit 1. The default is now `evidence-tool-002`, and the
+script refuses any id that already has artifacts. Nothing was deleted: the burned directories remain
+as the record of what the failed attempt did.
