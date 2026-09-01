@@ -116,3 +116,77 @@ protocol is byte identical across all four, which is the fairness claim and it h
 carried 1,958 excess bytes against `mempalace`'s 853. Under `protocol` it carries **735 against
 853**, so if any arm now holds a coaching advantage it is MemPalace, by 118 bytes of its own
 result-schema appendix. The predictions above were written before I knew this and are unchanged.
+
+---
+
+## Appended 2026-09-02: the exact code this run executed
+
+Recorded because it had to be DERIVED rather than read, which is itself the finding. The run's
+working tree was dirty, so the launcher's own `commit : bb25d343` line describes a tree that was
+modified and would not reproduce the run.
+
+⚠️ This append changes the file's hash after `preregistration/timestamps/manifest-20260901T220358Z.json`
+stamped it at `f95223d37fafaad309db0f0cf09341e617655f9e`. That is the documented and expected case:
+`timestamp_prereg.py verify` reports CHANGED for a file appended below a frozen prediction, and the
+stamped bytes stay provable through the recorded git blob `1d3c1d213e277d19969d885f78c5b8d6b36a42c9`.
+Nothing above this line was edited.
+
+### What ran
+
+| component | state | on master's main line |
+|---|---|---|
+| harness, adapters, `pilot.py`, `abstention.py` | `bb25d343` (2026-08-31T19:13:35+02:00) | yes, ancestor |
+| `scripts/launch_official.sh` | byte-identical to `a3fb01b` (2026-09-01T11:20:58+02:00) | yes, ancestor |
+
+Established by sha256 over the LF-normalised file, not by reading the diff: VPS2's launcher hashes
+to the same value as `a3fb01b:scripts/launch_official.sh`. Against current master it differs by
+exactly six lines, the `AMB_CORPUS_FLOOR` export added by PR #59 **after** this run launched.
+
+Launched 2026-09-01T16:09:46Z.
+
+### The drift, and why it does not touch the measurement
+
+Forty-two commits separate `bb25d343` from master; five touch the measurement path. Three landed
+AFTER launch and are irrelevant by construction (`2c9dd7b`, `567fdc9`, `b143d0c`). Two existed
+BEFORE launch and are genuinely absent from this run:
+
+- **`ce292e8`**, "Add the `draft` protocol variant, and make it a protocol rather than a prompt"
+- **`a7fdeba`**, "Make corpus lineage expressible"
+
+The first is the one that could have mattered, because it refactored `harness/instructions.py`,
+which composes the instruction this entire run exists to equalise. **It does not.** Measured:
+
+```
+master portable_protocol base bytes: 3472
+run recorded (environment.json):     3472
+git log bb25d343..master -- adapters/_shared/memory_protocol.md   ->  (empty)
+```
+
+`ce292e8` only ADDED `memory_protocol_draft.md` and widened the plumbing; the shared protocol text
+was never touched, and the `protocol` variant composes identically on both. So the instruction this
+run shipped is byte-identical to the one master would ship today. `a7fdeba` is corpus construction
+and the corpora were built before it.
+
+### Integrity evidence, not assertion
+
+- `verify_run` on `official-003-present`: discard set re-derives (24 cells), admitted count
+  consistent (111 against a published 111), **every admitted cell carries all 8 required arms**,
+  1,080 streams for 1,080 records.
+- All five conditions pass all seven setup checks with zero skips: shared protocol 3,472 bytes
+  identical across every instruction-carrying arm, corpus reached the arms at 4,888 to 4,911.
+- Errors 19 of 2,477 top-level (0.8%), spread across five arms including `bare` and `placebo`, so
+  not systematic to any product. Arm balance spread 3.
+
+### To reproduce
+
+```bash
+git checkout bb25d343
+git checkout a3fb01b -- scripts/launch_official.sh
+MEMORY_INSTRUCTION=protocol RUN_ID=official-003 bash scripts/launch_official.sh
+```
+
+🔑 **The lesson, which is the reusable part: a run's recorded commit is not its provenance while
+the tree is dirty.** The launcher prints `git rev-parse --short HEAD` and says nothing about
+modification, so a run executed from a patched checkout publishes a hash that misdescribes it. The
+harness should refuse a dirty tree for an official run, or record `git status --porcelain` beside
+the commit. It currently does neither.
