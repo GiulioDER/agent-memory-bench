@@ -24,6 +24,16 @@ window.AMB_LEADERBOARD = {
       "costPerTask": null
     },
     {
+      "name": "mempalace",
+      "type": "MCP server",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null
+    },
+    {
       "name": "fs_grep",
       "type": "transcripts on disk plus grep",
       "role": "control",
@@ -72,6 +82,12 @@ window.AMB_LEADERBOARD = {
     {
       "name": "recall_prefetch",
       "what": "harness-side retrieval with the exact task prompt",
+      "success": null,
+      "delta": null
+    },
+    {
+      "name": "protocol",
+      "what": "the shared memory instruction, with no memory behind it",
       "success": null,
       "delta": null
     }
