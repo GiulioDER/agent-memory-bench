@@ -70,11 +70,11 @@ MUTANTS = [
 
 
 def read(path: Path) -> str:
-    return path.read_text(encoding="utf-8", newline="")
+    return path.read_bytes().decode("utf-8")
 
 
 def write(path: Path, text: str) -> None:
-    path.write_text(text, encoding="utf-8", newline="")
+    path.write_bytes(text.encode("utf-8"))
 
 
 def run_test(name: str) -> tuple[bool, str]:

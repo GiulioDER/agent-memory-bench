@@ -25,8 +25,10 @@ STANDARD = REPO / "adapters" / "_shared" / "memory_protocol.md"
 DRAFT = REPO / "adapters" / "_shared" / "memory_protocol_draft.md"
 
 
+# read_bytes/write_bytes rather than read_text(newline=...), which needs Python 3.13; CI runs
+# 3.12. Bytes are exact on every version and make it explicit that nothing is translated.
 def _bytes(path: Path) -> str:
-    return path.read_text(encoding="utf-8", newline="")
+    return path.read_bytes().decode("utf-8")
 
 
 # --- the one-variable claim, re-derived rather than trusted ------------------------------------

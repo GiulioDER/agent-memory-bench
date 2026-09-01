@@ -51,7 +51,7 @@ assemble a summary of your plan, and do not paste an entire file.
 
 
 def render() -> str:
-    text = SOURCE.read_text(encoding="utf-8", newline="")
+    text = SOURCE.read_bytes().decode("utf-8")
     start = text.find(OPEN)
     end = text.find(CLOSE)
     if start < 0 or end < 0 or end <= start:
@@ -76,7 +76,7 @@ def main() -> int:
         if not TARGET.is_file():
             print(f"{TARGET.name} is missing; run this without --check", file=sys.stderr)
             return 1
-        if TARGET.read_text(encoding="utf-8", newline="") != rendered:
+        if TARGET.read_bytes().decode("utf-8") != rendered:
             print(
                 f"{TARGET.name} differs from what this script generates. Either regenerate it or "
                 f"change DRAFT_SECTION; do not hand-edit the file, because then 'one variable' "
@@ -86,11 +86,11 @@ def main() -> int:
             return 1
         print(f"  {TARGET.name} is current")
         return 0
-    # newline="" so the bytes land exactly as rendered. Without it Python rewrites every line
+    # write_bytes so the bytes land exactly as rendered. Without it Python rewrites every line
     # ending on Windows, the whole file reads as changed, and the "one variable" claim this script
     # exists to make becomes uncheckable. That is the CRLF hazard the protocol's own worked example
     # is about, hit while generating the protocol.
-    TARGET.write_text(rendered, encoding="utf-8", newline="")
+    TARGET.write_bytes(rendered.encode("utf-8"))
     src = SOURCE.read_text(encoding="utf-8")
     same_head = len(src) - len(src[src.find(OPEN):])
     same_tail = len(src) - src.find(CLOSE)
