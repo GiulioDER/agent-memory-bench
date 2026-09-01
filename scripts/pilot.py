@@ -53,6 +53,7 @@ if str(REPO) not in sys.path:
 
 from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
+from adapters.cognee.adapter import CogneeAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
@@ -84,7 +85,7 @@ from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
-#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30.
+#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30, `cognee` on 2026-09-01.
 #:
 #: ⚠️ `oracle_memory` has an adapter and has run, and is deliberately absent. Its bundles are
 #: keyed by task with NO condition, so it would supply verified evidence in `absent`, the
@@ -93,16 +94,22 @@ from harness.tasks import discover_tasks, run_checker
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "mempalace",
-    "recall_prefetch",
+    "recall_prefetch", "cognee",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall", "mempalace"})
+MEMORY_ARMS = frozenset({"fs_grep", "recall", "mempalace", "cognee"})
 
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
-SELF_INGESTING_ARMS = ("fs_grep", "mempalace")
+#:
+#: ⚠️ `cognee` is here and is the first member whose ingest spends MONEY rather than host compute:
+#: it extracts a knowledge graph with a hosted LLM, per document, per condition. Its adapter runs
+#: the vendor's own `cognify --dry-run` estimator first and refuses above the ceiling in
+#: `adapters/cognee/config.frozen.json`, so the bill is quoted before it is paid; price the corpus
+#: with `python scripts/cognee_preflight.py --estimate` before preregistering a run with it.
+SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cognee")
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -199,6 +206,12 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["mempalace"] = MemPalaceAdapter.shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
+    if "cognee" in texts:
+        # Same reasoning as mempalace above: no historical variant to reproduce, so it always
+        # carries a shared protocol.
+        texts["cognee"] = CogneeAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
             "protocol",
@@ -281,6 +294,8 @@ def adapter_for(
         return RecallAdapter(staging, static, instruction=texts.get("recall") or None)
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
+    if arm == "cognee":
+        return CogneeAdapter(staging, static, instruction=texts.get("cognee") or None)
     if arm == "recall_prefetch":
         # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
         # is condition-aware for free: it delegates to whichever tenant the condition serves. The

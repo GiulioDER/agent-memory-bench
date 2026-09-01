@@ -32,6 +32,7 @@ from pathlib import Path
 
 import pytest
 
+from adapters.cognee.adapter import CogneeAdapter
 from adapters.fs_grep.adapter import FsGrepAdapter
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
@@ -72,8 +73,9 @@ def test_no_adapter_builds_a_staging_path_from_a_traversal(bad):
         FsGrepAdapter(staging_root=root, base_prompt_file=BUNDLE),
         RecallAdapter(staging_root=root, base_prompt_file=BUNDLE),
         MemPalaceAdapter(staging_root=root, base_prompt_file=BUNDLE),
+        CogneeAdapter(staging_root=root, base_prompt_file=BUNDLE),
     ):
-        for attribute in ("_staging_dir", "_palace_dir", "_feed_dir"):
+        for attribute in ("_staging_dir", "_palace_dir", "_feed_dir", "_store_dir", "dataset"):
             builder = getattr(adapter, attribute, None)
             if builder is None:
                 continue

@@ -226,7 +226,7 @@ def test_every_arm_that_has_ever_run_is_classified():
 
     every_arm_with_an_adapter = [
         "bare", "claude_md", "placebo", "recall",
-        "mempalace", "fs_grep", "oracle_memory", "recall_prefetch",
+        "mempalace", "fs_grep", "oracle_memory", "recall_prefetch", "cognee",
     ]
     unclassified = [
         a for a in every_arm_with_an_adapter if a not in (MEMORY_ARMS | NON_MEMORY_ARMS)

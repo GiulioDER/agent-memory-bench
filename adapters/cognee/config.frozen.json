@@ -1,0 +1,50 @@
+{
+  "product": "cognee",
+  "package_pin": "cognee[fastembed]==1.5.3",
+  "mcp_package_pin": "cognee-mcp==0.5.5",
+  "server_name": "cognee",
+  "venv_env": "COGNEE_VENV",
+  "store_root_env": "COGNEE_STORE_ROOT",
+  "mcp_entrypoint": "cognee-mcp",
+  "cli_entrypoint": "cognee-cli",
+  "dataset_prefix": "bench_",
+  "tool_prefix": "mcp__cognee__",
+  "allowed_tools": [
+    "recall"
+  ],
+  "search_sentence": "This project's memory is a cognee knowledge graph; search it with `mcp__cognee__recall` before acting.",
+  "max_store_path_chars": 120,
+  "llm": {
+    "provider": "custom",
+    "model": "openai/deepseek/deepseek-v4-flash",
+    "endpoint": "https://openrouter.ai/api/v1",
+    "api_key_env": "OPENROUTER_API_KEY"
+  },
+  "embedding": {
+    "provider": "fastembed",
+    "model": "BAAI/bge-small-en-v1.5",
+    "dimensions": 384
+  },
+  "databases": {
+    "DB_PROVIDER": "sqlite",
+    "VECTOR_DB_PROVIDER": "lancedb",
+    "GRAPH_DATABASE_PROVIDER": "kuzu"
+  },
+  "server_env": {
+    "COGNEE_MCP_AGENT_SCOPED": "false",
+    "COGNEE_MCP_TOOL_MODE": "minimal",
+    "ENABLE_BACKEND_ACCESS_CONTROL": "false",
+    "STRUCTURED_OUTPUT_FRAMEWORK": "litellm_native",
+    "TELEMETRY_DISABLED": "1"
+  },
+  "ingest_cost_ceiling_usd": 5.0,
+  "notes": {
+    "allowed_tools": "The memory API is three tools: remember, recall, forget. Only `recall` reaches a graded session. `remember` and `forget` are WRITE tools and every arm's write surface is withheld, recall's and mempalace's alike, because the corpus is frozen after ingest and no runner calls MemoryAdapter.snapshot/restore yet. One read tool of three is the smallest surface any arm has been given; mempalace has 20 of 44 and recall 2 of 16, and that asymmetry is a live open decision rather than a settled one.",
+    "llm": "cognee's ingest pipeline extracts entities and relations with an LLM, so this arm HAS a hosted ingest cost where mempalace's is local compute. It is pointed at the same model and provider the run itself is priced on, so the cost lands in the run's own price basis instead of a second one. `LLM_PROVIDER=custom` with a litellm `openai/`-prefixed model is the OpenAI-compatible route; the key is read from the environment and never written into the config or the MCP block.",
+    "embedding": "Set EXPLICITLY, and that is the whole point: cognee defaults embedding_provider to openai and embedding_model to openai/text-embedding-3-large, and its own code comments record the resulting silent Vector(3072) mismatches. Configuring only the LLM leaves embeddings defaulting to OpenAI and, per the .env template, reusing LLM_API_KEY for them. fastembed keeps embedding local and unbilled, so the only hosted cost is extraction, which cognee can estimate before it is spent.",
+    "max_store_path_chars": "fastembed embeds through onnxruntime, whose DLL fails to load from a deep path on Windows. Same trap the mempalace arm paid for, same 120-character refusal.",
+    "databases": "The file-based defaults: SQLite, LanceDB and Kuzu, all inside the namespace's own store root. No Docker, no server, no port, so a namespace is a directory and nothing shared can leak between two of them.",
+    "ingest_cost_ceiling_usd": "A run refuses when cognee's own `cognify --dry-run` estimate exceeds this. Raising it is a deliberate edit to a frozen file that re-hashes the config, which is the intended friction: an ingest bill this benchmark did not agree to in advance is the failure mode being prevented.",
+    "server_env": "COGNEE_MCP_AGENT_SCOPED=false stops the server auto-naming a per-client dataset (Claude Code would get `claude_code_memory`) and thereby searching a dataset the harness never ingested into. That default is sensible for a person and wrong for an experiment."
+  }
+}

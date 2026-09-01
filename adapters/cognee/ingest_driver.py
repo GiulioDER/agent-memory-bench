@@ -1,0 +1,143 @@
+"""Drive one cognee ingest, inside cognee's own virtualenv, and report what it cost.
+
+Run by :meth:`adapters.cognee.adapter.CogneeAdapter.ingest` as a subprocess, never imported by
+the harness: cognee lives in a separate environment and importing it here would drag its
+dependency tree into every arm. Its bytes are hashed into the arm's ``config_dir_digest``, so
+the driver a run used is provable from the run record.
+
+    python ingest_driver.py <feed_dir> <dataset> <ceiling_usd> [--estimate-only]
+
+Prints exactly one machine-readable line to stdout::
+
+    COGNEE_JSON {"files": 4889, "estimate": {...}, "cognified": true, "probe_hits": 5}
+
+The order of operations is the point of this file:
+
+1. ``add`` the rendered feed into the dataset. No LLM call, no extraction.
+2. ``cognify(dry_run=True)``, which cognee answers from the real chunker, prompt templates and
+   response schema **without making a single LLM call**.
+3. Refuse, loudly and before spending anything, when that estimate exceeds the ceiling the frozen
+   config names.
+4. Only then run the real ``cognify``.
+5. Probe the store with a retrieval-only search, because a pipeline that reports success and
+   stores nothing answers every question with silence, and silence reads as a product that found
+   nothing rather than as a wiring fault.
+
+⛔ Step 3 is the reason this arm can be run at all. cognee extracts entities and relations with a
+hosted LLM, so unlike a local-embedding arm its ingest has a bill, and the bill scales with the
+corpus rather than with the grid. The vendor ships the estimator; using it before the spend rather
+than reconstructing the spend afterwards is the whole difference between a known cost and a
+discovered one.
+
+⚠️ What the estimate is NOT, in cognee's own words (`cognee/modules/cognify/estimator.py`): it
+covers the two LLM-heavy stages and excludes embedding cost, it is an upper bound on a re-run
+because incremental loading skips processed documents, and its output tokens are heuristics rather
+than measurements. So it is a bound to decide by, not a bill to publish as measured spend.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def _probe_text(files: list[Path]) -> str:
+    """A query drawn from the corpus itself, so the probe cannot pass on an empty store.
+
+    Taken from the middle of the first document rather than its head: a rendered transcript opens
+    with frontmatter and a role marker, which every document in the feed shares, so a head query
+    would match anything and prove nothing.
+    """
+
+    lines = [
+        line.strip()
+        for line in files[0].read_text(encoding="utf-8", errors="replace").splitlines()
+        if len(line.strip()) > 40
+    ]
+    if not lines:
+        raise SystemExit("the first feed document has no line long enough to probe with")
+    return lines[len(lines) // 2][:200]
+
+
+async def _run(feed: Path, dataset: str, ceiling: float, estimate_only: bool) -> dict:
+    import cognee
+    from cognee.modules.search.types import SearchType
+
+    files = sorted(feed.glob("*.md"))
+    if not files:
+        raise SystemExit(f"no rendered documents in {feed}")
+
+    await cognee.add(data=[str(path) for path in files], dataset_name=dataset)
+
+    estimate = await cognee.cognify(datasets=[dataset], dry_run=True)
+    estimate_dict = estimate.to_dict() if hasattr(estimate, "to_dict") else dict(estimate)
+    report = {"files": len(files), "dataset": dataset, "estimate": estimate_dict}
+
+    cost = float(estimate_dict.get("estimated_cost_usd") or 0.0)
+    if cost > ceiling:
+        report["refused"] = True
+        print("COGNEE_JSON " + json.dumps(report))
+        raise SystemExit(
+            f"cognee's own dry run estimates ${cost:.2f} for this corpus, over the "
+            f"${ceiling:.2f} ceiling in adapters/cognee/config.frozen.json. Nothing has been "
+            f"spent. Raise the ceiling deliberately in that file, which re-hashes the frozen "
+            f"config and is recorded in every session record, or ingest a smaller corpus."
+        )
+    if estimate_only:
+        report["cognified"] = False
+        print("COGNEE_JSON " + json.dumps(report))
+        return report
+
+    await cognee.cognify(datasets=[dataset])
+    report["cognified"] = True
+
+    hits = await cognee.search(
+        query_text=_probe_text(files),
+        query_type=SearchType.CHUNKS,
+        datasets=[dataset],
+        top_k=5,
+    )
+    report["probe_hits"] = len(hits or [])
+    print("COGNEE_JSON " + json.dumps(report))
+    return report
+
+
+def main() -> int:
+    arguments = sys.argv[1:]
+    estimate_only = "--estimate-only" in arguments
+    positional = [argument for argument in arguments if argument != "--estimate-only"]
+    if len(positional) != 3:
+        raise SystemExit(__doc__)
+    feed, dataset, ceiling = Path(positional[0]), positional[1], float(positional[2])
+
+    # cognee's package __init__ calls `dotenv.load_dotenv(override=True)`, so a stray .env BEATS
+    # the environment the adapter passes in and silently redirects the LLM, the embedder and the
+    # databases. `find_dotenv` walks up from the IMPORTING MODULE's directory, which is cognee's
+    # own package inside this venv, and from the working directory only under a REPL, a debugger
+    # or a frozen interpreter; both roots are scanned here. The adapter refuses such a file before
+    # spawning this process; this is the second half of the same guard, at the point of import.
+    roots = (Path(sys.prefix), Path.cwd())
+    for root in roots:
+        for directory in (root, *root.parents):
+            if (directory / ".env").is_file():
+                raise SystemExit(
+                    f"refusing to run: {directory / '.env'} exists, and cognee loads it with "
+                    f"override=True at import, which would beat this arm's frozen configuration."
+                )
+    for required in ("LLM_PROVIDER", "LLM_MODEL", "EMBEDDING_PROVIDER", "EMBEDDING_MODEL"):
+        if not os.environ.get(required):
+            raise SystemExit(
+                f"{required} is not set. cognee defaults an unset half of this pair to OpenAI "
+                f"(and reuses LLM_API_KEY for embeddings), so a partial configuration bills a "
+                f"provider nobody chose. The adapter sets all four; this is the backstop."
+            )
+
+    asyncio.run(_run(feed, dataset, ceiling, estimate_only))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

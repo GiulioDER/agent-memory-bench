@@ -46,6 +46,60 @@ def test_unmetered_ingest_is_flagged_in_notes():
     assert any("missing from the totals" in note for note in ledger["supermemory"].notes)
 
 
+def test_a_local_only_ingest_reports_a_real_zero_rather_than_a_free_one():
+    """An arm that makes no hosted call has truthfully zero tokens, and the note has to say so.
+
+    Printed bare beside a competitor's extraction bill, that zero reads as "this one ingests for
+    free". It does not: it pays in host compute, which is in ingest_wall_time_ms.
+    """
+
+    ingest = [
+        IngestReport(
+            arm="mempalace",
+            namespace="ns",
+            sessions_offered=5,
+            llm_input_tokens=0,
+            llm_output_tokens=0,
+            local_model="chromadb onnx all-MiniLM-L6-v2",
+            wall_time_ms=30700.0,
+        )
+    ]
+    ledger = tally([], ingest)
+    assert ledger["mempalace"].ingest_local_model == "chromadb onnx all-MiniLM-L6-v2"
+    assert ledger["mempalace"].ingest_unmetered == 0
+    assert any("spent NO hosted tokens" in note for note in ledger["mempalace"].notes)
+
+
+def test_an_arm_that_embeds_locally_and_extracts_remotely_keeps_both_costs():
+    """RED before 2026-09-01, and wrong in the most expensive direction.
+
+    `local_model` was an exclusive branch, so an arm that embeds locally AND extracts with a
+    hosted LLM had its extraction tokens DROPPED from the ledger entirely, under a note asserting
+    it "spent NO hosted tokens". A real bill missing from the totals, beneath a sentence saying
+    there was none. The first such arm is `cognee`.
+    """
+
+    ingest = [
+        IngestReport(
+            arm="cognee",
+            namespace="ns",
+            sessions_offered=5,
+            llm_input_tokens=41000,
+            llm_output_tokens=9000,
+            local_model="fastembed BAAI/bge-small-en-v1.5",
+            wall_time_ms=120000.0,
+        )
+    ]
+    ledger = tally([], ingest)
+    costs = ledger["cognee"]
+    assert costs.ingest_input_tokens == 41000
+    assert costs.ingest_output_tokens == 9000
+    assert costs.ingest_local_model == "fastembed BAAI/bge-small-en-v1.5"
+    assert costs.ingest_unmetered == 0
+    assert not any("spent NO hosted tokens" in note for note in costs.notes)
+    assert any("paid on BOTH sides" in note for note in costs.notes)
+
+
 def test_summarize_without_pricing_reports_tokens_and_says_why_no_dollars():
     summary = summarize([_record("bare")])
     assert summary["total_tokens"] == 1200

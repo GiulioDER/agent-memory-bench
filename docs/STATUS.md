@@ -12,8 +12,9 @@ re-derives it.
 **Harness bring-up and internal pilots.** No multi-product run has happened. The leaderboard is
 empty by construction: `site/data/leaderboard.config.json` carries `"official_run": null`, and a
 number reaches the page only through `results/<run_id>/leaderboard_summary.json`, which no run
-has yet produced. Four of the eight arms the leaderboard reserves a row for have a package
-docstring and no adapter.
+has yet produced. Three of the eight arms the leaderboard reserves a row for have a package
+docstring and no adapter. A fourth gained one on 2026-09-01: built, preflighted, never run, and
+deliberately absent from the leaderboard, because a row belongs to an arm the approved run runs.
 
 The first preregistered multi-product run is announced before it happens, not after it succeeds.
 
