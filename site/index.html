@@ -154,6 +154,8 @@
       <div class="arm-cell"><div class="arm-name">claude_md</div><div class="arm-type">curated CLAUDE.md bundle</div><span class="badge">baseline</span></div>
       <div class="arm-cell"><div class="arm-name">fs_grep</div><div class="arm-type">transcripts on disk plus grep</div><span class="badge">control</span></div>
       <div class="arm-cell"><div class="arm-name">recall</div><div class="arm-type">MCP server</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">mempalace</div><div class="arm-type">MCP server</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">protocol</div><div class="arm-type">the instruction, no memory behind it</div><span class="badge">reference</span></div>
       <div class="arm-cell"><div class="arm-name">recall_prefetch</div><div class="arm-type">harness-side retrieval</div><span class="badge">reference</span></div>
     </div>
 
@@ -165,6 +167,12 @@
     nothing per query and is what most teams actually have. A memory product that cannot beat it
     has not earned its tokens.
     <a href="method.html#arms">What each arm isolates, in full&nbsp;&#8594;</a></p>
+
+    <p class="prose mt-m"><code>protocol</code> is the control two readers asked for, and it is
+    the one that changed the question. It carries the complete memory instruction and no memory,
+    so it separates <em>the memory</em> from <em>the telling</em>. Because every memory product
+    requires that instruction, "does memory beat no memory" is not directly answerable; what is
+    answerable is whether a product earns back the cost of asking for it.</p>
 
     <p class="prose mt-m dim"><code>fs_grep</code> and <code>recall_prefetch</code> bracket the
     product. The first is the cheap answer, the whole corpus on disk with grep over it; the second
@@ -196,7 +204,7 @@
           <tr><td><span class="m">harm suite</span></td>
               <td>five corpus conditions across <strong>73 task-conditions</strong>; eleven tasks carry all four damage conditions, above the threshold of eight for reporting one as a result</td></tr>
           <tr><td><span class="m">arms</span></td>
-              <td><strong>six in the approved run:</strong> <code>bare</code>, <code>placebo</code>, <code>claude_md</code>, <code>fs_grep</code>, <code>recall</code>, <code>recall_prefetch</code>. One product, wired through its own published integration and pinned to a released version</td></tr>
+              <td><strong>eight in the approved run:</strong> <code>bare</code>, <code>placebo</code>, <code>claude_md</code>, <code>protocol</code>, <code>fs_grep</code>, <code>recall</code>, <code>mempalace</code>, <code>recall_prefetch</code>. Two products, each wired through its own published integration and pinned to a released version, and each handed the same instruction byte for byte</td></tr>
           <tr><td><span class="m">corpus</span></td>
               <td>4,900 documents per condition, up from 196. It was rebuilt because the old feed was too easy: <code>bm25</code> hit@1 fell 0.485 to 0.182 and <code>voyage</code> hit@10 fell 1.000 to 0.879 on the new one</td></tr>
           <tr><td><span class="m">runs</span></td>

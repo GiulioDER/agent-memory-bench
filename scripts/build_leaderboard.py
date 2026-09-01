@@ -53,6 +53,7 @@ from pathlib import Path
 PRODUCT_ARMS = [
     # internal name, integration, role, public name (None while undisclosed)
     ("recall", "MCP server", None, "recall"),
+    ("mempalace", "MCP server", None, "mempalace"),
     ("fs_grep", "transcripts on disk plus grep", "control", "fs_grep"),
     ("placebo", "inert prose, no memory content", "control", "placebo"),
     ("claude_md", "CLAUDE.md bundle", "baseline", "claude_md"),
@@ -66,7 +67,14 @@ PRODUCT_ARMS = [
 #
 # `mempalace` left for the same reason on 2026-08-31: preregistration 021's second amendment
 # defers it from `official-002` on a measured ingest cost, so it is built, not running, and a row
-# for it would be null for the length of a run it is not in. `fs_grep` arrived by the reverse
+# for it would be null for the length of a run it is not in. It RETURNED on 2026-09-01, named,
+# because `official-003` runs it: the ingest cost was paid once into a reusable base palace, and
+# an arm belongs on the board exactly when the approved run runs it.
+#
+# `protocol` is a reference track rather than a product because it is not one. It carries the
+# shared memory instruction with no memory behind it, which is what makes the products' numbers
+# readable: the instruction alone is a treatment with its own effect, and every memory product
+# pays for it before it retrieves anything. `fs_grep` arrived by the reverse
 # move: it was excluded while it was not in the official roster, and the same amendment puts it in
 # as the non-memory retrieval control. An arm belongs here when the approved run runs it.
 
@@ -75,7 +83,7 @@ PRODUCT_ARMS = [
 # disclosure tracks what has had its review window, and the two came apart the moment an arm was
 # deferred. Removing an arm from the board must not quietly remove it from this guard.
 # `tests/test_site_vendor_disclosure.py` reads this.
-UNDISCLOSED_PRODUCTS = ("mempalace", "mem0", "supermemory", "zep", "cognee")
+UNDISCLOSED_PRODUCTS = ("mem0", "supermemory", "zep", "cognee")
 
 # What an undisclosed arm looks like on the page. The integration description is withheld
 # with the name, because "SaaS API" against a short field of candidates is most of an
@@ -108,6 +116,7 @@ FULL_TITLE = "Memory layers, read and write path"
 # the approved run does not run is a null row, not a diagnostic.
 REFERENCE_TRACKS = [
     ("recall_prefetch", "harness-side retrieval with the exact task prompt"),
+    ("protocol", "the shared memory instruction, with no memory behind it"),
 ]
 
 ARM_FIELDS = ("success", "delta", "ci", "discarded", "tokensPerTask", "costPerTask")

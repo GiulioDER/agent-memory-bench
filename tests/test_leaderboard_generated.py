@@ -70,8 +70,11 @@ def _summary():
             "prereg": "preregistration/005-run-x.md",
         },
         "arms": arms,
+        # Derived, for the reason stated above ARMS: a hardcoded track list broke five tests
+        # here on 2026-09-01 when `protocol` joined REFERENCE_TRACKS, none of them about tracks.
         "reference": {
-            "recall_prefetch": {"success": 0.6, "delta": 0.2},
+            name: {"success": 0.6, "delta": 0.2}
+            for name, _ in _generator().REFERENCE_TRACKS
         },
     }
 
