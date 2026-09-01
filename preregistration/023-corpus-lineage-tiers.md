@@ -120,3 +120,70 @@ Cost of the deferral, measured rather than assumed: `declared` annotates **all 2
 `valid_from`, so Tier 2 needs a full embedding pass whatever the order. Tier 1 and Tier 2 differ on
 only **22 of 207** documents, so a later Tier 1 is largely served from the content-addressed cache.
 Deferring costs nothing and makes the deferred run cheaper.
+
+## Result (2026-09-01)
+
+**Status:** measured. Three tiers, 110 records each, 4,911-document corpus with the scale-25
+haystack, 11 tasks, 5 seeds, arms `bare` and `recall`, model `deepseek/deepseek-v4-flash`.
+
+| tier | damage (superseded) | damage-only net | two-sided | benefit | search |
+|---|---|---|---|---|---|
+| T0 control | 0.1667 (5/30) | +0.100 (5 harmed / 2 helped) | -0.100 | 0/5 | 0.745 |
+| T1 timestamps | 0.0667 (2/30) | +0.067 (2/0) | +0.150 | 2/5 | 0.673 |
+| T2 declared | 0.0333 (1/30) | -0.067 (1/3) | +0.050 | 3/5 | 0.727 |
+
+### The deliverable, which this record defined as T2 minus T1
+
+```
+T0 -> T1  embedding perturbation alone : -0.1000   75% of the total move
+T1 -> T2  supersession verdict alone   : -0.0333   25%
+T0 -> T2  the T0/T2 pair alone         : -0.1333
+```
+
+**The supersession verdict is worth 2 cells to 1 cell out of 30.** One cell. Three quarters of the
+apparent improvement is the corpus rewrite perturbing every embedding: Tier 2 writes `valid_from`
+onto all 4,911 documents, so it changes every chunk's text and therefore retrieval itself. Direct
+evidence on `ts-legacy-hash`: the verdict mix moved `{ok 2, low_confidence 4}` to
+`{ok 5, superseded 1}`, and lineage cannot raise a hit's confidence.
+
+**So the answer to whether automatic supersession detection is worth building is: no measurable
+case for it.** The deliverable this record defined turns out to be the smallest of the three
+differences rather than the largest.
+
+### Predictions scored
+
+* **Prediction 4** ("net harm improves by 3 to 8 cells, point estimate +5"): against T0 the swing is
+  **exactly 5 cells**. Against the correct baseline T1 it is **1 cell**, below the registered range.
+  Scored as **wrong**, and the near-miss against T0 was measuring the perturbation.
+* **Prediction 1** (T1 changes net harm by fewer than 3 cells versus T0, p=0.75 they are
+  indistinguishable): T1 moved 3 cells against T0 (5 harmed to 2). **Falsified**, and in the
+  direction that matters: the tier registered as adding "no new information" produced the larger
+  half of the effect.
+* **Prediction 2** (both-plants sessions 0.56 toward 0.80): **not scored**, needs a record-level
+  breakdown not computed here.
+* **Prediction 3** (Tier 2 does not reach 1.00): consistent, damage 0.0333 not 0.
+* **Prediction 5** (no tier moves a condition with no supersession relation): **not tested**, only
+  `superseded` was run.
+
+### Significance, stated plainly
+
+Fisher exact, T0 against T2 on 5/30 versus 1/30: **p = 0.1945**. All strata, 10 harmed to 6:
+**p = 0.418**. **Nothing here is significant.** At n=30 paired cells the entire effect is four
+cells. T1's two-sided net harm is +0.150, the worst of the three tiers, which at n=20 is noise but
+is noise pointing the other way.
+
+### The guard held, and two apparatus failures did not reach the result
+
+* The Tier 2 `verdict == "superseded"` guard passed before any session ran: 25 hits, 13 superseded,
+  all 25 carrying a real `valid_from` where official-002 had `valid_from=-` on all 307.
+* **Two corpora and 94 sessions were discarded** before this result, because a first attempt built
+  207-document corpora: `AMB_HAYSTACK` is exported by the caller, the haystack is gitignored, and a
+  `git worktree` does not carry it. Every gate stayed green throughout. A reasoning-graph probe run
+  for an unrelated question caught it by printing a `diagnostic_count` that did not match.
+* A stale sandbox work root made the first t0 grid refuse rather than silently discard 10 cells.
+
+### What this record does not license
+
+The corpus-side lane is closed by this result. The retrieval miss, 45% of `superseded` sessions
+where neither plant surfaces and worth roughly three times the lineage term, is not addressed here
+and is registered separately as **024**.
