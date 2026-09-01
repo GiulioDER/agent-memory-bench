@@ -39,6 +39,7 @@ from harness.adapters.base import (
     validate_namespace,
 )
 from harness.gate import AdmissionSignal
+from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
@@ -587,8 +588,9 @@ class RecallAdapter(MemoryAdapter):
         # index (and the subsequent re-index prunes what is no longer on disk).
         if staged.exists():
             shutil.rmtree(staged)
+        _paths = [corpus.root / rel for rel in corpus.sessions]
         count = render_corpus(
-            [corpus.root / rel for rel in corpus.sessions], staged, root=corpus.root
+            _paths, staged, root=corpus.root, lineage=lineage_from_env(_paths, corpus.root)
         )
         start = time.monotonic()
         # recall's own write path: the published CLI, one tenant per namespace. Re-indexing
