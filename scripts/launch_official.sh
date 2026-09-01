@@ -33,6 +33,13 @@ if [[ -z "$CONDITIONS" ]]; then
 fi
 ARMS="${ARMS:-bare,placebo,claude_md,recall,mempalace}"
 SEEDS="${SEEDS:-3}"
+# Hardcoded to `skill` until 2026-09-01, which is why every run from pilot-002 to official-002
+# used it: the FAIR variant existed in scripts/pilot.py and was unreachable from the script that
+# launches every run. Under `skill` the recall arm carried 1,958 bytes over the shared protocol
+# against mempalace's 853; under `protocol` it is 735 against 853. Default stays `skill` so a
+# rerun remains comparable to the runs that used it; pass MEMORY_INSTRUCTION=protocol for a fair
+# cross-product comparison, or =draft for preregistration 024.
+MEMORY_INSTRUCTION="${MEMORY_INSTRUCTION:-skill}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 SECRETS="${SECRETS:-$HOME/amb-secrets.env}"
 
@@ -112,7 +119,7 @@ LOG="$REPO/results/logs/$RUN_ID-$STAMP.log"
 ARGV=(.venv/bin/python -m scripts.abstention
       --run-id "$RUN_ID" --namespace "$NAMESPACE" --conditions "$CONDITIONS"
       --arms "$ARMS" --seeds "$SEEDS" --model "$MODEL"
-      --memory-instruction skill --resume
+      --memory-instruction "$MEMORY_INSTRUCTION" --resume
       --price-in "$PRICE_IN" --price-out "$PRICE_OUT" --price-as-of "$PRICE_AS_OF")
 [ "${DRY_RUN:-0}" = "1" ] && ARGV+=(--dry-run)
 
