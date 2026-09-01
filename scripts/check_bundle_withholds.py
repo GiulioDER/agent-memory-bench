@@ -135,7 +135,7 @@ def ids(items) -> set[str]:
     return out
 
 
-def bundle_items(response: dict) -> list:
+def bundle_items(response: dict) -> tuple[list, str]:
     """The cleared passages, wherever this server version puts them.
 
     Tried in order rather than assumed: `recall_evidence`'s exact field was NOT verified against a
@@ -144,15 +144,15 @@ def bundle_items(response: dict) -> list:
     the first call so the run log records what was actually there.
     """
 
-    for path in (("trusted_evidence", "items"), ("items",), ("evidence", "items"), ("hits",)):
+    for path in (("trusted_evidence", "items"), ("items",), ("evidence", "items")):
         node = response
         for key in path:
             node = node.get(key) if isinstance(node, dict) else None
             if node is None:
                 break
         if isinstance(node, list):
-            return node
-    return []
+            return node, ".".join(path)
+    return [], ""
 
 
 def main() -> int:
@@ -182,6 +182,7 @@ def main() -> int:
     withheld_queries = 0
     abstained = 0
     examined = 0
+    fields_seen: set[str] = set()
     with tempfile.TemporaryDirectory() as temp:
         spec = adapter.build(Path(temp) / "check", args.namespace)
         server = Server(Path(spec.mcp_config), str(adapter.config["server_name"]))
@@ -205,7 +206,10 @@ def main() -> int:
                 hit_ids = ids(hits.get("hits"))
                 if examined == 1:
                     print(f"  [shape] recall_evidence keys: {sorted(bundle)}")
-                item_ids = ids(bundle_items(bundle))
+                items, field = bundle_items(bundle)
+                if field:
+                    fields_seen.add(field)
+                item_ids = ids(items)
                 missing = hit_ids - item_ids
                 decision = bundle.get("decision")
                 if decision == "abstain" or not item_ids:
@@ -223,6 +227,14 @@ def main() -> int:
     if not examined:
         print("REFUSE: no query was answered by both tools")
         return 3
+
+    if not fields_seen:
+        print()
+        print("REFUSE: no response carried a recognised item field, so every bundle parsed as")
+        print("  EMPTY and every query looked maximally withheld. That is a parse error wearing")
+        print("  the costume of a perfect result, and it fails toward spending the run. The keys")
+        print("  actually returned are printed above; add that path to bundle_items().")
+        return 5
 
     rate = withheld_queries / examined
     print(
