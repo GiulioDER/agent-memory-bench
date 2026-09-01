@@ -310,3 +310,37 @@ def test_the_page_does_not_rank_a_held_arm():
     js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
     assert "!a.held" in js, "site.js ranks held arms"
     assert "a.held" in js and "heldUntil" in js, "site.js does not render the hold reason"
+
+
+def test_the_front_page_arm_count_matches_the_generator():
+    """The hand-written stat tile on index.html must agree with `public_arms()`.
+
+    Everything on leaderboard.html is generated, which is why this file exists. The stat band on
+    index.html is not: it is four numbers typed into HTML, and one of them counts arms. It read
+    "6 arms in the official run" until 2026-09-01, which was wrong twice over. There is no
+    official run (`site/data/leaderboard.config.json` carries `"official_run": null`, and the
+    methods table on the same page calls every run so far bring-up rather than result), and no
+    run has ever had exactly that set: official-002 paired six arms but a DIFFERENT six,
+    including `recall_prefetch` and excluding `mempalace`, which ran as a separate two-arm pass.
+
+    The number was right and the sentence around it was not, which is the hard case: nothing
+    fails, and a reader who counts the eight arms in the strip below it gets no explanation of
+    the gap. So the tile now names what it counts, and this pins it to the source that decides
+    the count rather than to a literal.
+    """
+    import re
+
+    index = (REPO_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+    tiles = re.findall(
+        r'<div class="n">(\d+)</div><div class="l">([^<]*arms[^<]*)</div>', index
+    )
+    assert len(tiles) == 1, f"expected exactly one arm tile in the stat band, found {tiles}"
+
+    count, label = tiles[0]
+    expected = len(_public_arms())
+    assert int(count) == expected, (
+        f"index.html says {count} arms, public_arms() has {expected}"
+    )
+    assert "official run" not in label, (
+        f"the tile claims an official run, which does not exist: {label!r}"
+    )
