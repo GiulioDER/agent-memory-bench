@@ -64,7 +64,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 import shutil
 import subprocess
 import time
@@ -229,14 +228,91 @@ class CogneeAdapter(MemoryAdapter):
         return namespace_path(self.staging_root, namespace, "prompt.md")
 
     def dataset(self, namespace: str) -> str:
-        """This namespace's cognee dataset name.
+        """The dataset every namespace ingests into. One name, on purpose.
 
-        A dataset is cognee's own unit of isolation and reaches SQL identifiers, so the namespace
-        is validated and then reduced to word characters rather than passed through.
+        ⚠️ This used to derive a name per namespace, and that is incompatible with a shared base
+        store: documents copied in under one condition's name would be invisible to a condition
+        that queries another, the arm would retrieve nothing, and every guard would stay green
+        because the store, the ingest and the gate would all be correct.
+
+        Nothing is lost by fixing it. Isolation between namespaces is the STORE DIRECTORY: each
+        gets its own ``DATA_ROOT_DIRECTORY`` and ``SYSTEM_ROOT_DIRECTORY``, hence its own SQLite,
+        LanceDB and Kuzu files, so a name inside an already-private database isolates nothing
+        further. The namespace is still validated here, because callers pass it expecting that.
         """
 
-        safe = re.sub(r"[^A-Za-z0-9]", "_", validate_namespace(namespace))
-        return f"{self.config['dataset_prefix']}{safe}"
+        validate_namespace(namespace)
+        return str(self.config["dataset_name"])
+
+    # ------------------------------------------------------------------ base store
+
+    def base_store(self) -> Path | None:
+        """A prebuilt store to copy, or None to ingest every condition from scratch.
+
+        Off unless the configured variable names a real store, so the default behaviour is
+        byte-for-byte what it was and no run changes shape by accident.
+        """
+
+        raw = os.environ.get(str(self.config["base_store_env"]), "").strip()
+        if not raw:
+            return None
+        base = Path(raw).expanduser()
+        if not self.relational_db(base).is_file():
+            raise RuntimeError(
+                f"{self.config['base_store_env']}={raw!r} is not a cognee store: no "
+                f"{self.relational_db(Path('<store>'))} in it."
+            )
+        return base
+
+    @staticmethod
+    def relational_db(store: Path) -> Path:
+        """Where cognee keeps the relational database inside a store.
+
+        Read from the layout the server reports at startup (`database_path=<system>/databases`)
+        rather than guessed, and named once so the base-store check and the document count cannot
+        disagree about it.
+        """
+
+        return store / "system" / "databases" / "cognee_db"
+
+    @classmethod
+    def filed_document_count(cls, store: Path) -> int:
+        """How many distinct documents this store has actually ingested.
+
+        Read from cognee's own `data` table rather than counted from a manifest, because the
+        question is what the store HOLDS. Counting the input would re-derive it and could not
+        detect a base built from a different corpus, which is the one failure this exists to
+        catch. Counted on `name` rather than `raw_data_location`: the same document ingested from
+        a base feed and from a condition feed has two paths and one name.
+        """
+
+        import sqlite3
+
+        with sqlite3.connect(f"file:{cls.relational_db(store)}?mode=ro", uri=True) as db:
+            row = db.execute("select count(distinct name) from data").fetchone()
+        return int(row[0]) if row else 0
+
+    @staticmethod
+    def check_base_covers_shared(base: Path, reused: int, shared: int, prefix: str) -> None:
+        """Refuse a base store that does not hold EXACTLY the corpus's shared documents.
+
+        ⛔ This is the guard against a silently thinner corpus. If the base was built from a
+        different haystack, every condition copied from it loses the documents it lacks, the arm
+        is measured on a corpus nobody described, and nothing downstream can tell: ingest reports
+        success, the sessions run, the records look ordinary, and the endpoints are computed over
+        an index quietly missing evidence.
+
+        Exact equality rather than `>=` on purpose. A base holding MORE than the shared set is
+        also wrong: those extra documents are in no condition's corpus yet would be retrievable in
+        all of them, which is contamination rather than a shortfall and is harder to see.
+        """
+
+        if reused != shared:
+            raise RuntimeError(
+                f"base store {base} holds {reused} document(s) but this corpus has {shared} "
+                f"shared document(s) under {prefix!r}. Rebuild the base from this corpus's "
+                f"haystack, or unset the base-store variable to ingest in full."
+            )
 
     def refuse_stray_dotenv(self, *directories: Path) -> None:
         """Refuse a ``.env`` at or above any directory cognee would search from.
@@ -310,14 +386,50 @@ class CogneeAdapter(MemoryAdapter):
         store.mkdir(parents=True, exist_ok=True)
         self.refuse_stray_dotenv(self._venv(), store)
 
+        # A prebuilt base store holding the documents every condition SHARES, so the haystack is
+        # extracted ONCE rather than once per condition.
+        #
+        # This arm needs it more than mempalace did, and mempalace needed it enough to be deferred
+        # out of official-002 over it. There the repeated cost was local embedding, paid in hours;
+        # here every repeat is an LLM extraction pass over the same synthetic documents, paid in
+        # hours AND tokens. Measured 2026-09-01: 1,616 tokens and two LLM calls per document, so a
+        # 4,704-document shared haystack is ~7.6M tokens and ~9,400 calls, per condition, five
+        # times over, for an identical result each time.
+        #
+        # ⚠️ UNVERIFIED. mempalace's equivalent was proven on a 20-document probe BEFORE being
+        # relied on: a copied store retains its contents, accepts further ingest, leaves the
+        # original untouched, and returns the same top results as a monolithic build. That probe
+        # cannot run on this host, whose CPU cannot execute cognee's vector store, so it ships as
+        # `scripts/cognee_base_store_probe.py` and must pass somewhere that can before any run
+        # sets the variable. The guard below is the wiring around the reuse, not evidence for it.
+        base = self.base_store()
+        shared_prefix = str(self.config["shared_prefix"])
+        if base is not None:
+            shutil.rmtree(store, ignore_errors=True)
+            shutil.copytree(base, store)
+            # Again, because the copy just replaced the directory that was checked above. A `.env`
+            # carried inside a base store would arrive after the guard had already passed.
+            self.refuse_stray_dotenv(self._venv(), store)
+            shared = [rel for rel in corpus.sessions if rel.startswith(shared_prefix)]
+            self.check_base_covers_shared(
+                base, self.filed_document_count(store), len(shared), shared_prefix
+            )
+
         # Rendered, not raw. cognee has no conversation-transcript mode: it classifies by file
         # extension and `.jsonl` is not a document type it parses, so handing it the corpus bytes
         # would ingest them as opaque text at best. `render_corpus` is the same renderer the
         # `fs_grep` control uses, and `root=` makes each name mirror its corpus path so a
         # retrieval result identifies its own source.
-        rendered = render_corpus(
-            [corpus.root / rel for rel in sorted(corpus.sessions)], feed, root=corpus.root
-        )
+        #
+        # The shared documents are left OUT of the feed when a base supplies them, rather than
+        # offered again and skipped: cognee does skip a document it has already processed, but
+        # skipping still costs a hash and a round trip per document, 4,704 times per condition.
+        wanted = [
+            rel
+            for rel in sorted(corpus.sessions)
+            if not (base is not None and rel.startswith(shared_prefix))
+        ]
+        rendered = render_corpus([corpus.root / rel for rel in wanted], feed, root=corpus.root)
 
         start = time.monotonic()
         result = subprocess.run(
@@ -378,9 +490,16 @@ class CogneeAdapter(MemoryAdapter):
             local_model=f"fastembed {self.config['embedding']['model']}",
             notes=(
                 (
-                    f"rendered {rendered} corpus documents and ingested them with "
-                    f"`cognee.add` + `cognee.cognify` into dataset "
+                    f"rendered {rendered} corpus document(s) of {len(corpus.sessions)} offered "
+                    f"and ingested them with `cognee.add` + `cognee.cognify` into dataset "
                     f"{self.dataset(namespace)!r}, one store per namespace"
+                    + (
+                        f"; the other {len(corpus.sessions) - rendered} came from the base store "
+                        f"at {base}, so the shared haystack was extracted once rather than once "
+                        f"per condition"
+                        if base is not None
+                        else "; no base store, so every document was extracted for this condition"
+                    )
                 ),
                 (
                     "⚠️ the token counts are cognee's own `cognify --dry-run` ESTIMATE, not "

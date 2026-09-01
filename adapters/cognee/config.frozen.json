@@ -7,7 +7,9 @@
   "store_root_env": "COGNEE_STORE_ROOT",
   "mcp_entrypoint": "cognee-mcp",
   "cli_entrypoint": "cognee-cli",
-  "dataset_prefix": "bench_",
+  "dataset_name": "bench",
+  "shared_prefix": "synthetic/",
+  "base_store_env": "COGNEE_BASE_STORE",
   "tool_prefix": "mcp__cognee__",
   "allowed_tools": [
     "recall"
@@ -47,6 +49,9 @@
     "databases": "The file-based defaults: SQLite, LanceDB and Kuzu, all inside the namespace's own store root. No Docker, no server, no port, so a namespace is a directory and nothing shared can leak between two of them.",
     "ingest_cost_ceiling_usd": "A SECONDARY check, and it only fires when cognee actually priced the model. Measured 2026-09-01 on the 196-document corpus: the dry run reported estimated_cost_usd 0.0 with the warning \"no pricing entry for model 'openai/deepseek/deepseek-v4-flash'\", because the vendor prices from its own table (_PRICING_PER_M_TOKENS) and an unknown model costs $0 there. A ceiling compared against that number would have waved through any bill at all, which is why the token ceiling below is the authority.",
     "ingest_token_ceiling": "The ceiling that actually binds, in TOKENS, which is the unit this benchmark compares runs in anyway because dollar bases have differed between published runs. Measured 2026-09-01: 196 documents estimated at 316,674 tokens over 392 LLM calls, so 1,616 tokens per document. The hard corpus is 4,889 documents per condition, which extrapolates to roughly 7.9M tokens; 12M leaves headroom for a larger corpus and still catches an order-of-magnitude runaway. Raising it is a deliberate edit to a frozen file that re-hashes the config, which is the intended friction.",
-    "server_env": "COGNEE_MCP_AGENT_SCOPED=false stops the server auto-naming a per-client dataset (Claude Code would get `claude_code_memory`) and thereby searching a dataset the harness never ingested into. That default is sensible for a person and wrong for an experiment."
+    "server_env": "COGNEE_MCP_AGENT_SCOPED=false stops the server auto-naming a per-client dataset (Claude Code would get `claude_code_memory`) and thereby searching a dataset the harness never ingested into. That default is sensible for a person and wrong for an experiment.",
+    "dataset_name": "ONE dataset name for every namespace, deliberately, where this arm previously derived a name per namespace. Isolation between namespaces is the STORE DIRECTORY: each gets its own DATA_ROOT_DIRECTORY and SYSTEM_ROOT_DIRECTORY, so its own SQLite, LanceDB and Kuzu files, and a name inside a private database isolates nothing further. A per-namespace name does, however, make a shared base store impossible: documents copied in under one name would be invisible to a condition that queries another, and the arm would retrieve nothing while every guard stayed green.",
+    "shared_prefix": "The corpus prefix every condition holds identically, so it can be ingested ONCE into a base store rather than once per condition. Same prefix and same reasoning as the mempalace arm.",
+    "base_store_env": "Names a prebuilt store to copy. OFF unless set, so the default behaviour is unchanged and no run changes shape by accident. ⚠️ The equivalence probe that makes reuse trustworthy (a copied store retains its contents, accepts further ingest, and returns the same results as a monolithic build) has NOT been run: this host's CPU cannot execute cognee's vector store. Run scripts/cognee_base_store_probe.py where it can, before relying on this."
   }
 }

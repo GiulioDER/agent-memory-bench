@@ -76,6 +76,38 @@ Code would search `claude_code_memory`, which is not the dataset the harness ing
 would retrieve nothing, every session, and look like a product that finds nothing. That default is
 right for a person and wrong for an experiment.
 
+**7. The shared haystack is ingested ONCE into a base store and copied, not re-extracted per
+condition.**
+The run has five conditions whose corpora share ~4,704 synthetic documents. Measured 2026-09-01
+via your own dry run: 1,616 tokens and two LLM calls per document, so re-extracting that haystack
+per condition is roughly 7.6M tokens and 9,400 calls, five times, for an identical result each
+time. The arm therefore builds one store, copies it per condition, and feeds each condition only
+the documents that differ. The copy is refused unless it holds EXACTLY the shared set, in both
+directions: a thinner base measures a corpus nobody described, a fatter one contaminates every
+condition.
+
+This forced one change we would otherwise not have made: **every namespace ingests into a single
+dataset name** rather than one derived per namespace. Isolation is the store directory, so each
+namespace still has its own SQLite, LanceDB and Kuzu files; a per-namespace dataset name simply
+makes a copied store unreadable by the condition that copied it. If that is wrong about how
+datasets are meant to be used, tell us.
+
+⚠️ **We have not yet verified that the copy is equivalent to a monolithic build**, and we are
+saying so rather than discovering it later. The check is written
+(`scripts/cognee_base_store_probe.py`: a copy retains its contents, accepts further ingest, leaves
+the original untouched, and returns identical top-k results across several queries) and has not
+run, because the development host's CPU cannot execute LanceDB (see below). No run will set the
+base-store variable until it passes.
+
+## The host we developed on cannot run your vector store, and that is our problem, not yours
+
+`import lancedb` dies with SIGILL on this workstation: it is a Xeon X5690, which has SSE4.2 and no
+AVX, and the lancedb 0.38.0 / pylance 0.36.0 wheels assume more. Everything else works there,
+including fastembed and onnxruntime. We mention it because it shapes what we have verified so far
+and because, if you would rather the arm ran on `pgvector` (which cognee supports first-class and
+which our other arms already use) than on a machine chosen for AVX, that is a configuration change
+we would make on your say-so and record as such.
+
 ## Two costs we will publish, and want you to check we have them right
 
 - **Ingest is billed per document**, because extraction is an LLM pass. This is the structural

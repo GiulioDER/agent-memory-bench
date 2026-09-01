@@ -187,13 +187,23 @@ def test_both_halves_of_the_model_configuration_are_set(adapter):
     assert env["EMBEDDING_PROVIDER"] == "fastembed"
 
 
-def test_each_namespace_gets_its_own_store_and_dataset(adapter):
-    """Two namespaces must not share a database file or a dataset name."""
+def test_each_namespace_gets_its_own_store(adapter):
+    """Two namespaces must not share a database file. The DIRECTORY is the isolation boundary.
+
+    ⚠️ This test used to also require two different dataset NAMES, and that requirement was
+    dropped on 2026-09-02 rather than weakened by accident. A per-namespace dataset name makes a
+    shared base store impossible: documents copied in under one condition's name are invisible to
+    a condition that queries another, so the arm retrieves nothing while the store, the ingest and
+    the gate are all individually correct. Nothing is lost, because each namespace already has its
+    own SQLite, LanceDB and Kuzu files and a name inside a private database isolates nothing more.
+    """
 
     first, second = adapter.cognee_env("run-a"), adapter.cognee_env("run-b")
     assert first["DATA_ROOT_DIRECTORY"] != second["DATA_ROOT_DIRECTORY"]
     assert first["SYSTEM_ROOT_DIRECTORY"] != second["SYSTEM_ROOT_DIRECTORY"]
-    assert adapter.dataset("run-a") != adapter.dataset("run-b")
+    assert adapter.dataset("run-a") == adapter.dataset("run-b"), (
+        "one dataset name across namespaces is what makes a shared base store possible"
+    )
 
 
 def test_agent_scoping_is_off(adapter):
@@ -204,10 +214,16 @@ def test_agent_scoping_is_off(adapter):
     assert adapter.cognee_env("bench")["COGNEE_MCP_AGENT_SCOPED"] == "false"
 
 
-def test_the_dataset_name_survives_a_hyphenated_namespace(adapter):
-    """Namespaces carry hyphens; a dataset name reaches SQL identifiers."""
+def test_the_dataset_still_validates_the_namespace_it_is_handed(adapter):
+    """The name no longer derives from the namespace, so the validation could be lost silently.
 
-    assert adapter.dataset("bench-official-002") == "bench_bench_official_002"
+    Callers pass a namespace here expecting it to be checked, and every other path that takes one
+    joins it onto a directory that is later deleted.
+    """
+
+    assert adapter.dataset("bench-official-002") == CONFIG["dataset_name"]
+    with pytest.raises(ValueError, match="namespace"):
+        adapter.dataset("../../../../victim")
 
 
 # --------------------------------------------------------------------- gate, spec, driver
