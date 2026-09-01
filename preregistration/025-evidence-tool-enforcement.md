@@ -305,3 +305,37 @@ can only push compliance (prediction 4) down. That is the conservative direction
 treatment harder to detect, not easier, so a positive result is not explained by it and a null is
 partly attributable to it. If compliance lands below 0.50, this heading is the first thing to suspect
 and the rerun should vary the appendix heading alone.
+
+### 7. Pre-run apparatus measurement (2026-09-01, from already-recorded data, no credit spent)
+
+Prediction 5b asks whether the bundle withholds anything on a corpus with no lineage. That is
+answerable for free from the baseline run's own recorded `recall_search` responses, without driving
+the server, because a hit the trust layer did not clear is a hit the bundle drops.
+
+Across the three completed conditions of the contemporaneous `protocol` run, recall arm, **235
+recall_search calls, 1,176 hits**:
+
+| | count | share |
+|---|---:|---:|
+| hits `ok` | 802 | 0.682 |
+| hits `low_confidence` | 374 | **0.318** |
+| calls returning at least one non-`ok` hit | 123 / 235 | **0.523** |
+| calls flagged `abstained` | 35 / 235 | 0.149 |
+
+**Prediction 5b stands exactly as written and is now expected to pass comfortably.** It is not
+revised: recording that a registered floor looks safe is a fact about the prediction, and moving the
+floor after seeing the data would make it worthless. The number that matters for the cancel
+condition is 0.523 against a registered floor of 0.30.
+
+Two things this also settles before the run rather than after:
+
+* **The treatment is not inert here.** The `low_confidence` filter alone touches half of all calls,
+  so the evidence arm and the protocol arm will genuinely receive different text. The worry recorded
+  in Amendment 1 section 2, that this corpus might reduce the contrast to nothing, is answered.
+* **Roughly one call in seven returns an empty bundle**, which is the enforcement mechanism firing
+  at full strength. That is the cost side of the frozen "most expect to be wrong" prediction, and
+  0.149 is now its measured base rate rather than a guess.
+
+⚠️ It does NOT settle that the bundle's field layout is what the checker expects. That is still
+apparatus check 3's job against a live server, and the checker discovers the field rather than
+assuming it, having already been wrong once this session about a record field it guessed.
