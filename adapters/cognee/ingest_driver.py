@@ -131,6 +131,18 @@ def _store_matches_feed(files: list[Path]) -> bool:
     return names == {path.stem for path in files}
 
 
+def _configured_data_per_batch() -> int:
+    """Return the bounded Cognify item concurrency for this hosted ingest."""
+
+    try:
+        data_per_batch = int(os.environ.get("AMB_COGNEE_DATA_PER_BATCH", "80"))
+    except ValueError as error:
+        raise SystemExit("AMB_COGNEE_DATA_PER_BATCH must be an integer") from error
+    if data_per_batch < 1:
+        raise SystemExit("AMB_COGNEE_DATA_PER_BATCH must be >= 1")
+    return data_per_batch
+
+
 async def _run(
     feed: Path, dataset: str, ceiling: float, token_ceiling: int, estimate_only: bool
 ) -> dict:
@@ -138,6 +150,7 @@ async def _run(
     from cognee.modules.search.types import SearchType
 
     retry_policy = _configure_bounded_retries()
+    data_per_batch = _configured_data_per_batch()
 
     files = sorted(feed.glob("*.md"))
     if not files:
@@ -155,6 +168,7 @@ async def _run(
         "estimate": estimate_dict,
         "retry_policy": retry_policy,
         "add_skipped": add_skipped,
+        "data_per_batch": data_per_batch,
     }
 
     cost = float(estimate_dict.get("estimated_cost_usd") or 0.0)
@@ -199,7 +213,7 @@ async def _run(
         print("COGNEE_JSON " + json.dumps(report))
         return report
 
-    await cognee.cognify(datasets=[dataset])
+    await cognee.cognify(datasets=[dataset], data_per_batch=data_per_batch)
     report["cognified"] = True
 
     hits = await cognee.search(
