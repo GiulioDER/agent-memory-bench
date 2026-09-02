@@ -14,8 +14,8 @@ Inputs, both committed:
 
       {
         "run": {"id", "date", "cli", "model", "tasks", "sessionsPerCell", "prereg"},
-        "arms": {"<arm>": {"success", "delta", "ci", "discarded",
-                            "tokensPerTask", "costPerTask"}},
+        "arms": {"<arm>": {"success", "delta", "ci", "discarded", "tokensPerTask",
+                            "costPerTask", "totalTokens"}},
         "reference": {"oracle_memory": {"success", "delta"},
                       "recall_prefetch": {"success", "delta"}}
       }
@@ -156,6 +156,7 @@ VENDOR_REVIEW_HOLDS: dict[str, dict[str, str]] = {
 }
 
 ARM_FIELDS = ("success", "delta", "ci", "discarded", "tokensPerTask", "costPerTask")
+VENDOR_FIELDS = ("totalTokens",)
 RUN_FIELDS = ("id", "date", "cli", "model", "tasks", "sessionsPerCell", "prereg")
 
 HEADER = """\
@@ -187,10 +188,15 @@ def _load_summary(results_dir: Path, run_id: str) -> dict:
             f"summary arms must be exactly {sorted(expected)}; "
             f"missing {sorted(expected - got)}, unknown {sorted(got - expected)}"
         )
+    vendor_names = {internal for internal, _, role, _ in PRODUCT_ARMS if role is None}
     for name, values in summary["arms"].items():
         absent = [k for k in ARM_FIELDS if k not in values]
         if absent:
             raise SummaryInvalid(f"arm {name!r} is missing fields {absent}")
+        if name in vendor_names:
+            absent_vendor = [k for k in VENDOR_FIELDS if k not in values]
+            if absent_vendor:
+                raise SummaryInvalid(f"vendor arm {name!r} is missing fields {absent_vendor}")
     if summary["arms"]["claude_md"]["delta"] != 0:
         raise SummaryInvalid("claude_md is the baseline; its delta must be exactly 0")
 
@@ -309,7 +315,7 @@ def _load_arm_submission(
             )
 
     result = submission["result"]
-    missing_result = [key for key in ARM_FIELDS if key not in result]
+    missing_result = [key for key in (*ARM_FIELDS, *VENDOR_FIELDS) if key not in result]
     if missing_result:
         raise SummaryInvalid(f"arm submission {path} result is missing {missing_result}")
     return submission
@@ -381,6 +387,9 @@ def build(repo_root: str | Path) -> str:
         numbers = arm_numbers.get(internal, {})
         for field in ARM_FIELDS:
             entry[field] = numbers.get(field)
+        if role is None:
+            for field in VENDOR_FIELDS:
+                entry[field] = numbers.get(field)
         source_run = arm_sources.get(internal)
         if source_run:
             entry["sourceRun"] = source_run
@@ -400,6 +409,9 @@ def build(repo_root: str | Path) -> str:
             # `_load_summary`'s every-arm-present check.
             for field in ARM_FIELDS:
                 entry[field] = None
+            if role is None:
+                for field in VENDOR_FIELDS:
+                    entry[field] = None
             # The hold covers the per-condition detail too. Publishing a product's condition
             # breakdown while withholding its headline would defeat the point of the hold.
             if "byCondition" in entry:
