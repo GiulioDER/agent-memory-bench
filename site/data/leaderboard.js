@@ -20,6 +20,17 @@ window.AMB_LEADERBOARD = {
     "sessionsPerCell": 1,
     "prereg": "preregistration/026-official-003-fair-instruction.md"
   },
+  "provenance": {
+    "baseRun": "official-003",
+    "armRuns": {
+      "recall": "official-003",
+      "mempalace": "official-003",
+      "fs_grep": "official-003",
+      "placebo": "official-003",
+      "claude_md": "official-003",
+      "bare": "official-003"
+    }
+  },
   "arms": [
     {
       "name": "recall",
@@ -33,6 +44,8 @@ window.AMB_LEADERBOARD = {
       "discarded": 28,
       "tokensPerTask": 66337,
       "costPerTask": 0.0044,
+      "totalTokens": 23408500,
+      "sourceRun": "official-003",
       "byCondition": {
         "present": {
           "solved": 56,
@@ -65,6 +78,8 @@ window.AMB_LEADERBOARD = {
       "discarded": null,
       "tokensPerTask": null,
       "costPerTask": null,
+      "totalTokens": null,
+      "sourceRun": "official-003",
       "byCondition": null,
       "held": "held for vendor review",
       "heldUntil": "2026-09-15",
@@ -82,7 +97,8 @@ window.AMB_LEADERBOARD = {
       ],
       "discarded": 2,
       "tokensPerTask": 43766,
-      "costPerTask": 0.0031
+      "costPerTask": 0.0031,
+      "sourceRun": "official-003"
     },
     {
       "name": "placebo",
@@ -96,7 +112,8 @@ window.AMB_LEADERBOARD = {
       ],
       "discarded": 8,
       "tokensPerTask": 19189,
-      "costPerTask": 0.0014
+      "costPerTask": 0.0014,
+      "sourceRun": "official-003"
     },
     {
       "name": "claude_md",
@@ -110,7 +127,8 @@ window.AMB_LEADERBOARD = {
       ],
       "discarded": 6,
       "tokensPerTask": 17954,
-      "costPerTask": 0.0013
+      "costPerTask": 0.0013,
+      "sourceRun": "official-003"
     },
     {
       "name": "bare",
@@ -124,7 +142,8 @@ window.AMB_LEADERBOARD = {
       ],
       "discarded": 5,
       "tokensPerTask": 18457,
-      "costPerTask": 0.0014
+      "costPerTask": 0.0014,
+      "sourceRun": "official-003"
     }
   ],
   "reference": [

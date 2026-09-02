@@ -8,14 +8,14 @@ its regeneration, so a hand-edited number cannot survive review.
 Inputs, both committed:
 
 - ``site/data/leaderboard.config.json`` holds the pointer, never a number:
-  ``{"official_run": null | "<run_id>", "updated": "YYYY-MM-DD"}``.
+  ``{"official_run": null | "<run_id>", "arm_runs": {}, "updated": "YYYY-MM-DD"}``.
 - When ``official_run`` is set, ``results/<run_id>/leaderboard_summary.json`` supplies the
   numbers. Its shape (fractions for rates, points as fractions, USD for cost)::
 
       {
         "run": {"id", "date", "cli", "model", "tasks", "sessionsPerCell", "prereg"},
-        "arms": {"<arm>": {"success", "delta", "ci", "discarded",
-                            "tokensPerTask", "costPerTask"}},
+        "arms": {"<arm>": {"success", "delta", "ci", "discarded", "tokensPerTask",
+                            "costPerTask", "totalTokens"}},
         "reference": {"oracle_memory": {"success", "delta"},
                       "recall_prefetch": {"success", "delta"}}
       }
@@ -23,6 +23,10 @@ Inputs, both committed:
   Every product arm must be present, exactly once, and ``claude_md``'s delta must be 0:
   a summary that drops an embarrassing arm, invents a new one, or moves the baseline is
   refused, not smoothed over.
+
+  ``arm_runs`` may add an independently measured arm without changing that frozen summary. Each
+  entry names a result directory containing ``arm_summary.json``. The submission is joined to the
+  base run and carries its own provenance, so a new runner does not have to rerun the grid.
 
 Disclosure is a separate, later step. A run summary always carries the internal arm names;
 what reaches the page is decided by ``PRODUCT_ARMS``, and an arm whose vendor has not been
@@ -60,6 +64,15 @@ PRODUCT_ARMS = [
     ("bare", "no memory", "floor", "bare"),
 ]
 
+# Arms that may be added by an independently validated submission.  They are deliberately kept
+# out of PRODUCT_ARMS: the frozen base run must continue to validate against the exact roster it
+# actually measured.  Adding a name here makes the adapter eligible for a later additive board
+# entry; it does not publish a row by itself.
+ADDITIVE_ARM_DEFINITIONS = {
+    # internal name: integration, role, public name
+    "cognee": ("MCP server", None, None),
+}
+
 # ⛔ This list is the arms that are MEASURED, not the arms that are hoped for. `mem0`,
 # `supermemory`, `zep` and `cognee` sat here for weeks with no adapter behind any of them, which
 # put four permanently null rows on a public leaderboard and read as "measured, scored nothing"
@@ -83,7 +96,7 @@ PRODUCT_ARMS = [
 # disclosure tracks what has had its review window, and the two came apart the moment an arm was
 # deferred. Removing an arm from the board must not quietly remove it from this guard.
 # `tests/test_site_vendor_disclosure.py` reads this.
-UNDISCLOSED_PRODUCTS = ("mem0", "supermemory", "zep", "cognee")
+UNDISCLOSED_PRODUCTS = ("mem0", "supermemory", "zep", "cognee", "cachly")
 
 # What an undisclosed arm looks like on the page. The integration description is withheld
 # with the name, because "SaaS API" against a short field of candidates is most of an
@@ -143,6 +156,7 @@ VENDOR_REVIEW_HOLDS: dict[str, dict[str, str]] = {
 }
 
 ARM_FIELDS = ("success", "delta", "ci", "discarded", "tokensPerTask", "costPerTask")
+VENDOR_FIELDS = ("totalTokens",)
 RUN_FIELDS = ("id", "date", "cli", "model", "tasks", "sessionsPerCell", "prereg")
 
 HEADER = """\
@@ -174,10 +188,15 @@ def _load_summary(results_dir: Path, run_id: str) -> dict:
             f"summary arms must be exactly {sorted(expected)}; "
             f"missing {sorted(expected - got)}, unknown {sorted(got - expected)}"
         )
+    vendor_names = {internal for internal, _, role, _ in PRODUCT_ARMS if role is None}
     for name, values in summary["arms"].items():
         absent = [k for k in ARM_FIELDS if k not in values]
         if absent:
             raise SummaryInvalid(f"arm {name!r} is missing fields {absent}")
+        if name in vendor_names:
+            absent_vendor = [k for k in VENDOR_FIELDS if k not in values]
+            if absent_vendor:
+                raise SummaryInvalid(f"vendor arm {name!r} is missing fields {absent_vendor}")
     if summary["arms"]["claude_md"]["delta"] != 0:
         raise SummaryInvalid("claude_md is the baseline; its delta must be exactly 0")
 
@@ -190,7 +209,33 @@ def _load_summary(results_dir: Path, run_id: str) -> dict:
     return summary
 
 
-def public_arms() -> list[tuple[str, str, str, str | None]]:
+def _active_product_arms(config: dict | None = None) -> list[tuple[str, str, str, str | None]]:
+    """Return the base roster plus explicitly accepted additive arm definitions."""
+
+    config = config or {}
+    arm_runs = config.get("arm_runs", {})
+    if not isinstance(arm_runs, dict):
+        raise SummaryInvalid("arm_runs must be an object mapping arm names to submission runs")
+
+    base_names = {name for name, *_ in PRODUCT_ARMS}
+    active = list(PRODUCT_ARMS)
+    for internal in arm_runs:
+        if internal in base_names:
+            raise SummaryInvalid(
+                f"arm_runs cannot replace base arm {internal!r}; publish a new base run instead"
+            )
+        definition = ADDITIVE_ARM_DEFINITIONS.get(internal)
+        if definition is None:
+            raise SummaryInvalid(
+                f"arm_runs names unknown arm {internal!r}; add its reviewed definition first"
+            )
+        active.append((internal, *definition))
+    return active
+
+
+def public_arms(
+    definitions: list[tuple[str, str, str, str | None]] | None = None,
+) -> list[tuple[str, str, str, str | None]]:
     """``(internal, public, integration, role)`` per arm, in display order.
 
     An undisclosed arm becomes ``product_a``, ``product_b``, ... and loses its integration
@@ -200,7 +245,7 @@ def public_arms() -> list[tuple[str, str, str, str | None]]:
     """
     out: list[tuple[str, str, str, str | None]] = []
     anonymous = 0
-    for internal, arm_type, role, public in PRODUCT_ARMS:
+    for internal, arm_type, role, public in definitions or PRODUCT_ARMS:
         if public is None:
             if anonymous >= 26:
                 raise ValueError("more undisclosed arms than letters; widen the label scheme")
@@ -210,6 +255,70 @@ def public_arms() -> list[tuple[str, str, str, str | None]]:
         else:
             out.append((internal, public, arm_type, role))
     return out
+
+
+def _load_arm_submission(
+    results_dir: Path,
+    run_id: str,
+    arm: str,
+    base_run_id: str,
+    base_summary: dict,
+) -> dict:
+    """Load one independently measured arm and check that it joins the frozen base."""
+
+    path = results_dir / run_id / "arm_summary.json"
+    if not path.is_file():
+        raise SummaryInvalid(f"arm_runs entry {run_id!r} has no {path}")
+    submission = json.loads(path.read_text(encoding="utf-8"))
+
+    missing = [
+        key
+        for key in ("schema", "generated_by", "run", "arm", "base_run", "result", "join")
+        if key not in submission
+    ]
+    if missing:
+        raise SummaryInvalid(f"arm submission {path} is missing {missing}")
+    if submission["schema"] != 1:
+        raise SummaryInvalid(f"arm submission {path} has unsupported schema {submission['schema']!r}")
+    if submission["generated_by"] != "scripts/build_arm_submission.py":
+        raise SummaryInvalid(f"arm submission {path} was not generated by the supported script")
+    if submission["arm"] != arm:
+        raise SummaryInvalid(
+            f"arm submission {path} declares {submission['arm']!r}, expected {arm!r}"
+        )
+    if submission["base_run"] != base_run_id:
+        raise SummaryInvalid(
+            f"arm submission {path} joins {submission['base_run']!r}, expected {base_run_id!r}"
+        )
+    join = submission["join"]
+    if join.get("baseRun") != base_run_id:
+        raise SummaryInvalid(f"arm submission {path} join.baseRun does not match base_run")
+    for key in ("baseAdmittedCells", "joinedCells", "baseCellsLostToJoin"):
+        if not isinstance(join.get(key), int) or join[key] < 0:
+            raise SummaryInvalid(f"arm submission {path} join.{key} must be a nonnegative integer")
+    if join["joinedCells"] == 0:
+        raise SummaryInvalid(f"arm submission {path} has no joined cells")
+
+    run = submission["run"]
+    missing_run = [key for key in RUN_FIELDS if key not in run]
+    if missing_run:
+        raise SummaryInvalid(f"arm submission {path} run block is missing {missing_run}")
+    if run["id"] != run_id:
+        raise SummaryInvalid(f"arm submission {path} run.id is not {run_id!r}")
+
+    base_run = base_summary["run"]
+    for key in ("model", "tasks", "sessionsPerCell"):
+        if run[key] != base_run[key]:
+            raise SummaryInvalid(
+                f"arm submission {path} is incompatible with base run on {key}: "
+                f"{run[key]!r} != {base_run[key]!r}"
+            )
+
+    result = submission["result"]
+    missing_result = [key for key in (*ARM_FIELDS, *VENDOR_FIELDS) if key not in result]
+    if missing_result:
+        raise SummaryInvalid(f"arm submission {path} result is missing {missing_result}")
+    return submission
 
 
 def _scope(config: dict) -> dict:
@@ -249,14 +358,43 @@ def build(repo_root: str | Path) -> str:
     run_id = config["official_run"]
     summary = _load_summary(repo_root / "results", run_id) if run_id else None
 
+    definitions = _active_product_arms(config)
+    arm_runs = config.get("arm_runs", {}) or {}
+    if arm_runs and summary is None:
+        raise SummaryInvalid("arm_runs requires an official_run base summary")
+    arm_numbers = {
+        internal: summary["arms"][internal] if summary else {}
+        for internal, *_ in PRODUCT_ARMS
+    }
+    arm_sources = {internal: run_id for internal, *_ in PRODUCT_ARMS}
+    for internal, configured_run in arm_runs.items():
+        submission_run = (
+            configured_run.get("run") if isinstance(configured_run, dict) else configured_run
+        )
+        if not isinstance(submission_run, str) or not submission_run:
+            raise SummaryInvalid(f"arm_runs entry {internal!r} must name a result run")
+        submission = _load_arm_submission(
+            repo_root / "results", submission_run, internal, run_id, summary
+        )
+        arm_numbers[internal] = submission["result"]
+        arm_sources[internal] = submission_run
+
     arms = []
-    for internal, public, arm_type, role in public_arms():
+    for internal, public, arm_type, role in public_arms(definitions):
         entry: dict = {"name": public, "type": arm_type}
         if role:
             entry["role"] = role
-        numbers = summary["arms"][internal] if summary else {}
+        numbers = arm_numbers.get(internal, {})
         for field in ARM_FIELDS:
             entry[field] = numbers.get(field)
+        if role is None:
+            for field in VENDOR_FIELDS:
+                entry[field] = numbers.get(field)
+        source_run = arm_sources.get(internal)
+        if source_run:
+            entry["sourceRun"] = source_run
+        if source_run and source_run != run_id:
+            entry["comparison"] = f"joined to {run_id}"
         if internal == "claude_md" and entry["delta"] is None:
             entry["delta"] = 0  # the page renders the baseline row from this sentinel
         # Per-condition detail is published for PRODUCTS only. The controls exist to price the
@@ -271,6 +409,9 @@ def build(repo_root: str | Path) -> str:
             # `_load_summary`'s every-arm-present check.
             for field in ARM_FIELDS:
                 entry[field] = None
+            if role is None:
+                for field in VENDOR_FIELDS:
+                    entry[field] = None
             # The hold covers the per-condition detail too. Publishing a product's condition
             # breakdown while withholding its headline would defeat the point of the hold.
             if "byCondition" in entry:
@@ -292,11 +433,22 @@ def build(repo_root: str | Path) -> str:
             }
         )
 
+    public_sources = {
+        public: arm_sources[internal]
+        for internal, public, _arm_type, _role in public_arms(definitions)
+        if arm_sources.get(internal)
+    }
     data = {
         "updated": config["updated"],
         "baseline": "claude_md",
         "scope": _scope(config),
         "run": summary["run"] if summary else None,
+        "provenance": {
+            "baseRun": run_id,
+            # Internal names are deliberately excluded. The disclosure layer must cover
+            # provenance too, not just the visible row.
+            "armRuns": public_sources,
+        },
         "arms": arms,
         "reference": reference,
     }
