@@ -31,4 +31,11 @@ def recall_location(monkeypatch):
     monkeypatch.setenv("AMB_RECALL_SSH_HOST", "unused.invalid")
     monkeypatch.setenv("AMB_RECALL_REMOTE_ROOT", "/nonexistent/bench")
     monkeypatch.setenv("AMB_RECALL_REMOTE_PYTHON", "/nonexistent/bench/.venv/bin/python")
+    # `recall_rerank` runs a SEPARATE interpreter, because its pin carries the `rerank` extra and
+    # installing torch into the venv `recall` runs would change the artifact every published run
+    # was measured on. A distinct placeholder here so a test cannot pass by the two arms silently
+    # sharing one path.
+    monkeypatch.setenv(
+        "AMB_RECALL_RERANK_REMOTE_PYTHON", "/nonexistent/bench/.venv-rerank/bin/python"
+    )
     monkeypatch.setenv("AMB_RECALL_REMOTE_ENV_FILE", "/nonexistent/recall/.env")

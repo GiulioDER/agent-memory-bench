@@ -86,6 +86,14 @@ REQUIRED_LOCATIONS="RECALL_DSN AMB_RECALL_REMOTE_ROOT AMB_RECALL_REMOTE_PYTHON A
 if grep -q '"transport": *"ssh"' adapters/recall/config.frozen.json; then
   REQUIRED_LOCATIONS="$REQUIRED_LOCATIONS AMB_RECALL_SSH_HOST"
 fi
+# `recall_rerank` runs its own interpreter, because its pin carries the `rerank` extra and torch
+# does not belong in the venv `recall` runs. Demanded only when the arm is in the run: an
+# unconditional requirement would refuse every grid that does not include it, over a variable
+# those grids never resolve. Unset, the arm fails at its first cell with a RuntimeError from
+# `_location`, which is correct and hours later than here.
+case ",$ARMS," in
+  *,recall_rerank,*) REQUIRED_LOCATIONS="$REQUIRED_LOCATIONS AMB_RECALL_RERANK_REMOTE_PYTHON" ;;
+esac
 for v in $REQUIRED_LOCATIONS; do
   eval "val=\${$v:-}"
   [ -n "$val" ] || { echo "$v is unset. Put it in $SECRETS; see adapters/recall/location.example.env" >&2; exit 2; }
