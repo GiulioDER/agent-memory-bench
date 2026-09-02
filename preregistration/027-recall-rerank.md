@@ -171,3 +171,39 @@ The **hypothesis** P1 is falsified by a null or negative paired difference, or b
 whose CI includes zero.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Pre-run addendum, 2026-09-02, appended not edited
+
+Written after committing the predictions above and **before any session runs**. It is below the
+marker because nothing above a committed marker may be edited, including the numbers it reasons
+from. None of it is a result.
+
+**The arm was driven end to end against the real tenant** (`bench-official-002-present`, 55,272
+chunks), by hand-building the server command this adapter emits, because the harness checkout that
+holds the adapter is not deployed on the serving host yet:
+
+| | |
+|---|---|
+| server up | 22.9 s to `initialize`, 20 tools, `recall_search` present |
+| `reranking_ran` | **true** |
+| `rerank_ms` | **377** |
+| `embed_ms` | 402 |
+| `candidate_pool_size` | **20** |
+| `trust_state` / `calibrated` / `failure_code` | `trusted` / `true` / `None` |
+| rank 1 for "how should a failed request be retried" | `sessions__ts-retry-cap__p01.md`, verdict `ok` |
+
+**Two things this changes, and neither one may touch a prediction above.**
+
+1. **P7's basis was the wrong number.** The record above reasons from a 1,973 ms first Voyage call
+   and says so. The reranking step inside a real search is **377 ms**, so P7's predicted 10% to 40%
+   latency rise is likely too high. The prediction stands as written and will be scored as written.
+2. **The mechanism argument under P1 is weaker than I stated, in the direction of a larger effect.**
+   P1 reasons that a reranker "reorders a list the agent reads in full". `candidate_pool_size = 20`
+   against 5 returned hits says it does more than reorder: it **selects which 5 of 20 candidates the
+   session ever sees**. A document promoted from rank 12 into the returned set is not a reordering
+   the agent can compensate for by reading further, because it was not there to read.
+
+   I am recording this rather than quietly benefiting from it. P1 at 0.55 and P3 at 0.15 were
+   written on a mechanism I now believe understates the reranker's reach, and if the run comes in
+   positive and significant, this paragraph is why the prediction was too low and not a post-hoc
+   explanation of it.
