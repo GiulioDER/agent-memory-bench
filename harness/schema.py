@@ -78,6 +78,7 @@ class SessionRecord:
     conversation: tuple[dict[str, Any], ...] = ()
     reference_tool_calls: tuple[dict[str, Any], ...] = ()
     tool_calls: tuple[dict[str, Any], ...] = ()
+    runtime_decisions: tuple[dict[str, Any], ...] = ()
     memory_call_count: int = 0
     memory_latency_ms: float | None = None
     input_tokens: int | None = None
@@ -157,6 +158,7 @@ class SessionRecord:
             "conversation": [dict(item) for item in self.conversation],
             "reference_tool_calls": [dict(item) for item in self.reference_tool_calls],
             "tool_calls": [dict(item) for item in self.tool_calls],
+            "runtime_decisions": [dict(item) for item in self.runtime_decisions],
             "memory_call_count": self.memory_call_count,
             "memory_latency_ms": self.memory_latency_ms,
             "input_tokens": self.input_tokens,
@@ -206,6 +208,9 @@ class SessionRecord:
                 value.get("reference_tool_calls"), "reference_tool_calls"
             ),
             tool_calls=_tuple_of_mappings(value.get("tool_calls"), "tool_calls"),
+            runtime_decisions=_tuple_of_mappings(
+                value.get("runtime_decisions"), "runtime_decisions"
+            ),
             memory_call_count=int(memory_calls),
             memory_latency_ms=memory_latency,
             input_tokens=value.get("input_tokens"),
