@@ -11,6 +11,8 @@ def test_low_confidence_answer_fails_the_observed_contract() -> None:
     )
     assert result["status"] == "fail"
     assert result["observed_decision"] is True
+    assert result["n_confidence_scores"] == 1
+    assert result["n_confidence_threshold_pairs"] == 1
     assert result["calibration"]["status"] == "not_evaluated"
 
 

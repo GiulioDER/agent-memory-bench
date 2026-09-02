@@ -34,6 +34,7 @@ def analyze_run(
 
     by_condition: dict[str, Any] = {}
     total = Counter()
+    confidence_observations = 0
     for condition, run_dir in _condition_dirs(results_root, run_id):
         records = read_jsonl(run_dir / "records.final.jsonl")
         discarded = _discarded(run_dir) if (run_dir / "admission.json").is_file() else set()
@@ -52,6 +53,7 @@ def analyze_run(
                 statuses[result["status"]] += 1
                 abstentions += int(result["abstention_observed"])
                 text_markers += int(declines(record.response)[0])
+                confidence_observations += result["n_confidence_scores"]
             total.update(statuses)
             by_arm[arm] = {
                 "n_admitted": len(rows),
@@ -68,6 +70,16 @@ def analyze_run(
             "note": (
                 "Final response text is reported only as a comparison. It cannot create an "
                 "observed runtime decision. Calibration is not evaluated here."
+            ),
+        },
+        "calibration": {
+            "status": (
+                "not_observed" if confidence_observations == 0 else "requires_labels"
+            ),
+            "n_confidence_scores": confidence_observations,
+            "note": (
+                "AUC and probability calibration require independently labelled examples. "
+                "No confidence trace was recorded in this run."
             ),
         },
         "conditions": by_condition,

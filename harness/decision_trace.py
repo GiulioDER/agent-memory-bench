@@ -197,10 +197,13 @@ def evaluate_decisions(
     low_confidence: list[dict[str, Any]] = []
     violations: list[dict[str, Any]] = []
     confidence_observed = 0
+    confidence_scores = 0
     for event in observed:
         confidence = _probability(event.get("confidence"))
         event_threshold = _probability(event.get("threshold"))
         effective_threshold = event_threshold if event_threshold is not None else threshold
+        if confidence is not None:
+            confidence_scores += 1
         if confidence is None or effective_threshold is None:
             continue
         confidence_observed += 1
@@ -233,6 +236,7 @@ def evaluate_decisions(
         ),
         "n_observed_decisions": len(observed),
         "n_low_confidence_cases": len(low_confidence),
+        "n_confidence_scores": confidence_scores,
         "n_confidence_threshold_pairs": confidence_observed,
         "violations": violations,
         "decisions": events,
