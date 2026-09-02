@@ -147,8 +147,14 @@ def test_an_unexplained_discard_is_caught(good_run):
 def test_summaries_without_records_cannot_be_checked(good_run):
     """Mutation: publish the summaries and withhold the sessions.
 
-    This is not hypothetical. `abstention-001` was published exactly this way, with an
-    admission.json and a costs.json and no records at all, and nothing said so until this ran.
+    🔁 The example this docstring used to give was wrong, corrected 2026-09-02. It said
+    `abstention-001` was published exactly this way, with an admission.json and a costs.json and
+    no records at all. Its records were published all along as the sibling file
+    `results/abstention-001-<condition>-records.jsonl`, and `_load_records` only looked inside the
+    run directory, so the tool reported missing evidence for evidence it could not find.
+
+    The mutation this test performs is still the one that matters, and it is now the only source
+    of that message: no published run produces it.
     """
 
     (good_run / "records.final.jsonl").unlink()
@@ -478,3 +484,42 @@ def test_a_leaderboard_rollup_is_not_a_run_but_a_gutted_directory_still_is(tmp_p
         "a run whose records went missing must still be reported; only a LONE summary file is a "
         "roll-up"
     )
+
+
+def test_every_known_missing_streams_note_still_describes_a_failing_run():
+    """A ratchet on the annotations, so a note cannot outlive the thing it explains.
+
+    `KNOWN_MISSING_STREAMS` annotates failures rather than silencing them, which is only honest
+    while every entry still corresponds to a run that actually fails. If someone publishes a run's
+    streams, this goes red and demands the note be deleted; if a run is renamed or dropped, the
+    same. Without it the notes decay into folklore that outlives its subject, which is precisely
+    how this repository ended up telling readers that abstention-001 had no records when it had 99
+    per condition all along.
+    """
+    from scripts import verify_run as vr
+
+    results = vr.REPO / "results"
+    stale = []
+    for name, reason in vr.KNOWN_MISSING_STREAMS.items():
+        assert reason.strip(), f"{name} carries an empty reason"
+        run_dir = results / name
+        if not run_dir.is_dir():
+            stale.append(f"{name}: no such run directory")
+            continue
+        if not vr.verify(run_dir).bad:
+            stale.append(f"{name}: verifies cleanly now, so the note is stale")
+    assert not stale, (
+        "KNOWN_MISSING_STREAMS describes runs that no longer match it:\n  "
+        + "\n  ".join(stale)
+        + "\nDelete the entry rather than keeping an explanation for a failure that is gone."
+    )
+
+
+def test_the_retrieval_directory_is_not_treated_as_a_run():
+    """It holds retrieval_probe artifacts, not agent sessions, so it can never have evidence."""
+    from scripts import verify_run as vr
+
+    results = vr.REPO / "results"
+    if not (results / "retrieval").is_dir():
+        pytest.skip("no retrieval probe directory in this checkout")
+    assert "retrieval" not in {d.name for d in vr.run_targets(results)}

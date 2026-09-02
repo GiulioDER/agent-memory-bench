@@ -88,11 +88,32 @@ def _record_from_dict(raw: dict[str, Any]) -> SessionRecord:
     return SessionRecord(**{k: v for k, v in raw.items() if k in _FIELDS})
 
 
+#: Where a run's per-session records may live, in order of preference. The third is a real
+#: published layout, not a courtesy: `abstention-001` put its records in `results/` as
+#: `<run>-records.jsonl`, a SIBLING of the run directory rather than a file inside it. Found
+#: 2026-09-02.
+#:
+#: ⚠️ This corrects a claim this repository makes about itself in three places. `verify_run`
+#: reported "the run published summaries with no records.final.jsonl", the README repeated it as
+#: "published with an admission file and a cost ledger and no records at all", and both were
+#: wrong: 99 records per condition were published all along, under a different name. The evidence
+#: was never missing, only unfindable, and a checker that cannot find evidence reports the same
+#: string as one that finds none.
+_RECORD_NAMES = ("records.final.jsonl", "records.jsonl")
+
+
+def _record_paths(run_dir: Path) -> tuple[Path, ...]:
+    inside = tuple(run_dir / name for name in _RECORD_NAMES)
+    sibling = run_dir.parent / f"{run_dir.name}-records.jsonl"
+    return inside + (sibling,)
+
+
 def _load_records(run_dir: Path) -> list[dict[str, Any]]:
-    path = run_dir / "records.final.jsonl"
-    if not path.is_file():
-        path = run_dir / "records.jsonl"
-    if not path.is_file():
+    for candidate in _record_paths(run_dir):
+        if candidate.is_file():
+            path = candidate
+            break
+    else:
         return []
     return [
         json.loads(line)
@@ -510,7 +531,34 @@ def verify(run_dir: Path) -> Findings:
 #: a run made --all report "NOTHING CAN BE CHECKED" and exit 1 on a healthy repository. A verifier
 #: that cries wolf is worse than no verifier, which this module says nine lines above the check
 #: that was doing it.
-_NOT_RUN_DIRS = frozenset({"logs", "archive"})
+#: `retrieval` joined them 2026-09-02: it holds `scripts/retrieval_probe.py --out` artifacts, one
+#: JSON list per corpus root, and no agent session ever ran under it. Reporting it as a run whose
+#: evidence is missing is a false alarm on a directory that will never have any.
+_NOT_RUN_DIRS = frozenset({"logs", "archive", "retrieval"})
+
+#: Runs whose per-session streams were never captured, with the reason, measured 2026-09-02 by
+#: looking for them in this checkout, in the main checkout and on the run host. They are not
+#: recoverable and there is nothing to publish.
+#:
+#: ⚠️ This ANNOTATES a failure. It does not silence one. Every run below still reports FAIL and
+#: still counts against the verified total, because a reader who cannot check a run against its
+#: sessions is in the same position whether or not we know why. What the note buys is that the
+#: reader learns the reason from the tool instead of guessing at a defect.
+#:
+#: `tests/test_verify_run.py` asserts each of these still fails, so a note cannot outlive the
+#: thing it explains: publish the streams and the test demands the note be deleted.
+KNOWN_MISSING_STREAMS = {
+    "abstention-001-absent": "streams were never captured for this run; the records were "
+    "published as the sibling file results/abstention-001-absent-records.jsonl",
+    "abstention-001-superseded": "streams were never captured for this run; the records were "
+    "published as the sibling file results/abstention-001-superseded-records.jsonl",
+    "midband-001": "streams were never captured for this run",
+    "resolution-001": "streams were never captured for this run",
+    "smoke-002": "a bring-up smoke run; 4 of its sessions have no stream",
+    "smoke-abstention-absent": "a bring-up smoke run; streams were never captured",
+    "smoke-sup2-superseded": "a bring-up smoke run; streams were never captured",
+    "pilot-001": "the earliest pilot; 72 of its 287 sessions have a stream and 215 do not",
+}
 
 
 def _is_leaderboard_rollup(d: Path) -> bool:
@@ -580,6 +628,10 @@ def main() -> int:
             print(f"   skip  {line.split(': ', 1)[-1]}")
         for line in f.bad:
             print(f"   FAIL  {line.split(': ', 1)[-1]}")
+        note = KNOWN_MISSING_STREAMS.get(run_dir.name)
+        if note and f.bad:
+            # Printed AFTER the failure and counted as one, so the reason never reads as a pass.
+            print(f"   note  KNOWN: {note}. See docs/STATUS.md.")
         failed += bool(f.bad)
 
     print(
