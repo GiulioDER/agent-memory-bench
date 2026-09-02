@@ -1,0 +1,46 @@
+name: Product entry, intent to submit
+description: You maintain a memory product and want it measured. Start here, then send the pull request.
+title: "[arm] "
+labels: ["arm"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An arm is added by **pull request**, not by issue: one hash-pinned `adapters/<name>/`
+        directory holding the adapter, its frozen config, its pins and a `VENDOR_REVIEW.md`.
+        The eight rules are on
+        [Submit & reproduce](https://giulioder.github.io/agent-memory-bench/submit.html).
+
+        This issue is for the conversation before that, and for one commitment the project
+        makes to you: **you are invited to review your own adapter and frozen config before any
+        measured run.** The invitation, your response, or the documented silence is committed to
+        the repository. Silence does not block a run; it is simply on the record.
+
+        Results publish in full, win or lose. There is no private preview and no retraction path.
+  - type: input
+    id: product
+    attributes:
+      label: Product, and a link to its published Claude Code integration
+      description: >-
+        A plugin, an MCP server, or lifecycle hooks. If your users cannot install it, the
+        benchmark does not run it: no bespoke benchmark builds, no unreleased branches.
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Who are you?
+      options:
+        - I maintain this product
+        - I am not the maintainer, but I want this product measured
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: What configuration should be frozen?
+      description: >-
+        The defaults your users would get, not a tuned special. Note anything that needs a
+        credential, and anything that would be billed to whoever runs the benchmark.
+    validations:
+      required: true
