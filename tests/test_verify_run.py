@@ -484,8 +484,6 @@ def test_a_leaderboard_rollup_is_not_a_run_but_a_gutted_directory_still_is(tmp_p
         "a run whose records went missing must still be reported; only a LONE summary file is a "
         "roll-up"
     )
-
-
 def test_every_known_missing_streams_note_still_describes_a_failing_run():
     """A ratchet on the annotations, so a note cannot outlive the thing it explains.
 

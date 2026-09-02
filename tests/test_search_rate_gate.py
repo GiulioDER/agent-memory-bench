@@ -226,7 +226,7 @@ def test_every_arm_that_has_ever_run_is_classified():
 
     every_arm_with_an_adapter = [
         "bare", "claude_md", "placebo", "recall",
-        "mempalace", "fs_grep", "oracle_memory", "recall_prefetch",
+        "mempalace", "fs_grep", "cachly", "oracle_memory", "recall_prefetch",
     ]
     unclassified = [
         a for a in every_arm_with_an_adapter if a not in (MEMORY_ARMS | NON_MEMORY_ARMS)
@@ -257,5 +257,5 @@ def test_a_control_that_retrieves_outside_the_agent_is_not_a_memory_arm():
     for arm in ("oracle_memory", "recall_prefetch"):
         assert arm in NON_MEMORY_ARMS, f"{arm} would be voided by the search-rate floor"
         assert arm not in MEMORY_ARMS
-    for arm in ("recall", "mempalace", "fs_grep"):
+    for arm in ("recall", "mempalace", "fs_grep", "cachly"):
         assert arm in MEMORY_ARMS, f"{arm} retrieves through the agent and needs a search rate"

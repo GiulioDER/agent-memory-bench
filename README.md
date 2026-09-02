@@ -177,17 +177,18 @@ design rule came from.
 
 Implemented and runnable today: `bare`, `claude_md` (designated baseline), `placebo`
 (length-matched neutral prose), `protocol` (the memory instruction with no memory layer, which is
-what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep), and
-`recall`.
+what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep),
+`recall`, and one newly integrated vendor adapter through its published MCP server and
+vendor-supplied bulk loader.
 
-**Not built yet:** four third-party memory products. Those four are not named yet. Every
+**Not built yet:** three third-party memory products. Those three are not named yet. Every
 vendor is invited to review its own adapter and frozen config before any measured run, no
 invitation has gone out, and naming a product first would enter it into a benchmark nobody
 has told it about. They are named when the first preregistered run is announced, which is
 before the run rather than after it.
 
-Their `adapters/<name>/` directories currently hold a docstring and no `adapter.py`, no
-`VENDOR_REVIEW.md` exists for any adapter including `recall`, and no `versions.lock` exists
+The remaining `adapters/<name>/` directories currently hold a docstring and no `adapter.py`.
+No vendor review exists yet for the remaining placeholders, and no `versions.lock` exists
 either. Nothing here is a multi-product comparison until those land.
 
 Disclosure: this benchmark is built by the authors of recall, which competes in it. That is

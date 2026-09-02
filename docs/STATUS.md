@@ -196,7 +196,7 @@ measuring it needs a preregistration first.
 python -m pytest tests/test_instruction_fairness.py -q
 ```
 
-**Not built, four:** the remaining third-party memory products. They are not named yet, here
+**Not built, three:** the remaining third-party memory products. They are not named yet, here
 or on the site. Every vendor is invited to review its own adapter and frozen config before any
 measured run, no invitation has gone out, and naming a product first would enter it into a
 benchmark nobody has told it about.
@@ -205,9 +205,16 @@ benchmark nobody has told it about.
 published MCP server (`mempalace-mcp`) and its own published ingest CLI (`mempalace mine --mode
 convos`), pinned to `mempalace==3.8.0`.
 
+**Built and never run, one more:** `cachly` landed on 2026-09-02, wired through its published
+stdio MCP server, pinned to `@cachly-dev/mcp-server@0.10.145`. Its corpus load remains behind a
+vendor-supplied bulk loader, selected by `AMB_CACHLY_BULK_INGEST_COMMAND`, because the public
+MCP write tools are one at a time while the benchmark feed contains thousands of transcripts.
+The adapter refuses to run without that loader and a dedicated Brain instance.
+
 The name appears here and nowhere on the site, and that is the rule rather than an inconsistency:
 this repository is where a vendor reads what it is being asked to review, so
-`adapters/mempalace/` and its `VENDOR_REVIEW.md` are public on purpose. `site/` is what enters a
+`adapters/mempalace/` and `adapters/cachly/`, with their `VENDOR_REVIEW.md` files, are public on
+purpose. `site/` is what enters a
 product into a benchmark it was never told about, and there the arm is `product_e` with every
 number null until its maintainers have had the review window.
 

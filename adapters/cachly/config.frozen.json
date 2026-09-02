@@ -1,0 +1,32 @@
+{
+  "product": "cachly",
+  "package_pin": "@cachly-dev/mcp-server@0.10.145",
+  "server_name": "cachly",
+  "command": "npx",
+  "args": [
+    "-y",
+    "@cachly-dev/mcp-server@0.10.145"
+  ],
+  "instance_id_env": "CACHLY_BRAIN_INSTANCE_ID",
+  "api_key_env": "CACHLY_API_KEY",
+  "jwt_env": "CACHLY_JWT",
+  "api_url_env": "CACHLY_API_URL",
+  "bulk_ingest_command_env": "AMB_CACHLY_BULK_INGEST_COMMAND",
+  "bulk_ingest_timeout_seconds": 7200,
+  "tool_prefix": "mcp__cachly__",
+  "allowed_tools": [
+    "smart_recall",
+    "recall_best_solution",
+    "recall_context",
+    "team_recall",
+    "brain_search",
+    "causal_trace"
+  ],
+  "search_sentence": "This project's memory is a cachly Brain; search it with `mcp__cachly__smart_recall` before acting.",
+  "notes": {
+    "ingest": "The vendor supplied bulk loader receives AMB_CACHLY_CORPUS_ROOT, AMB_CACHLY_CORPUS_MANIFEST, AMB_CACHLY_NAMESPACE and AMB_CACHLY_EXPECTED_SESSIONS, and prints one JSON report. Its command is intentionally not stored in this public tree.",
+    "credentials": "The instance ID and API credential are environment values. The generated MCP config carries them only in an untracked run directory.",
+    "writes": "Session write and ambient learning tools are withheld because the corpus is frozen after ingest and no runner restores a Brain between seeds.",
+    "abstention": "Cachly's confidence threshold may return no result for absent or adjacent evidence. That is product behavior and remains observable through the agent's tool call and response."
+  }
+}
