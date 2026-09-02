@@ -52,6 +52,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from adapters.bare.adapter import BareAdapter
+from adapters.cachly.adapter import CachlyAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 from adapters.mempalace.adapter import MemPalaceAdapter
@@ -85,7 +86,7 @@ from harness.tasks import discover_tasks, run_checker
 from scripts.validate_run_setup import validate as validate_setup
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
-#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30.
+#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30 and `cachly` on 2026-09-02.
 #:
 #: ⚠️ `oracle_memory` has an adapter and has run, and is deliberately absent. Its bundles are
 #: keyed by task with NO condition, so it would supply verified evidence in `absent`, the
@@ -94,16 +95,16 @@ from scripts.validate_run_setup import validate as validate_setup
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "mempalace",
-    "recall_prefetch",
+    "recall_prefetch", "cachly",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall", "mempalace"})
+MEMORY_ARMS = frozenset({"fs_grep", "recall", "mempalace", "cachly"})
 
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
-SELF_INGESTING_ARMS = ("fs_grep", "mempalace")
+SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cachly")
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -200,6 +201,10 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["mempalace"] = MemPalaceAdapter.shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
+    if "cachly" in texts:
+        texts["cachly"] = CachlyAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
             "protocol",
@@ -282,6 +287,8 @@ def adapter_for(
         return RecallAdapter(staging, static, instruction=texts.get("recall") or None)
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
+    if arm == "cachly":
+        return CachlyAdapter(staging, static, instruction=texts.get("cachly") or None)
     if arm == "recall_prefetch":
         # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
         # is condition-aware for free: it delegates to whichever tenant the condition serves. The

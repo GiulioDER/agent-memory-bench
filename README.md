@@ -177,17 +177,18 @@ design rule came from.
 
 Implemented and runnable today: `bare`, `claude_md` (designated baseline), `placebo`
 (length-matched neutral prose), `protocol` (the memory instruction with no memory layer, which is
-what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep), and
-`recall`.
+what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep),
+`recall`, and one newly integrated vendor adapter through its published MCP server and
+vendor-supplied bulk loader.
 
-**Not built yet:** four third-party memory products. Those four are not named yet. Every
+**Not built yet:** three third-party memory products. Those three are not named yet. Every
 vendor is invited to review its own adapter and frozen config before any measured run, no
 invitation has gone out, and naming a product first would enter it into a benchmark nobody
 has told it about. They are named when the first preregistered run is announced, which is
 before the run rather than after it.
 
-Their `adapters/<name>/` directories currently hold a docstring and no `adapter.py`, no
-`VENDOR_REVIEW.md` exists for any adapter including `recall`, and no `versions.lock` exists
+The remaining `adapters/<name>/` directories currently hold a docstring and no `adapter.py`.
+No vendor review exists yet for the remaining placeholders, and no `versions.lock` exists
 either. Nothing here is a multi-product comparison until those land.
 
 Disclosure: this benchmark is built by the authors of recall, which competes in it. That is
@@ -264,10 +265,24 @@ What it does **not** do is tell you the benchmark is well designed. It tells you
 honest: these numbers came from these sessions. Whether the tasks measure memory and whether the
 corpus is fair is what the preregistrations and the vendor reviews are for.
 
-⚠️ Running it today reports that **`abstention-001` cannot be checked at all**: it was published
-with an `admission.json` and a `costs.json` and no records whatsoever. That is a real defect in
-that artifact, it is why this script exists, and it is stated here rather than left for a reader to
-discover.
+🔁 **Corrected 2026-09-02, and the correction is more interesting than the claim was.** This said
+that `abstention-001` **cannot be checked at all**, having been published with an `admission.json`
+and a `costs.json` and no records whatsoever. That was wrong. Its 99 records per condition were
+published all along, as the sibling files `results/abstention-001-<condition>-records.jsonl`
+rather than inside the run directory, and the verifier only looked inside. It now checks both
+layouts, and that run recomputes cleanly: session count, token total, discard set, admitted cells
+and all four endpoints.
+
+**The evidence was never missing, only unfindable, and a checker that cannot find evidence prints
+the same string as one that finds none.** The claim survived in this file because the tool's own
+output was quoted back into the documentation and never re-derived, which is exactly the failure
+this section exists to help a reader catch.
+
+What is still true: running `verify_run --all` today reports eight failures, every one of them a
+run whose per-session **streams** were never captured, so its records can be checked against each
+other but not against the sessions that produced them. Each prints a `note` naming the reason. The
+streams do not exist in any checkout or on the run host and are not recoverable; the full list is
+in [`docs/STATUS.md`](docs/STATUS.md).
 
 ### What a third party can reproduce today, and what they cannot
 

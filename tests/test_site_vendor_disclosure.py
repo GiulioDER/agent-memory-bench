@@ -7,8 +7,8 @@ on the site ahead of that invitation enters it into a benchmark nobody has told 
 and a name cannot be recalled once it has shipped.
 
 The generator already withholds those names (``scripts/build_leaderboard.py``). This test
-is the reason the withholding survives: the leaderboard is generated, but the four hand
-written pages are not, and a name reaches them through an ordinary edit that looks
+is the reason the withholding survives: the leaderboard is generated, but the hand-written
+pages are not, and a name reaches them through an ordinary edit that looks
 harmless in review.
 
 ``site/`` was the only published surface until 2026-09-01, when the Hugging Face cards were
@@ -52,10 +52,10 @@ def _undisclosed_names() -> list[str]:
 
     Two sources, and the second is why this is not derived from the leaderboard alone.
     ``public_arms()`` covers an arm that is ON the board under a placeholder.
-    ``UNDISCLOSED_PRODUCTS`` covers the ones that are not on the board at all: the four
-    vendor stubs, and any arm deferred out of a run. Deriving only from the board meant
+    ``UNDISCLOSED_PRODUCTS`` covers the ones that are not on the board at all: the vendor
+    stubs, and any arm deferred out of a run. Deriving only from the board meant
     that removing an arm from it also removed it from this guard, which is backwards, and
-    it left the four stubs unguarded the whole time.
+    it left the stubs unguarded the whole time.
     """
     generator = _generator()
     names = [

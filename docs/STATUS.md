@@ -196,7 +196,7 @@ measuring it needs a preregistration first.
 python -m pytest tests/test_instruction_fairness.py -q
 ```
 
-**Not built, four:** the remaining third-party memory products. They are not named yet, here
+**Not built, three:** the remaining third-party memory products. They are not named yet, here
 or on the site. Every vendor is invited to review its own adapter and frozen config before any
 measured run, no invitation has gone out, and naming a product first would enter it into a
 benchmark nobody has told it about.
@@ -205,9 +205,16 @@ benchmark nobody has told it about.
 published MCP server (`mempalace-mcp`) and its own published ingest CLI (`mempalace mine --mode
 convos`), pinned to `mempalace==3.8.0`.
 
+**Built and never run, one more:** `cachly` landed on 2026-09-02, wired through its published
+stdio MCP server, pinned to `@cachly-dev/mcp-server@0.10.145`. Its corpus load remains behind a
+vendor-supplied bulk loader, selected by `AMB_CACHLY_BULK_INGEST_COMMAND`, because the public
+MCP write tools are one at a time while the benchmark feed contains thousands of transcripts.
+The adapter refuses to run without that loader and a dedicated Brain instance.
+
 The name appears here and nowhere on the site, and that is the rule rather than an inconsistency:
 this repository is where a vendor reads what it is being asked to review, so
-`adapters/mempalace/` and its `VENDOR_REVIEW.md` are public on purpose. `site/` is what enters a
+`adapters/mempalace/` and `adapters/cachly/`, with their `VENDOR_REVIEW.md` files, are public on
+purpose. `site/` is what enters a
 product into a benchmark it was never told about, and there the arm is `product_e` with every
 number null until its maintainers have had the review window.
 
@@ -258,7 +265,48 @@ run as a failure on a clean clone, and that is the first check a sceptic runs. T
 existed on the run host the whole time and had simply never been committed. It is committed now,
 2,940 files, and all five conditions verify from their own sessions.
 
-**Two defects that came out of publishing it**, both recorded rather than worked around:
+## What `verify_run --all` reports, and why
+
+Measured 2026-09-02: **11 of 19 runs verify**. All eight failures have the same cause, and it is
+neither a doctored number nor a missing run.
+
+⛔ **Their per-session `streams/` were never captured.** Records can be checked against each other
+but not against the sessions that produced them. The streams are not in this checkout, not in the
+main checkout and not on the run host, so there is nothing to publish and the honest move is to
+annotate rather than repair. Each failure prints a `note` naming its reason, the entries live in
+`KNOWN_MISSING_STREAMS` in `scripts/verify_run.py`, and **they are annotated, not silenced**: every
+one still reports FAIL and still counts against the total.
+
+| run | why |
+|---|---|
+| `abstention-001-absent`, `abstention-001-superseded` | streams never captured |
+| `midband-001`, `resolution-001` | streams never captured |
+| `smoke-abstention-absent`, `smoke-sup2-superseded` | bring-up smoke runs, streams never captured |
+| `smoke-002` | bring-up smoke run, 4 sessions without a stream |
+| `pilot-001` | the earliest pilot, 72 of 287 sessions have a stream |
+
+A test asserts every entry still describes a failing run, so a note cannot outlive the thing it
+explains: publish a run's streams and the suite demands the note be deleted.
+
+🔁 **Corrected 2026-09-02: `abstention-001` was NOT published without records.** This file, the
+README and the verifier itself all said it had been published with an admission file, a cost
+ledger and no records at all. Its 99 records per condition were there all along, as the sibling
+files `results/abstention-001-<condition>-records.jsonl` rather than inside the run directory, and
+`_load_records` only looked inside. The run now recomputes cleanly on session count, token total,
+discard set, admitted cells and all four endpoints. **The evidence was never missing, only
+unfindable**, and a checker that cannot find evidence prints the same string as one that finds
+none. The wrong claim spread because the tool's output was quoted into the documentation and never
+re-derived.
+
+`results/retrieval/` is no longer treated as a run either. It holds `retrieval_probe.py` artifacts
+and no agent session ever ran under it, so reporting it as a run with missing evidence was a false
+alarm on a directory that will never have any.
+
+```bash
+python -m scripts.verify_run --all
+```
+
+**Two defects that came out of publishing official-003**, both recorded rather than worked around:
 
 1. ⛔ **The harness writes an absolute host path into every published artifact.** It records the
    invoking command, and that command names the CLI binary and the per-task prompt file by

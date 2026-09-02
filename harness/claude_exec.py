@@ -40,6 +40,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .decision_trace import decisions_from_tool_calls
 from .schema import DEFAULT_MEMORY_TOOL_PREFIX, SessionRecord
 
 if TYPE_CHECKING:  # Runner is only a return annotation here; runner.py is ported separately.
@@ -359,6 +360,7 @@ class TranscriptFields:
     retrieved_contexts: tuple[str, ...]
     failed_tool_calls: int
     subagent_tool_calls: int
+    runtime_decisions: tuple[dict[str, Any], ...]
 
 
 #: One tool call as it is assembled from the stream. The values are genuinely heterogeneous
@@ -477,6 +479,7 @@ def transcript_fields(
         retrieved_contexts=tuple(contexts),
         failed_tool_calls=sum(1 for call in ordered if call.get("is_error")),
         subagent_tool_calls=sum(1 for call in ordered if call.get("subagent")),
+        runtime_decisions=decisions_from_tool_calls(tool_calls),
     )
 
 
@@ -645,6 +648,7 @@ def build_record(
         conversation=conversation,
         reference_tool_calls=tuple(row.get("reference_tool_calls") or ()),
         tool_calls=fields.tool_calls,
+        runtime_decisions=fields.runtime_decisions,
         memory_call_count=fields.memory_call_count,
         memory_latency_ms=fields.memory_latency_ms,
         input_tokens=usage["input_tokens"],

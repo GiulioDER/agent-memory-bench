@@ -96,7 +96,7 @@ ADDITIVE_ARM_DEFINITIONS = {
 # disclosure tracks what has had its review window, and the two came apart the moment an arm was
 # deferred. Removing an arm from the board must not quietly remove it from this guard.
 # `tests/test_site_vendor_disclosure.py` reads this.
-UNDISCLOSED_PRODUCTS = ("mem0", "supermemory", "zep", "cognee")
+UNDISCLOSED_PRODUCTS = ("mem0", "supermemory", "zep", "cognee", "cachly")
 
 # What an undisclosed arm looks like on the page. The integration description is withheld
 # with the name, because "SaaS API" against a short field of candidates is most of an
