@@ -62,11 +62,57 @@ def _probe_text(files: list[Path]) -> str:
     return lines[len(lines) // 2][:200]
 
 
+def _configure_bounded_retries() -> dict[str, int | float | str | bool]:
+    """Keep one malformed LLM response from retrying the whole ingest indefinitely.
+
+    Cognee 1.5.3 decorates structured-output calls with a retry policy that requires both a
+    minimum attempt count and a minimum elapsed time. With its 240-second time floor, a provider
+    that repeatedly emits invalid JSON can hold one corpus ingest open for hours. The benchmark
+    needs a bounded failure that leaves a useful log and a non-cognified store instead.
+    """
+
+    try:
+        attempts = int(os.environ.get("AMB_COGNEE_LLM_RETRY_ATTEMPTS", "2"))
+        max_seconds = float(os.environ.get("AMB_COGNEE_LLM_RETRY_MAX_SECONDS", "30"))
+    except ValueError as error:
+        raise SystemExit(
+            "AMB_COGNEE_LLM_RETRY_ATTEMPTS must be an integer and "
+            "AMB_COGNEE_LLM_RETRY_MAX_SECONDS must be a number"
+        ) from error
+    if attempts < 1 or max_seconds <= 0:
+        raise SystemExit(
+            "AMB_COGNEE_LLM_RETRY_ATTEMPTS must be >= 1 and "
+            "AMB_COGNEE_LLM_RETRY_MAX_SECONDS must be > 0"
+        )
+
+    framework = os.environ.get("STRUCTURED_OUTPUT_FRAMEWORK", "litellm_native").lower()
+    policy: dict[str, int | float | str | bool] = {
+        "framework": framework,
+        "attempts": attempts,
+        "max_seconds": max_seconds,
+        "patched": False,
+    }
+    if framework != "litellm_native":
+        return policy
+
+    from tenacity import stop_after_attempt, stop_after_delay
+    from cognee.infrastructure.llm.structured_output_framework.litellm_native.native_adapter import (
+        NativeLiteLLMAdapter,
+    )
+
+    retrying = NativeLiteLLMAdapter.acreate_structured_output.retry
+    retrying.stop = stop_after_attempt(attempts) | stop_after_delay(max_seconds)
+    policy["patched"] = True
+    return policy
+
+
 async def _run(
     feed: Path, dataset: str, ceiling: float, token_ceiling: int, estimate_only: bool
 ) -> dict:
     import cognee
     from cognee.modules.search.types import SearchType
+
+    retry_policy = _configure_bounded_retries()
 
     files = sorted(feed.glob("*.md"))
     if not files:
@@ -76,7 +122,12 @@ async def _run(
 
     estimate = await cognee.cognify(datasets=[dataset], dry_run=True)
     estimate_dict = estimate.to_dict() if hasattr(estimate, "to_dict") else dict(estimate)
-    report = {"files": len(files), "dataset": dataset, "estimate": estimate_dict}
+    report = {
+        "files": len(files),
+        "dataset": dataset,
+        "estimate": estimate_dict,
+        "retry_policy": retry_policy,
+    }
 
     cost = float(estimate_dict.get("estimated_cost_usd") or 0.0)
     tokens = int(estimate_dict.get("total_tokens") or 0)
