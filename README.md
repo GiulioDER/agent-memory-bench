@@ -10,14 +10,25 @@ pass or they do not. No judge anywhere in the primary endpoint.
 
 ## Status
 
-Phase 0: harness bring-up and internal pilots. The first preregistered multi-product run will be
-announced before it happens, not after.
+An eight-arm run is on the leaderboard and it reports a **null**. In `official-003`, against a
+`CLAUDE.md` baseline of 0.577, an inert placebo arm carrying no memory content scored 0.672, a
+real memory layer scored 0.659, and no memory at all also scored 0.659. No arm's 95% interval
+excludes zero, and the baseline came last. Read the limits before the numbers: one seed per cell,
+the write path is not measured, and that run's preregistration was committed about two hours after
+its first session rather than before it, which is weaker than this project's own rule and is
+disclosed in the record.
+
+**I would rather be corrected than cited.** Checking my arithmetic costs nothing and needs no
+credentials: `python -m pytest tests/ -q` asks whether the instrument discriminates, and
+`python -m scripts.verify_run --all` asks whether the published numbers follow from the published
+sessions. What to run, what a replication report needs to be comparable, and what happens to it
+afterwards are in [`docs/REPLICATION.md`](docs/REPLICATION.md).
 
 **Where the benchmark actually stands, dated, with the command that re-derives each claim, is
-[`docs/STATUS.md`](docs/STATUS.md).** As of 2026-08-29: six arms run and four do not, the suite
+[`docs/STATUS.md`](docs/STATUS.md).** As of 2026-09-02: six arms run and four do not, the suite
 holds 30 executable tasks, eleven of them carry all four harm conditions, five internal pilots
-have run (four on one cheap model, one incomplete on a stronger one), and no multi-product run
-has happened. Every run a committed document cites is now in `results/`, along with the harm
+have run (four on one cheap model, one incomplete on a stronger one), and one eight-arm
+multi-product run is published. Every run a committed document cites is now in `results/`, along with the harm
 suite's first run and one diagnostic; **none of those is written up under its preregistration
 yet, so no number from them is quoted anywhere.** `docs/STATUS.md` lists what is published and
 what is still held back.

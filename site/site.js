@@ -74,6 +74,7 @@
     var nameTd = cell(null, span("m", "", false));
     nameTd.firstChild.appendChild(span(null, a.name, true));
     if (a.role) nameTd.appendChild(span("m-dim", " · " + a.role));
+    if (a.comparison) nameTd.appendChild(span("m-dim", " · " + a.comparison));
     /* Say WHY the row is blank. A blank row with no reason reads as "measured nothing", which is
        the opposite of what a hold means. */
     if (a.held) {
