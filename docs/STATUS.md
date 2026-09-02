@@ -265,7 +265,48 @@ run as a failure on a clean clone, and that is the first check a sceptic runs. T
 existed on the run host the whole time and had simply never been committed. It is committed now,
 2,940 files, and all five conditions verify from their own sessions.
 
-**Two defects that came out of publishing it**, both recorded rather than worked around:
+## What `verify_run --all` reports, and why
+
+Measured 2026-09-02: **11 of 19 runs verify**. All eight failures have the same cause, and it is
+neither a doctored number nor a missing run.
+
+⛔ **Their per-session `streams/` were never captured.** Records can be checked against each other
+but not against the sessions that produced them. The streams are not in this checkout, not in the
+main checkout and not on the run host, so there is nothing to publish and the honest move is to
+annotate rather than repair. Each failure prints a `note` naming its reason, the entries live in
+`KNOWN_MISSING_STREAMS` in `scripts/verify_run.py`, and **they are annotated, not silenced**: every
+one still reports FAIL and still counts against the total.
+
+| run | why |
+|---|---|
+| `abstention-001-absent`, `abstention-001-superseded` | streams never captured |
+| `midband-001`, `resolution-001` | streams never captured |
+| `smoke-abstention-absent`, `smoke-sup2-superseded` | bring-up smoke runs, streams never captured |
+| `smoke-002` | bring-up smoke run, 4 sessions without a stream |
+| `pilot-001` | the earliest pilot, 72 of 287 sessions have a stream |
+
+A test asserts every entry still describes a failing run, so a note cannot outlive the thing it
+explains: publish a run's streams and the suite demands the note be deleted.
+
+🔁 **Corrected 2026-09-02: `abstention-001` was NOT published without records.** This file, the
+README and the verifier itself all said it had been published with an admission file, a cost
+ledger and no records at all. Its 99 records per condition were there all along, as the sibling
+files `results/abstention-001-<condition>-records.jsonl` rather than inside the run directory, and
+`_load_records` only looked inside. The run now recomputes cleanly on session count, token total,
+discard set, admitted cells and all four endpoints. **The evidence was never missing, only
+unfindable**, and a checker that cannot find evidence prints the same string as one that finds
+none. The wrong claim spread because the tool's output was quoted into the documentation and never
+re-derived.
+
+`results/retrieval/` is no longer treated as a run either. It holds `retrieval_probe.py` artifacts
+and no agent session ever ran under it, so reporting it as a run with missing evidence was a false
+alarm on a directory that will never have any.
+
+```bash
+python -m scripts.verify_run --all
+```
+
+**Two defects that came out of publishing official-003**, both recorded rather than worked around:
 
 1. ⛔ **The harness writes an absolute host path into every published artifact.** It records the
    invoking command, and that command names the CLI binary and the per-task prompt file by

@@ -30,10 +30,15 @@ live run refuses to start without explicit prices and a clean `preregistration/`
 The second re-derives the cost ledger, the endpoints and the discard set from each run's own
 per-session records and fails if they disagree with what was committed.
 
-⚠️ **`verify_run` reports a real failure today, and that is not a bug in your checkout.**
-`abstention-001` was published with an `admission.json` and a `costs.json` and no records at all,
-so it cannot be checked. It is stated in the README too, because a reader should not discover it
-after spending an evening.
+⚠️ **`verify_run --all` reports eight failures today, and none of them is a bug in your
+checkout.** Every one is a run whose per-session **streams** were never captured, so its records
+can be checked against each other but not against the sessions that produced them. Each prints a
+`note` line naming the reason. Those streams do not exist in any checkout or on the run host and
+are not recoverable, so the honest state is annotated rather than repaired, and the failures still
+count against the verified total rather than being silenced. The list is in
+[`docs/STATUS.md`](STATUS.md).
+
+If you find a failure that carries **no** `note`, that is a new finding and worth reporting.
 
 Neither command tells you the benchmark is well designed. They tell you the arithmetic is honest
 and the instrument discriminates. Whether the tasks measure memory is what the preregistrations

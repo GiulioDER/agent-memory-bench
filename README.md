@@ -265,10 +265,24 @@ What it does **not** do is tell you the benchmark is well designed. It tells you
 honest: these numbers came from these sessions. Whether the tasks measure memory and whether the
 corpus is fair is what the preregistrations and the vendor reviews are for.
 
-⚠️ Running it today reports that **`abstention-001` cannot be checked at all**: it was published
-with an `admission.json` and a `costs.json` and no records whatsoever. That is a real defect in
-that artifact, it is why this script exists, and it is stated here rather than left for a reader to
-discover.
+🔁 **Corrected 2026-09-02, and the correction is more interesting than the claim was.** This said
+that `abstention-001` **cannot be checked at all**, having been published with an `admission.json`
+and a `costs.json` and no records whatsoever. That was wrong. Its 99 records per condition were
+published all along, as the sibling files `results/abstention-001-<condition>-records.jsonl`
+rather than inside the run directory, and the verifier only looked inside. It now checks both
+layouts, and that run recomputes cleanly: session count, token total, discard set, admitted cells
+and all four endpoints.
+
+**The evidence was never missing, only unfindable, and a checker that cannot find evidence prints
+the same string as one that finds none.** The claim survived in this file because the tool's own
+output was quoted back into the documentation and never re-derived, which is exactly the failure
+this section exists to help a reader catch.
+
+What is still true: running `verify_run --all` today reports eight failures, every one of them a
+run whose per-session **streams** were never captured, so its records can be checked against each
+other but not against the sessions that produced them. Each prints a `note` naming the reason. The
+streams do not exist in any checkout or on the run host and are not recoverable; the full list is
+in [`docs/STATUS.md`](docs/STATUS.md).
 
 ### What a third party can reproduce today, and what they cannot
 
