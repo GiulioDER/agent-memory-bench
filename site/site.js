@@ -39,6 +39,9 @@
   function ciTxt(c) {
     return c ? "[" + (100 * c[0]).toFixed(1) + ", " + (100 * c[1]).toFixed(1) + "]" : null;
   }
+  function tokenTxt(x) {
+    return x == null ? null : Number(x).toLocaleString("en-US");
+  }
 
   function span(cls, text, bold) {
     var s = document.createElement(bold ? "strong" : "span");
@@ -99,6 +102,11 @@
       a.delta === 0 ? span("m-dim", "baseline") : (pts(a.delta) && span("m", pts(a.delta)))));
     tr.appendChild(cell("num", ciTxt(a.ci) && span("m", ciTxt(a.ci))));
     tr.appendChild(cell("num", a.discarded == null ? null : span("m", String(a.discarded))));
+    /* Total token spend is meaningful for vendors only. Controls retain a deliberate dash so
+       this column cannot be mistaken for a missing measurement. */
+    tr.appendChild(cell("num", !a.role && a.totalTokens != null
+      ? span("m", tokenTxt(a.totalTokens))
+      : span("m-dim", "—")));
     /* Costs here are sub-cent per task: toFixed(2) rendered every arm as $0.00 and made the
        column useless. Scale the precision to the magnitude so a real difference is visible. */
     tr.appendChild(cell("num", a.costPerTask == null ? null : span("m", "$" + (

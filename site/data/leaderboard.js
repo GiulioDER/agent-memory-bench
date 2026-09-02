@@ -44,6 +44,7 @@ window.AMB_LEADERBOARD = {
       "discarded": 28,
       "tokensPerTask": 66337,
       "costPerTask": 0.0044,
+      "totalTokens": 23408500,
       "sourceRun": "official-003",
       "byCondition": {
         "present": {
@@ -77,6 +78,7 @@ window.AMB_LEADERBOARD = {
       "discarded": null,
       "tokensPerTask": null,
       "costPerTask": null,
+      "totalTokens": null,
       "sourceRun": "official-003",
       "byCondition": null,
       "held": "held for vendor review",

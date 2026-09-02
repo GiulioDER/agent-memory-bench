@@ -54,6 +54,7 @@ def _summary():
         "delta": 0.1,
         "ci": [0.0, 0.2],
         "discarded": 1,
+        "totalTokens": 12345,
         "tokensPerTask": 200,
         "costPerTask": 1.25,
     }
@@ -136,6 +137,18 @@ def test_official_summary_fills_the_page(tmp_path):
     assert data["run"]["id"] == "run-x"
     recall = next(a for a in data["arms"] if a["name"] == "recall")
     assert recall["success"] == 0.5 and recall["costPerTask"] == 1.25
+    assert recall["totalTokens"] == 12345
+    control = next(a for a in data["arms"] if a["name"] == "claude_md")
+    assert "totalTokens" not in control
+
+
+def test_a_vendor_summary_must_publish_total_tokens(tmp_path):
+    summary = _summary()
+    del summary["arms"]["recall"]["totalTokens"]
+    root = _scaffold(tmp_path, summary=summary, official_run="run-x")
+    result = _run(root=root)
+    assert result.returncode != 0
+    assert "vendor arm 'recall' is missing fields" in (result.stdout + result.stderr)
 
 
 def test_an_additive_arm_joins_the_frozen_base_without_a_full_roster(tmp_path):
@@ -164,6 +177,7 @@ def test_an_additive_arm_joins_the_frozen_base_without_a_full_roster(tmp_path):
             "delta": 0.05,
             "ci": [-0.1, 0.2],
             "discarded": 2,
+            "totalTokens": 45678,
             "tokensPerTask": 300,
             "costPerTask": 1.75,
         },
@@ -211,6 +225,7 @@ def test_an_additive_arm_must_match_the_frozen_base(tmp_path):
             "delta": 0.05,
             "ci": [-0.1, 0.2],
             "discarded": 2,
+            "totalTokens": 45678,
             "tokensPerTask": 300,
             "costPerTask": 1.75,
         },
@@ -347,6 +362,7 @@ def test_a_held_arm_publishes_no_numbers_even_when_the_summary_has_them(tmp_path
         assert row["success"] is None, f"{internal} published a success while held"
         assert row["delta"] is None and row["ci"] is None
         assert row["costPerTask"] is None
+        assert row["totalTokens"] is None
 
 
 def test_a_held_arm_says_why_and_links_the_thread(tmp_path):

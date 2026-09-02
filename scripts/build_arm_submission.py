@@ -169,6 +169,10 @@ def _result(
         if interval is not None
         else None,
         "discarded": len(all_product_discarded),
+        # End-to-end arm spend: session tokens plus any hosted ingestion tokens. Keep the raw
+        # total alongside the per-task average so vendor runs remain comparable when their
+        # session counts or retry counts differ.
+        "totalTokens": total_tokens,
         "tokensPerTask": round(total_tokens / total_sessions) if total_sessions else None,
         "costPerTask": round(total_usd / total_sessions, 4) if total_sessions else None,
         "byCondition": by_condition,

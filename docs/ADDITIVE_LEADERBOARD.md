@@ -45,6 +45,7 @@ The submission run contains `results/cognee-001/arm_summary.json`:
     "delta": 0.0,
     "ci": [0.0, 0.0],
     "discarded": 0,
+    "totalTokens": 0,
     "tokensPerTask": 0,
     "costPerTask": 0.0,
     "byCondition": {}
@@ -76,6 +77,8 @@ mode, which regenerates the summary from the records and fails if anybody edits 
 6. The report states the joined cell count and the base cells lost to the join. It never presents a
    joined result as if it enlarged the frozen base grid.
 7. Search-rate floors, ingestion tokens and wall time are reported using the preregistered rules.
+   The vendor result also carries `totalTokens`, the end-to-end session plus hosted-ingestion
+   token total shown on the leaderboard for direct spend comparison.
 8. The arm is not named publicly while its vendor review hold is active.
 
 The page carries the source run for every row. An additive row is labelled as joined to the base
