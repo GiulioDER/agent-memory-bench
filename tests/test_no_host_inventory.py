@@ -74,6 +74,13 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/008-midband-task-calibration.md",
         "preregistration/009-bare-resolution-remeasure.md",
         "preregistration/014-official-run-recall-vs-mempalace.md",
+        # Prose, three times, and none of it a value: "Run on VPS2", and the reason the run goes
+        # there rather than to the development workstation, whose Xeon X5690 has no AVX and so
+        # cannot execute cognee's vector store. Which machine a measurement ran on is part of the
+        # record, and the standing rule is that a gate never forces an edit to a preregistration:
+        # the check gets an exemption, the record does not get rewritten. Joins 008, 009 and 014
+        # above, which are exempt for exactly this.
+        "preregistration/027-cognee-joined-pass.md",
         "reports/pilot-004-placebo-report.md",
         "scripts/launch_official.sh",
         "scripts/run_diagnostic_guarded.ps1",
