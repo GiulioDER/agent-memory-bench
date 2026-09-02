@@ -40,6 +40,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -106,6 +107,30 @@ def _configure_bounded_retries() -> dict[str, int | float | str | bool]:
     return policy
 
 
+def _store_matches_feed(files: list[Path]) -> bool:
+    """Return whether the configured SQLite store already contains exactly this feed."""
+
+    if os.environ.get("DB_PROVIDER", "").lower() != "sqlite":
+        return False
+    system_root = os.environ.get("SYSTEM_ROOT_DIRECTORY")
+    if not system_root:
+        return False
+    database = Path(system_root) / "databases" / "cognee_db"
+    if not database.is_file():
+        return False
+
+    try:
+        with sqlite3.connect(database) as connection:
+            names = {
+                row[0]
+                for row in connection.execute("SELECT name FROM data")
+                if row[0] is not None
+            }
+    except sqlite3.Error:
+        return False
+    return names == {path.stem for path in files}
+
+
 async def _run(
     feed: Path, dataset: str, ceiling: float, token_ceiling: int, estimate_only: bool
 ) -> dict:
@@ -118,7 +143,9 @@ async def _run(
     if not files:
         raise SystemExit(f"no rendered documents in {feed}")
 
-    await cognee.add(data=[str(path) for path in files], dataset_name=dataset)
+    add_skipped = _store_matches_feed(files)
+    if not add_skipped:
+        await cognee.add(data=[str(path) for path in files], dataset_name=dataset)
 
     estimate = await cognee.cognify(datasets=[dataset], dry_run=True)
     estimate_dict = estimate.to_dict() if hasattr(estimate, "to_dict") else dict(estimate)
@@ -127,6 +154,7 @@ async def _run(
         "dataset": dataset,
         "estimate": estimate_dict,
         "retry_policy": retry_policy,
+        "add_skipped": add_skipped,
     }
 
     cost = float(estimate_dict.get("estimated_cost_usd") or 0.0)
