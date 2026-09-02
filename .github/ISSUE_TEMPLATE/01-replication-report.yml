@@ -1,0 +1,86 @@
+name: Replication report
+description: You re-ran the benchmark and are reporting what you got, whether or not it matched.
+title: "[replication] "
+labels: ["replication"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for spending real money on someone else's claim.
+
+        A report that **contradicts** a published result is more useful than one that confirms
+        it, and it will be answered in the open. Corrections are made by appending to the
+        preregistration, never by editing a published number.
+
+        Read [docs/REPLICATION.md](https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/REPLICATION.md)
+        first if you have not.
+  - type: dropdown
+    id: tier
+    attributes:
+      label: What did you run?
+      options:
+        - Tier 0, the test suite only, no model spend
+        - Tier 1, control arms (bare / claude_md / placebo / fs_grep)
+        - Tier 2, a product arm
+        - An extension (different model, corpus, or a new arm)
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Did it match?
+      options:
+        - Matched, same direction and same significance
+        - Diverged, different direction or different significance
+        - Could not complete the run
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Run id targeted, and the commit sha you ran at
+      description: >-
+        Both, please. The instrument changed on 2026-08-29, so a result measured across that
+        boundary is not comparable with one measured before it.
+      placeholder: "official-003 at b32dee7"
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model, provider and Claude Code CLI version
+      description: >-
+        Below CLI 2.1.221 a pending MCP server runs the session without its tools while
+        reporting success. If you are under that version, say so.
+      placeholder: "deepseek-v4-flash via OpenRouter, claude-code 2.1.221"
+    validations:
+      required: true
+  - type: textarea
+    id: cells
+    attributes:
+      label: Arms, seeds, admitted cells and discarded cells
+      description: >-
+        The discard count is not a footnote. A cell is admitted only when every arm produced a
+        record, so discards are the single largest threat to any comparison. Report them even
+        when they are zero.
+    validations:
+      required: true
+  - type: textarea
+    id: numbers
+    attributes:
+      label: What you measured
+      description: >-
+        Success rate per arm, the contrast against the baseline, and the prices you passed to
+        --price-in / --price-out / --price-as-of. Compare on tokens where you can: two published
+        runs of this project were priced on different bases and neither artifact said so.
+    validations:
+      required: true
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Artifacts
+      description: >-
+        A link to your results/<run_id>/ directory if you can publish it. Per-session logs and
+        admission verdicts are what make a divergence diagnosable rather than arguable.
+    validations:
+      required: false

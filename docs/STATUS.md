@@ -1,4 +1,4 @@
-# Status of the benchmark, 2026-08-29
+# Status of the benchmark, 2026-09-02
 
 What has actually been measured, what has been built but not measured, and what is blocked.
 
@@ -9,13 +9,40 @@ re-derives it.
 
 ## Phase
 
-**Harness bring-up and internal pilots.** No multi-product run has happened. The leaderboard is
-empty by construction: `site/data/leaderboard.config.json` carries `"official_run": null`, and a
-number reaches the page only through `results/<run_id>/leaderboard_summary.json`, which no run
-has yet produced. Four of the eight arms the leaderboard reserves a row for have a package
-docstring and no adapter.
+**A multi-product run is on the board, and it reports a null.** `official-003` published on
+2026-09-02: eight arms over one corpus, 2,920 sessions, 317 admitted cells, 26 tasks, five
+conditions, on `deepseek-v4-flash`. `site/data/leaderboard.config.json` carries
+`"official_run": "official-003"`, and a number still reaches the page only through
+`results/<run_id>/leaderboard_summary.json`, generated and checked against its own regeneration by
+CI. Four of the eight arms the leaderboard reserves a row for still have a package docstring and
+no adapter.
 
-The first preregistered multi-product run is announced before it happens, not after it succeeds.
+⚠️ **Until 2026-09-02 this section said no multi-product run had happened and the leaderboard was
+empty by construction. Both were true when written on 2026-08-29 and were contradicted by the
+repository's own committed config for a day before anyone noticed.** That is the rot this file's
+dating exists to make visible, and it is recorded here rather than quietly overwritten.
+
+**Three things about that run a reader should not have to dig for.**
+
+1. **It does not meet the announcement gates as the site states them.** Preregistration 026 was
+   committed about two hours after the first session rather than before it, and the run was not
+   announced in advance. 026 discloses that in its own first paragraph. It is weaker evidence than
+   020 or 021 and must not be cited as though it had been written before launch.
+2. **The headline is a null, and the placebo won.** Against a `claude_md` baseline of 0.577, the
+   inert `placebo` arm scored 0.672, a memory layer 0.659, and `bare` also 0.659. No arm's 95%
+   interval excludes zero, and the baseline came last.
+3. **One seed per cell, and the write path is not measured.** Every arm was handed the same corpus
+   before the grid and never wrote to its own store, so the board ranks retrieval, not memory
+   formation. The leaderboard carries that qualification in its own `scope` block.
+
+`mempalace`'s row publishes nothing until 2026-09-15, held for vendor review by
+`VENDOR_REVIEW_HOLDS` in `scripts/build_leaderboard.py` rather than by anyone remembering to.
+
+The next preregistered run is announced before it happens, not after it succeeds.
+
+```bash
+python -c "import json;print(json.load(open('site/data/leaderboard.config.json')))"
+```
 
 ## Runs to date
 
@@ -31,6 +58,7 @@ The first preregistered multi-product run is announced before it happens, not af
 | `resolution-001` | `deepseek-v4-flash` | bare | 30 tasks x 12 seeds | the stratification preregistrations 007 and 009 rest on | yes |
 | `abstention-001` | `deepseek-v4-flash` | bare, claude_md, recall | 32 and 30 admitted | harm suite, two of four conditions; **not written up, do not quote** | yes |
 | `diagnostic-010` | `deepseek-v4-flash` | claude_md, recall, oracle_memory, recall_prefetch | 70 admitted | reference tracks; **not written up, do not quote** | yes |
+| `official-003` | `deepseek-v4-flash` | all eight | 2,920 sessions, **317 admitted, 48 discarded** | on the leaderboard; a null, and `placebo` scored highest. Preregistration 026 committed mid run | yes |
 | `smoke-002`, `smoke-abstention-absent`, `smoke-sup2-superseded` | mixed | mixed | bring-up | wiring only, never a result | partial |
 
 Four things this table carries that a reader should not have to reconstruct.
@@ -222,7 +250,29 @@ inferred from a `results/` tree that only ever showed what had been committed. T
 Six complete ones are now committed, so the honest statement has moved again, from "this
 repository cannot show you any of them" to the list below.
 
-**Published as artifacts**, 620 files and 26 MB, added 2026-08-29:
+⚠️ **Corrected again on 2026-09-02, and this one was worse, because the run it concerned was on
+the public leaderboard.** `official-003` was published to the board on 2026-09-02 with its
+`leaderboard_summary.json` and nothing else: no records, no streams, no admission verdicts, no
+cost ledger. Rule 8 on the Submit page promises all four, `verify_run --all` reported the flagship
+run as a failure on a clean clone, and that is the first check a sceptic runs. The evidence had
+existed on the run host the whole time and had simply never been committed. It is committed now,
+2,940 files, and all five conditions verify from their own sessions.
+
+**Two defects that came out of publishing it**, both recorded rather than worked around:
+
+1. ⛔ **The harness writes an absolute host path into every published artifact.** It records the
+   invoking command, and that command names the CLI binary and the per-task prompt file by
+   absolute path. `official-003` carried 21,449 such occurrences across records and streams, and
+   they were redacted to the literal `$HOME` before publication; the redaction is stated in the
+   commit and the five conditions verify identically after it. **This is a harness fix, not a
+   publishing step**, and until it lands every future run needs the same redaction by hand. The
+   ratchet in `tests/test_no_host_inventory.py` is what forces the question.
+2. **That guard could not see inside gzipped streams**, which is the form every run publishes its
+   sessions in, so it had a blind spot on 279 files of `official-003` alone. Closed 2026-09-02,
+   with a positive control, and it made 304 pre-existing `diagnostic-010` stream files visible.
+
+**Published as artifacts**, 620 files and 26 MB, added 2026-08-29, plus `official-003` on
+2026-09-02:
 
 | run | what is there |
 |---|---|

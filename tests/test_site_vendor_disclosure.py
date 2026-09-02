@@ -76,8 +76,31 @@ def _card_files() -> list[Path]:
     return sorted(HUGGINGFACE.glob("*-card.md"))
 
 
+def _front_door_files() -> list[Path]:
+    """The files an invited stranger reads first, added 2026-09-02 with the promotion path.
+
+    These are not deployed by ``pages.yml`` and are published anyway, because the repository is
+    public: ``README.md`` is rendered on the repository's own front page, the issue templates are
+    rendered by GitHub when anyone opens an issue, and ``docs/REPLICATION.md`` is what the
+    templates and the posts point at. Inviting outside runners aims traffic squarely at this set,
+    so leaving it outside the guard would widen exactly the hole the guard exists to close.
+
+    Scope is deliberately these files rather than all of ``docs/``: the guard matches substrings
+    and over-matches on purpose, and a design document that discusses the vendor landscape has a
+    legitimate reason to name a product that a front door does not.
+
+    Both spellings of the template suffix are collected. GitHub accepts ``.yml`` and ``.yaml``
+    interchangeably, so globbing one of them would leave a template added under the other
+    spelling unguarded while every test here still passed.
+    """
+    templates = REPO_ROOT / ".github" / "ISSUE_TEMPLATE"
+    files = [REPO_ROOT / "README.md", REPO_ROOT / "docs" / "REPLICATION.md"]
+    files += sorted(p for p in templates.glob("*") if p.suffix in {".yml", ".yaml"})
+    return [p for p in files if p.is_file()]
+
+
 def _published_files() -> list[Path]:
-    return _site_files() + _card_files()
+    return _site_files() + _card_files() + _front_door_files()
 
 
 def _names_in(path: Path, names) -> list[str]:
@@ -108,6 +131,23 @@ def test_both_hugging_face_cards_are_present():
     cards = {p.name for p in _card_files()}
     assert cards == {"dataset-card.md", "space-card.md"}, (
         f"expected the two uploaded cards under {HUGGINGFACE}, found {sorted(cards)}"
+    )
+
+
+def test_the_front_door_files_are_present():
+    """Same reason as the two above: a renamed template makes the glob return nothing.
+
+    The issue templates are the likeliest to move, because GitHub accepts either ``.yml`` or
+    ``.yaml`` and a rename to the other spelling would leave this guard passing over a set it no
+    longer covers.
+    """
+    found = {p.name for p in _front_door_files()}
+    missing = {"README.md", "REPLICATION.md"} - found
+    assert not missing, f"expected the front door files, missing {sorted(missing)}"
+    templates = [p for p in _front_door_files() if p.suffix == ".yml"]
+    assert len(templates) >= 3, (
+        f"expected the issue templates under {REPO_ROOT / '.github' / 'ISSUE_TEMPLATE'}, "
+        f"found {[p.name for p in templates]}"
     )
 
 

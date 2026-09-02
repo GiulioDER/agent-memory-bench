@@ -431,3 +431,50 @@ def test_the_archive_directory_is_not_treated_as_a_run(tmp_path, monkeypatch):
         "be reported, because a gutted run directory is exactly what this verifier exists to "
         "catch"
     )
+
+
+def test_a_leaderboard_rollup_is_not_a_run_but_a_gutted_directory_still_is(tmp_path):
+    """The roll-up is excluded by what it HAS, never by what it lacks.
+
+    A run measured per condition publishes its sessions under `<run>-<condition>/` and its
+    leaderboard summary under `<run>/`. That summary directory carries no sessions and never
+    will, so reporting it as unverifiable is a false alarm on the one name a reader checks
+    first. A directory carrying neither summary nor records is a different thing entirely: it is
+    a run whose evidence went missing, and it must still be reported.
+    """
+    from scripts import verify_run as vr
+
+    results = tmp_path / "results"
+    rollup = results / "official-999"
+    rollup.mkdir(parents=True)
+    (rollup / "leaderboard_summary.json").write_text("{}", encoding="utf-8")
+
+    gutted = results / "official-999-present"
+    gutted.mkdir()
+
+    both = results / "official-999-absent"
+    both.mkdir()
+    (both / "leaderboard_summary.json").write_text("{}", encoding="utf-8")
+    (both / "records.final.jsonl").write_text("", encoding="utf-8")
+
+    # A run that lost its records and kept the rest. The tempting predicate, "has a summary and
+    # no records", would hide this one, and it is the single artifact this verifier exists to
+    # catch.
+    hollowed = results / "official-999-adjacent"
+    hollowed.mkdir()
+    (hollowed / "leaderboard_summary.json").write_text("{}", encoding="utf-8")
+    (hollowed / "admission.json").write_text("{}", encoding="utf-8")
+
+    names = [d.name for d in vr.run_targets(results)]
+    assert "official-999" not in names, "a summary-only roll-up is not a run and must not be checked"
+    assert "official-999-present" in names, (
+        "a directory with neither summary nor records is a gutted run, and excluding it would "
+        "turn this verifier into the thing it warns about"
+    )
+    assert "official-999-absent" in names, (
+        "a directory that carries records is a run even when a summary sits beside them"
+    )
+    assert "official-999-adjacent" in names, (
+        "a run whose records went missing must still be reported; only a LONE summary file is a "
+        "roll-up"
+    )

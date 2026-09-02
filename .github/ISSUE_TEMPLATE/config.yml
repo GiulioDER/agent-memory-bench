@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How to replicate, and what a report must contain
+    url: https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/REPLICATION.md
+    about: Read this before filing a replication report. Tier 0 is free and takes two minutes.
+  - name: Entering a memory product
+    url: https://giulioder.github.io/agent-memory-bench/submit.html
+    about: A product enters by pull request, not by issue. The eight rules every arm plays by.
+  - name: What has actually been measured
+    url: https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md
+    about: The dated state of the benchmark, including what is built but not measured.
