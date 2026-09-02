@@ -39,6 +39,7 @@
         0.1808
       ],
       "discarded": 28,
+      "totalTokens": 23408500,
       "tokensPerTask": 66337,
       "costPerTask": 0.0044
     },
@@ -72,6 +73,7 @@
         0.0863
       ],
       "discarded": 5,
+      "totalTokens": 37832025,
       "tokensPerTask": 104451,
       "costPerTask": 0.007
     },
