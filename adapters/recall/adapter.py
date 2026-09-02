@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -43,6 +44,10 @@ from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
+
+#: A POSIX environment variable name. See `RecallAdapter._extra_env` for why a name from a
+#: config file is validated rather than quoted.
+_ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 
@@ -225,6 +230,25 @@ def parse_ranked_search(
 class RecallAdapter(MemoryAdapter):
     name = "recall"
 
+    #: The frozen configuration this arm IS, read through `self` and never through the module
+    #: constant. A sibling arm is the same product under a different retrieval setting, so it
+    #: subclasses this class and repoints one path; `build` and `describe` publish a sha256 of this
+    #: file, and hashing the module constant would stamp every variant with the base arm's digest.
+    #: Two arms whose records claim the same configuration are two arms a reader cannot tell apart,
+    #: which is the failure the digest exists to prevent.
+    config_path: Path = _CONFIG_PATH
+
+    #: Environment keys a variant config may NOT set through `extra_env`.
+    #:
+    #: These five decide WHAT is served: the database, the embedder, the tenant, the store the
+    #: search reads, and the trust gate. Everything a variant is for lives downstream of them, in
+    #: how the retrieved candidates are ranked. A variant that could reach these would be a
+    #: different experiment wearing the same product's name, and it would be invisible in the
+    #: records because both arms publish the same tool prefix and the same server.
+    reserved_env = frozenset(
+        {"RECALL_DSN", "RECALL_EMBEDDER", "RECALL_TENANT", "RECALL_ENV", "RECALL_TRUST_MODE"}
+    )
+
     #: `served` only, and the absence of `raw` is a deliberate refusal rather than a gap.
     #:
     #: A `raw` mode would mean overriding `RECALL_TRUST_MODE`, which is `strict` in
@@ -301,7 +325,7 @@ class RecallAdapter(MemoryAdapter):
     ) -> None:
         self.staging_root = Path(staging_root)
         self.base_prompt_file = Path(base_prompt_file)
-        self.config = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+        self.config = json.loads(self.config_path.read_text(encoding="utf-8"))
         #: Which instruction to put ABOVE the static bundle. None keeps the frozen
         #: one-liner. scripts/pilot.py has always chosen this per run and the pilots
         #: chose the shipped skill; the diagnostic could not, so its recall arm was a
@@ -353,6 +377,49 @@ class RecallAdapter(MemoryAdapter):
     def _dsn(self) -> str:
         return self._location('dsn')
 
+    def _extra_env(self) -> dict[str, str]:
+        """Retrieval settings a variant config adds to the server's environment.
+
+        Absent from `adapters/recall/config.frozen.json` on purpose, so the base arm's server
+        command stays BYTE-IDENTICAL to the one every published run used. A variant declares its
+        settings here rather than in code, which keeps the whole difference between two arms
+        readable in one diff of two frozen files.
+
+        Refuses rather than merges on a reserved key. Silently letting a variant repoint
+        `RECALL_TENANT` would serve it a different corpus while every gate, digest and admission
+        signal still read `recall`; the same argument the frozen config's `location` note makes
+        about defaults applies to overrides.
+        """
+
+        raw = self.config.get("extra_env") or {}
+        if not isinstance(raw, dict):
+            raise TypeError(
+                f"{self.config_path.name}: extra_env must be an object of environment "
+                f"assignments, not {type(raw).__name__}"
+            )
+        reserved = sorted(set(raw) & self.reserved_env)
+        if reserved:
+            raise RuntimeError(
+                f"{self.config_path.name}: extra_env may not set {reserved}. Those keys decide "
+                f"which corpus is served and under which trust gate, so a variant that moved them "
+                f"would be a different experiment publishing this arm's name."
+            )
+        # ⛔ The KEYS are validated, not just quoted, because `_remote_command` interpolates them
+        # into a shell command as `KEY=<quoted value>`. `shlex.quote` is applied to the value and
+        # cannot be applied to the name, so a key holding a space or a `;` would inject a command
+        # into the string a login shell then executes on the serving host. Nothing before this
+        # change could reach that interpolation with attacker-shaped text, because every key was a
+        # literal in this file; `extra_env` is the first path that carries a name in from data, and
+        # the same class of hole was found in `launch_official.sh` during the 2026-08-30 audit.
+        for key in raw:
+            if not _ENV_NAME.fullmatch(str(key)):
+                raise RuntimeError(
+                    f"{self.config_path.name}: extra_env key {key!r} is not an environment "
+                    f"variable name. It is interpolated into a shell command on the serving host, "
+                    f"where a name is not quotable."
+                )
+        return {str(key): str(value) for key, value in raw.items()}
+
     def _server_env(self, namespace: str) -> dict[str, str]:
         # The env block REPLACES the environment: everything the server needs must be here.
         env = {
@@ -367,6 +434,7 @@ class RecallAdapter(MemoryAdapter):
             # was applied to the remote command and the MCP server env but NOT here, so the
             # published search path and the prefetch path disagreed about which store they read.
             "RECALL_ENV": str(self.config["environment"]),
+            **self._extra_env(),
         }
         # ⚠️ The list below is the WHOLE environment the child gets, and it was written when the
         # embedder was a local model that needed no credential. `voyage:voyage-4` is hosted, so
@@ -700,6 +768,7 @@ class RecallAdapter(MemoryAdapter):
             "RECALL_EMBEDDER": str(self.config["embedder"]),
             "RECALL_TENANT": namespace,
             "RECALL_ENV": str(self.config["environment"]),
+            **self._extra_env(),
         }
         assignments = " ".join(f"{k}={shlex.quote(v)}" for k, v in exports.items())
         return (
@@ -790,7 +859,7 @@ class RecallAdapter(MemoryAdapter):
         mcp_config_path.write_text(json.dumps(mcp_config, indent=2), encoding="utf-8")
         prefix = str(self.config["tool_prefix"])
         digest = hashlib.sha256(
-            _CONFIG_PATH.read_bytes() + prompt.read_bytes()
+            self.config_path.read_bytes() + prompt.read_bytes()
         ).hexdigest()
         return ArmSpec(
             arm=self.name,
@@ -838,6 +907,6 @@ class RecallAdapter(MemoryAdapter):
         return {
             "arm": self.name,
             "memory": "static+retrieved",
-            "config_sha256": hashlib.sha256(_CONFIG_PATH.read_bytes()).hexdigest(),
+            "config_sha256": hashlib.sha256(self.config_path.read_bytes()).hexdigest(),
             "package_pin": self.config.get("package_pin"),
         }

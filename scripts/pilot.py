@@ -58,6 +58,7 @@ from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
+from adapters.recall_rerank.adapter import RecallRerankAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
 from harness.adapters.base import (
@@ -86,7 +87,12 @@ from harness.tasks import discover_tasks, run_checker
 from scripts.validate_run_setup import validate as validate_setup
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
-#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30 and `cachly` on 2026-09-02.
+#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30, `recall_rerank` and `cachly` on
+#: 2026-09-02.
+#:
+#: `recall_rerank` is `recall` with its Voyage reranker on, and it belongs in the SAME grid rather
+#: than in a second run: paired inside one grid the corpus feed, the model, the suite and the
+#: admitted set are held constant by construction, where across two runs none of them are.
 #:
 #: ⚠️ `oracle_memory` has an adapter and has run, and is deliberately absent. Its bundles are
 #: keyed by task with NO condition, so it would supply verified evidence in `absent`, the
@@ -94,13 +100,13 @@ from scripts.validate_run_setup import validate as validate_setup
 #: ceiling in `present` and in the single-corpus diagnostic where it ran. Admitting it here needs
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
-    "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "mempalace",
-    "recall_prefetch", "cachly",
+    "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
+    "mempalace", "recall_prefetch", "cachly",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall", "mempalace", "cachly"})
+MEMORY_ARMS = frozenset({"fs_grep", "recall", "recall_rerank", "mempalace", "cachly"})
 
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
@@ -186,6 +192,12 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
         texts["recall"] = recall_instruction(variant, neutral=neutral)
+    if "recall_rerank" in texts:
+        # The SAME call, not a copy of the same words. `recall_rerank` varies retrieval and nothing
+        # else, so its instruction must be byte-identical to `recall`'s; deriving both from one
+        # function makes that true by construction, where a second appendix file could drift and
+        # the drift would show up as a reranker effect.
+        texts["recall_rerank"] = recall_instruction(variant, neutral=neutral)
     if "fs_grep" in texts:
         texts["fs_grep"] = (
             FsGrepAdapter.shared_instruction(neutral=neutral, variant=variant)
@@ -285,6 +297,10 @@ def adapter_for(
         return FsGrepAdapter(staging, static, instruction=texts.get("fs_grep") or None)
     if arm == "recall":
         return RecallAdapter(staging, static, instruction=texts.get("recall") or None)
+    if arm == "recall_rerank":
+        return RecallRerankAdapter(
+            staging, static, instruction=texts.get("recall_rerank") or None
+        )
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
     if arm == "cachly":
