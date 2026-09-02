@@ -424,7 +424,7 @@ def build(repo_root: str | Path) -> str:
     public_sources = {
         public: arm_sources[internal]
         for internal, public, _arm_type, _role in public_arms(definitions)
-        if internal in arm_sources and arm_sources[internal]
+        if arm_sources.get(internal)
     }
     data = {
         "updated": config["updated"],
