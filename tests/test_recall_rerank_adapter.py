@@ -137,3 +137,27 @@ def test_the_two_arms_receive_a_byte_identical_instruction(variant):
     texts = pilot.memory_instructions(variant, ("bare", "recall", "recall_rerank"))
     assert texts["recall_rerank"] == texts["recall"]
     assert texts["recall"].strip()
+
+
+def test_the_cli_search_path_is_refused_rather_than_answering_unreranked(recall_location):
+    """recall's reranker is in `recall_mcp`; `recall.cli` ignores RECALL_RERANK entirely.
+
+    Inheriting `search` would return the base arm's ranking under this arm's name, from a
+    subprocess whose environment claims the reranker is on.
+    """
+
+    adapter = RecallRerankAdapter("staging", REPO / "corpus" / "README.md")
+    with pytest.raises(NotImplementedError, match="recall_mcp"):
+        adapter.search("bench-official", "any query")
+
+
+@pytest.mark.parametrize(
+    "bad_key", ["RECALL_RERANK; rm -rf /", "RECALL RERANK", "1RECALL", "RECALL-RERANK"]
+)
+def test_an_environment_key_that_is_not_a_name_is_refused(recall_location, bad_key):
+    """`_remote_command` interpolates the KEY unquoted; only the value can be shell-quoted."""
+
+    adapter = RecallRerankAdapter("staging", REPO / "corpus" / "README.md")
+    adapter.config["extra_env"] = {bad_key: "1"}
+    with pytest.raises(RuntimeError, match="environment variable name"):
+        adapter._remote_command("bench-official")

@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -43,6 +44,10 @@ from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
+
+#: A POSIX environment variable name. See `RecallAdapter._extra_env` for why a name from a
+#: config file is validated rather than quoted.
+_ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 
@@ -399,6 +404,20 @@ class RecallAdapter(MemoryAdapter):
                 f"which corpus is served and under which trust gate, so a variant that moved them "
                 f"would be a different experiment publishing this arm's name."
             )
+        # ⛔ The KEYS are validated, not just quoted, because `_remote_command` interpolates them
+        # into a shell command as `KEY=<quoted value>`. `shlex.quote` is applied to the value and
+        # cannot be applied to the name, so a key holding a space or a `;` would inject a command
+        # into the string a login shell then executes on the serving host. Nothing before this
+        # change could reach that interpolation with attacker-shaped text, because every key was a
+        # literal in this file; `extra_env` is the first path that carries a name in from data, and
+        # the same class of hole was found in `launch_official.sh` during the 2026-08-30 audit.
+        for key in raw:
+            if not _ENV_NAME.fullmatch(str(key)):
+                raise RuntimeError(
+                    f"{self.config_path.name}: extra_env key {key!r} is not an environment "
+                    f"variable name. It is interpolated into a shell command on the serving host, "
+                    f"where a name is not quotable."
+                )
         return {str(key): str(value) for key, value in raw.items()}
 
     def _server_env(self, namespace: str) -> dict[str, str]:

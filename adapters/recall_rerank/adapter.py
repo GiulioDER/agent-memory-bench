@@ -22,8 +22,10 @@ config files.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from adapters.recall.adapter import RecallAdapter
+from harness.adapters.base import RankedResult
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 
@@ -33,3 +35,29 @@ class RecallRerankAdapter(RecallAdapter):
 
     name = "recall_rerank"
     config_path = _CONFIG_PATH
+
+    def search(self, *args: Any, **kwargs: Any) -> RankedResult:
+        """Refused, because THIS path does not rerank and would not say so.
+
+        ⛔ The reranker exists only in `recall_mcp`. `recall.cli`, which `RecallAdapter.search`
+        shells out to, contains no reference to `RECALL_RERANK` and builds no reranker: verified
+        2026-09-02 against the installed 0.11.0 by grepping both packages. The environment this
+        adapter hands that subprocess carries `RECALL_RERANK=1` and the CLI ignores it.
+
+        So inheriting `search` would return the BASE arm's ranking under this arm's name, from a
+        command whose environment says otherwise, with nothing raising. `scripts/retrieval_probe.py
+        --arm recall_rerank` would then report the two arms as identical and that number would be
+        an artefact of the probe rather than a property of the reranker. A visible refusal is the
+        better failure, by the same argument `parse_ranked_search` makes about never turning a
+        parse failure into an empty result.
+
+        The agent's path is unaffected: sessions reach recall through the MCP server, which does
+        rerank, and `_remote_command` is what carries the setting there.
+        """
+
+        raise NotImplementedError(
+            "recall_rerank has no CLI search path: recall's reranker lives in recall_mcp, and "
+            "`recall.cli` ignores RECALL_RERANK, so this would publish the unreranked ranking "
+            "under this arm's name. Measure this arm's retrieval through its MCP server, or probe "
+            "`recall` if the unreranked ranking is what you want."
+        )
