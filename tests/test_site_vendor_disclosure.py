@@ -88,9 +88,14 @@ def _front_door_files() -> list[Path]:
     Scope is deliberately these files rather than all of ``docs/``: the guard matches substrings
     and over-matches on purpose, and a design document that discusses the vendor landscape has a
     legitimate reason to name a product that a front door does not.
+
+    Both spellings of the template suffix are collected. GitHub accepts ``.yml`` and ``.yaml``
+    interchangeably, so globbing one of them would leave a template added under the other
+    spelling unguarded while every test here still passed.
     """
+    templates = REPO_ROOT / ".github" / "ISSUE_TEMPLATE"
     files = [REPO_ROOT / "README.md", REPO_ROOT / "docs" / "REPLICATION.md"]
-    files += sorted((REPO_ROOT / ".github" / "ISSUE_TEMPLATE").glob("*.yml"))
+    files += sorted(p for p in templates.glob("*") if p.suffix in {".yml", ".yaml"})
     return [p for p in files if p.is_file()]
 
 
