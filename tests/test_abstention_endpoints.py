@@ -19,6 +19,7 @@ import pytest
 
 from harness.abstention import (
     ABSTAINABLE,
+    CONDITIONS,
     DAMAGE_ONLY,
     TWO_SIDED,
     Cell,
@@ -327,6 +328,19 @@ def test_every_published_endpoints_file_satisfies_the_invariant(published):
     if not isinstance(arms, dict) or not arms:
         pytest.skip(f"{published.name} carries no arms block")
 
+    # ⚠️ Scope, found 2026-09-02 when official-003 was published. Endpoint 2 iterates
+    # `harness.abstention.CONDITIONS`, which is the four DAMAGE conditions and excludes `present`,
+    # while endpoint 1 pools every cell it is given. So on a run that carries `present` the two
+    # cannot be equal, and the gap is exactly that condition's DAMAGE_ONLY cells: official-003
+    # counted 161 pooled against 127 split across four conditions, on all seven arms identically,
+    # which is the signature of a partition difference rather than of dropped data.
+    #
+    # Equality is asserted only where it can hold. Everywhere else the DIRECTION is still
+    # asserted, and the direction is what caught the original defect: `abstention-001` pooled 33
+    # against 57 per-condition, pooled SMALLER than split, which is impossible when the pooled set
+    # is a superset. Weakening to "pooled >= split" therefore keeps the detection that mattered.
+    extra = sorted(set(report.get("conditions") or ()) - set(CONDITIONS))
+
     for arm, block in arms.items():
         # ⚠️ The DAMAGE_ONLY stratum specifically, not the sum over every stratum. Endpoint 1
         # covers all three strata; endpoint 2 filters to DAMAGE_ONLY tasks. Comparing the totals
@@ -338,6 +352,16 @@ def test_every_published_endpoints_file_satisfies_the_invariant(published):
             s["n_paired_cells"] for s in (block.get("2_damage_rate_by_condition") or {}).values()
         )
         if not pooled_cells and not split:
+            continue
+        if extra:
+            assert pooled_cells >= split, (
+                f"{published.name}, arm {arm}: endpoint 1's DAMAGE_ONLY stratum counts "
+                f"{pooled_cells} paired cells while endpoint 2 counts {split} across its "
+                f"conditions. Endpoint 1 pools a SUPERSET here, because this run also carries "
+                f"{extra}, which endpoint 2 does not cover; pooled below split means the pooled "
+                f"endpoint dropped conditions, which is what keying `_paired` without the "
+                f"condition did."
+            )
             continue
         assert pooled_cells == split, (
             f"{published.name}, arm {arm}: endpoint 1's DAMAGE_ONLY stratum counts "
