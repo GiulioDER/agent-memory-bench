@@ -135,7 +135,7 @@ def _configured_data_per_batch() -> int:
     """Return the bounded Cognify item concurrency for this hosted ingest."""
 
     try:
-        data_per_batch = int(os.environ.get("AMB_COGNEE_DATA_PER_BATCH", "80"))
+        data_per_batch = int(os.environ.get("AMB_COGNEE_DATA_PER_BATCH", "40"))
     except ValueError as error:
         raise SystemExit("AMB_COGNEE_DATA_PER_BATCH must be an integer") from error
     if data_per_batch < 1:
@@ -143,9 +143,37 @@ def _configured_data_per_batch() -> int:
     return data_per_batch
 
 
+def _configure_request_timeout() -> int:
+    """Ensure every provider request has a finite timeout."""
+
+    try:
+        timeout_seconds = int(
+            os.environ.get("AMB_COGNEE_LLM_REQUEST_TIMEOUT_SECONDS", "120")
+        )
+    except ValueError as error:
+        raise SystemExit("AMB_COGNEE_LLM_REQUEST_TIMEOUT_SECONDS must be an integer") from error
+    if timeout_seconds < 1:
+        raise SystemExit("AMB_COGNEE_LLM_REQUEST_TIMEOUT_SECONDS must be >= 1")
+
+    raw_args = os.environ.get("LLM_ARGS", "").strip()
+    if raw_args:
+        try:
+            llm_args = json.loads(raw_args)
+        except json.JSONDecodeError as error:
+            raise SystemExit("LLM_ARGS must contain a JSON object") from error
+        if not isinstance(llm_args, dict):
+            raise SystemExit("LLM_ARGS must contain a JSON object")
+    else:
+        llm_args = {}
+    llm_args.setdefault("timeout", timeout_seconds)
+    os.environ["LLM_ARGS"] = json.dumps(llm_args)
+    return int(llm_args["timeout"])
+
+
 async def _run(
     feed: Path, dataset: str, ceiling: float, token_ceiling: int, estimate_only: bool
 ) -> dict:
+    request_timeout = _configure_request_timeout()
     import cognee
     from cognee.modules.search.types import SearchType
 
@@ -169,6 +197,7 @@ async def _run(
         "retry_policy": retry_policy,
         "add_skipped": add_skipped,
         "data_per_batch": data_per_batch,
+        "request_timeout_seconds": request_timeout,
     }
 
     cost = float(estimate_dict.get("estimated_cost_usd") or 0.0)
