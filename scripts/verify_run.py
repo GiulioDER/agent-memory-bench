@@ -603,6 +603,27 @@ def _is_leaderboard_rollup(d: Path) -> bool:
     return len(contents) == 1 and contents[0].name == "leaderboard_summary.json"
 
 
+def _is_leaderboard_rollup(d: Path) -> bool:
+    """True for a directory that carries only the published leaderboard roll-up.
+
+    ``site/data/leaderboard.config.json`` points at ``results/<run_id>/leaderboard_summary.json``,
+    and for a run measured per condition that summary is a roll-up ACROSS the five condition
+    directories rather than a run of its own: ``official-003`` holds the summary while
+    ``official-003-present`` and its four siblings hold the sessions. Reporting the roll-up as an
+    unverifiable run is the wolf-crying this module warns about nine lines above, and it named the
+    flagship run, which is the one a reader checks first.
+
+    The test is that the summary is the ONLY thing there, never merely that records are absent.
+    A run that lost its records while keeping everything else is a gutted run, and "no records"
+    alone would hide exactly the artifact this verifier exists to catch. Requiring a lone file
+    means anything still carrying an admission.json, a costs.json or a streams/ directory is
+    reported however little else survives; ``tests/test_verify_run.py`` pins both halves.
+    """
+
+    contents = list(d.iterdir())
+    return len(contents) == 1 and contents[0].name == "leaderboard_summary.json"
+
+
 
 def run_targets(results: Path) -> list[Path]:
     """Every published run directory under `results`, in name order.
