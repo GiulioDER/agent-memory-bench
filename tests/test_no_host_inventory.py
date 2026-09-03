@@ -66,7 +66,7 @@ INVENTORY = (
 #: claimed "no tracked configuration or script may name a host" and enforced something narrower.
 HOST_ALIAS = "vps2"
 
-#: Tracked files that mention the alias in prose today, measured 2026-08-30. A ratchet, like
+#: Tracked files that mention the alias in prose today, measured 2026-09-03. A ratchet, like
 #: KNOWN_RESULT_ARTIFACTS: this set may shrink, and a NEW file mentioning the host is a finding.
 KNOWN_PROSE_MENTIONS = frozenset(
     {
@@ -76,6 +76,8 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/008-midband-task-calibration.md",
         "preregistration/009-bare-resolution-remeasure.md",
         "preregistration/014-official-run-recall-vs-mempalace.md",
+        "preregistration/030-recall-decision-emission-live-retry.md",
+        "preregistration/036-recall-decision-instrumentation-completion-smoke.md",
         "reports/pilot-004-placebo-report.md",
         "scripts/launch_official.sh",
         "scripts/run_diagnostic_guarded.ps1",

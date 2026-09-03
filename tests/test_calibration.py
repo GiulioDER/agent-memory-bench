@@ -4,6 +4,7 @@ import pytest
 
 from harness.calibration import (
     CalibrationExample,
+    audit_record_labels,
     calibrate,
     examples_from_records,
     expected_calibration_error,
@@ -81,6 +82,33 @@ def test_record_confidence_is_joined_to_an_external_label() -> None:
 def test_record_without_confidence_is_not_a_calibration_observation() -> None:
     records = [{"task_id": "t1", "seed": 0, "arm": "recall", "runtime_decisions": []}]
     assert examples_from_records(records, {"t1/0/recall": True}) == []
+
+
+def test_record_label_audit_explains_inclusions_and_exclusions() -> None:
+    records = [
+        {
+            "task_id": "included",
+            "seed": 0,
+            "arm": "recall",
+            "runtime_decisions": [{"decision": "answer", "confidence": 0.8}],
+        },
+        {"task_id": "unscored", "seed": 0, "arm": "recall", "runtime_decisions": []},
+        {
+            "task_id": "unlabelled",
+            "seed": 0,
+            "arm": "recall",
+            "runtime_decisions": [{"decision": "answer", "confidence": 0.2}],
+        },
+    ]
+    audit = audit_record_labels(
+        records,
+        {"included/0/recall": True, "unscored/0/recall": False},
+    )
+    assert [row["record_id"] for row in audit["included_records"]] == ["included/0/recall"]
+    assert {row["reason"] for row in audit["excluded_records"]} == {
+        "no_confidence",
+        "missing_label",
+    }
 
 
 def test_twenty_perfect_examples_clear_the_certification_gate() -> None:

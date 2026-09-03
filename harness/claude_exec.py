@@ -41,6 +41,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .decision_trace import decisions_from_result_events, decisions_from_tool_calls
+from .retrieval_trace import summarize_memory_calls
 from .schema import DEFAULT_MEMORY_TOOL_PREFIX, SessionRecord
 
 if TYPE_CHECKING:  # Runner is only a return annotation here; runner.py is ported separately.
@@ -360,6 +361,30 @@ def _is_subagent(event: Mapping[str, Any]) -> bool:
     return event.get("parent_tool_use_id") is not None
 
 
+def _decision_identity(value: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Compare decisions without their transport source, so terminal echo is not double counted."""
+
+    return tuple(
+        value.get(key)
+        for key in ("decision", "confidence", "threshold", "reason", "stage")
+    )
+
+
+def _merge_runtime_decisions(
+    tool_decisions: Sequence[Mapping[str, Any]],
+    result_decisions: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Keep a StructuredOutput event once when Claude also echoes it as terminal output."""
+
+    merged = [dict(item) for item in tool_decisions]
+    tool_identities = {_decision_identity(item) for item in merged}
+    for item in result_decisions:
+        if _decision_identity(item) in tool_identities:
+            continue
+        merged.append(dict(item))
+    return tuple(merged)
+
+
 @dataclass(frozen=True)
 class TranscriptFields:
     """Everything the record needs that has to be reconstructed from the event stream."""
@@ -373,6 +398,7 @@ class TranscriptFields:
     failed_tool_calls: int
     subagent_tool_calls: int
     runtime_decisions: tuple[dict[str, Any], ...]
+    memory_retrieval: dict[str, Any]
 
 
 #: One tool call as it is assembled from the stream. The values are genuinely heterogeneous
@@ -480,6 +506,11 @@ def transcript_fields(
         }
         for call in ordered
     )
+    memory_retrieval = summarize_memory_calls(
+        tool_calls, memory_tool_prefix=memory_tool_prefix
+    )
+    tool_decisions = decisions_from_tool_calls(tool_calls)
+    result_decisions = decisions_from_result_events(events)
     return TranscriptFields(
         conversation=tuple(conversation),
         tool_calls=tool_calls,
@@ -491,9 +522,8 @@ def transcript_fields(
         retrieved_contexts=tuple(contexts),
         failed_tool_calls=sum(1 for call in ordered if call.get("is_error")),
         subagent_tool_calls=sum(1 for call in ordered if call.get("subagent")),
-        runtime_decisions=(
-            decisions_from_tool_calls(tool_calls) + decisions_from_result_events(events)
-        ),
+        runtime_decisions=_merge_runtime_decisions(tool_decisions, result_decisions),
+        memory_retrieval=memory_retrieval,
     )
 
 
@@ -630,6 +660,7 @@ def build_record(
         "api_retries": len(retries),
         "failed_tool_calls": fields.failed_tool_calls,
         "subagent_tool_calls": fields.subagent_tool_calls,
+        "memory_retrieval": fields.memory_retrieval,
         # Kept apart because they are not priced alike: a cache read is far cheaper than a fresh
         # token and cache creation is dearer. input_tokens above is their sum.
         "fresh_input_tokens": usage.get("fresh_input_tokens"),
@@ -664,6 +695,13 @@ def build_record(
         tool_calls=fields.tool_calls,
         runtime_decisions=fields.runtime_decisions,
         memory_call_count=fields.memory_call_count,
+        memory_calls_attempted=fields.memory_retrieval["attempted"],
+        memory_calls_succeeded=fields.memory_retrieval["succeeded"],
+        memory_calls_failed=fields.memory_retrieval["failed"],
+        memory_search_abstained=fields.memory_retrieval["abstained"],
+        memory_hits_returned=fields.memory_retrieval["hits_returned"],
+        memory_trust_states=tuple(fields.memory_retrieval["trust_states"]),
+        memory_error_codes=tuple(fields.memory_retrieval["error_codes"]),
         memory_latency_ms=fields.memory_latency_ms,
         input_tokens=usage["input_tokens"],
         output_tokens=usage["output_tokens"],

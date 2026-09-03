@@ -299,6 +299,8 @@ def run_condition(args, condition: str) -> Path:
     ]
     if args.emit_decisions:
         command.append("--emit-decisions")
+    if args.emit_decision_stages:
+        command.append("--emit-decision-stages")
     # Forwarded rather than defaulted, so every condition of a suite is priced identically and
     # the basis is the one the operator chose.
     for flag, value in (
@@ -528,6 +530,11 @@ def main() -> int:
         "preregistered suite",
     )
     parser.add_argument(
+        "--emit-decision-stages",
+        action="store_true",
+        help="forward pilot.py's staged decision output mode; requires --emit-decisions",
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
         help="skip conditions that already wrote admission.json. A PARTIAL condition is "
@@ -542,6 +549,9 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     add_pricing_arguments(parser)
     args = parser.parse_args()
+
+    if args.emit_decision_stages and not args.emit_decisions:
+        raise SystemExit("--emit-decision-stages requires --emit-decisions")
 
     # Validated HERE, before the first ingest, even though this script prices nothing itself and
     # only forwards the rates to pilot. Letting pilot refuse would be correct and far too late:
