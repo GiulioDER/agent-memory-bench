@@ -51,6 +51,23 @@ decision that is present in the raw stream.
 
 <!-- results are appended below this line; everything above is frozen -->
 
+## Results appended, 2026-09-03
+
+The corrected smoke ran on VPS2 from benchmark commit `59dddff0` under
+`decision-emission-smoke-20260903-matched`. Both sessions were admitted and both produced a
+terminal `structured_output` object in the raw gzip stream:
+
+| arm | terminal object | recorded decision | confidence | checker |
+|---|---|---|---:|---|
+| `bare` | present | `answer` | 1.0 | failed: produced `ORD-24GI`, expected `ORD-24GJ` |
+| `protocol` | present | `answer` | 1.0 | failed: produced `ORD-24GI`, expected `ORD-24GJ` |
+
+The two records contain `runtime_decisions` with source `result.structured_output`, and the raw
+streams contain the same decision and confidence. The process produced 45,883 model tokens and the
+estimated spend was $0.003. `scripts.verify_run` passed the session, token, discard, admission and
+stream consistency checks. The checker failures are task outcomes and do not falsify the decision
+emission question.
+
 ## Setup correction, 2026-09-03, before any model session
 
 The first launch was refused before a Claude process started because the existing setup gate
