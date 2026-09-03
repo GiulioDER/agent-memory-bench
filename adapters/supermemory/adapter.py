@@ -124,11 +124,18 @@ class SupermemoryAdapter(MemoryAdapter):
             raise RuntimeError(f"Supermemory API returned non JSON for {path}: {raw[:400]!r}") from error
 
     def _stored_verification(self, namespace: str, query: str) -> int:
-        result = self._request(
-            str(self.config["search_path"]),
-            {"containerTag": namespace, "q": query[:500]},
-            timeout_s=30.0,
-        )
+        try:
+            result = self._request(
+                str(self.config["search_path"]),
+                {"containerTag": namespace, "q": query[:500]},
+                timeout_s=30.0,
+            )
+        except TimeoutError:
+            # Supermemory Local accepts writes before its asynchronous extraction and
+            # embedding queue has finished. A profile read can therefore time out while
+            # the write is valid; the bounded outer poll decides whether it eventually
+            # becomes searchable.
+            return 0
         search = result.get("searchResults") if isinstance(result, dict) else None
         results = search.get("results") if isinstance(search, dict) else None
         return len(results) if isinstance(results, list) else 0
