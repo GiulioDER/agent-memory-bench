@@ -68,6 +68,11 @@ def test_hook_integration_is_actually_wired_through_the_executor():
     assert "config_dir" in _fields(ClaudeExecConfig)
 
 
+def test_the_full_pilot_passes_each_arm_config_dir_to_the_executor():
+    source = (REPO / "scripts" / "pilot.py").read_text(encoding="utf-8")
+    assert "config_dir=spec.config_dir" in source
+
+
 def test_the_contract_does_not_promise_an_instruction_length_cap():
     """A cap would be an arbitrary line advantaging whoever sits under it. recall's skill is 5,428
     characters; the contract's answer to a longer one is to ship it."""

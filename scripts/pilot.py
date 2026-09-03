@@ -940,6 +940,7 @@ async def main() -> int:
             timeout_s=args.timeout,
             env=env,
             bare=spec.bare,
+            config_dir=spec.config_dir,
             mcp_config=spec.mcp_config,
             strict_mcp_config=bool(spec.mcp_config),
             allowed_tools=BASE_TOOLS + spec.extra_allowed_tools,
