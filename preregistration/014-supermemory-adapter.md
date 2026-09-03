@@ -1,6 +1,6 @@
 # 014: Supermemory adapter smoke and timing gate
 
-Status: DRAFT until committed; the prediction section is frozen after commit.
+Status: FROZEN in commit `c4a9037`; the prediction and gate are not edited after measurement.
 
 ## Question
 
