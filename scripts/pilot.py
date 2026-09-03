@@ -59,6 +59,7 @@ from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
+from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
 from harness.adapters.base import (
@@ -109,16 +110,16 @@ from scripts.validate_run_setup import validate as validate_setup
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
-    "mempalace", "recall_prefetch", "cachly",
+    "mempalace", "recall_prefetch", "cachly", "supermemory",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall", "recall_rerank", "mempalace", "cachly"})
+MEMORY_ARMS = frozenset({"fs_grep", "recall", "recall_rerank", "mempalace", "cachly", "supermemory"})
 
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
-SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cachly")
+SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cachly", "supermemory")
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -225,6 +226,10 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["cachly"] = CachlyAdapter.shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
+    if "supermemory" in texts:
+        texts["supermemory"] = SupermemoryAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
             "protocol",
@@ -313,6 +318,8 @@ def adapter_for(
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
     if arm == "cachly":
         return CachlyAdapter(staging, static, instruction=texts.get("cachly") or None)
+    if arm == "supermemory":
+        return SupermemoryAdapter(staging, static, instruction=texts.get("supermemory") or None)
     if arm == "recall_prefetch":
         # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
         # is condition-aware for free: it delegates to whichever tenant the condition serves. The
