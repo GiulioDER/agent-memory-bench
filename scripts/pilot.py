@@ -77,6 +77,11 @@ from harness.costs import (
     summarize,
 )
 from harness.damage import CORPUS_CONDITIONS, PRESENT, Outcome, outcome_for
+from harness.decision_trace import (
+    DECISION_OUTPUT_INSTRUCTION,
+    DECISION_OUTPUT_SCHEMA,
+    with_decision_output_instruction,
+)
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.io import write_jsonl
@@ -548,6 +553,13 @@ async def main() -> int:
         "the answer to what is being measured. Not comparable with a run without it.",
     )
     parser.add_argument(
+        "--emit-decisions",
+        action="store_true",
+        help="require each Claude session to finish with one schema-constrained decision object "
+        "containing decision and confidence, and record it in runtime_decisions. This changes "
+        "the prompt contract, so use it only in a separately preregistered run.",
+    )
+    parser.add_argument(
         "--arms",
         default=",".join(DEFAULT_ARMS),
         help=f"comma-separated subset of {','.join(ARMS)}",
@@ -648,6 +660,7 @@ async def main() -> int:
         print(f"[dry-run] arms   {list(run_arms)}")
         print(f"[dry-run] instruction variant {args.memory_instruction!r}, "
               f"neutral={args.neutral_protocol}")
+        print(f"[dry-run] structured decisions {args.emit_decisions}")
         for arm in run_arms:
             print(f"[dry-run]   {arm:<10} instruction {manifest[arm]['bytes']:>5} bytes")
         print(f"[dry-run] tasks  {len(tasks)}: {', '.join(task.task_id for task in tasks)}")
@@ -740,6 +753,20 @@ async def main() -> int:
                 "arms": list(run_arms),
                 "memory_instruction": args.memory_instruction,
                 "neutral_protocol": args.neutral_protocol,
+                "decision_output": {
+                    "enabled": args.emit_decisions,
+                    "schema": DECISION_OUTPUT_SCHEMA if args.emit_decisions else None,
+                    "instruction_sha256": (
+                        hashlib.sha256(DECISION_OUTPUT_INSTRUCTION.encode("utf-8")).hexdigest()
+                        if args.emit_decisions
+                        else None
+                    ),
+                    "confidence_semantics": (
+                        "probability that the requested task was completed correctly"
+                        if args.emit_decisions
+                        else None
+                    ),
+                },
                 # The fairness disclosure, published beside the success rates. Under `skill` the
                 # recall arm carries thousands of bytes more than any other; under `protocol` the
                 # gap is each product's capped result-schema appendix and nothing else.
@@ -837,6 +864,7 @@ async def main() -> int:
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
             stream_dir=run_dir / "streams",
+            json_schema=DECISION_OUTPUT_SCHEMA if args.emit_decisions else None,
         )
 
     records_path = run_dir / "records.jsonl"
@@ -912,7 +940,15 @@ async def main() -> int:
         return final
 
     rows = [
-        {"task_id": task.task_id, "seed": seed, "user_input": task.prompt}
+        {
+            "task_id": task.task_id,
+            "seed": seed,
+            "user_input": (
+                with_decision_output_instruction(task.prompt)
+                if args.emit_decisions
+                else task.prompt
+            ),
+        }
         for task in tasks
         for seed in range(args.seeds)
     ]

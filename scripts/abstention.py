@@ -297,6 +297,8 @@ def run_condition(args, condition: str) -> Path:
         "--condition", condition,
         "--memory-instruction", args.memory_instruction,
     ]
+    if args.emit_decisions:
+        command.append("--emit-decisions")
     # Forwarded rather than defaulted, so every condition of a suite is priced identically and
     # the basis is the one the operator chose.
     for flag, value in (
@@ -518,6 +520,12 @@ def main() -> int:
         "own official integration and forbids prescribing the route. `protocol` equalises the "
         "text across arms, which is a useful ablation and is NOT the product comparison: it "
         "measures a common denominator none of the products actually ships.",
+    )
+    parser.add_argument(
+        "--emit-decisions",
+        action="store_true",
+        help="forward pilot.py's schema-constrained decision output mode; use only in a separately "
+        "preregistered suite",
     )
     parser.add_argument(
         "--resume",

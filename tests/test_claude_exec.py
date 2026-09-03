@@ -103,6 +103,17 @@ def test_command_puts_prompt_after_flags_and_never_uses_a_shell() -> None:
     assert command[command.index("--disallowed-tools") + 1] == "Bash(docker *)"
 
 
+def test_command_can_request_schema_constrained_output() -> None:
+    config = _config(json_schema={
+        "type": "object",
+        "required": ["decision", "confidence"],
+    })
+    command = config.command("do the thing")
+    assert command[command.index("--json-schema") + 1] == (
+        '{"required":["decision","confidence"],"type":"object"}'
+    )
+
+
 @pytest.mark.skipif(shutil.which("claude") is None, reason="Claude Code is not installed here")
 def test_the_npm_shim_is_resolved_to_a_native_binary() -> None:
     """A `.cmd` wrapper cannot be started at all, so resolution must reach the real executable.
