@@ -48,3 +48,10 @@ session. The gate treats `skill` as an unmatched instruction and refuses it for 
 The actual probe therefore uses `protocol`, the current matched instruction variant, while keeping
 the same task set, model, namespace and session count. The predictions above concern the resulting
 live probe; the blocked `skill` configuration produced no measurement.
+
+## Second setup correction, appended 2026-09-03 before any model session
+
+The first `protocol` invocation also stopped without a model session because the documented VPS2
+launcher PATH extension for Claude Code was not exported. Its artifact recorded zero tokens and 33
+discarded cells. The actual probe exports `$HOME/.npm-global/bin` in PATH and uses a new result
+directory. No model call was made by either blocked invocation.
