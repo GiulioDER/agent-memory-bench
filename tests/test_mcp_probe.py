@@ -154,3 +154,25 @@ def test_a_live_server_missing_a_required_tool_is_refused(tmp_path):
 
     with pytest.raises(McpServerUnavailable, match="does not offer"):
         probe(_config(tmp_path, GOOD_SERVER), "fake", ["alpha", "gamma"])
+
+
+def test_a_live_server_can_be_checked_with_a_real_tool_call(tmp_path):
+    server = '''
+import json, sys
+for line in sys.stdin:
+    msg = json.loads(line)
+    if msg.get("method") == "initialize":
+        print(json.dumps({"jsonrpc":"2.0","id":msg["id"],"result":{}}), flush=True)
+    elif msg.get("method") == "tools/list":
+        print(json.dumps({"jsonrpc":"2.0","id":msg["id"],"result":{"tools":[{"name":"search"}]}}), flush=True)
+    elif msg.get("method") == "tools/call":
+        assert msg["params"]["arguments"] == {"query":"q","limit":1}
+        print(json.dumps({"jsonrpc":"2.0","id":msg["id"],"result":{"content":[]}}), flush=True)
+'''
+    assert probe(
+        _config(tmp_path, server),
+        "fake",
+        ["search"],
+        probe_tool="search",
+        probe_arguments={"query": "q", "limit": 1},
+    ) == ["search"]

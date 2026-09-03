@@ -4,6 +4,7 @@ import json
 
 from harness.claude_exec import parse_claude_stream_json, transcript_fields
 from harness.decision_trace import (
+    DECISION_STAGE_INSTRUCTION,
     DECISION_OUTPUT_SCHEMA,
     evaluate_decisions,
     evaluate_record,
@@ -120,6 +121,22 @@ def test_schema_constrained_result_is_recorded_as_a_runtime_decision() -> None:
             "reason": "checked the generated files",
         },
     )
+
+
+def test_structured_output_tool_input_preserves_decision_stage() -> None:
+    stream = (
+        '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"1",'
+        '"name":"StructuredOutput","input":{"decision":"abstain","confidence":0.2,'
+        '"stage":"pre_action"}}]}}\n'
+        '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"1",'
+        '"content":"ack"}]}}'
+    )
+    fields = transcript_fields(parse_claude_stream_json(stream))
+    assert fields.runtime_decisions[0]["stage"] == "pre_action"
+    evaluated = evaluate_decisions(fields.runtime_decisions, threshold=0.5)
+    assert evaluated["by_stage"]["pre_action"] == 1
+    assert evaluated["stage_order_observed"] == ["pre_action"]
+    assert "evidence" in DECISION_STAGE_INSTRUCTION
 
 
 def test_exact_json_result_is_recorded_but_prose_is_not() -> None:

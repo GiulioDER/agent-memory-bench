@@ -178,6 +178,40 @@ def check_sandbox_outside_repo(env: dict) -> Check:
     return Check("sandbox_outside_repo", not inside, f"sandbox_inside_repo={inside}")
 
 
+def check_recall_preflight(env: dict) -> Check:
+    """Require direct pilot runs to prove generation, MCP startup, and one real search."""
+
+    if "recall" not in (env.get("arms") or []):
+        return Check("recall_preflight", None, "recall arm not present")
+    preflight = env.get("recall_preflight")
+    if not isinstance(preflight, dict):
+        # Old artifacts predate this guard. Keep them readable, while every new pilot artifact
+        # carries the field and therefore gets a real pass or fail.
+        return Check("recall_preflight", None, "preflight field predates this check")
+    status = preflight.get("status")
+    if status != "passed":
+        return Check(
+            "recall_preflight",
+            False,
+            f"status={status!r}; {preflight.get('error', 'no successful MCP search recorded')}",
+        )
+    required = set(preflight.get("required_tools") or ())
+    observed = set(preflight.get("tools_observed") or ())
+    if not required.issubset(observed):
+        return Check(
+            "recall_preflight",
+            False,
+            f"required tools missing from observed surface: {sorted(required - observed)}",
+        )
+    if preflight.get("search") != "tools/call recall_search succeeded":
+        return Check("recall_preflight", False, "no successful recall_search call recorded")
+    return Check(
+        "recall_preflight",
+        True,
+        f"MCP up, {len(observed)} tool(s), and one recall_search call succeeded",
+    )
+
+
 def validate(
     env: dict,
     *,
@@ -194,6 +228,7 @@ def validate(
         check_expected(env, "arms", expect_arms, "expected_arms"),
         check_expected(env, "memory_instruction", expect_instruction, "expected_instruction"),
         check_sandbox_outside_repo(env),
+        check_recall_preflight(env),
     ]
 
 

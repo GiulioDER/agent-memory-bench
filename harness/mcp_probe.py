@@ -100,6 +100,8 @@ def probe(
     required_tools: Sequence[str],
     *,
     timeout_s: float = 120.0,
+    probe_tool: str | None = None,
+    probe_arguments: dict | None = None,
 ) -> list[str]:
     """Start the server from its generated config and return the tool names it offers.
 
@@ -188,6 +190,29 @@ def probe(
         missing = [t for t in required_tools if t not in tools]
         if missing:
             fail(f"server is up but does not offer {missing}; it offers {sorted(tools)}")
+        if probe_tool is not None:
+            if probe_tool not in tools:
+                fail(f"probe tool {probe_tool!r} is not in the server tool list")
+            send(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 3,
+                    "method": "tools/call",
+                    "params": {"name": probe_tool, "arguments": probe_arguments or {}},
+                }
+            )
+            call_reply = _read_line(lines, time.monotonic() + timeout_s, proc)
+            if not call_reply.strip():
+                fail(f"no reply to tools/call {probe_tool!r} within {timeout_s:.0f}s")
+            try:
+                call_payload = json.loads(call_reply)
+            except json.JSONDecodeError:
+                fail(f"could not read tools/call reply: {call_reply[:400]!r}")
+            call_result = call_payload.get("result")
+            if "error" in call_payload or not isinstance(call_result, dict):
+                fail(f"tools/call {probe_tool!r} returned an invalid reply: {call_reply[:800]}")
+            if call_result.get("isError"):
+                fail(f"tools/call {probe_tool!r} returned an error: {call_reply[:800]}")
         return tools
     finally:
         if proc.poll() is None:

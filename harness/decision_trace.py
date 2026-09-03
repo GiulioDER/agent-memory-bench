@@ -22,6 +22,8 @@ from typing import Any
 
 DECISIONS = frozenset({"answer", "abstain", "escalate"})
 ABSTENTION_DECISIONS = frozenset({"abstain", "escalate"})
+DECISION_STAGES = ("pre_action", "evidence", "action", "final")
+DECISION_STAGE_SET = frozenset(DECISION_STAGES)
 
 # This is an instrumentation contract, not a correctness oracle. The checker still supplies the
 # independent outcome label used by calibration and AUC. Keeping the schema here makes the output
@@ -35,7 +37,15 @@ DECISION_OUTPUT_SCHEMA: dict[str, Any] = {
         "confidence": {"type": "number", "minimum": 0, "maximum": 1},
         "threshold": {"type": "number", "minimum": 0, "maximum": 1},
         "reason": {"type": "string"},
+        # Optional for backwards compatibility with the first emission run. New producers should
+        # label every intermediate observation so the evaluator can keep the stages separate.
+        "stage": {"type": "string", "enum": list(DECISION_STAGES)},
     },
+}
+
+STAGED_DECISION_OUTPUT_SCHEMA: dict[str, Any] = {
+    **DECISION_OUTPUT_SCHEMA,
+    "required": ["decision", "confidence", "stage"],
 }
 
 DECISION_OUTPUT_INSTRUCTION = """Before ending your turn, emit exactly one structured decision object.
@@ -44,13 +54,23 @@ available evidence is insufficient to claim completion, and `escalate` when huma
 clarification is required. Set `confidence` to your probability, from 0 to 1, that the requested
 task was completed correctly. If you applied an explicit abstention threshold, include it as
 `threshold`; otherwise omit that field. You may include a short `reason`. Do not put prose outside
-the structured object."""
+the structured object. For this terminal emission, use `stage: "final"` when the stage field is
+available."""
+
+DECISION_STAGE_INSTRUCTION = """When the benchmark asks for a staged decision, include `stage` with
+one of `pre_action`, `evidence`, `action`, or `final`. Emit `pre_action` before the first write,
+`evidence` after retrieval has been adjudicated, `action` immediately before an intended write,
+and `final` after verification. A stage is an observed runtime event only when it is emitted in
+the structured payload."""
 
 
-def with_decision_output_instruction(prompt: str) -> str:
+def with_decision_output_instruction(prompt: str, *, staged: bool = False) -> str:
     """Append the common decision emission instruction to one task prompt."""
 
-    return f"{prompt.rstrip()}\n\n{DECISION_OUTPUT_INSTRUCTION}"
+    instruction = DECISION_OUTPUT_INSTRUCTION
+    if staged:
+        instruction = f"{instruction}\n\n{DECISION_STAGE_INSTRUCTION}"
+    return f"{prompt.rstrip()}\n\n{instruction}"
 
 
 def _probability(value: Any) -> float | None:
@@ -71,25 +91,31 @@ class ObservedDecision:
     confidence: float | None = None
     threshold: float | None = None
     reason: str | None = None
+    stage: str | None = None
 
     def __post_init__(self) -> None:
         if self.decision not in DECISIONS:
             raise ValueError(f"unsupported runtime decision: {self.decision!r}")
         if not self.source.strip():
             raise ValueError("decision source must not be empty")
+        if self.stage is not None and self.stage not in DECISION_STAGE_SET:
+            raise ValueError(f"unsupported decision stage: {self.stage!r}")
 
     @property
     def is_abstention(self) -> bool:
         return self.decision in ABSTENTION_DECISIONS
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "decision": self.decision,
             "source": self.source,
             "confidence": self.confidence,
             "threshold": self.threshold,
             "reason": self.reason,
         }
+        if self.stage is not None:
+            result["stage"] = self.stage
+        return result
 
 
 def _from_mapping(value: Mapping[str, Any], source: str) -> ObservedDecision | None:
@@ -106,12 +132,18 @@ def _from_mapping(value: Mapping[str, Any], source: str) -> ObservedDecision | N
         value.get("threshold", value.get("abstain_threshold", value.get("confidence_threshold")))
     )
     reason = value.get("reason")
+    stage = value.get("stage", value.get("decision_stage"))
+    if stage is not None:
+        stage = str(stage).strip().lower()
+        if stage not in DECISION_STAGE_SET:
+            stage = None
     return ObservedDecision(
         decision=decision,
         source=str(value.get("source") or source),
         confidence=confidence,
         threshold=threshold,
         reason=reason if isinstance(reason, str) else None,
+        stage=stage,
     )
 
 
@@ -172,13 +204,20 @@ def decisions_from_tool_calls(tool_calls: Sequence[Mapping[str, Any]]) -> tuple[
     found: list[dict[str, Any]] = []
     for index, call in enumerate(tool_calls):
         name = str(call.get("name", ""))
-        if not name.startswith("mcp__"):
+        if not (name.startswith("mcp__") or name in {"StructuredOutput", "structured_output"}):
             continue
         output = call.get("output")
-        if not isinstance(output, str):
-            continue
         source = f"tool_calls[{index}].output:{name}"
-        for payload in _json_objects(output):
+        payloads = list(_json_objects(output)) if isinstance(output, str) else []
+        # Claude Code may carry the structured payload in the tool input and return only a short
+        # acknowledgement. Reading args is limited to the explicit StructuredOutput tool, so a
+        # memory search argument can never be mistaken for a decision.
+        if not payloads and name in {"StructuredOutput", "structured_output"}:
+            arguments = call.get("args")
+            if isinstance(arguments, Mapping):
+                payloads = [arguments]
+                source = f"tool_calls[{index}].args:{name}"
+        for payload in payloads:
             decision = decision_from_payload(payload, source=source)
             if decision is not None:
                 found.append(decision.to_dict())
@@ -316,6 +355,15 @@ def evaluate_decisions(
         "n_confidence_threshold_pairs": confidence_observed,
         "violations": violations,
         "decisions": events,
+        "by_stage": {
+            stage: sum(1 for event in observed if event.get("stage", "final") == stage)
+            for stage in DECISION_STAGES
+        },
+        "stage_order_observed": [
+            event.get("stage", "final")
+            for event in observed
+            if event.get("stage", "final") in DECISION_STAGE_SET
+        ],
         "calibration": {
             "status": "not_evaluated",
             "note": (

@@ -78,13 +78,16 @@ from harness.costs import (
 )
 from harness.damage import CORPUS_CONDITIONS, PRESENT, Outcome, outcome_for
 from harness.decision_trace import (
+    DECISION_STAGE_INSTRUCTION,
     DECISION_OUTPUT_INSTRUCTION,
     DECISION_OUTPUT_SCHEMA,
+    STAGED_DECISION_OUTPUT_SCHEMA,
     with_decision_output_instruction,
 )
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.io import write_jsonl
+from harness.mcp_probe import probe
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.runner import run_grid
@@ -560,6 +563,12 @@ async def main() -> int:
         "the prompt contract, so use it only in a separately preregistered run.",
     )
     parser.add_argument(
+        "--emit-decision-stages",
+        action="store_true",
+        help="ask the runtime to label checkpoint decisions as pre_action, evidence, action, "
+        "or final. Requires --emit-decisions and records only stages the runtime actually emits.",
+    )
+    parser.add_argument(
         "--arms",
         default=",".join(DEFAULT_ARMS),
         help=f"comma-separated subset of {','.join(ARMS)}",
@@ -603,6 +612,9 @@ async def main() -> int:
     )
     add_pricing_arguments(parser)
     args = parser.parse_args()
+
+    if args.emit_decision_stages and not args.emit_decisions:
+        raise SystemExit("--emit-decision-stages requires --emit-decisions")
 
     # Before the dry-run return, deliberately: a dry run is how you check a command line, so it has
     # to catch the two things that make a real run worthless. A recall arm with no DSN is a run
@@ -692,9 +704,12 @@ async def main() -> int:
             f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
             f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
         )
+    corpus = CorpusManifest.load(corpus_root) if (
+        "recall" in run_arms or any(arm in run_arms for arm in SELF_INGESTING_ARMS)
+    ) else None
     self_ingesting = [arm for arm in SELF_INGESTING_ARMS if arm in run_arms]
     if self_ingesting:
-        corpus = CorpusManifest.load(corpus_root)
+        assert corpus is not None
         for arm in self_ingesting:
             print(f"[ingest] {arm} from {corpus_root}", flush=True)
             report = registry.get(arm).ingest(corpus, args.namespace)
@@ -704,6 +719,19 @@ async def main() -> int:
                 flush=True,
             )
             ingest_reports.append(report)
+    if "recall" in run_arms:
+        # Recall is indexed out of band, but a run still has to prove here that its tenant serves
+        # the active generation built from THIS frozen manifest. Previously pilot.py skipped this
+        # check because the abstention wrapper happened to perform it, leaving direct pilot runs
+        # able to spend against a missing or stale tenant.
+        assert corpus is not None
+        print(f"[verify] recall generation for {args.namespace}", flush=True)
+        report = registry.get("recall").ingest(corpus, args.namespace)
+        ingest_reports.append(report)
+        print(
+            f"[verify] recall: {report.notes[-1] if report.notes else 'generation verified'}",
+            flush=True,
+        )
 
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
     # until 2026-08-28 it was inline code here instead, so `adapters/` was reviewable and not run.
@@ -727,6 +755,43 @@ async def main() -> int:
                 by_task[task.task_id] = hashlib.sha256(Path(prompt).read_bytes()).hexdigest()
         prompt_hashes[arm] = by_task
     refuse_shared_prompts(prompt_hashes)
+
+    recall_preflight: dict[str, Any] = {"status": "not_required"}
+    if "recall" in run_arms:
+        # This is a real MCP tools/call, not only a process handshake. An empty result is valid,
+        # because an empty corpus response is a successful retrieval; a transport or server error
+        # is not. The result is written into environment.json before setup validation refuses a
+        # broken run, so the refusal remains auditable.
+        spec = specs[(tasks[0].task_id, "recall")]
+        required = [name.removeprefix(RECALL_PREFIX) for name in spec.extra_allowed_tools]
+        try:
+            tools = probe(
+                spec.mcp_config,
+                str(RECALL_CONFIG["server_name"]),
+                required,
+                probe_tool="recall_search",
+                probe_arguments={"query": tasks[0].prompt, "limit": 1},
+            )
+            recall_preflight = {
+                "status": "passed",
+                "server": RECALL_CONFIG["server_name"],
+                "required_tools": required,
+                "tools_observed": tools,
+                "search": "tools/call recall_search succeeded",
+            }
+            print(f"[preflight] recall MCP and search up: {len(tools)} tool(s)", flush=True)
+        except Exception as exc:  # noqa: BLE001, the setup gate records the concrete refusal
+            recall_preflight = {
+                "status": "failed",
+                "server": RECALL_CONFIG["server_name"],
+                "required_tools": required,
+                "error": str(exc)[-2000:],
+            }
+            print(
+                f"[preflight] recall FAILED: {recall_preflight['error']}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     signals = with_forbidden_prefixes(
         {
@@ -755,9 +820,19 @@ async def main() -> int:
                 "neutral_protocol": args.neutral_protocol,
                 "decision_output": {
                     "enabled": args.emit_decisions,
-                    "schema": DECISION_OUTPUT_SCHEMA if args.emit_decisions else None,
+                    "staged": args.emit_decision_stages,
+                    "schema": (
+                        STAGED_DECISION_OUTPUT_SCHEMA
+                        if args.emit_decision_stages
+                        else DECISION_OUTPUT_SCHEMA
+                    ) if args.emit_decisions else None,
                     "instruction_sha256": (
-                        hashlib.sha256(DECISION_OUTPUT_INSTRUCTION.encode("utf-8")).hexdigest()
+                        hashlib.sha256(
+                            (
+                                DECISION_OUTPUT_INSTRUCTION
+                                + (f"\n\n{DECISION_STAGE_INSTRUCTION}" if args.emit_decision_stages else "")
+                            ).encode("utf-8")
+                        ).hexdigest()
                         if args.emit_decisions
                         else None
                     ),
@@ -794,6 +869,7 @@ async def main() -> int:
                     if arm in registry.names()
                 },
                 "ingest": [report.to_dict() for report in ingest_reports],
+                "recall_preflight": recall_preflight,
             },
             indent=2,
         ),
@@ -864,7 +940,11 @@ async def main() -> int:
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
             stream_dir=run_dir / "streams",
-            json_schema=DECISION_OUTPUT_SCHEMA if args.emit_decisions else None,
+            json_schema=(
+                STAGED_DECISION_OUTPUT_SCHEMA
+                if args.emit_decision_stages
+                else DECISION_OUTPUT_SCHEMA
+            ) if args.emit_decisions else None,
         )
 
     records_path = run_dir / "records.jsonl"
@@ -944,7 +1024,9 @@ async def main() -> int:
             "task_id": task.task_id,
             "seed": seed,
             "user_input": (
-                with_decision_output_instruction(task.prompt)
+                with_decision_output_instruction(
+                    task.prompt, staged=args.emit_decision_stages
+                )
                 if args.emit_decisions
                 else task.prompt
             ),

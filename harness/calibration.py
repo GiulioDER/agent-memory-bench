@@ -275,7 +275,8 @@ def examples_from_records(
 ) -> list[CalibrationExample]:
     """Join recorded confidence events to labels kept outside the session record.
 
-    The label key is ``<task_id>/<seed>/<arm>``. Labels stay in a separate file so gold answers
+    The label key is ``<task_id>/<seed>/<arm>``. A multi-condition report may use
+    ``<condition>/<task_id>/<seed>/<arm>`` and that scoped key takes precedence. Labels stay in a separate file so gold answers
     cannot reach the runtime and so calibration can be screened or reviewed independently. If a
     session emitted several decisions, the last decision carrying a valid confidence is the one
     used for that session's terminal outcome.
@@ -285,7 +286,13 @@ def examples_from_records(
 
     examples: list[CalibrationExample] = []
     for record in records:
-        key = f"{record.get('task_id')}/{record.get('seed', 0)}/{record.get('arm')}"
+        base_key = f"{record.get('task_id')}/{record.get('seed', 0)}/{record.get('arm')}"
+        metadata = record.get("metadata")
+        condition = record.get("condition")
+        if condition is None and isinstance(metadata, Mapping):
+            condition = metadata.get("condition")
+        scoped_key = f"{condition}/{base_key}" if condition else None
+        key = scoped_key if scoped_key in labels else base_key
         answerable = labels.get(key)
         if not isinstance(answerable, bool):
             continue

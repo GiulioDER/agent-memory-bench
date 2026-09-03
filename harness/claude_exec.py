@@ -41,6 +41,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .decision_trace import decisions_from_result_events, decisions_from_tool_calls
+from .retrieval_trace import summarize_memory_calls
 from .schema import DEFAULT_MEMORY_TOOL_PREFIX, SessionRecord
 
 if TYPE_CHECKING:  # Runner is only a return annotation here; runner.py is ported separately.
@@ -373,6 +374,7 @@ class TranscriptFields:
     failed_tool_calls: int
     subagent_tool_calls: int
     runtime_decisions: tuple[dict[str, Any], ...]
+    memory_retrieval: dict[str, Any]
 
 
 #: One tool call as it is assembled from the stream. The values are genuinely heterogeneous
@@ -480,6 +482,9 @@ def transcript_fields(
         }
         for call in ordered
     )
+    memory_retrieval = summarize_memory_calls(
+        tool_calls, memory_tool_prefix=memory_tool_prefix
+    )
     return TranscriptFields(
         conversation=tuple(conversation),
         tool_calls=tool_calls,
@@ -494,6 +499,7 @@ def transcript_fields(
         runtime_decisions=(
             decisions_from_tool_calls(tool_calls) + decisions_from_result_events(events)
         ),
+        memory_retrieval=memory_retrieval,
     )
 
 
@@ -630,6 +636,7 @@ def build_record(
         "api_retries": len(retries),
         "failed_tool_calls": fields.failed_tool_calls,
         "subagent_tool_calls": fields.subagent_tool_calls,
+        "memory_retrieval": fields.memory_retrieval,
         # Kept apart because they are not priced alike: a cache read is far cheaper than a fresh
         # token and cache creation is dearer. input_tokens above is their sum.
         "fresh_input_tokens": usage.get("fresh_input_tokens"),
