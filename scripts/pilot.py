@@ -53,6 +53,7 @@ from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
@@ -69,11 +70,11 @@ from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28.
-ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall")
+ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "supermemory")
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall"})
+MEMORY_ARMS = frozenset({"fs_grep", "recall", "supermemory"})
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -145,6 +146,17 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
         texts["recall"] = recall_instruction(variant, neutral=neutral)
+    if "supermemory" in texts:
+        texts["supermemory"] = (
+            SupermemoryAdapter.shared_instruction(neutral=neutral)
+            if variant == "protocol"
+            else instructions.compose(
+                "supermemory",
+                "Supermemory provides persistent project context through its official Claude Code "
+                "hooks; use that context before acting when relevant.",
+                neutral=neutral,
+            )
+        )
     if "fs_grep" in texts:
         texts["fs_grep"] = (
             FsGrepAdapter.shared_instruction(neutral=neutral)
@@ -185,7 +197,7 @@ def build_bundles(task, out_dir: Path, texts: dict[str, str]) -> dict[str, Path]
     placebo.write_text(render_placebo(static), encoding="utf-8", newline="\n")
     bundles["placebo"] = placebo
 
-    for arm in ("protocol", "fs_grep", "recall"):
+    for arm in ("protocol", "fs_grep", "recall", "supermemory"):
         text = texts.get(arm, "")
         if not text:
             continue
@@ -227,6 +239,8 @@ def adapter_for(
         return FsGrepAdapter(staging, static, instruction=texts.get("fs_grep") or None)
     if arm == "recall":
         return RecallAdapter(staging, static, instruction=texts.get("recall") or None)
+    if arm == "supermemory":
+        return SupermemoryAdapter(staging, static, instruction=texts.get("supermemory") or None)
     raise ValueError(f"no adapter for arm {arm!r}")
 
 
@@ -418,6 +432,21 @@ async def main() -> int:
     # already up, which is exactly where you most want to check a command line first.
     if "recall" in run_arms and not args.dry_run and not os.environ.get("RECALL_DSN"):
         raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
+    if "supermemory" in run_arms and not args.dry_run:
+        missing = [
+            name
+            for name in ("SUPERMEMORY_PLUGIN_DIR",)
+            if not os.environ.get(name)
+        ]
+        if not (
+            os.environ.get("SUPERMEMORY_CC_API_KEY")
+            or os.environ.get("SUPERMEMORY_API_KEY")
+        ):
+            missing.append("SUPERMEMORY_CC_API_KEY or SUPERMEMORY_API_KEY")
+        if missing:
+            raise SystemExit(
+                "Supermemory is not configured; set " + ", ".join(missing)
+            )
 
     tasks = [task for task in discover_tasks() if task.task_id.startswith("ts-")]
     if args.tasks:
@@ -477,6 +506,10 @@ async def main() -> int:
         corpus = CorpusManifest.load(corpus_root)
         print(f"[ingest] fs_grep from {corpus_root}", flush=True)
         ingest_reports.append(registry.get("fs_grep").ingest(corpus, args.namespace))
+    if "supermemory" in run_arms:
+        corpus = CorpusManifest.load(corpus_root)
+        print(f"[ingest] supermemory from {corpus_root}", flush=True)
+        ingest_reports.append(registry.get("supermemory").ingest(corpus, args.namespace))
 
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
     # until 2026-08-28 it was inline code here instead, so `adapters/` was reviewable and not run.
@@ -579,7 +612,7 @@ async def main() -> int:
             model=args.model,
             cwd=cwd,
             timeout_s=args.timeout,
-            env=env,
+            env={**env, **spec.env},
             bare=spec.bare,
             mcp_config=spec.mcp_config,
             strict_mcp_config=bool(spec.mcp_config),
@@ -629,6 +662,14 @@ async def main() -> int:
         final = replace(
             record,
             success=ok and record.success,
+            config_dir_digest=specs[(task_id, arm)].config_dir_digest,
+            hook_ledger=(
+                registry.get("supermemory").read_hook_ledger(
+                    record.metadata.get("session_id"), specs[(task_id, arm)].config_dir
+                )
+                if arm == "supermemory" and specs[(task_id, arm)].config_dir is not None
+                else record.hook_ledger
+            ),
             metadata={**record.metadata, **extra},
         )
         # Fsynced per session: a run that dies keeps every finished cell.

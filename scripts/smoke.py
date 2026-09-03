@@ -37,6 +37,7 @@ from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FsGrepAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import sandbox
 from harness.adapters.base import ArmSpec, CorpusManifest
 from harness.adapters.registry import AdapterRegistry
@@ -45,8 +46,13 @@ from harness.costs import ModelPricing, summarize
 from harness.gate import admit_cells
 from harness.io import write_jsonl
 from harness.runner import run_grid
+from harness.prereg import assert_preregistered
 
 TASK_ID = "smoke-config-port"
+FULL_TASK_COUNT = 24
+FULL_SEED_COUNT = 3
+SMOKE_MAX_SECONDS = 600.0
+FULL_RUN_MAX_SECONDS = 18_000.0
 PROMPT = (
     "Determine which TCP port this service is configured to listen on, and write it to "
     "RESULT.txt in the repository root: just the number, one line, nothing else."
@@ -78,7 +84,7 @@ async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
     parser.add_argument(
-        "--arms", default="bare,claude_md,fs_grep,recall", help="comma-separated arm roster"
+        "--arms", default="bare,claude_md,fs_grep,recall,supermemory", help="comma-separated arm roster"
     )
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument(
@@ -96,15 +102,29 @@ async def main() -> int:
     parser.add_argument("--price-as-of", default="2026-08-22")
     args = parser.parse_args()
 
+    assert_preregistered(REPO)
+    smoke_started = time.monotonic()
+
     arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        raise SystemExit("OPENROUTER_API_KEY is not set; the agent cannot run")
+    if "supermemory" in arms:
+        missing = []
+        if not os.environ.get("SUPERMEMORY_PLUGIN_DIR"):
+            missing.append("SUPERMEMORY_PLUGIN_DIR")
+        if not (
+            os.environ.get("SUPERMEMORY_CC_API_KEY")
+            or os.environ.get("SUPERMEMORY_API_KEY")
+        ):
+            missing.append("SUPERMEMORY_CC_API_KEY or SUPERMEMORY_API_KEY")
+        if missing:
+            raise SystemExit("Supermemory is not configured; set " + ", ".join(missing))
+
     run_id = args.run_id or f"smoke-{time.strftime('%Y%m%d-%H%M%S')}"
     run_dir = REPO / "results" / run_id
     if run_dir.exists():
         raise SystemExit(f"run dir {run_dir} already exists; refusing to mix runs")
     (run_dir / "streams").mkdir(parents=True)
-
-    if not os.environ.get("OPENROUTER_API_KEY"):
-        raise SystemExit("OPENROUTER_API_KEY is not set; the agent cannot run")
 
     corpus = build_corpus_manifest()
     base_prompt = REPO / "corpus" / "claude_md_bundle_smoke.md"
@@ -115,14 +135,17 @@ async def main() -> int:
     registry.register(ClaudeMdAdapter(base_prompt))
     registry.register(FsGrepAdapter(staging, base_prompt))
     registry.register(RecallAdapter(staging, base_prompt))
+    registry.register(SupermemoryAdapter(staging, base_prompt))
 
     # Ingest: each memory arm through its own write path, metered where measurable.
+    ingest_started = time.monotonic()
     ingest_reports = []
     for arm in arms:
         adapter = registry.get(arm)
         namespace = f"smoke-{arm}-0"
         print(f"[ingest] {arm} -> {namespace}", flush=True)
         ingest_reports.append(adapter.ingest(corpus, namespace))
+    ingest_elapsed_s = time.monotonic() - ingest_started
 
     signals = registry.signals(arms)
 
@@ -181,12 +204,32 @@ async def main() -> int:
             record,
             success=success and record.success,
             config_dir_digest=spec.config_dir_digest,
+            hook_ledger=(
+                registry.get("supermemory").read_hook_ledger(
+                    record.metadata.get("session_id"), spec.config_dir
+                )
+                if arm == "supermemory" and spec.config_dir is not None
+                else record.hook_ledger
+            ),
             metadata={**record.metadata, **extra},
         )
 
     rows = [{"task_id": TASK_ID, "seed": 0, "user_input": PROMPT}]
     print(f"[run] {len(rows)} cell(s) x {len(arms)} arm(s), model {args.model}", flush=True)
+    sessions_started = time.monotonic()
     records = await run_grid(rows, arms, runner, block_concurrency=1)
+    session_elapsed_s = time.monotonic() - sessions_started
+    total_elapsed_s = time.monotonic() - smoke_started
+    setup_elapsed_s = max(0.0, total_elapsed_s - ingest_elapsed_s - session_elapsed_s)
+    projected_full_run_s = (
+        setup_elapsed_s
+        + ingest_elapsed_s
+        + session_elapsed_s * FULL_TASK_COUNT * FULL_SEED_COUNT
+    )
+    timing_ok = (
+        total_elapsed_s <= SMOKE_MAX_SECONDS
+        and projected_full_run_s <= FULL_RUN_MAX_SECONDS
+    )
 
     write_jsonl(run_dir / "records.jsonl", records)
     report = admit_cells(records, signals, required_arms=arms)
@@ -216,6 +259,25 @@ async def main() -> int:
         ),
         encoding="utf-8",
     )
+    (run_dir / "timing.json").write_text(
+        json.dumps(
+            {
+                "smoke_elapsed_s": total_elapsed_s,
+                "setup_elapsed_s": setup_elapsed_s,
+                "ingest_elapsed_s": ingest_elapsed_s,
+                "agent_session_elapsed_s": session_elapsed_s,
+                "full_run_tasks": FULL_TASK_COUNT,
+                "full_run_seeds": FULL_SEED_COUNT,
+                "projected_full_run_s": projected_full_run_s,
+                "smoke_max_s": SMOKE_MAX_SECONDS,
+                "full_run_max_s": FULL_RUN_MAX_SECONDS,
+                "timing_gate_passed": timing_ok,
+                "projection_formula": "ingest_once + smoke_agent_session_time * 24 * 3",
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     print()
     for record in records:
@@ -232,12 +294,21 @@ async def main() -> int:
         f"discarded: {len(report.discarded_cells)} {dict(report.discarded_by_arm())}"
     )
     print(f"  estimated spend: ${costs.get('estimated_usd')} ({costs['total_tokens']} tokens)")
+    print(
+        f"  timing: smoke={total_elapsed_s:.1f}s, projected full={projected_full_run_s / 60:.1f}m, "
+        f"gate={'PASS' if timing_ok else 'FAIL'}"
+    )
     print(f"  artifacts: {run_dir}")
 
-    if report.discarded_cells:
+    if report.discarded_cells or not timing_ok:
         for verdict in report.verdicts:
             if not verdict.admitted:
                 print(f"  DISCARD {verdict.arm}: {verdict.reasons}")
+        if not timing_ok:
+            print(
+                f"  TIMING GATE FAILED: smoke must be <= {SMOKE_MAX_SECONDS:.0f}s and "
+                f"projected full run must be <= {FULL_RUN_MAX_SECONDS / 3600:.1f}h"
+            )
         return 1
     return 0
 

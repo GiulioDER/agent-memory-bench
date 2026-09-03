@@ -1,0 +1,17 @@
+{
+  "server_name": "supermemory",
+  "plugin_repo": "https://github.com/supermemoryai/claude-supermemory",
+  "plugin_version": "0.1.6",
+  "plugin_commit": "e6227edc4f33b83317cfde2e7cd9790c794d22d1",
+  "plugin_dir_env": "SUPERMEMORY_PLUGIN_DIR",
+  "base_url_env": "SUPERMEMORY_API_URL",
+  "base_url_default": "http://localhost:6767",
+  "api_key_env": "SUPERMEMORY_CC_API_KEY",
+  "api_key_fallback_env": "SUPERMEMORY_API_KEY",
+  "tool_prefix": "mcp__supermemory__",
+  "write_path": "/v3/documents",
+  "search_path": "/v4/profile",
+  "required_hooks": ["SessionStart", "UserPromptSubmit"],
+  "ingest_timeout_s": 1800,
+  "instruction": "This project has persistent Supermemory available through the official Claude Code integration; use its recalled context before acting when it is relevant."
+}

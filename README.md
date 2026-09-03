@@ -81,10 +81,10 @@ Implemented and runnable today: `bare`, `claude_md` (designated baseline), `plac
 what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep), and
 `recall`.
 
-**Not built yet:** `mem0`, `supermemory`, `zep` (Graphiti), `cognee`. Their `adapters/<name>/`
-directories currently hold a docstring and no `adapter.py`, no `VENDOR_REVIEW.md` exists for any
-adapter including `recall`, and no `versions.lock` exists either. Nothing here is a multi-product
-comparison until those land.
+Prepared and pending smoke verification: `supermemory`. The adapter uses the pinned official
+Claude Code plugin, Supermemory Local by default, and an isolated lifecycle-hook config. It is not
+called runnable or ready until the preregistered smoke test admits every arm and projects the full
+run below five hours. `mem0`, `zep` (Graphiti), and `cognee` remain unbuilt here.
 
 Disclosure: this benchmark is built by the authors of recall, which competes in it. That is
 exactly why the methodology is preregistered, the harness is open, every adapter config is
