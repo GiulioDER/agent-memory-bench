@@ -127,6 +127,7 @@ async def main() -> int:
     corpus = build_corpus_manifest()
     base_prompt = REPO / "corpus" / "claude_md_bundle_smoke.md"
     staging = run_dir / "staging"
+    work_root = sandbox.default_work_root() / run_id
 
     registry = AdapterRegistry()
     registry.register(BareAdapter())
@@ -152,7 +153,7 @@ async def main() -> int:
     workdirs: dict[str, Path] = {}
     digests: dict[str, str] = {}
     for arm in arms:
-        workdir = run_dir / "work" / TASK_ID / arm
+        workdir = work_root / TASK_ID / arm
         digests[arm] = sandbox.restore(TASK_ID, workdir)
         workdirs[arm] = workdir
         spec = registry.get(arm).build(run_dir / "cfg" / arm, f"smoke-{arm}-0")
@@ -244,6 +245,7 @@ async def main() -> int:
             {
                 "run_id": run_id,
                 "model": args.model,
+                "work_root": str(work_root),
                 "arms": {arm: registry.get(arm).describe() for arm in arms},
                 "ingest": [r.to_dict() for r in ingest_reports],
             },
