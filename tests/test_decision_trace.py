@@ -4,8 +4,8 @@ import json
 
 from harness.claude_exec import parse_claude_stream_json, transcript_fields
 from harness.decision_trace import (
-    DECISION_STAGE_INSTRUCTION,
     DECISION_OUTPUT_SCHEMA,
+    DECISION_STAGE_INSTRUCTION,
     evaluate_decisions,
     evaluate_record,
     with_decision_output_instruction,
@@ -79,9 +79,19 @@ def test_runtime_decision_survives_the_session_record_round_trip() -> None:
                 "threshold": 0.5,
             },
         ),
+        memory_calls_attempted=2,
+        memory_calls_succeeded=1,
+        memory_calls_failed=1,
+        memory_search_abstained=1,
+        memory_hits_returned=3,
+        memory_trust_states=("trusted",),
+        memory_error_codes=("timeout",),
     )
     restored = SessionRecord.from_mapping(record.to_dict())
     assert restored.runtime_decisions == record.runtime_decisions
+    assert restored.memory_calls_attempted == 2
+    assert restored.memory_calls_failed == 1
+    assert restored.memory_trust_states == ("trusted",)
     assert evaluate_record(restored.to_dict())["abstention_observed"] is True
 
 
@@ -137,6 +147,20 @@ def test_structured_output_tool_input_preserves_decision_stage() -> None:
     assert evaluated["by_stage"]["pre_action"] == 1
     assert evaluated["stage_order_observed"] == ["pre_action"]
     assert "evidence" in DECISION_STAGE_INSTRUCTION
+
+
+def test_staged_contract_reports_missing_stages_without_fabricating_them() -> None:
+    result = evaluate_decisions(
+        [{"decision": "abstain", "confidence": 0.2, "stage": "pre_action"}],
+        required_stages=("pre_action", "evidence", "action", "final"),
+    )
+    assert result["stage_completeness"] == {
+        "required": ["pre_action", "evidence", "action", "final"],
+        "observed": ["pre_action"],
+        "missing": ["evidence", "action", "final"],
+        "complete": False,
+        "order_valid": True,
+    }
 
 
 def test_terminal_echo_of_structured_output_is_not_counted_twice() -> None:

@@ -296,8 +296,33 @@ def decisions_from_record(record: Mapping[str, Any]) -> tuple[dict[str, Any], ..
     return ()
 
 
+def _stage_report(
+    observed: Sequence[Mapping[str, Any]], required_stages: Sequence[str]
+) -> dict[str, Any]:
+    required = tuple(required_stages)
+    if any(stage not in DECISION_STAGE_SET for stage in required):
+        raise ValueError("required_stages must contain only known decision stages")
+    observed_order: list[str] = []
+    for event in observed:
+        stage = event.get("stage")
+        if stage in DECISION_STAGE_SET and stage not in observed_order:
+            observed_order.append(stage)
+    missing = [stage for stage in required if stage not in observed_order]
+    positions = [DECISION_STAGES.index(stage) for stage in observed_order]
+    return {
+        "required": list(required),
+        "observed": observed_order,
+        "missing": missing,
+        "complete": not missing,
+        "order_valid": positions == sorted(positions),
+    }
+
+
 def evaluate_decisions(
-    decisions: Iterable[Mapping[str, Any]], *, threshold: float | None = None
+    decisions: Iterable[Mapping[str, Any]],
+    *,
+    threshold: float | None = None,
+    required_stages: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Evaluate the observed abstain-or-escalate contract.
 
@@ -343,6 +368,7 @@ def evaluate_decisions(
     else:
         status = "observed_only"
 
+    stage_report = _stage_report(observed, required_stages or ())
     return {
         "status": status,
         "observed_decision": bool(observed),
@@ -364,6 +390,7 @@ def evaluate_decisions(
             for event in observed
             if event.get("stage", "final") in DECISION_STAGE_SET
         ],
+        "stage_completeness": stage_report,
         "calibration": {
             "status": "not_evaluated",
             "note": (
@@ -374,7 +401,16 @@ def evaluate_decisions(
     }
 
 
-def evaluate_record(record: Mapping[str, Any], *, threshold: float | None = None) -> dict[str, Any]:
+def evaluate_record(
+    record: Mapping[str, Any],
+    *,
+    threshold: float | None = None,
+    required_stages: Sequence[str] | None = None,
+) -> dict[str, Any]:
     """Evaluate one session record without consulting its response text."""
 
-    return evaluate_decisions(decisions_from_record(record), threshold=threshold)
+    return evaluate_decisions(
+        decisions_from_record(record),
+        threshold=threshold,
+        required_stages=required_stages,
+    )

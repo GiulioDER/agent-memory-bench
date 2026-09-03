@@ -282,9 +282,25 @@ def examples_from_records(
     used for that session's terminal outcome.
     """
 
+    return audit_record_labels(records, labels)["examples"]
+
+
+def audit_record_labels(
+    records: Iterable[Mapping[str, Any]], labels: Mapping[str, bool]
+) -> dict[str, Any]:
+    """Join records to labels and retain an auditable inclusion or exclusion ledger.
+
+    The returned ``examples`` list is the input for :func:`calibrate`. The two ledger lists make
+    the denominator reproducible: a report can show which records were included, and why every
+    other record was excluded, instead of exposing only the final sample count.
+    """
+
     from .decision_trace import decisions_from_record
 
     examples: list[CalibrationExample] = []
+    included_records: list[dict[str, Any]] = []
+    excluded_records: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()
     for record in records:
         base_key = f"{record.get('task_id')}/{record.get('seed', 0)}/{record.get('arm')}"
         metadata = record.get("metadata")
@@ -295,6 +311,7 @@ def examples_from_records(
         key = scoped_key if scoped_key in labels else base_key
         answerable = labels.get(key)
         if not isinstance(answerable, bool):
+            excluded_records.append({"record_id": base_key, "label_key": None, "reason": "missing_label"})
             continue
         decisions = decisions_from_record(record)
         scored = [
@@ -303,8 +320,13 @@ def examples_from_records(
             if _valid_score(decision.get("confidence"))
         ]
         if not scored:
+            excluded_records.append({"record_id": base_key, "label_key": key, "reason": "no_confidence"})
+            continue
+        if key in seen_keys:
+            excluded_records.append({"record_id": base_key, "label_key": key, "reason": "duplicate_label_key"})
             continue
         decision = scored[-1]
+        seen_keys.add(key)
         examples.append(
             CalibrationExample(
                 example_id=key,
@@ -313,4 +335,16 @@ def examples_from_records(
                 source=str(decision.get("source", key)),
             )
         )
-    return examples
+        included_records.append(
+            {
+                "record_id": base_key,
+                "label_key": key,
+                "confidence": _score(decision["confidence"]),
+                "answerable": answerable,
+            }
+        )
+    return {
+        "examples": examples,
+        "included_records": included_records,
+        "excluded_records": excluded_records,
+    }

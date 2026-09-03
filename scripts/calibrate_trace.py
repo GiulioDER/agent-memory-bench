@@ -12,7 +12,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from harness.calibration import CalibrationExample, calibrate, examples_from_records
+from harness.calibration import CalibrationExample, audit_record_labels, calibrate
 from harness.io import read_jsonl
 
 
@@ -50,9 +50,10 @@ def main() -> int:
             raise SystemExit("--labels is required with --records")
         label_bytes = args.labels.read_bytes()
         labels = _labels(json.loads(label_bytes.decode("utf-8")))
-        examples = examples_from_records(
+        audit = audit_record_labels(
             (record.to_dict() for record in read_jsonl(args.records)), labels
         )
+        examples = audit["examples"]
     else:
         if args.examples is None:
             raise SystemExit("provide an examples JSON file or --records with --labels")
@@ -64,7 +65,13 @@ def main() -> int:
         examples = [CalibrationExample.from_mapping(value) for value in raw]
     result = calibrate(examples, draws=args.draws, seed=args.seed)
     if args.records is not None:
-        result["label_source_sha256"] = hashlib.sha256(label_bytes).hexdigest()
+        result["label_source"] = {
+            "name": args.labels.name,
+            "sha256": hashlib.sha256(label_bytes).hexdigest(),
+            "format": "json object or array",
+        }
+        result["included_records"] = audit["included_records"]
+        result["excluded_records"] = audit["excluded_records"]
     rendered = json.dumps(result, indent=2, sort_keys=True)
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)

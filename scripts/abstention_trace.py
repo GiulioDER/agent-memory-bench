@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from harness.abstention import declines
-from harness.decision_trace import evaluate_record
-from harness.calibration import calibrate, examples_from_records
+from harness.calibration import audit_record_labels, calibrate
+from harness.decision_trace import DECISION_STAGES, evaluate_record
 from harness.io import read_jsonl
 
 
@@ -36,6 +36,7 @@ def analyze_run(
     threshold: float | None = None,
     labels: dict[str, bool] | None = None,
     label_source_sha256: str | None = None,
+    label_source_name: str | None = None,
     calibration_draws: int = 10_000,
     calibration_seed: int = 20260902,
 ) -> dict[str, Any]:
@@ -47,6 +48,18 @@ def analyze_run(
     admitted_records = []
     for condition, run_dir in _condition_dirs(results_root, run_id):
         records = read_jsonl(run_dir / "records.final.jsonl")
+        environment_path = run_dir / "environment.json"
+        environment = (
+            json.loads(environment_path.read_text(encoding="utf-8"))
+            if environment_path.is_file()
+            else {}
+        )
+        decision_output = environment.get("decision_output", {})
+        required_stages = (
+            DECISION_STAGES
+            if isinstance(decision_output, dict) and decision_output.get("staged")
+            else None
+        )
         discarded = _discarded(run_dir) if (run_dir / "admission.json").is_file() else set()
         by_arm: dict[str, Any] = {}
         for arm in sorted({record.arm for record in records}):
@@ -59,7 +72,11 @@ def analyze_run(
             text_markers = 0
             abstentions = 0
             for record in rows:
-                result = evaluate_record(record.to_dict(), threshold=threshold)
+                result = evaluate_record(
+                    record.to_dict(),
+                    threshold=threshold,
+                    required_stages=required_stages,
+                )
                 statuses[result["status"]] += 1
                 abstentions += int(result["abstention_observed"])
                 text_markers += int(declines(record.response)[0])
@@ -68,11 +85,33 @@ def analyze_run(
                 row["condition"] = condition
                 admitted_records.append(row)
             total.update(statuses)
+            stage_counts = Counter()
+            complete_stages = 0
+            incomplete_stages = 0
+            for record in rows:
+                stage_report = evaluate_record(
+                    record.to_dict(),
+                    threshold=threshold,
+                    required_stages=required_stages,
+                )["stage_completeness"]
+                stage_counts.update(stage_report["observed"])
+                if stage_report["complete"]:
+                    complete_stages += 1
+                elif required_stages:
+                    incomplete_stages += 1
             by_arm[arm] = {
                 "n_admitted": len(rows),
                 "contract_status": dict(sorted(statuses.items())),
                 "abstention_observed": abstentions,
                 "response_text_marker_matches_not_used_by_contract": text_markers,
+                "decision_stages": {
+                    "required": list(required_stages or ()),
+                    "observed_records_by_stage": {
+                        stage: stage_counts[stage] for stage in DECISION_STAGES
+                    },
+                    "records_complete": complete_stages,
+                    "records_incomplete": incomplete_stages,
+                },
             }
         by_condition[condition] = by_arm
     return {
@@ -90,6 +129,7 @@ def analyze_run(
             confidence_observations=confidence_observations,
             labels=labels,
             label_source_sha256=label_source_sha256,
+            label_source_name=label_source_name,
             draws=calibration_draws,
             seed=calibration_seed,
         ),
@@ -103,6 +143,7 @@ def _calibration_report(
     confidence_observations: int,
     labels: dict[str, bool] | None,
     label_source_sha256: str | None,
+    label_source_name: str | None,
     draws: int,
     seed: int,
 ) -> dict[str, Any]:
@@ -110,23 +151,33 @@ def _calibration_report(
         return {
             "status": "not_observed",
             "n_confidence_scores": 0,
+            "label_source": None,
             "note": "This run emitted no confidence values, so calibration and AUC were not observed.",
         }
     if labels is None:
         return {
             "status": "requires_labels",
             "n_confidence_scores": confidence_observations,
+            "label_source": None,
             "note": (
                 "This run emitted confidence values, but AUC and probability calibration require "
                 "independently labelled examples. Re-run with --labels <file>."
             ),
         }
-    examples = examples_from_records(records, labels)
+    audit = audit_record_labels(records, labels)
+    examples = audit["examples"]
     result: dict[str, Any] = {
         "status": "labelled",
         "n_confidence_scores": confidence_observations,
         "n_labelled_examples": len(examples),
         "label_source_sha256": label_source_sha256,
+        "label_source": {
+            "name": label_source_name,
+            "sha256": label_source_sha256,
+            "format": "json object or array",
+        },
+        "included_records": audit["included_records"],
+        "excluded_records": audit["excluded_records"],
     }
     try:
         result["metrics"] = calibrate(examples, draws=draws, seed=seed)
@@ -175,6 +226,7 @@ def main() -> int:
         threshold=args.threshold,
         labels=labels,
         label_source_sha256=digest,
+        label_source_name=args.labels.name if args.labels is not None else None,
         calibration_draws=args.draws,
         calibration_seed=args.seed,
     )
