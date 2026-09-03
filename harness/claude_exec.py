@@ -40,7 +40,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .decision_trace import decisions_from_tool_calls
+from .decision_trace import decisions_from_result_events, decisions_from_tool_calls
 from .schema import DEFAULT_MEMORY_TOOL_PREFIX, SessionRecord
 
 if TYPE_CHECKING:  # Runner is only a return annotation here; runner.py is ported separately.
@@ -213,6 +213,9 @@ class ClaudeExecConfig:
     #: stream is the evidence; every number in the summary is derived from it and can be
     #: recomputed, so it is written by the adapter itself rather than by whatever calls it.
     stream_dir: str | Path | None = None
+    #: Claude Code's schema constrained terminal output. None preserves the historical transcript
+    #: mode; the benchmark pilot enables this explicitly when it is collecting decision traces.
+    json_schema: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.executable.strip():
@@ -236,6 +239,8 @@ class ClaudeExecConfig:
                 "strict_mcp_config with mcp_config=None yields a session with no MCP servers; "
                 "pass strict_mcp_config=False, or set mcp_config, to say which you meant"
             )
+        if self.json_schema is not None and not isinstance(self.json_schema, Mapping):
+            raise TypeError("json_schema must be a mapping when provided")
 
     def command(self, prompt: str) -> list[str]:
         """Build an argument list without invoking a shell."""
@@ -245,6 +250,13 @@ class ClaudeExecConfig:
             command.append("--bare")
         command.extend(("-p", prompt))
         command.extend(("--output-format", "stream-json", "--verbose"))
+        if self.json_schema is not None:
+            command.extend(
+                (
+                    "--json-schema",
+                    json.dumps(self.json_schema, separators=(",", ":"), sort_keys=True),
+                )
+            )
         if self.model:
             command.extend(("--model", self.model))
         if self.mcp_config is not None:
@@ -479,7 +491,9 @@ def transcript_fields(
         retrieved_contexts=tuple(contexts),
         failed_tool_calls=sum(1 for call in ordered if call.get("is_error")),
         subagent_tool_calls=sum(1 for call in ordered if call.get("subagent")),
-        runtime_decisions=decisions_from_tool_calls(tool_calls),
+        runtime_decisions=(
+            decisions_from_tool_calls(tool_calls) + decisions_from_result_events(events)
+        ),
     )
 
 

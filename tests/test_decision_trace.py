@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+import json
+
 from harness.claude_exec import parse_claude_stream_json, transcript_fields
-from harness.decision_trace import evaluate_decisions, evaluate_record
+from harness.decision_trace import (
+    DECISION_OUTPUT_SCHEMA,
+    evaluate_decisions,
+    evaluate_record,
+    with_decision_output_instruction,
+)
 from harness.schema import SessionRecord
 
 
@@ -96,3 +103,42 @@ def test_claude_transcript_persists_explicit_runtime_decision() -> None:
             "reason": None,
         },
     )
+
+
+def test_schema_constrained_result_is_recorded_as_a_runtime_decision() -> None:
+    stream = (
+        '{"type":"result","structured_output":'
+        '{"decision":"answer","confidence":0.87,"reason":"checked the generated files"}}'
+    )
+    fields = transcript_fields(parse_claude_stream_json(stream))
+    assert fields.runtime_decisions == (
+        {
+            "decision": "answer",
+            "source": "result.structured_output",
+            "confidence": 0.87,
+            "threshold": None,
+            "reason": "checked the generated files",
+        },
+    )
+
+
+def test_exact_json_result_is_recorded_but_prose_is_not() -> None:
+    structured = (
+        '{"decision":"abstain","confidence":0.22,"threshold":0.5,"reason":"missing evidence"}'
+    )
+    prose = "I could not complete it. " + structured
+    assert transcript_fields(parse_claude_stream_json(json.dumps({
+        "type": "result", "result": prose,
+    }))).runtime_decisions == ()
+
+    exact = json.dumps({"type": "result", "result": structured})
+    fields = transcript_fields(parse_claude_stream_json(exact))
+    assert fields.runtime_decisions[0]["decision"] == "abstain"
+    assert fields.runtime_decisions[0]["source"] == "result.result"
+
+
+def test_decision_prompt_defines_confidence_and_preserves_task() -> None:
+    prompt = with_decision_output_instruction("make the change")
+    assert prompt.startswith("make the change\n\n")
+    assert "confidence" in prompt
+    assert DECISION_OUTPUT_SCHEMA["required"] == ["decision", "confidence"]

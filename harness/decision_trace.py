@@ -23,6 +23,35 @@ from typing import Any
 DECISIONS = frozenset({"answer", "abstain", "escalate"})
 ABSTENTION_DECISIONS = frozenset({"abstain", "escalate"})
 
+# This is an instrumentation contract, not a correctness oracle. The checker still supplies the
+# independent outcome label used by calibration and AUC. Keeping the schema here makes the output
+# requested by the runner and the payload accepted by the trace parser one reviewable contract.
+DECISION_OUTPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["decision", "confidence"],
+    "properties": {
+        "decision": {"type": "string", "enum": sorted(DECISIONS)},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "reason": {"type": "string"},
+    },
+}
+
+DECISION_OUTPUT_INSTRUCTION = """Before ending your turn, emit exactly one structured decision object.
+Use `answer` when you believe you completed the requested task correctly, `abstain` when the
+available evidence is insufficient to claim completion, and `escalate` when human input or a
+clarification is required. Set `confidence` to your probability, from 0 to 1, that the requested
+task was completed correctly. If you applied an explicit abstention threshold, include it as
+`threshold`; otherwise omit that field. You may include a short `reason`. Do not put prose outside
+the structured object."""
+
+
+def with_decision_output_instruction(prompt: str) -> str:
+    """Append the common decision emission instruction to one task prompt."""
+
+    return f"{prompt.rstrip()}\n\n{DECISION_OUTPUT_INSTRUCTION}"
+
 
 def _probability(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -35,7 +64,7 @@ def _probability(value: Any) -> float | None:
 
 @dataclass(frozen=True)
 class ObservedDecision:
-    """One decision explicitly emitted by a runtime or memory tool."""
+    """One decision explicitly emitted by a runtime, benchmark output, or memory tool."""
 
     decision: str
     source: str
@@ -155,6 +184,53 @@ def decisions_from_tool_calls(tool_calls: Sequence[Mapping[str, Any]]) -> tuple[
                 found.append(decision.to_dict())
                 break
     return tuple(found)
+
+
+def decisions_from_result_events(
+    events: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Extract explicit decisions from Claude's terminal structured result.
+
+    Claude Code versions have exposed schema constrained output both as ``structured_output`` and
+    as a JSON string in ``result``. A result string is accepted only when it is exactly one JSON
+    object. Embedded JSON in ordinary prose is intentionally ignored, preserving the contract's
+    rule that wording is not evidence.
+    """
+
+    for event in reversed(events):
+        if event.get("type") != "result":
+            continue
+        structured = event.get("structured_output", event.get("structuredOutput"))
+        if isinstance(structured, Mapping):
+            decision = decision_from_payload(structured, source="result.structured_output")
+            if decision is not None:
+                return (decision.to_dict(),)
+        elif isinstance(structured, str):
+            try:
+                payload = json.loads(structured.strip())
+            except json.JSONDecodeError:
+                payload = None
+            if isinstance(payload, Mapping):
+                decision = decision_from_payload(payload, source="result.structured_output")
+                if decision is not None:
+                    return (decision.to_dict(),)
+
+        final = event.get("result")
+        if isinstance(final, Mapping):
+            decision = decision_from_payload(final, source="result.result")
+            if decision is not None:
+                return (decision.to_dict(),)
+        elif isinstance(final, str):
+            try:
+                payload = json.loads(final.strip())
+            except json.JSONDecodeError:
+                payload = None
+            if isinstance(payload, Mapping):
+                decision = decision_from_payload(payload, source="result.result")
+                if decision is not None:
+                    return (decision.to_dict(),)
+        return ()
+    return ()
 
 
 def decisions_from_record(record: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
