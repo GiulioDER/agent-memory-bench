@@ -37,3 +37,20 @@ seconds, and the projected full run was 2,631.7 seconds, or 43.9 minutes. The ti
 Artifacts: `/home/sentiment/agent-memory-bench-supermemory/results/smoke-supermemory-control-vps2-20260903-r8`
 on VPS2. This qualifies the corrected full pilot prediction for the amended direct static
 Supermemory treatment.
+
+## Full pilot result
+
+The corrected full pilot, `pilot-supermemory-control-vps2-20260903-r2`, ran on VPS2 on 2026-09-03
+with 180 records: 90 `bare` and 90 `supermemory`. Wall time was 82 minutes, below the 18,000
+second five hour ceiling. The run admitted 89 paired cells and discarded one cell, the `bare`
+control for `ts-legacy-hash`, seed 2, which exceeded the configured 600 second Claude timeout.
+
+All 90 Supermemory records have both required lifecycle hooks, `SessionStart` and
+`UserPromptSubmit`, with exit code zero and nonempty output digests. No Supermemory cell was
+discarded. Among the 89 admitted pairs, `bare` passed 42 of 89 cells and `supermemory` passed 15
+of 89 cells. These are the valid control only pilot outcomes; the earlier invalid 68 minute pilot,
+which discarded every Supermemory cell for missing hook ledgers, is excluded.
+
+Artifacts: `/home/sentiment/agent-memory-bench-supermemory/results/pilot-supermemory-control-vps2-20260903-r2`
+on VPS2. The temporary Supermemory server was stopped, its original environment file was restored,
+and port 6767 is closed.
