@@ -55,3 +55,29 @@ The first `protocol` invocation also stopped without a model session because the
 launcher PATH extension for Claude Code was not exported. Its artifact recorded zero tokens and 33
 discarded cells. The actual probe exports `$HOME/.npm-global/bin` in PATH and uses a new result
 directory. No model call was made by either blocked invocation.
+
+## Results, appended 2026-09-03
+
+Measured on VPS2 from commit `dc7b78b`, with the live run in
+`results/pr75-superseded-recall-20260903-live`.
+
+The probe completed all 33 sessions, admitted 33 cells and discarded none. It had no session
+errors, solved 21 of 33 tasks, used 1,911,468 tokens and reported estimated spend of $0.1145 over
+35 minutes. The artifact passed `scripts.verify_run` for session count, token total, discard set
+and stream count.
+
+The recall arm made 53 MCP tool calls. Its search rate was 15 of 33, or 0.455, below the predicted
+0.65 and below the 0.50 interpretability floor. The run is therefore not interpretable as a recall
+outcome comparison.
+
+PR75 recorded an empty `runtime_decisions` list in all 33 records. The decision evaluator returned
+`not_observed` for all 33 records, with zero observed decisions, zero confidence scores and zero
+confidence threshold pairs. No calibration or AUC estimate was produced, as required. This
+confirms that the instrumentation does not infer a decision from prose, ordinary MCP calls or an
+unqualified abstention flag, but it also shows that the current benchmark prompt does not emit the
+structured events needed for a calibration dataset.
+
+The setup validator passed the shared protocol, matched instruction, appendix proportion and
+sandbox checks. It skipped corpus reach because this recall only pilot reused a previously verified
+tenant and the direct pilot invocation does not write an ingest entry. That omission is recorded as
+a limitation of this targeted probe, not treated as a pass.
