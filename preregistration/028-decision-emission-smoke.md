@@ -50,3 +50,14 @@ stream format, emits no structured terminal object, or the parser fails to persi
 decision that is present in the raw stream.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Setup correction, 2026-09-03, before any model session
+
+The first launch was refused before a Claude process started because the existing setup gate
+requires `instruction_arms_matched: true`, and a bare only grid has no matched instruction. The
+refusal spent no model tokens and produced no session record.
+
+The smoke is therefore rerun under `decision-emission-smoke-20260903-matched` with the same task,
+seed, model and output contract, but with two arms: `bare` and `protocol`. The shared protocol is
+used so the normal instruction parity check remains meaningful. The endpoints and prediction above
+are unchanged; the grid now contains two sessions instead of one.
