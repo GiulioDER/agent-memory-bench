@@ -22,11 +22,35 @@ def _discarded(run_dir: Path) -> set[tuple[str, int]]:
 
 def _condition_dirs(results_root: Path, run_id: str) -> list[tuple[str, Path]]:
     prefix = f"{run_id}-"
-    return sorted(
+    discovered = sorted(
         (path.name.removeprefix(prefix), path)
         for path in results_root.iterdir()
         if path.is_dir() and path.name.startswith(prefix)
     )
+    if discovered:
+        return discovered
+
+    # Direct pilot runs use the run id as the directory name. The wrapper adds the condition
+    # suffix, so the old discovery logic silently produced an empty analysis for a valid direct
+    # run. Recover the condition from the environment or the first record when available.
+    direct = results_root / run_id
+    records_path = direct / "records.final.jsonl"
+    if not records_path.is_file():
+        return []
+    condition = ""
+    environment_path = direct / "environment.json"
+    if environment_path.is_file():
+        environment = json.loads(environment_path.read_text(encoding="utf-8"))
+        condition = str(environment.get("condition") or "")
+    if not condition:
+        with records_path.open(encoding="utf-8") as source:
+            first = next((line for line in source if line.strip()), "")
+        if first:
+            record = json.loads(first)
+            metadata = record.get("metadata")
+            if isinstance(metadata, dict):
+                condition = str(metadata.get("condition") or "")
+    return [(condition, direct)]
 
 
 def analyze_run(

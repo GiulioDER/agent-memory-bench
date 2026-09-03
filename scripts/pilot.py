@@ -78,9 +78,9 @@ from harness.costs import (
 )
 from harness.damage import CORPUS_CONDITIONS, PRESENT, Outcome, outcome_for
 from harness.decision_trace import (
-    DECISION_STAGE_INSTRUCTION,
     DECISION_OUTPUT_INSTRUCTION,
     DECISION_OUTPUT_SCHEMA,
+    DECISION_STAGE_INSTRUCTION,
     STAGED_DECISION_OUTPUT_SCHEMA,
     with_decision_output_instruction,
 )
@@ -817,6 +817,7 @@ async def main() -> int:
                 "model": args.model,
                 "arms": list(run_arms),
                 "memory_instruction": args.memory_instruction,
+                "condition": args.condition,
                 "neutral_protocol": args.neutral_protocol,
                 "decision_output": {
                     "enabled": args.emit_decisions,

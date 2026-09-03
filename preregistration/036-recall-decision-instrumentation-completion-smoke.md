@@ -25,4 +25,21 @@ not a benchmark effect estimate.
 
 # Result
 
-To be appended after the live run. The prediction above is not edited after measurement.
+Measured 2026-09-03 on VPS2 with commit `2fffb05e`. The first live invocation was correctly
+refused before model execution because the sourced environment did not export `git` or the API
+variables. After explicitly exporting the existing variables and the documented location values,
+the one cell completed with one admitted cell, both arms successful, recall search rate 1.000, and
+estimated spend of $0.0067 over 111214 tokens. The active generation fingerprint matched
+`0278cc651f14d9a5b3af319fc26d44184b119969794d751f6091405d864328aa`.
+
+The record contained one successful recall call and one runtime decision. The first-class fields
+reported attempted 1, succeeded 1, failed 0, abstained 0, hits 0, no trust states, and no error
+codes. The staged trace observed `pre_action` only, so the completeness report correctly leaves
+`evidence`, `action`, and `final` missing for this short session. The calibration path was also
+exercised with an independent one-record label and produced the expected labelled artifact, but
+remained uncertified because one record cannot provide both classes.
+
+The post-run analyzer exposed and fixed one bug during this smoke: it previously recognized only
+wrapper directories named `<run-id>-<condition>` and silently skipped direct `pilot.py` output.
+Direct run discovery now recovers the condition from `environment.json` or the record metadata.
+The prediction above is not edited after measurement.
