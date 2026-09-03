@@ -228,7 +228,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         )
     if "supermemory" in texts:
         texts["supermemory"] = SupermemoryAdapter.shared_instruction(
-            neutral=neutral, variant=variant if shared else "protocol"
+            neutral=neutral
         )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(

@@ -38,7 +38,7 @@ DEFAULT_ARMS = ("bare", "claude_md", "recall")
 #: Every arm `scripts/pilot.py` can run. `protocol` and `fs_grep` were missing here long after
 #: the runner grew them, so the arm that exists to separate the instruction from the store could
 #: be run and then not analysed: `--arms bare,claude_md,protocol,recall` exited `unknown arms`.
-SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "cachly")
+SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "cachly", "supermemory")
 
 
 #: Re-exported so `scripts/discard_sensitivity.py` keeps importing it from here, while there is

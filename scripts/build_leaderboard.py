@@ -71,6 +71,7 @@ PRODUCT_ARMS = [
 ADDITIVE_ARM_DEFINITIONS = {
     # internal name: integration, role, public name
     "cognee": ("MCP server", None, None),
+    "supermemory": ("MCP server", None, None),
 }
 
 # ⛔ This list is the arms that are MEASURED, not the arms that are hoped for. `mem0`,
