@@ -48,3 +48,26 @@ The emission path is not ready for a RE-call benchmark if the CLI rejects the sc
 stream has no structured terminal object, or the parser fails to persist the explicit event.
 
 <!-- results are appended below this line; everything above is frozen -->
+## Result: 2026-09-03, RE-call smoke
+
+- Code: `930fc71` (`Preregister RE-call decision emission smoke`)
+- Run: `recall-decision-emission-smoke-20260903`
+- Admission and verification: passed. One admitted session, one record, 36,554 total
+  tokens, and `scripts.verify_run` reported `1/1 run(s) verified`.
+- RE-call surface: present; the session made 2 `recall_search` calls.
+- Endpoint 1: failed. The raw stream had a terminal `result` event, but no structured
+  terminal decision. Its textual result was empty and it ended with `stop_reason=end_turn`.
+- Endpoint 2: failed because the parser correctly found no explicit decision to persist;
+  `runtime_decisions` was `[]`.
+- Endpoint 3: passed for surface and attempted call count. Both RE-call searches returned
+  tool errors because the MCP transport was unavailable inside the live Claude session.
+- Endpoint 4: passed.
+- The benchmark emitted an explicit `[structured-output-enforce]` continuation, but the
+  model still ended without calling `StructuredOutput`. This is therefore an agent or
+  MCP-session failure for this cell, not evidence that prose was accepted as a decision.
+- The task checker separately reported `gen_id.py was never written`; this is unrelated to
+  decision parsing.
+
+Conclusion: the RE-call arm is wired into the new recording path, and the verifier is ready,
+but this live cell did not produce the new decision data. A successful RE-call mechanism test
+needs the MCP transport healthy and a session that actually calls `StructuredOutput`.
