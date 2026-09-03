@@ -40,3 +40,33 @@ most completed RE-call sessions will emit a terminal structured `answer` decisio
 confidence. The verifier will pass. Outcome and confidence distributions are left as measurements.
 
 <!-- results are appended below this line; everything above is frozen -->
+## Result: 2026-09-03, completed superseded run
+
+- Run: `recall-decision-superseded-current-tenant-20260903-superseded`
+- Preparation: current feed fingerprint `0278cc651f14d9a5`; 207 sources and 1,226 chunks;
+  generation built, calibrated, promoted and verified before model execution.
+- Integrity: 110/110 session records and streams; the normal verifier passed. 54 of 55 paired
+  cells were admitted; `(ts-base36-id, seed 3)` was discarded because the bare arm had an API
+  error. Total recorded tokens: 5,439,438.
+- Task outcomes among all 55 sessions per arm: bare succeeded 38/55; recall succeeded 38/55.
+  On the 54 admitted paired cells, recall had 6 wins and 5 losses against bare, for a net
+  success difference of +1 and no meaningful success advantage.
+- RE-call mechanism: 20/55 sessions searched memory, for a search rate of 0.364. Among admitted
+  recall records, 53/54 carried a structured decision, all `decision=answer`; one record had no
+  observed decision.
+- Decision confidence: the 53 observed recall scores ranged from 0.95 to 1.00, with mean
+  0.996. The 38 successful scored sessions and 15 failed scored sessions both included only
+  high-confidence answers; every failed scored session had confidence 1.00.
+- Independent checker labels were used only after collection for the descriptive calibration
+  analysis. On the 53 scored recall records: 38 answerable and 15 unanswerable. AUC was 0.421053
+  with bootstrap 95% CI `[0.355263, 0.473684]`; Brier score was 0.283172 and ECE was 0.279057.
+  The result was `uncertified`: the unanswerable class had fewer than the required 20 examples,
+  and the AUC lower bound was below the 0.90 certification threshold. Runtime use is blocked.
+- The observed-decision trace classified 53 recall records as `observed_only` and one as
+  `not_observed`. It did not evaluate calibration, which was run separately with the checker
+  labels above.
+
+Conclusion: this run is ready for analysis and demonstrates that the benchmark records RE-call
+decisions in the adversarial superseded condition. It also shows why emitting a confidence value
+is not enough: this model was strongly overconfident, and the current sample is not certified for
+runtime calibration or AUC use.
