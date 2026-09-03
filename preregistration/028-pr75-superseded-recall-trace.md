@@ -40,3 +40,11 @@ run, and do not use the recall only success rate as a replacement for the prereg
 endpoints.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Setup correction, appended 2026-09-03 before any model session
+
+The first launch was stopped by the current setup gate after tenant verification and before a
+session. The gate treats `skill` as an unmatched instruction and refuses it for any measured run.
+The actual probe therefore uses `protocol`, the current matched instruction variant, while keeping
+the same task set, model, namespace and session count. The predictions above concern the resulting
+live probe; the blocked `skill` configuration produced no measurement.
