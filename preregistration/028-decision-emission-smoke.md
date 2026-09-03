@@ -53,7 +53,7 @@ decision that is present in the raw stream.
 
 ## Results appended, 2026-09-03
 
-The corrected smoke ran on VPS2 from benchmark commit `59dddff0` under
+The corrected smoke ran on the serving host from benchmark commit `59dddff0` under
 `decision-emission-smoke-20260903-matched`. Both sessions were admitted and both produced a
 terminal `structured_output` object in the raw gzip stream:
 
