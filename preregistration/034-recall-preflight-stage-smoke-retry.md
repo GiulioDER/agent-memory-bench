@@ -25,3 +25,13 @@ decision stages, and admission artifacts.
 This is an instrumentation smoke test, not a task performance estimate. A passed preflight proves
 the run was wired to the intended active corpus and that the MCP search path worked once. The
 session records then distinguish model non use from retrieval failure or retrieval abstention.
+
+## Result, measured 2026-09-03
+
+Command: direct `scripts.pilot` invocation using `corpus/conditions/superseded/seed-1`, the
+current superseded tenant, and the run id `recall-preflight-stage-smoke-20260903-retry`.
+
+The generation and MCP preflight passed, including one successful `recall_search` call. Both model
+sessions then failed before launch because the direct SSH shell did not include the Claude binary
+directory in `PATH`. The admission gate discarded the cell with zero model spend. This did not
+match the preregistered prediction of completed sessions.

@@ -139,6 +139,19 @@ def test_structured_output_tool_input_preserves_decision_stage() -> None:
     assert "evidence" in DECISION_STAGE_INSTRUCTION
 
 
+def test_terminal_echo_of_structured_output_is_not_counted_twice() -> None:
+    payload = '{"decision":"abstain","confidence":0.2,"stage":"pre_action"}'
+    stream = (
+        '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"1",'
+        '"name":"StructuredOutput","input":' + payload + '}]}}\n'
+        '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"1",'
+        '"content":"ack"}]}}\n'
+        '{"type":"result","structured_output":' + payload + '}'
+    )
+    fields = transcript_fields(parse_claude_stream_json(stream))
+    assert len(fields.runtime_decisions) == 1
+
+
 def test_exact_json_result_is_recorded_but_prose_is_not() -> None:
     structured = (
         '{"decision":"abstain","confidence":0.22,"threshold":0.5,"reason":"missing evidence"}'

@@ -361,6 +361,30 @@ def _is_subagent(event: Mapping[str, Any]) -> bool:
     return event.get("parent_tool_use_id") is not None
 
 
+def _decision_identity(value: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Compare decisions without their transport source, so terminal echo is not double counted."""
+
+    return tuple(
+        value.get(key)
+        for key in ("decision", "confidence", "threshold", "reason", "stage")
+    )
+
+
+def _merge_runtime_decisions(
+    tool_decisions: Sequence[Mapping[str, Any]],
+    result_decisions: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Keep a StructuredOutput event once when Claude also echoes it as terminal output."""
+
+    merged = [dict(item) for item in tool_decisions]
+    tool_identities = {_decision_identity(item) for item in merged}
+    for item in result_decisions:
+        if _decision_identity(item) in tool_identities:
+            continue
+        merged.append(dict(item))
+    return tuple(merged)
+
+
 @dataclass(frozen=True)
 class TranscriptFields:
     """Everything the record needs that has to be reconstructed from the event stream."""
@@ -485,6 +509,8 @@ def transcript_fields(
     memory_retrieval = summarize_memory_calls(
         tool_calls, memory_tool_prefix=memory_tool_prefix
     )
+    tool_decisions = decisions_from_tool_calls(tool_calls)
+    result_decisions = decisions_from_result_events(events)
     return TranscriptFields(
         conversation=tuple(conversation),
         tool_calls=tool_calls,
@@ -496,9 +522,7 @@ def transcript_fields(
         retrieved_contexts=tuple(contexts),
         failed_tool_calls=sum(1 for call in ordered if call.get("is_error")),
         subagent_tool_calls=sum(1 for call in ordered if call.get("subagent")),
-        runtime_decisions=(
-            decisions_from_tool_calls(tool_calls) + decisions_from_result_events(events)
-        ),
+        runtime_decisions=_merge_runtime_decisions(tool_decisions, result_decisions),
         memory_retrieval=memory_retrieval,
     )
 

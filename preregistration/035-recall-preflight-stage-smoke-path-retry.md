@@ -25,3 +25,16 @@ admission artifact.
 This remains an instrumentation smoke test, not evidence about task performance. A successful
 cell is required to validate record emission; a preflight pass followed by a model startup failure
 is an environment failure and remains separately visible.
+
+## Result, measured 2026-09-03
+
+Command: direct `scripts.pilot` invocation using the official Claude PATH, the matching superseded
+manifest, the current superseded tenant, and the run id
+`recall-preflight-stage-smoke-20260903-path-retry`.
+
+The preflight passed. One cell was admitted. The recall session made one successful memory call,
+recorded 956 milliseconds of latency, and exposed retrieval telemetry with one attempted and one
+successful call. The runtime emitted a `pre_action` abstention with confidence 1.0. It did not write
+the task file, so no `action` or `final` stage was observed. The terminal structured result echoed
+the same `pre_action` payload, which exposed a parser duplication fixed after this run. The smoke
+validated preflight and retrieval telemetry, but it did not validate a terminal `final` stage.
