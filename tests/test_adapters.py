@@ -7,6 +7,7 @@ import pytest
 from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FsGrepAdapter
+from adapters.supermemory.adapter import SupermemoryAdapter
 from harness.adapters.base import CorpusManifest, resolve_corpus_path
 from harness.adapters.registry import AdapterRegistry
 
@@ -100,6 +101,29 @@ def test_fs_grep_build_refuses_an_uningested_namespace(tmp_path, base_prompt):
     adapter = FsGrepAdapter(tmp_path / "staging", base_prompt)
     with pytest.raises(FileNotFoundError, match="not been ingested"):
         adapter.build(tmp_path, "bench-fs_grep-9")
+
+
+def test_supermemory_direct_static_mode_splits_and_verifies_official_route(
+    tmp_path, corpus, base_prompt, monkeypatch
+):
+    monkeypatch.setenv("SUPERMEMORY_BENCHMARK_INGEST_MODE", "direct_static_memories")
+    adapter = SupermemoryAdapter(tmp_path / "staging", base_prompt)
+    calls = []
+
+    def request(path, body, *, timeout_s):
+        calls.append((path, body, timeout_s))
+        if path == "/v4/memories":
+            return {"memories": [{"id": "memory-1"}]}
+        return {"searchResults": {"results": [{"memory": "verified"}]}}
+
+    monkeypatch.setattr(adapter, "_request", request)
+    report = adapter.ingest(corpus, "bench-supermemory-0")
+
+    assert report.items_stored == 1
+    assert report.sessions_offered == 1
+    assert calls[0][0] == "/v4/memories"
+    assert calls[-1][0] == "/v4/profile"
+    assert report.notes[0].endswith("POST /v4/memories")
 
 
 def test_registry_fills_forbidden_prefixes_for_the_run_roster(tmp_path, base_prompt):
