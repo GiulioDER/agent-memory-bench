@@ -191,6 +191,23 @@ def test_a_config_naming_a_real_executable_is_passed_through(tmp_path, base_prom
     assert command == "/opt/vendor/bin/recall-server"
 
 
+def test_recall_passes_vps_database_search_path_to_ingest_and_server(tmp_path, base_prompt, monkeypatch):
+    """A VPS comparison must be isolated from the live public Recall table."""
+
+    from adapters.recall.adapter import RecallAdapter
+
+    monkeypatch.setenv("RECALL_DSN", "postgresql://unused.invalid/bench")
+    monkeypatch.setenv("RECALL_PGOPTIONS", "-c search_path=amb_recall_bench_20260903,public")
+    adapter = RecallAdapter(tmp_path / "staging", base_prompt)
+    spec = adapter.build(tmp_path / "session", "ns")
+    server_env = json.loads(Path(spec.mcp_config).read_text(encoding="utf-8"))["mcpServers"][
+        "recall"
+    ]["env"]
+    assert server_env["PGOPTIONS"] == "-c search_path=amb_recall_bench_20260903,public"
+    assert "PGOPTIONS" in __import__("inspect").getsource(RecallAdapter.ingest)
+    assert "options=options or None" in __import__("inspect").getsource(RecallAdapter._rows_for_tenant)
+
+
 def test_registry_refuses_duplicate_names():
     registry = AdapterRegistry()
     registry.register(BareAdapter())

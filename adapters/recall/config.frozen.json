@@ -3,6 +3,7 @@
   "command": "python",
   "args": ["-m", "recall_mcp.server"],
   "dsn_env": "RECALL_DSN",
+  "postgres_options_env": "RECALL_PGOPTIONS",
   "embedder": "fastembed",
   "trust_mode": "development",
   "tool_prefix": "mcp__recall__",

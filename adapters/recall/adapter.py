@@ -69,6 +69,14 @@ class RecallAdapter(MemoryAdapter):
             "RECALL_TRUST_MODE": str(self.config["trust_mode"]),
             "RECALL_TENANT": namespace,
         }
+        options_env = str(self.config.get("postgres_options_env", ""))
+        options = os.environ.get(options_env, "") if options_env else ""
+        if options:
+            # A benchmark may provide a dedicated PostgreSQL search_path so the pinned Recall
+            # server cannot read or mutate the live public `chunks` table. PostgreSQL applies
+            # this to both the MCP server and the CLI writer without changing Recall's published
+            # command or its SQL path.
+            env["PGOPTIONS"] = options
         for passthrough in ("APPDATA", "SystemRoot", "PYTHONPATH", "PATH"):
             value = os.environ.get(passthrough)
             if value:
@@ -135,6 +143,11 @@ class RecallAdapter(MemoryAdapter):
                 # A small bound, always: fastembed pads a batch to its longest member, and an
                 # unbounded batch is how a 987-memo index run died of a bad allocation.
                 "RECALL_INDEX_BATCH_CHUNKS": os.environ.get("RECALL_INDEX_BATCH_CHUNKS", "16"),
+                **(
+                    {"PGOPTIONS": os.environ[str(self.config["postgres_options_env"])]}
+                    if os.environ.get(str(self.config.get("postgres_options_env", "")))
+                    else {}
+                ),
             },
             capture_output=True,
             text=True,
@@ -193,7 +206,9 @@ class RecallAdapter(MemoryAdapter):
             import psycopg
         except ImportError:  # pragma: no cover - environment without the driver
             return -1
-        with psycopg.connect(self._dsn()) as connection, connection.cursor() as cursor:
+        options_env = str(self.config.get("postgres_options_env", ""))
+        options = os.environ.get(options_env, "") if options_env else ""
+        with psycopg.connect(self._dsn(), options=options or None) as connection, connection.cursor() as cursor:
             # `set_config`, NOT `SET LOCAL ... = %s`. Postgres does not accept a parameter
             # placeholder in a SET statement, and the first version of this raised
             # `syntax error at or near "$1"` AFTER a twenty-minute embed had already succeeded.
