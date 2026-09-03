@@ -26,6 +26,8 @@ from harness.transcripts import render_corpus
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 _WRAPPER_PATH = Path(__file__).with_name("hook_wrapper.js")
 _REQUIRED_HOOKS = ("SessionStart", "UserPromptSubmit")
+_DIRECT_MEMORY_PATH = "/v4/memories"
+_DIRECT_MEMORY_MAX_CHARS = 9000
 _HOOK_FILES = {
     "SessionStart": "session-start.js",
     "UserPromptSubmit": "recall-directive.js",
@@ -79,6 +81,15 @@ class SupermemoryAdapter(MemoryAdapter):
     @staticmethod
     def _node() -> str:
         return os.environ.get("SUPERMEMORY_NODE") or shutil.which("node") or "node"
+
+    def _benchmark_ingest_mode(self) -> str:
+        mode = os.environ.get("SUPERMEMORY_BENCHMARK_INGEST_MODE", "official_documents")
+        if mode not in {"official_documents", "direct_static_memories"}:
+            raise RuntimeError(
+                "SUPERMEMORY_BENCHMARK_INGEST_MODE must be official_documents or "
+                f"direct_static_memories, got {mode!r}"
+            )
+        return mode
 
     def _plugin_root(self) -> Path:
         if self.plugin_dir is None:
@@ -151,25 +162,58 @@ class SupermemoryAdapter(MemoryAdapter):
         start = time.monotonic()
         accepted = 0
         first_query = "project memory"
+        ingest_mode = self._benchmark_ingest_mode()
         for path in sorted(staged.glob("*.md")):
             content = path.read_text(encoding="utf-8")
             if content and first_query == "project memory":
                 first_query = content[:500]
-            result = self._request(
-                str(self.config["write_path"]),
-                {
-                    "content": content,
-                    "containerTag": namespace,
-                    "customId": f"{namespace}__{path.stem}",
-                    "entityContext": "Shared coding agent memory. Preserve durable project decisions, conventions, and lessons.",
-                },
-                timeout_s=30.0,
-            )
-            if not isinstance(result, dict) or not (result.get("id") or result.get("status")):
-                raise RuntimeError(
-                    f"Supermemory accepted no identifiable document for {path.name}: {result!r}"
+            if ingest_mode == "official_documents":
+                result = self._request(
+                    str(self.config["write_path"]),
+                    {
+                        "content": content,
+                        "containerTag": namespace,
+                        "customId": f"{namespace}__{path.stem}",
+                        "entityContext": "Shared coding agent memory. Preserve durable project decisions, conventions, and lessons.",
+                    },
+                    timeout_s=30.0,
                 )
-            accepted += 1
+                if not isinstance(result, dict) or not (result.get("id") or result.get("status")):
+                    raise RuntimeError(
+                        f"Supermemory accepted no identifiable document for {path.name}: {result!r}"
+                    )
+                accepted += 1
+            else:
+                parts = [
+                    content[offset : offset + _DIRECT_MEMORY_MAX_CHARS]
+                    for offset in range(0, len(content), _DIRECT_MEMORY_MAX_CHARS)
+                ] or [""]
+                for part_index, part in enumerate(parts, start=1):
+                    result = self._request(
+                        _DIRECT_MEMORY_PATH,
+                        {
+                            "containerTag": namespace,
+                            "memories": [
+                                {
+                                    "content": part,
+                                    "isStatic": True,
+                                    "metadata": {
+                                        "source": "agent-memory-bench",
+                                        "corpus_path": path.relative_to(staged).as_posix(),
+                                        "part": str(part_index),
+                                        "parts": str(len(parts)),
+                                    },
+                                }
+                            ],
+                        },
+                        timeout_s=60.0,
+                    )
+                    stored = result.get("memories") if isinstance(result, dict) else None
+                    if not isinstance(stored, list) or not stored:
+                        raise RuntimeError(
+                            f"Supermemory accepted no direct memory for {path.name} part {part_index}: {result!r}"
+                        )
+                    accepted += len(stored)
         verification_hits = 0
         deadline = time.monotonic() + min(60.0, float(self.config["ingest_timeout_s"]))
         while time.monotonic() < deadline and accepted:
@@ -195,7 +239,9 @@ class SupermemoryAdapter(MemoryAdapter):
             if local
             else None,
             notes=(
-                "ingested one rendered transcript per request through POST /v3/documents",
+                "ingested rendered transcripts as explicit static memories through POST /v4/memories"
+                if ingest_mode == "direct_static_memories"
+                else "ingested one rendered transcript per request through POST /v3/documents",
                 f"{accepted} document(s) accepted; search verification returned {verification_hits} hit(s)",
                 "local Supermemory API selected; model compute is local and not represented as hosted tokens"
                 if local
@@ -322,5 +368,6 @@ class SupermemoryAdapter(MemoryAdapter):
             "plugin_root": plugin_root,
             "base_url": self._base_url(),
             "required_hooks": list(_REQUIRED_HOOKS),
+            "benchmark_ingest_mode": self._benchmark_ingest_mode(),
             "cost_mode": "local by default; no Supermemory subscription required",
         }
