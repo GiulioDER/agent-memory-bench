@@ -55,7 +55,8 @@ SMOKE_MAX_SECONDS = 600.0
 FULL_RUN_MAX_SECONDS = 18_000.0
 PROMPT = (
     "Determine which TCP port this service is configured to listen on, and write it to "
-    "RESULT.txt in the repository root: just the number, one line, nothing else."
+    "the current repository root as ./RESULT.txt using a relative path: just the number, "
+    "one line, nothing else."
 )
 BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
 DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
