@@ -20,3 +20,20 @@ The measurement is valid only if the smoke and full run are executed on VPS2 and
 server is restored to its original environment after collection.
 
 <!-- results are appended below this line -->
+
+## Smoke result
+
+The first corrected invocation, `smoke-supermemory-control-vps2-20260903-r7`, was invalid before
+measurement because the noninteractive SSH PATH omitted the installed Claude executable. Both
+cells were discarded before session start. It is not a product result.
+
+The qualifying corrected smoke, `smoke-supermemory-control-vps2-20260903-r8`, ran on VPS2 on
+2026-09-03 with exactly `bare,supermemory`. Both cells passed `RESULT.txt == '4731'`, one paired
+cell was admitted, and no cell was discarded. Supermemory accepted 135 explicit static memories
+from 131 offered transcript files and verification returned five hits. `SessionStart` and
+`UserPromptSubmit` both exited zero with nonempty output digests. Smoke elapsed time was 540.6
+seconds, and the projected full run was 2,631.7 seconds, or 43.9 minutes. The timing gate passed.
+
+Artifacts: `/home/sentiment/agent-memory-bench-supermemory/results/smoke-supermemory-control-vps2-20260903-r8`
+on VPS2. This qualifies the corrected full pilot prediction for the amended direct static
+Supermemory treatment.
