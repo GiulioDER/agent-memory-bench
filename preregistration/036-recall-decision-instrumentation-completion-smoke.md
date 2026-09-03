@@ -43,3 +43,11 @@ The post-run analyzer exposed and fixed one bug during this smoke: it previously
 wrapper directories named `<run-id>-<condition>` and silently skipped direct `pilot.py` output.
 Direct run discovery now recovers the condition from `environment.json` or the record metadata.
 The prediction above is not edited after measurement.
+
+## Correction appended 2026-09-03
+
+The calibration artifact was exercised against both admitted records, not one. Both labels were
+`answerable: true`, so the artifact included two records and correctly returned
+`insufficient_labels` because AUC needs both classes. The earlier one-record wording referred to
+the local serialization check before the live artifact command and does not replace the measured
+prediction.
