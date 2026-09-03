@@ -1,0 +1,4 @@
+supermemory-claude-plugin==0.1.6
+source=https://github.com/supermemoryai/claude-supermemory
+commit=e6227edc4f33b83317cfde2e7cd9790c794d22d1
+node=>=18.0.0

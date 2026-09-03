@@ -92,12 +92,10 @@ def test_not_calling_memory_is_a_result_rather_than_a_discard():
 
 
 def test_the_untested_hook_claim_expires_when_an_adapter_ships_hooks():
-    """Deliberately pinned to today's state so it FAILS when the harness improves.
+    """Keep the contract honest while the first hook adapter awaits its smoke test.
 
-    The contract says hook integration is supported and untested. That is true and it is a
-    liability: it tells a hook-based product they will be first. When an adapter starts shipping a
-    config_dir, this goes red and the sentence must be rewritten rather than quietly outliving its
-    accuracy.
+    Once the smoke test succeeds, the status must be promoted to exercised and this tripwire must
+    be updated with the measured run artifact.
     """
 
     shipping = [
@@ -105,8 +103,7 @@ def test_the_untested_hook_claim_expires_when_an_adapter_ships_hooks():
         for path in sorted((REPO / "adapters").glob("*/adapter.py"))
         if "config_dir=" in path.read_text(encoding="utf-8")
     ]
-    assert shipping == [], (
-        f"{shipping} now ship a config_dir, so hook integration is no longer untested. "
-        f"Update the Status section of docs/INTEGRATION-CONTRACT.md, then update this test."
+    assert shipping == ["supermemory"], (
+        f"unexpected hook adapters: {shipping}; update this tripwire with the shipped set"
     )
-    assert "supported and UNTESTED" in TEXT
+    assert "pending smoke verification" in TEXT

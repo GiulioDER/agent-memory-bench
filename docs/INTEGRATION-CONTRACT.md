@@ -81,11 +81,11 @@ measure something nobody ships.
 
 * MCP-server integration: **exercised**. `recall` and `fs_grep` both run this way.
 * System-prompt instruction of arbitrary length: **exercised**.
-* Hook and plugin integration: **supported and UNTESTED**. `ClaudeExecConfig.config_dir`,
-  `ArmSpec.config_dir`, the `hook_ledger` and the gate's `required_hooks` check all exist, and no
-  adapter currently ships hooks, so that route has never been run end to end. If your integration
-  is hook-based, expect to be the first, and expect us to fix what breaks rather than asking you
-  to work around it.
+* Hook and plugin integration: **supported; Supermemory adapter pending smoke verification**.
+  `ClaudeExecConfig.config_dir`, `ArmSpec.config_dir`, the `hook_ledger` and the gate's
+  `required_hooks` check all exist. The Supermemory adapter ships the official Claude Code plugin
+  through an isolated config directory, but it is not a runnable competitor until its preregistered
+  smoke test proves both hook delivery and the five-hour full-run projection.
 
 ## How to add your arm
 
