@@ -15,6 +15,7 @@ import shutil
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,7 @@ _REQUIRED_HOOKS = ("SessionStart", "UserPromptSubmit")
 _DIRECT_MEMORY_PATH = "/v4/memories"
 _DIRECT_MEMORY_MAX_CHARS = 9000
 _DIRECT_MEMORY_BATCH_SIZE = 20
+_DIRECT_MEMORY_BATCH_CONCURRENCY = 2
 _HOOK_FILES = {
     "SessionStart": "session-start.js",
     "UserPromptSubmit": "recall-directive.js",
@@ -192,18 +194,32 @@ class SupermemoryAdapter(MemoryAdapter):
             nonlocal accepted
             if not pending_memories:
                 return
-            result = self._request(
-                _DIRECT_MEMORY_PATH,
-                {"containerTag": namespace, "memories": list(pending_memories)},
-                timeout_s=180.0,
-            )
-            stored = result.get("memories") if isinstance(result, dict) else None
-            if not isinstance(stored, list) or len(stored) < len(pending_memories):
-                raise RuntimeError(
-                    f"Supermemory accepted {len(stored) if isinstance(stored, list) else 0} of "
-                    f"{len(pending_memories)} direct memories ({pending_names[0]})"
+            batches = [
+                pending_memories[offset : offset + _DIRECT_MEMORY_BATCH_SIZE]
+                for offset in range(0, len(pending_memories), _DIRECT_MEMORY_BATCH_SIZE)
+            ]
+            names = [
+                pending_names[offset : offset + _DIRECT_MEMORY_BATCH_SIZE]
+                for offset in range(0, len(pending_names), _DIRECT_MEMORY_BATCH_SIZE)
+            ]
+
+            def write_batch(batch: list[dict[str, Any]]) -> Any:
+                return self._request(
+                    _DIRECT_MEMORY_PATH,
+                    {"containerTag": namespace, "memories": list(batch)},
+                    timeout_s=180.0,
                 )
-            accepted += len(stored)
+
+            with ThreadPoolExecutor(max_workers=_DIRECT_MEMORY_BATCH_CONCURRENCY) as pool:
+                results = list(pool.map(write_batch, batches))
+            for batch, batch_names, result in zip(batches, names, results, strict=True):
+                stored = result.get("memories") if isinstance(result, dict) else None
+                if not isinstance(stored, list) or len(stored) < len(batch):
+                    raise RuntimeError(
+                        f"Supermemory accepted {len(stored) if isinstance(stored, list) else 0} of "
+                        f"{len(batch)} direct memories ({batch_names[0]})"
+                    )
+                accepted += len(stored)
             pending_memories.clear()
             pending_names.clear()
 
@@ -246,7 +262,7 @@ class SupermemoryAdapter(MemoryAdapter):
                         }
                     )
                     pending_names.append(f"{path.name} part {part_index}")
-                    if len(pending_memories) >= _DIRECT_MEMORY_BATCH_SIZE:
+                    if len(pending_memories) >= _DIRECT_MEMORY_BATCH_SIZE * _DIRECT_MEMORY_BATCH_CONCURRENCY:
                         flush_direct_memories()
         flush_direct_memories()
         verification_hits = 0
