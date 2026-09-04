@@ -358,7 +358,7 @@ class SupermemoryAdapter(MemoryAdapter):
         self._write_hook_settings(config_dir, copied_plugin)
         ledger = config_dir / "hook-ledger.jsonl"
         home = config_dir / "home"
-        home.mkdir()
+        home.mkdir(exist_ok=True)
         prompt = prompt_path or session_dir / "prompt.md"
         prompt.parent.mkdir(parents=True, exist_ok=True)
         prompt.write_text(
