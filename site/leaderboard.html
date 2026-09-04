@@ -36,19 +36,16 @@
   <section class="page-head">
     <span class="kicker reveal">Leaderboard</span>
     <h1 class="reveal r2">Ranked by what <em>ran.</em></h1>
-    <p class="dek reveal r3">Task success on executable checkers, paired per task against the
-    <code>claude_md</code> baseline. Every number on this page traces to a published run
-    directory; nothing is typed in by hand.</p>
+    <p class="dek reveal r3">Task success on executable checkers, paired by task against the
+    <code>claude_md</code> baseline. Numbers are generated from published run artifacts.</p>
 
     <div class="callout callout-invert mt-l reveal r4">
       <span class="kicker">Adversarial by design</span>
-      <p><strong>This benchmark is built to break a memory system, not to demo one.</strong>
-      Sixty-five percent of the cells scored here are conditions where the corpus is outdated,
-      contradictory, inapplicable, or simply empty, and the best available outcome is to waste
-      nothing. A memory layer is only handed a clean, governing fact in <strong>35%</strong> of
-      them.</p>
-      <p class="mt-s">A benchmark where memory can only help is a demo. The numbers below are
-      what survives a corpus that is mostly trying to mislead.</p>
+      <p><strong>This benchmark tests failure as well as recall.</strong> The corpus is empty,
+      stale, contradictory, or out of scope in 65% of the scored cells. A clean governing fact is
+      present in 35%.</p>
+      <p class="mt-s">The table measures useful memory under realistic liability, not retrieval on
+      a clean prompt.</p>
     </div>
   </section>
 
@@ -58,6 +55,25 @@
        leaderboard.config.json, never by hand: while the write path is unmeasured the page
        must say so here, beside the table rather than in a footnote. -->
   <aside class="scope-note" id="scope-note"></aside>
+
+  <section class="analysis-panel" id="run-analysis" hidden>
+    <div class="analysis-top">
+      <div>
+        <span class="kicker">Automatic run analysis</span>
+        <h2 id="analysis-headline"></h2>
+        <p id="analysis-summary" class="dim"></p>
+      </div>
+      <div class="analysis-links" id="analysis-links"></div>
+    </div>
+    <div class="analysis-metrics" id="analysis-metrics"></div>
+    <div class="table-scroll mt-s">
+      <table class="analysis-table">
+        <thead><tr><th>arm</th><th class="num">success</th><th class="num">cost / cell or task</th><th class="num">mean session</th><th class="num">vs baseline</th><th>read</th></tr></thead>
+        <tbody id="analysis-body"></tbody>
+      </table>
+    </div>
+    <div class="analysis-insights" id="analysis-insights"></div>
+  </section>
 
   <section class="pad-y-s" id="products">
     <div class="section-head">
@@ -85,11 +101,9 @@
       </table>
     </div>
 
-    <p class="prose mt-m dim">Deltas below the preregistered minimum effect are noise and are
-    labeled as noise. Discarded cells are sessions that failed the
-    <a href="method.html#gate">admission gate</a>: the treatment could not be proven applied, so
-    the cell is thrown out rather than scored. Total tokens and cost are end-to-end, ingestion
-    included; total tokens is shown for vendors so their measured spend is directly comparable.</p>
+    <p class="prose mt-m dim">Small deltas are labeled as noise. Discarded cells failed the
+    <a href="method.html#gate">admission gate</a> and are reported rather than scored. Tokens and
+    cost are end-to-end, including ingestion.</p>
   </section>
 
   <section class="pad-y-s" id="by-condition">
@@ -99,10 +113,9 @@
       <span class="aside">where a memory layer earns and where it costs</span>
     </div>
 
-    <p class="prose mt-s">Only the products appear here. The controls exist to price the grid,
-    not to be studied condition by condition. <code>present</code> is the one condition holding a
-    clean governing fact; the other four are the traps, and a product's row across them is the
-    honest picture of what it does when memory is a liability rather than an asset.</p>
+    <p class="prose mt-s">The condition breakdown shows where each product helps and where memory
+    becomes a liability. <code>present</code> holds a clean governing fact; the other four test
+    abstention, recency, conflict, and scope.</p>
 
     <div class="table-scroll mt-s">
       <table>
@@ -111,8 +124,8 @@
       </table>
     </div>
 
-    <p class="prose mt-m dim">Solved cells over admitted cells. A held product publishes nothing
-    here either: withholding a headline while publishing its breakdown would defeat the hold.</p>
+    <p class="prose mt-m dim">Values are solved cells over admitted cells. A held product publishes
+    neither a headline nor a breakdown.</p>
   </section>
 
   <section class="pad-y-s" id="reference">
@@ -122,12 +135,9 @@
       <span class="aside">diagnostics, never ranked</span>
     </div>
 
-    <p class="prose mt-s"><code>protocol</code> is the one to read first, because it prices the
-    question rather than any product. It carries the shared memory instruction with
-    <strong>no memory behind it</strong>. Asking an agent to consult a memory it does not have is
-    itself a treatment with its own effect, and it is an effect every memory product pays before
-    it retrieves a single document. Read its &Delta; as the <em>entry fee</em>, and read each
-    product's distance from it as what the product earned back.</p>
+    <p class="prose mt-s"><code>protocol</code> carries the shared memory instruction with no memory
+    behind it. Its delta is the cost of asking the agent to use memory. <code>recall_prefetch</code>
+    retrieves with the exact task prompt, removing query formulation from the path.</p>
 
     <div class="table-scroll mt-s">
       <table>
@@ -143,9 +153,8 @@
       </table>
     </div>
 
-    <p class="prose mt-m dim">A reference track answers <em>where</em> the memory path breaks,
-    not which product wins, so it runs in the grid and is never ranked in the table above. The
-    decomposition is on the <a href="method.html#diagnostic">method page</a>.</p>
+    <p class="prose mt-m dim">Reference tracks diagnose the memory path. They run in the grid but
+    are never ranked as products. See the <a href="method.html#diagnostic">method page</a>.</p>
   </section>
 
   <section class="pad-y-s" id="official">
@@ -174,9 +183,8 @@
       </table>
     </div>
 
-    <p class="prose mt-l dim">The <code>results/</code> tree holds smoke tests, pilots and
-    diagnostics. They are bring-up, they are not previews of a ranking, and no number from them
-    is quoted here. Where the benchmark stands is in
+    <p class="prose mt-l dim">The <code>results/</code> tree holds the evidence behind this page.
+    The dated project status and verification commands are in
     <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md">docs/STATUS.md</a>.</p>
 
   </section>
