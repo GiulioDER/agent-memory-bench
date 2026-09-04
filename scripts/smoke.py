@@ -45,8 +45,8 @@ from harness.claude_exec import ClaudeExecConfig, run_claude_case
 from harness.costs import ModelPricing, summarize
 from harness.gate import admit_cells
 from harness.io import write_jsonl
-from harness.runner import run_grid
 from harness.prereg import assert_preregistered
+from harness.runner import run_grid
 
 TASK_ID = "smoke-config-port"
 FULL_TASK_COUNT = 24
