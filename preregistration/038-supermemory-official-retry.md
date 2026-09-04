@@ -47,6 +47,10 @@ each local batch request up to 180 seconds for Supermemory Local's bounded two-w
 queue. Memory contents and metadata are unchanged; this is a transport-performance fix required
 to keep the official run within the five hour limit.
 
+After write and search verification, ingestion waits up to 60 seconds for the same `/v4/profile`
+endpoint used by the vendor SessionStart hook to answer. This bounded readiness probe prevents a
+session from starting during the local embedding queue's fail-open window.
+
 ## Prediction and gates
 
 I predict that the Supermemory arm will ingest the complete frozen condition feed, pass its

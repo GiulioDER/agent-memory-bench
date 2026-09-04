@@ -175,6 +175,20 @@ class SupermemoryAdapter(MemoryAdapter):
         results = search.get("results") if isinstance(search, dict) else None
         return len(results) if isinstance(results, list) else 0
 
+    def _profile_ready(self, namespace: str, query: str) -> bool:
+        deadline = time.monotonic() + min(60.0, float(self.config["ingest_timeout_s"]))
+        while time.monotonic() < deadline:
+            try:
+                self._request(
+                    str(self.config["search_path"]),
+                    {"containerTag": namespace, "q": query[:500]},
+                    timeout_s=3.0,
+                )
+                return True
+            except (RuntimeError, TimeoutError, urllib.error.URLError):
+                time.sleep(1.0)
+        return False
+
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
         staged = namespace_path(self.staging_root, namespace, "feed")
@@ -277,6 +291,11 @@ class SupermemoryAdapter(MemoryAdapter):
             raise RuntimeError(
                 f"Supermemory write path accepted {accepted} document(s), but search verification "
                 f"returned {verification_hits}; refusing to call ingestion successful"
+            )
+        if not self._profile_ready(namespace, first_query):
+            raise RuntimeError(
+                "Supermemory write and search verification completed, but the profile endpoint "
+                "did not become ready within the bounded settle window"
             )
         base_url = self._base_url().lower()
         local = base_url.startswith("http://localhost") or base_url.startswith("http://127.0.0.1")
