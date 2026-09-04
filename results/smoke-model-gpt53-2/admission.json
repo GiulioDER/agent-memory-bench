@@ -1,0 +1,29 @@
+{
+  "required_arms": [
+    "claude_md",
+    "recall"
+  ],
+  "admitted_cells": 1,
+  "discarded_cells": [],
+  "discarded_by_arm": {},
+  "verdicts": [
+    {
+      "task_id": "smoke-config-port",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "smoke-config-port",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    }
+  ]
+}

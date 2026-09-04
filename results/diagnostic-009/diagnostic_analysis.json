@@ -1,0 +1,528 @@
+{
+  "admission": {
+    "discarded_cells": [],
+    "records_scored": 288,
+    "source": "results/diagnostic-009/admission.json"
+  },
+  "arms": {
+    "claude_md": {
+      "n": 72,
+      "rate": 0.4166666666666667,
+      "successes": 30
+    },
+    "oracle_memory": {
+      "n": 72,
+      "rate": 0.9166666666666666,
+      "successes": 66
+    },
+    "recall": {
+      "n": 72,
+      "rate": 0.3888888888888889,
+      "successes": 28
+    },
+    "recall_prefetch": {
+      "n": 72,
+      "rate": 0.4166666666666667,
+      "successes": 30
+    }
+  },
+  "contrasts": {
+    "access_gap": {
+      "cluster_ci": [
+        0.34722222222222227,
+        0.7083333333333334
+      ],
+      "mean_delta": 0.5277777777777778
+    },
+    "natural_memory_lift": {
+      "cluster_ci": [
+        -0.125,
+        0.06944444444444446
+      ],
+      "mean_delta": -0.027777777777777773,
+      "n_tasks": 24
+    },
+    "oracle_headroom": {
+      "cluster_ci": [
+        0.3194444444444445,
+        0.6805555555555555
+      ],
+      "mean_delta": 0.5,
+      "n_tasks": 24
+    },
+    "prefetch_gap": {
+      "cluster_ci": [
+        -0.08333333333333333,
+        0.1527777777777778
+      ],
+      "mean_delta": 0.02777777777777778
+    },
+    "prefetch_memory_lift": {
+      "cluster_ci": [
+        -0.05555555555555555,
+        0.05555555555555556
+      ],
+      "mean_delta": 4.625929269271485e-18,
+      "n_tasks": 24
+    }
+  },
+  "interpretation": "Diagnostic arms are reference tracks and are not combined into a product ranking. Gaps are descriptive unless the preregistration states otherwise.",
+  "mechanism": {
+    "natural_search_rate": 0.1111111111111111,
+    "oracle_supplied_records": 72,
+    "prefetch_abstentions": 0,
+    "prefetch_successful_records": 72
+  },
+  "negative_transfer_tasks": [
+    "ts-atomic-write",
+    "ts-dedup-order",
+    "ts-golden-regen",
+    "ts-mig-name",
+    "ts-tz-utc"
+  ],
+  "no_measurable_headroom_tasks": [
+    "ts-append-only",
+    "ts-bom-merge",
+    "ts-config-layer",
+    "ts-dedup-order",
+    "ts-glob-hidden",
+    "ts-ignore-gen",
+    "ts-manifest-rel",
+    "ts-semver-pin",
+    "ts-tz-utc"
+  ],
+  "per_task": [
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-append-only"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.33333333333333337,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": -0.6666666666666666,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.33333333333333337,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 0.6666666666666666,
+      "task_id": "ts-atomic-write"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-base36-id"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-bom-merge"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-casefold-sort"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-config-layer"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-crlf-export"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": -0.33333333333333337,
+          "rate": 0.6666666666666666
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-dedup-order"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-empty-input"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-glob-hidden"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.3333333333333333,
+          "rate": 0.6666666666666666
+        },
+        "recall": {
+          "delta": -0.3333333333333333,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": -0.3333333333333333,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.3333333333333333,
+      "task_id": "ts-golden-regen"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-ignore-gen"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-legacy-hash"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-log-mask"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-manifest-rel"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.6666666666666667,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.6666666666666667,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": -0.3333333333333333,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.3333333333333333,
+      "task_id": "ts-mig-name"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-nfc-count"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-quote-shell"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.6666666666666666,
+          "rate": 0.6666666666666666
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-retry-cap"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 1.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-round-money"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.33333333333333337,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.33333333333333337,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": 0.33333333333333337,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 0.6666666666666666,
+      "task_id": "ts-schema-additive"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-semver-pin"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.6666666666666666,
+          "rate": 0.6666666666666666
+        },
+        "recall": {
+          "delta": 0.0,
+          "rate": 0.0
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 0.0
+        }
+      },
+      "baseline_rate": 0.0,
+      "task_id": "ts-stable-sort"
+    },
+    {
+      "arms": {
+        "oracle_memory": {
+          "delta": 0.0,
+          "rate": 1.0
+        },
+        "recall": {
+          "delta": -0.33333333333333337,
+          "rate": 0.6666666666666666
+        },
+        "recall_prefetch": {
+          "delta": 0.0,
+          "rate": 1.0
+        }
+      },
+      "baseline_rate": 1.0,
+      "task_id": "ts-tz-utc"
+    }
+  ]
+}

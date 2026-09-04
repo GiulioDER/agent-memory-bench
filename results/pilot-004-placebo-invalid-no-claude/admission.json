@@ -1,0 +1,3475 @@
+{
+  "required_arms": [
+    "bare",
+    "placebo",
+    "claude_md",
+    "recall"
+  ],
+  "admitted_cells": 0,
+  "discarded_cells": [
+    [
+      "ts-append-only",
+      0
+    ],
+    [
+      "ts-append-only",
+      1
+    ],
+    [
+      "ts-append-only",
+      2
+    ],
+    [
+      "ts-atomic-write",
+      0
+    ],
+    [
+      "ts-atomic-write",
+      1
+    ],
+    [
+      "ts-atomic-write",
+      2
+    ],
+    [
+      "ts-base36-id",
+      0
+    ],
+    [
+      "ts-base36-id",
+      1
+    ],
+    [
+      "ts-base36-id",
+      2
+    ],
+    [
+      "ts-bom-merge",
+      0
+    ],
+    [
+      "ts-bom-merge",
+      1
+    ],
+    [
+      "ts-bom-merge",
+      2
+    ],
+    [
+      "ts-casefold-sort",
+      0
+    ],
+    [
+      "ts-casefold-sort",
+      1
+    ],
+    [
+      "ts-casefold-sort",
+      2
+    ],
+    [
+      "ts-config-layer",
+      0
+    ],
+    [
+      "ts-config-layer",
+      1
+    ],
+    [
+      "ts-config-layer",
+      2
+    ],
+    [
+      "ts-crlf-export",
+      0
+    ],
+    [
+      "ts-crlf-export",
+      1
+    ],
+    [
+      "ts-crlf-export",
+      2
+    ],
+    [
+      "ts-dedup-order",
+      0
+    ],
+    [
+      "ts-dedup-order",
+      1
+    ],
+    [
+      "ts-dedup-order",
+      2
+    ],
+    [
+      "ts-empty-input",
+      0
+    ],
+    [
+      "ts-empty-input",
+      1
+    ],
+    [
+      "ts-empty-input",
+      2
+    ],
+    [
+      "ts-glob-hidden",
+      0
+    ],
+    [
+      "ts-glob-hidden",
+      1
+    ],
+    [
+      "ts-glob-hidden",
+      2
+    ],
+    [
+      "ts-golden-regen",
+      0
+    ],
+    [
+      "ts-golden-regen",
+      1
+    ],
+    [
+      "ts-golden-regen",
+      2
+    ],
+    [
+      "ts-ignore-gen",
+      0
+    ],
+    [
+      "ts-ignore-gen",
+      1
+    ],
+    [
+      "ts-ignore-gen",
+      2
+    ],
+    [
+      "ts-legacy-hash",
+      0
+    ],
+    [
+      "ts-legacy-hash",
+      1
+    ],
+    [
+      "ts-legacy-hash",
+      2
+    ],
+    [
+      "ts-log-mask",
+      0
+    ],
+    [
+      "ts-log-mask",
+      1
+    ],
+    [
+      "ts-log-mask",
+      2
+    ],
+    [
+      "ts-manifest-rel",
+      0
+    ],
+    [
+      "ts-manifest-rel",
+      1
+    ],
+    [
+      "ts-manifest-rel",
+      2
+    ],
+    [
+      "ts-mig-name",
+      0
+    ],
+    [
+      "ts-mig-name",
+      1
+    ],
+    [
+      "ts-mig-name",
+      2
+    ],
+    [
+      "ts-nfc-count",
+      0
+    ],
+    [
+      "ts-nfc-count",
+      1
+    ],
+    [
+      "ts-nfc-count",
+      2
+    ],
+    [
+      "ts-quote-shell",
+      0
+    ],
+    [
+      "ts-quote-shell",
+      1
+    ],
+    [
+      "ts-quote-shell",
+      2
+    ],
+    [
+      "ts-retry-cap",
+      0
+    ],
+    [
+      "ts-retry-cap",
+      1
+    ],
+    [
+      "ts-retry-cap",
+      2
+    ],
+    [
+      "ts-round-money",
+      0
+    ],
+    [
+      "ts-round-money",
+      1
+    ],
+    [
+      "ts-round-money",
+      2
+    ],
+    [
+      "ts-schema-additive",
+      0
+    ],
+    [
+      "ts-schema-additive",
+      1
+    ],
+    [
+      "ts-schema-additive",
+      2
+    ],
+    [
+      "ts-semver-pin",
+      0
+    ],
+    [
+      "ts-semver-pin",
+      1
+    ],
+    [
+      "ts-semver-pin",
+      2
+    ],
+    [
+      "ts-stable-sort",
+      0
+    ],
+    [
+      "ts-stable-sort",
+      1
+    ],
+    [
+      "ts-stable-sort",
+      2
+    ],
+    [
+      "ts-tz-utc",
+      0
+    ],
+    [
+      "ts-tz-utc",
+      1
+    ],
+    [
+      "ts-tz-utc",
+      2
+    ]
+  ],
+  "discarded_by_arm": {
+    "bare": 72,
+    "placebo": 72,
+    "claude_md": 72,
+    "recall": 72
+  },
+  "verdicts": [
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '41723314e3b026c85ec25a0a60f3496ea4bd3593e3605c67772541b7b3119a34'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '476a6d272aaae532f1539dfeacc7140ee1184c135bb316e6b226cebef481312a'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '5b4296e941a87dd9df339c06ed3be4f7a52cfdf06e9cf2b252317befe3a692eb'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '41723314e3b026c85ec25a0a60f3496ea4bd3593e3605c67772541b7b3119a34'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '476a6d272aaae532f1539dfeacc7140ee1184c135bb316e6b226cebef481312a'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '5b4296e941a87dd9df339c06ed3be4f7a52cfdf06e9cf2b252317befe3a692eb'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '41723314e3b026c85ec25a0a60f3496ea4bd3593e3605c67772541b7b3119a34'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '476a6d272aaae532f1539dfeacc7140ee1184c135bb316e6b226cebef481312a'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '5b4296e941a87dd9df339c06ed3be4f7a52cfdf06e9cf2b252317befe3a692eb'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '287fcd566f83f3b968f75bdff542b6fdd319db72fb710fca06fe35075e4a5f68'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '3da4cb8855ea9489c6c4fd2326a5d1fd6b84fc2bd164d0bf075b5b50d86cf5ce'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a7e4561ff1710140fd4a843ba242d06d6a03a3b535d7844289d72eecd91d588d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '287fcd566f83f3b968f75bdff542b6fdd319db72fb710fca06fe35075e4a5f68'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '3da4cb8855ea9489c6c4fd2326a5d1fd6b84fc2bd164d0bf075b5b50d86cf5ce'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a7e4561ff1710140fd4a843ba242d06d6a03a3b535d7844289d72eecd91d588d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '287fcd566f83f3b968f75bdff542b6fdd319db72fb710fca06fe35075e4a5f68'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '3da4cb8855ea9489c6c4fd2326a5d1fd6b84fc2bd164d0bf075b5b50d86cf5ce'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a7e4561ff1710140fd4a843ba242d06d6a03a3b535d7844289d72eecd91d588d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '4021fb39e8b89e25fdebe9ad981eee0340c11d254d0b16329cea498cb1218cec'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f9478b2e929e2586d9a27b31b18a879840314fed86fd07a784a81420ed5897d0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a41846ee24a39b3fb7be018957e55505a0542cb20e58aaaee3fc86cc8557d4a0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '4021fb39e8b89e25fdebe9ad981eee0340c11d254d0b16329cea498cb1218cec'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f9478b2e929e2586d9a27b31b18a879840314fed86fd07a784a81420ed5897d0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a41846ee24a39b3fb7be018957e55505a0542cb20e58aaaee3fc86cc8557d4a0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '4021fb39e8b89e25fdebe9ad981eee0340c11d254d0b16329cea498cb1218cec'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f9478b2e929e2586d9a27b31b18a879840314fed86fd07a784a81420ed5897d0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a41846ee24a39b3fb7be018957e55505a0542cb20e58aaaee3fc86cc8557d4a0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '32a4f5a15562de39897ebac9049579ea1231adce13673b0562f892113e2dc84c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '660e40aacbd23c81b9e2f8aeef5cc632012cf4448eb8621b7303defcc6008dd9'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f9fda3a7682718d383412e93c429c345a78a27f2fdcf4730d10a5b493760789f'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '32a4f5a15562de39897ebac9049579ea1231adce13673b0562f892113e2dc84c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '660e40aacbd23c81b9e2f8aeef5cc632012cf4448eb8621b7303defcc6008dd9'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f9fda3a7682718d383412e93c429c345a78a27f2fdcf4730d10a5b493760789f'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '32a4f5a15562de39897ebac9049579ea1231adce13673b0562f892113e2dc84c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '660e40aacbd23c81b9e2f8aeef5cc632012cf4448eb8621b7303defcc6008dd9'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f9fda3a7682718d383412e93c429c345a78a27f2fdcf4730d10a5b493760789f'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '541a7815d6215e03ee1d20c72d4d95cdc4ddd88c08e122d175570119378a2380'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b3685f4f236bbe4fd649a03c0e006af239e2e9d033e401939b6cc23c63a791ee'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '2b273535ea645131b44aad8caa73b7c4fdbbc7a022e84fa2f074e1a74f70b595'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '541a7815d6215e03ee1d20c72d4d95cdc4ddd88c08e122d175570119378a2380'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b3685f4f236bbe4fd649a03c0e006af239e2e9d033e401939b6cc23c63a791ee'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '2b273535ea645131b44aad8caa73b7c4fdbbc7a022e84fa2f074e1a74f70b595'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '541a7815d6215e03ee1d20c72d4d95cdc4ddd88c08e122d175570119378a2380'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b3685f4f236bbe4fd649a03c0e006af239e2e9d033e401939b6cc23c63a791ee'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '2b273535ea645131b44aad8caa73b7c4fdbbc7a022e84fa2f074e1a74f70b595'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2ad8946ae07b40fd2eae93c9c3b3d240d5c500d5db7464b6db41e5e041050123'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5186348eb0ddae076bd318a73f050ab2aac3fe1138b2b5167432948e93d264ba'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '43c4e5750851f77f07d088fe94c53daefe42f9bc738df996474384e635e9b181'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2ad8946ae07b40fd2eae93c9c3b3d240d5c500d5db7464b6db41e5e041050123'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5186348eb0ddae076bd318a73f050ab2aac3fe1138b2b5167432948e93d264ba'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '43c4e5750851f77f07d088fe94c53daefe42f9bc738df996474384e635e9b181'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2ad8946ae07b40fd2eae93c9c3b3d240d5c500d5db7464b6db41e5e041050123'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5186348eb0ddae076bd318a73f050ab2aac3fe1138b2b5167432948e93d264ba'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '43c4e5750851f77f07d088fe94c53daefe42f9bc738df996474384e635e9b181'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'de3e379a41c18e44649ca3c3995aaedcfb094af228566ddc6c1cdc4bfff287f2'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'eaca7db22401419948b04f5fa524077d099e7345ba44f15cfa229463b0226d03'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '24a599ffca8c09805c6cbd8667bd15614cd2245ddfe1f72a8ddbed67a03406b3'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'de3e379a41c18e44649ca3c3995aaedcfb094af228566ddc6c1cdc4bfff287f2'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'eaca7db22401419948b04f5fa524077d099e7345ba44f15cfa229463b0226d03'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '24a599ffca8c09805c6cbd8667bd15614cd2245ddfe1f72a8ddbed67a03406b3'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'de3e379a41c18e44649ca3c3995aaedcfb094af228566ddc6c1cdc4bfff287f2'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'eaca7db22401419948b04f5fa524077d099e7345ba44f15cfa229463b0226d03'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '24a599ffca8c09805c6cbd8667bd15614cd2245ddfe1f72a8ddbed67a03406b3'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'e3543043a31534e074dcfa9b42c96bb745df99df8db2835c3c776ac7ed577020'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '43cfc05520f8381ca62da81785896124cb0d7749e43629c9bf7d3671412d6f36'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '7619d32b6d8d109066bd7fe12aea06b07882d4801744109961e7cbe5cc56abf6'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'e3543043a31534e074dcfa9b42c96bb745df99df8db2835c3c776ac7ed577020'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '43cfc05520f8381ca62da81785896124cb0d7749e43629c9bf7d3671412d6f36'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '7619d32b6d8d109066bd7fe12aea06b07882d4801744109961e7cbe5cc56abf6'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'e3543043a31534e074dcfa9b42c96bb745df99df8db2835c3c776ac7ed577020'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '43cfc05520f8381ca62da81785896124cb0d7749e43629c9bf7d3671412d6f36'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '7619d32b6d8d109066bd7fe12aea06b07882d4801744109961e7cbe5cc56abf6'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '8e08bb46631e68a115e3f98629e817d893f9c5d8ec5b8bdd07762e22ae968a53'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '0456573af2fbb09236086878a4a50ad62b82d62b501afb74ad70f1ceb6eb8731'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '6c494911e0142da873d35751d3d45027daf1bbe5bf32123fa376c5e2824760ff'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '8e08bb46631e68a115e3f98629e817d893f9c5d8ec5b8bdd07762e22ae968a53'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '0456573af2fbb09236086878a4a50ad62b82d62b501afb74ad70f1ceb6eb8731'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '6c494911e0142da873d35751d3d45027daf1bbe5bf32123fa376c5e2824760ff'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '8e08bb46631e68a115e3f98629e817d893f9c5d8ec5b8bdd07762e22ae968a53'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '0456573af2fbb09236086878a4a50ad62b82d62b501afb74ad70f1ceb6eb8731'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '6c494911e0142da873d35751d3d45027daf1bbe5bf32123fa376c5e2824760ff'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '6c27762735600eb09aae347f6fc9e808922efe7d16258b0752e680ce584a0a24'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5cfb33456375177cdd4dc2589dd4ec4a28132afe6cf2dc6af306082d8344ed16'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '66a15f4830d9718bf9a5880e546f3af501ee767bd846802d7a98760ca2b98140'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '6c27762735600eb09aae347f6fc9e808922efe7d16258b0752e680ce584a0a24'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5cfb33456375177cdd4dc2589dd4ec4a28132afe6cf2dc6af306082d8344ed16'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '66a15f4830d9718bf9a5880e546f3af501ee767bd846802d7a98760ca2b98140'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '6c27762735600eb09aae347f6fc9e808922efe7d16258b0752e680ce584a0a24'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5cfb33456375177cdd4dc2589dd4ec4a28132afe6cf2dc6af306082d8344ed16'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '66a15f4830d9718bf9a5880e546f3af501ee767bd846802d7a98760ca2b98140'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '0ac260752044c9319194f4ea566637497b0dfb41943fd9ed026e9f6e85f589b6'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '93de6f71a99f006aefafda9b6dbfdc103a8161c08b42f0a3509b17d601d29284'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '88559d25b90290674fa9e7f3a6f3182b89849fbb01b5e60df68f62d5d96f1986'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '0ac260752044c9319194f4ea566637497b0dfb41943fd9ed026e9f6e85f589b6'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '93de6f71a99f006aefafda9b6dbfdc103a8161c08b42f0a3509b17d601d29284'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '88559d25b90290674fa9e7f3a6f3182b89849fbb01b5e60df68f62d5d96f1986'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '0ac260752044c9319194f4ea566637497b0dfb41943fd9ed026e9f6e85f589b6'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '93de6f71a99f006aefafda9b6dbfdc103a8161c08b42f0a3509b17d601d29284'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '88559d25b90290674fa9e7f3a6f3182b89849fbb01b5e60df68f62d5d96f1986'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'd39ca0385c49f2739b28210373a796f148966d70983d742cb82008ef18e44a56'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '6719e465352636a94a47d072b1f7d65bcd06552970460801527346dce09b738d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '99d7edf817f41f3689f37d34c0cc247b15dcdadc0e13b246e3337eb53370eaae'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'd39ca0385c49f2739b28210373a796f148966d70983d742cb82008ef18e44a56'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '6719e465352636a94a47d072b1f7d65bcd06552970460801527346dce09b738d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '99d7edf817f41f3689f37d34c0cc247b15dcdadc0e13b246e3337eb53370eaae'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'd39ca0385c49f2739b28210373a796f148966d70983d742cb82008ef18e44a56'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '6719e465352636a94a47d072b1f7d65bcd06552970460801527346dce09b738d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '99d7edf817f41f3689f37d34c0cc247b15dcdadc0e13b246e3337eb53370eaae'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '7f7a5ea87b41d6c0306739f83024a517cb23b89f58c9e7ea0dc4673c37bce9b0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '7daa42a190aba123c7ed5925e7e9bab23357f224f8525243cde025908769ca59'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '83292f650547fd56730a544b8f7bd784d4b74d3844c55ef13c9d079ff5cfd471'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '7f7a5ea87b41d6c0306739f83024a517cb23b89f58c9e7ea0dc4673c37bce9b0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '7daa42a190aba123c7ed5925e7e9bab23357f224f8525243cde025908769ca59'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '83292f650547fd56730a544b8f7bd784d4b74d3844c55ef13c9d079ff5cfd471'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '7f7a5ea87b41d6c0306739f83024a517cb23b89f58c9e7ea0dc4673c37bce9b0'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '7daa42a190aba123c7ed5925e7e9bab23357f224f8525243cde025908769ca59'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '83292f650547fd56730a544b8f7bd784d4b74d3844c55ef13c9d079ff5cfd471'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'e3c2ec83d7846cbdf61ba1e718cca514f8c9562b8a170007663d710fd2f71cef'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5d39cdd1c6638a9fd8cafdb16152496c86dccc1089f147c5771669fe46322daa'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'eae4d7a724f611b5ed4b8760487495d300323b4b8c14d3507efb04fea9092ffc'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'e3c2ec83d7846cbdf61ba1e718cca514f8c9562b8a170007663d710fd2f71cef'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5d39cdd1c6638a9fd8cafdb16152496c86dccc1089f147c5771669fe46322daa'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'eae4d7a724f611b5ed4b8760487495d300323b4b8c14d3507efb04fea9092ffc'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'e3c2ec83d7846cbdf61ba1e718cca514f8c9562b8a170007663d710fd2f71cef'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '5d39cdd1c6638a9fd8cafdb16152496c86dccc1089f147c5771669fe46322daa'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'eae4d7a724f611b5ed4b8760487495d300323b4b8c14d3507efb04fea9092ffc'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2de4a4b33530016c5b17d77f9847226107f3ee0037705ea5b6858c645d78a330'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '57161100181746d3e0225bc0f9fb2aeb44c829334be3ce4b59632346ac18e789'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '3d7a1b8aaeaba70eb745e45423327a2b46d190a490ab3224b47c91cea587df0b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2de4a4b33530016c5b17d77f9847226107f3ee0037705ea5b6858c645d78a330'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '57161100181746d3e0225bc0f9fb2aeb44c829334be3ce4b59632346ac18e789'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '3d7a1b8aaeaba70eb745e45423327a2b46d190a490ab3224b47c91cea587df0b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2de4a4b33530016c5b17d77f9847226107f3ee0037705ea5b6858c645d78a330'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '57161100181746d3e0225bc0f9fb2aeb44c829334be3ce4b59632346ac18e789'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '3d7a1b8aaeaba70eb745e45423327a2b46d190a490ab3224b47c91cea587df0b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b6b89e3cb3c02a8c1157995c0fe6db03ab5bd95ce0d718dbc52294dc704589ee'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'dc59016e11f6dfb8e0a568923f422cef17ef46e77cd2e64e26e901b9aa852aa9'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '0a6095d8f6754050ec4feb51a067edf1b3259f11f74f632b2198799d71ae4f15'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b6b89e3cb3c02a8c1157995c0fe6db03ab5bd95ce0d718dbc52294dc704589ee'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'dc59016e11f6dfb8e0a568923f422cef17ef46e77cd2e64e26e901b9aa852aa9'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '0a6095d8f6754050ec4feb51a067edf1b3259f11f74f632b2198799d71ae4f15'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b6b89e3cb3c02a8c1157995c0fe6db03ab5bd95ce0d718dbc52294dc704589ee'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'dc59016e11f6dfb8e0a568923f422cef17ef46e77cd2e64e26e901b9aa852aa9'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '0a6095d8f6754050ec4feb51a067edf1b3259f11f74f632b2198799d71ae4f15'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'fb002d91a2eb5946046d60a711f053cf3a2c5fdfb0b822dae479392dd5a51e0a'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '28ff5e1016a0f46d45d2b30b8175fe9e9106a473ca0d484388a16f3c8ca2eccf'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f41613e1cec8674d834445bd86c6384cd7e930b436b6c5f878c484b9d43f0027'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'fb002d91a2eb5946046d60a711f053cf3a2c5fdfb0b822dae479392dd5a51e0a'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '28ff5e1016a0f46d45d2b30b8175fe9e9106a473ca0d484388a16f3c8ca2eccf'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f41613e1cec8674d834445bd86c6384cd7e930b436b6c5f878c484b9d43f0027'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'fb002d91a2eb5946046d60a711f053cf3a2c5fdfb0b822dae479392dd5a51e0a'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '28ff5e1016a0f46d45d2b30b8175fe9e9106a473ca0d484388a16f3c8ca2eccf'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f41613e1cec8674d834445bd86c6384cd7e930b436b6c5f878c484b9d43f0027'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'cb32bab23919e9fc0510c8453c6c44c95444fc6b06191c145353affb4bc03d91'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '9e876ecbe9eb72e58680f5249045ca2423020e53ba80b7a6b3580fbcae19fbe2'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b18607fcb88b0b2007d929feac9b9d9ba042ae9f2910347cd0ee5e30f0456c81'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'cb32bab23919e9fc0510c8453c6c44c95444fc6b06191c145353affb4bc03d91'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '9e876ecbe9eb72e58680f5249045ca2423020e53ba80b7a6b3580fbcae19fbe2'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b18607fcb88b0b2007d929feac9b9d9ba042ae9f2910347cd0ee5e30f0456c81'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'cb32bab23919e9fc0510c8453c6c44c95444fc6b06191c145353affb4bc03d91'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '9e876ecbe9eb72e58680f5249045ca2423020e53ba80b7a6b3580fbcae19fbe2'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b18607fcb88b0b2007d929feac9b9d9ba042ae9f2910347cd0ee5e30f0456c81'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '43d7efe8a9e1271c95659576efc59031a3c3f8a12591f5a1fd4f3c656036e07e'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f6f0eb34eaaa0dcb9143b79082a8a99328b1493304bfccb449629328611ed689'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '6ba6226dd697b139be5fdb9777671e1bfecb9337850f73050647da4472d87b47'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '43d7efe8a9e1271c95659576efc59031a3c3f8a12591f5a1fd4f3c656036e07e'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f6f0eb34eaaa0dcb9143b79082a8a99328b1493304bfccb449629328611ed689'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '6ba6226dd697b139be5fdb9777671e1bfecb9337850f73050647da4472d87b47'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '43d7efe8a9e1271c95659576efc59031a3c3f8a12591f5a1fd4f3c656036e07e'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f6f0eb34eaaa0dcb9143b79082a8a99328b1493304bfccb449629328611ed689'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '6ba6226dd697b139be5fdb9777671e1bfecb9337850f73050647da4472d87b47'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '82bc86de628402b5f5ee3561da5680660e468a0b371cb53250de09ad58d98208'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '118b70d9b82922d9deb3af8a1e9c03c59801b1a34d681a7dfa50c24d60554f8b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b19d0fbc500001e61b652df9f9eefff487099137045e4ec3feb5536d0b54a06b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '82bc86de628402b5f5ee3561da5680660e468a0b371cb53250de09ad58d98208'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '118b70d9b82922d9deb3af8a1e9c03c59801b1a34d681a7dfa50c24d60554f8b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b19d0fbc500001e61b652df9f9eefff487099137045e4ec3feb5536d0b54a06b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '82bc86de628402b5f5ee3561da5680660e468a0b371cb53250de09ad58d98208'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '118b70d9b82922d9deb3af8a1e9c03c59801b1a34d681a7dfa50c24d60554f8b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b19d0fbc500001e61b652df9f9eefff487099137045e4ec3feb5536d0b54a06b'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '8dcce97fb6a5fb3afb99c41660318c7b51a4c3fc6f0b545c157e8e765446ac81'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2b8ee4fc63893568113c15b84deba48330e01c1bb17493714c49ad497265f18c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '457f3cf2a3664dd01f290bfe1bac4e2e1070fae3bbad0b3845077daf0ba0caf8'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '8dcce97fb6a5fb3afb99c41660318c7b51a4c3fc6f0b545c157e8e765446ac81'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2b8ee4fc63893568113c15b84deba48330e01c1bb17493714c49ad497265f18c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '457f3cf2a3664dd01f290bfe1bac4e2e1070fae3bbad0b3845077daf0ba0caf8'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '8dcce97fb6a5fb3afb99c41660318c7b51a4c3fc6f0b545c157e8e765446ac81'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '2b8ee4fc63893568113c15b84deba48330e01c1bb17493714c49ad497265f18c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '457f3cf2a3664dd01f290bfe1bac4e2e1070fae3bbad0b3845077daf0ba0caf8'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '1e09cb09c186c09569f86763ce46d4babaa5c6f1e06dbed9b3204babd9c77c73'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b05428239b7e6a8e93b67bd235c35b7c6e543e38c8edc2a3f2de3da7605903fc'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b6ad52414335da0f512b9f738d4a709c7b6da60d729ba7fd70f94db41d557fef'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '1e09cb09c186c09569f86763ce46d4babaa5c6f1e06dbed9b3204babd9c77c73'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b05428239b7e6a8e93b67bd235c35b7c6e543e38c8edc2a3f2de3da7605903fc'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b6ad52414335da0f512b9f738d4a709c7b6da60d729ba7fd70f94db41d557fef'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '1e09cb09c186c09569f86763ce46d4babaa5c6f1e06dbed9b3204babd9c77c73'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'b05428239b7e6a8e93b67bd235c35b7c6e543e38c8edc2a3f2de3da7605903fc'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'b6ad52414335da0f512b9f738d4a709c7b6da60d729ba7fd70f94db41d557fef'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '4a376ba7807f9db7eca671e618110acc66791fa24360a36c759b2694327fef4c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'fa1dd57672519be944b3c5eba4d59828bf68bb81edd8dd760edf3b1c454a9a2c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f20a90483ec9278f160e3a5be7065a3cf05698b22d9647ce2ae9511f86e81d92'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '4a376ba7807f9db7eca671e618110acc66791fa24360a36c759b2694327fef4c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'fa1dd57672519be944b3c5eba4d59828bf68bb81edd8dd760edf3b1c454a9a2c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f20a90483ec9278f160e3a5be7065a3cf05698b22d9647ce2ae9511f86e81d92'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '4a376ba7807f9db7eca671e618110acc66791fa24360a36c759b2694327fef4c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'fa1dd57672519be944b3c5eba4d59828bf68bb81edd8dd760edf3b1c454a9a2c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'f20a90483ec9278f160e3a5be7065a3cf05698b22d9647ce2ae9511f86e81d92'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'bed7e8afa2f47186ad40df59a487bd6121ec02c567f83b98992abcf7225c232c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '44e8bcf0826ba73c7e7fe2753db16d12d8936dda9f4d7862a774445c7d61259d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'fbf9324fc80cd82dd81380ba9af8dbd3624ce27d6bfd41249c79c4c8d696e2fa'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'bed7e8afa2f47186ad40df59a487bd6121ec02c567f83b98992abcf7225c232c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '44e8bcf0826ba73c7e7fe2753db16d12d8936dda9f4d7862a774445c7d61259d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'fbf9324fc80cd82dd81380ba9af8dbd3624ce27d6bfd41249c79c4c8d696e2fa'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "placebo",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'bed7e8afa2f47186ad40df59a487bd6121ec02c567f83b98992abcf7225c232c'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '44e8bcf0826ba73c7e7fe2753db16d12d8936dda9f4d7862a774445c7d61259d'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'fbf9324fc80cd82dd81380ba9af8dbd3624ce27d6bfd41249c79c4c8d696e2fa'",
+        "the session did not complete: FileNotFoundError: 'claude' is not on PATH. Install Claude Code, or pass an absolute path as ClaudeExecConfig(executable=...)."
+      ],
+      "notes": []
+    }
+  ]
+}

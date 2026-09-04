@@ -1,0 +1,48 @@
+{
+  "source_run": "pilot-002",
+  "cells": [
+    [
+      "ts-retry-cap",
+      2
+    ],
+    [
+      "ts-semver-pin",
+      0
+    ],
+    [
+      "ts-semver-pin",
+      1
+    ],
+    [
+      "ts-semver-pin",
+      2
+    ],
+    [
+      "ts-stable-sort",
+      0
+    ],
+    [
+      "ts-stable-sort",
+      1
+    ],
+    [
+      "ts-stable-sort",
+      2
+    ],
+    [
+      "ts-tz-utc",
+      0
+    ],
+    [
+      "ts-tz-utc",
+      1
+    ],
+    [
+      "ts-tz-utc",
+      2
+    ]
+  ],
+  "model": "deepseek/deepseek-v4-flash",
+  "mcp_config": "C:\\Users\\gde00\\Documents\\agent-memory-bench\\results\\pilot-002\\cfg\\recall.mcp.json",
+  "wall_minutes": 0.08086124999999811
+}

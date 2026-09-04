@@ -1,0 +1,851 @@
+{
+  "required_arms": [
+    "bare",
+    "claude_md",
+    "recall"
+  ],
+  "admitted_cells": 22,
+  "discarded_cells": [
+    [
+      "ts-append-only",
+      0
+    ],
+    [
+      "ts-append-only",
+      1
+    ],
+    [
+      "ts-append-only",
+      2
+    ],
+    [
+      "ts-base36-id",
+      0
+    ],
+    [
+      "ts-base36-id",
+      1
+    ],
+    [
+      "ts-base36-id",
+      2
+    ],
+    [
+      "ts-bool-env",
+      0
+    ],
+    [
+      "ts-bool-env",
+      1
+    ]
+  ],
+  "discarded_by_arm": {
+    "bare": 8,
+    "claude_md": 8,
+    "recall": 8
+  },
+  "verdicts": [
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s0\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '476a6d272aaae532f1539dfeacc7140ee1184c135bb316e6b226cebef481312a'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s0\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '5b4296e941a87dd9df339c06ed3be4f7a52cfdf06e9cf2b252317befe3a692eb'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s0\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s1\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '476a6d272aaae532f1539dfeacc7140ee1184c135bb316e6b226cebef481312a'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s1\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '5b4296e941a87dd9df339c06ed3be4f7a52cfdf06e9cf2b252317befe3a692eb'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s1\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s2\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '476a6d272aaae532f1539dfeacc7140ee1184c135bb316e6b226cebef481312a'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s2\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '5b4296e941a87dd9df339c06ed3be4f7a52cfdf06e9cf2b252317befe3a692eb'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-append-only\\s2\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s0\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f9478b2e929e2586d9a27b31b18a879840314fed86fd07a784a81420ed5897d0'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s0\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a41846ee24a39b3fb7be018957e55505a0542cb20e58aaaee3fc86cc8557d4a0'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s0\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s1\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f9478b2e929e2586d9a27b31b18a879840314fed86fd07a784a81420ed5897d0'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s1\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a41846ee24a39b3fb7be018957e55505a0542cb20e58aaaee3fc86cc8557d4a0'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s1\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s2\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt 'f9478b2e929e2586d9a27b31b18a879840314fed86fd07a784a81420ed5897d0'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s2\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt 'a41846ee24a39b3fb7be018957e55505a0542cb20e58aaaee3fc86cc8557d4a0'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-base36-id\\s2\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-bool-env\\s0\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '1990196cf3550b9ce15909c6aca268047fd11d12a1bce1aca0a20a381ffbc677'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-bool-env\\s0\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '64be66253b92d3d885cdf08f8efebe13630291852868b8b1806ec1885029c61c'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-bool-env\\s0\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-bool-env\\s1\\bare already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "system prompt hash None does not match the arm's frozen prompt '1990196cf3550b9ce15909c6aca268047fd11d12a1bce1aca0a20a381ffbc677'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-bool-env\\s1\\claude_md already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "arm 'recall' had no tool matching 'mcp__recall__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '64be66253b92d3d885cdf08f8efebe13630291852868b8b1806ec1885029c61c'",
+        "the session did not complete: FileExistsError: sandbox C:\\Users\\gde00\\AppData\\Local\\Temp\\agent-memory-bench-work\\abstention-002-absent\\work\\ts-bool-env\\s1\\recall already has contents"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    }
+  ]
+}

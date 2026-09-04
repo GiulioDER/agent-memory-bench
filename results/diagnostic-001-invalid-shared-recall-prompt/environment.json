@@ -1,0 +1,85 @@
+{
+  "run_id": "diagnostic-001",
+  "arms": [
+    "claude_md",
+    "recall",
+    "oracle_memory",
+    "recall_prefetch"
+  ],
+  "model": "deepseek/deepseek-v4-flash",
+  "provider_base_url": "https://openrouter.ai/api",
+  "claude_code_version": "2.1.238 (Claude Code)",
+  "timeout_s": 600.0,
+  "permission_mode": "acceptEdits",
+  "seeds": 3,
+  "repetitions_per_cell": 1,
+  "tasks": [
+    "ts-append-only",
+    "ts-atomic-write",
+    "ts-base36-id",
+    "ts-bom-merge",
+    "ts-casefold-sort",
+    "ts-config-layer",
+    "ts-crlf-export",
+    "ts-dedup-order",
+    "ts-empty-input",
+    "ts-glob-hidden",
+    "ts-golden-regen",
+    "ts-ignore-gen",
+    "ts-legacy-hash",
+    "ts-log-mask",
+    "ts-manifest-rel",
+    "ts-mig-name",
+    "ts-nfc-count",
+    "ts-quote-shell",
+    "ts-retry-cap",
+    "ts-round-money",
+    "ts-schema-additive",
+    "ts-semver-pin",
+    "ts-stable-sort",
+    "ts-tz-utc"
+  ],
+  "namespace": "bench-recall-diagnostic",
+  "catalog_sha256": "646b21671d32ec3d3e3113ca5f15882df9995ad91875983cc48bbd7f81318c43",
+  "corpus_sessions": 125,
+  "recall_pythonpath": "C:\\Users\\gde00\\Documents\\recall\\.claude\\worktrees\\heading-contextualization-latest",
+  "startup_attempts": 3,
+  "startup_preflight": {
+    "recall": [
+      {
+        "server": "recall",
+        "ok": true,
+        "tools": [
+          "recall_search",
+          "recall_evidence",
+          "recall_related",
+          "recall_current_state",
+          "recall_reasoning_query",
+          "recall_reasoning_projection",
+          "recall_reasoning_proposals",
+          "recall_rewrite_plan",
+          "recall_reasoning_audit",
+          "recall_index",
+          "recall_tenants",
+          "recall_ingest",
+          "recall_job_status",
+          "recall_calibration_status",
+          "recall_calibration_run",
+          "recall_calibration_publish",
+          "recall_forget",
+          "recall_stats"
+        ],
+        "elapsed_ms": 10509.5,
+        "stderr_tail": "RECALL_TRUST_MODE=development: the trust gate is RELAXED for this server. Uncalibrated and unbound corpora will be served instead of refused. Local work only; unset it for anything anyone relies on.\r\n2026-08-25 21:12:32,401 INFO recall.mcp: starting stdio server\r\n2026-08-25 21:12:32,421 INFO recall.mcp: retrieval profile legacy (candidates 20/leg, returns 5, reranker False, budget 2147483647 ms, 4 concurrent + 16 queued)\r\n2026-08-25 21:12:37,078 WARNING recall.mcp: this database role bypasses row-level security (superuser or BYPASSRLS), so tenant isolation rests on query predicates alone. Connect as an unprivileged role for defence in depth.\r\n",
+        "error": null
+      }
+    ]
+  },
+  "pricing": {
+    "model": "deepseek/deepseek-v4-flash",
+    "usd_per_mtok_input": 0.0826,
+    "usd_per_mtok_output": 0.1652,
+    "as_of": "2026-08-25",
+    "source": "https://openrouter.ai/api/v1/models"
+  }
+}

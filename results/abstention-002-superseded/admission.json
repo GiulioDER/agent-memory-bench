@@ -1,0 +1,742 @@
+{
+  "required_arms": [
+    "bare",
+    "claude_md",
+    "recall"
+  ],
+  "admitted_cells": 30,
+  "discarded_cells": [],
+  "discarded_by_arm": {},
+  "verdicts": [
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-append-only",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "claude_md",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "recall",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    }
+  ]
+}
