@@ -289,6 +289,63 @@ Two consequences we have already acted on:
   We caught it because a number came out impossibly low; a smaller gap would
   have gone through.
 
+### The pre-registered weakness, answered
+
+In the adapter request we wrote this before any number existed:
+
+> We expect the `superseded` condition to hurt us. Our store currently lets
+> successes overwrite while corrections merely append — a defect we documented
+> against ourselves last week. If your harness confirms it, you will have
+> measured our backlog.
+
+**It confirmed it.** On the 11 planted `superseded` cells in 007, the memory
+arm solves 8 and the memory-less arm solves 9. We are one behind a model that
+was given nothing at all, on the condition we named as our weak spot.
+
+The 005c run had looked better there (10 of 11), which is why we are reporting
+both: one run per cell and a noise floor of ±4 means neither number settles
+it. What survives across both is the direction — `superseded` is the condition
+where our advantage over `bare` is smallest, and it is the one we predicted.
+
+Since then we went and measured the mechanism in our own store rather than
+inferring it from your cells, and it is worse than we described:
+
+- 735 stored entries. **Two** carry a supersession edge.
+- Those two point at **each other** — A supersedes B and B supersedes A. Both
+  cannot be current, and which one gets suppressed then depends on the read
+  path.
+- About **12 %** of entries contain an explicit correction word ("instead",
+  "no longer", "turned out to be"). None of that 12 % was linked to what it
+  corrected. The store had the evidence that it was contradicting itself and
+  no field in which to write it down.
+
+The suggestion mechanism that should have caught this was built and wired, and
+it fires almost never for a structural reason: it only ever sees the five best
+keyword hits as candidates, and keyword overlap is precisely what supersession
+pairs do not have. Measured on the real pairs: 0.086 average overlap, against a
+90th percentile of 0.104 across all pairs. The older entry is not on the
+candidate list at all.
+
+Two detectors we tried and dropped, both cheap to run and both reported here
+so nobody repeats them:
+
+- **Typed value collision** (same key, different value — addresses, ports,
+  pins). 58 single-valued keys extracted from the store, 56 in agreement, 2
+  collisions, and both collisions were false on inspection. The lesson is that
+  the key has to be single-valued *by nature and scoped*: `port:<host>` is not
+  a key, and the same environment variable name in two systems is two keys.
+- **An NLI cross-encoder** on the pair, ~280M parameters, public. On 11 real
+  supersession pairs the median contradiction score was 0.966. On a control of
+  unrelated pairs from the same corpus it was 0.818, with 5 of 11 above 0.9 —
+  62 % precision at that threshold, on a store where almost no pair is a
+  supersession. Eleven pairs is not an eval; the overlap is wide enough that we
+  are not building on it.
+
+None of this changes a number in the tables above. We include it because the
+issue that opened this collaboration promised a pre-registered weakness, and
+"your harness confirmed it, and here is how far we got with the fix" is the
+only honest way to close that loop.
+
 ### Five product defects your process found
 
 Your step 1 said a private rehearsal would surface our backlog. It did:
