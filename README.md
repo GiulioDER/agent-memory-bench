@@ -13,6 +13,16 @@ pass or they do not. No judge anywhere in the primary endpoint.
 Phase 0: harness bring-up. The first preregistered multi-product run will be announced before it
 happens, not after.
 
+The latest addition is the `supermemory` arm. Its official Claude Code plugin, isolated lifecycle
+hooks, local service, and direct static memory ingestion path are now implemented and smoke
+qualified. The corrected control only pilot ran on VPS2 on 2026-09-03 with 180 records. It
+admitted 89 paired cells, discarded one `bare` timeout, and admitted every Supermemory record.
+Those figures come from [`preregistration/020`](preregistration/020-supermemory-pilot-config-dir.md);
+they qualify the integration and are not a multi-product leaderboard result.
+
+The arms and their intended comparisons are explained in
+[`docs/ARMS.md`](docs/ARMS.md), including dry run and full run usage.
+
 **Four limits that bound every number published so far.** They are here rather than in a footnote
 because a reader who does not know them will over-read the results.
 
@@ -81,10 +91,11 @@ Implemented and runnable today: `bare`, `claude_md` (designated baseline), `plac
 what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep), and
 `recall`.
 
-Prepared and pending smoke verification: `supermemory`. The adapter uses the pinned official
-Claude Code plugin, Supermemory Local by default, and an isolated lifecycle-hook config. It is not
-called runnable or ready until the preregistered smoke test admits every arm and projects the full
-run below five hours. `mem0`, `zep` (Graphiti), and `cognee` remain unbuilt here.
+Implemented and smoke qualified, but not yet part of the multi-product leaderboard: `supermemory`.
+The adapter uses the pinned official Claude Code plugin, Supermemory Local by default, an isolated
+lifecycle-hook config, and the amended direct static memory path used for the VPS2 pilot. The pilot
+qualifies treatment wiring and timing, not product performance. `mem0`, `zep` (Graphiti), and
+`cognee` remain unbuilt here.
 
 Disclosure: this benchmark is built by the authors of recall, which competes in it. That is
 exactly why the methodology is preregistered, the harness is open, every adapter config is
