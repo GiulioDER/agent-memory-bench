@@ -938,7 +938,7 @@ async def main() -> int:
             model=args.model,
             cwd=cwd,
             timeout_s=args.timeout,
-            env=env,
+            env={**env, **spec.env},
             bare=spec.bare,
             config_dir=spec.config_dir,
             mcp_config=spec.mcp_config,
@@ -1019,6 +1019,14 @@ async def main() -> int:
         final = replace(
             record,
             success=ok and record.success,
+            config_dir_digest=spec.config_dir_digest,
+            hook_ledger=(
+                registry.get("supermemory").read_hook_ledger(
+                    record.metadata.get("session_id"), spec.config_dir
+                )
+                if arm == "supermemory" and spec.config_dir is not None
+                else record.hook_ledger
+            ),
             metadata={**record.metadata, **extra},
         )
         # Fsynced per session: a run that dies keeps every finished cell.
