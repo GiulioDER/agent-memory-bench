@@ -41,6 +41,7 @@ _HOOK_FILES = {
     "PreToolUse": "recall-approve.js",
     "Stop": "capture.js",
 }
+_PROFILE_ITEMS_ENV = "SUPERMEMORY_BENCHMARK_MAX_PROFILE_ITEMS"
 
 
 class SupermemoryAdapter(MemoryAdapter):
@@ -97,6 +98,19 @@ class SupermemoryAdapter(MemoryAdapter):
                 f"direct_static_memories, got {mode!r}"
             )
         return mode
+
+    @staticmethod
+    def _benchmark_profile_items() -> int | None:
+        raw = os.environ.get(_PROFILE_ITEMS_ENV)
+        if raw is None:
+            return None
+        try:
+            value = int(raw)
+        except ValueError as error:
+            raise RuntimeError(f"{_PROFILE_ITEMS_ENV} must be a non-negative integer") from error
+        if value < 0:
+            raise RuntimeError(f"{_PROFILE_ITEMS_ENV} must be a non-negative integer")
+        return value
 
     def _plugin_root(self) -> Path:
         if self.plugin_dir is None:
@@ -286,8 +300,18 @@ class SupermemoryAdapter(MemoryAdapter):
                 new_group["hooks"] = new_hooks
                 rewritten.append(new_group)
             hooks[event] = rewritten
+        profile_items = self._benchmark_profile_items()
+        settings = {"hooks": hooks}
+        if profile_items is not None:
+            settings_path = config_dir / "home" / ".supermemory-claude" / "settings.json"
+            settings_path.parent.mkdir(parents=True, exist_ok=True)
+            settings_path.write_text(
+                json.dumps({"maxProfileItems": profile_items}, indent=2) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
         (config_dir / "settings.json").write_text(
-            json.dumps({"hooks": hooks}, indent=2) + "\n", encoding="utf-8", newline="\n"
+            json.dumps(settings, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
 
     def build(self, session_dir: Path, namespace: str, *, prompt_path: Path | None = None) -> ArmSpec:
@@ -376,5 +400,6 @@ class SupermemoryAdapter(MemoryAdapter):
             "base_url": self._base_url(),
             "required_hooks": list(_REQUIRED_HOOKS),
             "benchmark_ingest_mode": self._benchmark_ingest_mode(),
+            "benchmark_max_profile_items": self._benchmark_profile_items(),
             "cost_mode": "local by default; no Supermemory subscription required",
         }
