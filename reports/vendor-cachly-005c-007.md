@@ -66,6 +66,59 @@ counting and logging fixes, so nothing in the numbers above moves — but the
 file that carries the version in its name was not the file that ran, and you
 should hear that from us rather than find it.
 
+### A correction to our own headline, from your method page
+
+We wrote this report before reading the method page carefully. Doing so
+afterwards costs us our biggest claim, so we are saying it here rather than
+leaving it to you.
+
+Your overview says of the feed we ran on:
+
+> Retrieval was saturated on the feed every earlier run used: hit@10 was
+> 1.000, so every memory arm found the governing session every time and the
+> grid measured judgement rather than memory.
+
+That is the corpus we used — the one shipped in the repository, 156
+distractors, no generated haystack. So when we report that **the four
+conditions do not separate a memory arm from a memory-less one**, the honest
+reading is that we may have re-measured your saturation rather than found a
+property of the conditions. On a feed where every arm finds the governing
+session every time, a small or negative difference on the planted cells is
+what saturation looks like.
+
+We are not withdrawing the observation, because it is the same shape you
+published from the other side in part 3 (RE-call +3 against bare at p = 0.834)
+and because it held across two of our runs. But it is not evidence about your
+conditions until someone runs it on the 4,900-document corpus, and the version
+of it we would defend is narrower: **on a saturated feed, the conditions as
+planted do not separate the arms.** Whether they separate on the real one is
+open, and it is your instrument that answers it, not ours.
+
+The same caveat applies to the planted/untouched split below. Read it as a
+finding about that feed.
+
+### Two more places where we ran something other than your design
+
+Both are on us, and both are worth naming because they change how our numbers
+should be read.
+
+**Your baseline is `claude_md`, not `bare`.** "Nobody runs a coding agent
+memory-free, so nothing is measured against a strawman." Every difference in
+this report is stated against `bare`. Against your baseline the numbers are
+larger, not smaller — in 007, `claude_md` solved 58 of 120 against `bare`'s 66
+— so this is a case where we chose the harder comparison by accident rather
+than by virtue, and we would rather point at it than let it read as modesty.
+
+**The instruction is a treatment in your design, not scaffolding.** Each arm
+carries its own shipped integration: its own skills, its own MCP server, its
+own instruction text, with the instruction size published beside the result.
+In the adapter request we volunteered to take nothing beyond the shared
+protocol, and we ran the shared protocol with an 869-byte appendix. That was
+meant as restraint; against D2 it is simply the wrong configuration. **What we
+would like measured is the integration as a user installs it** — the published
+plugin and MCP server with their own instruction text — and we will take
+whatever the instruction-size column says about it.
+
 ### Results
 
 | Condition | cachly | bare | claude_md |
@@ -189,10 +242,13 @@ against 9, contradictory 9 against 10.
 We are the vendor and this is the number that hurts most, so to be explicit
 about what we think it means and what we do not: it does not say memory is
 useless — the untouched cells are ordinary retrieval, we are 23 points ahead
-there, and that has now been measured twice on two independent runs. It says
-**the four conditions, as planted, do not currently separate a memory system
-from a bare model**, and that any floor stated over the totals is mostly a
-floor on ordinary retrieval wearing a condition's name.
+there, and that has now been measured twice on two independent runs. It says that **on this feed** the four conditions, as planted, did not
+separate a memory system from a bare model — with the caveat above: your own
+overview reports hit@10 = 1.000 on it, so that may be saturation rather than a
+property of the conditions. What we would still defend without the caveat is
+the narrower half: a floor stated over the totals sums two different kinds of
+cell, and is therefore mostly a floor on ordinary retrieval wearing a
+condition's name.
 
 Every number in this section was recomputed from `records.jsonl` with errored
 sessions excluded, not read off the pilot summary.
