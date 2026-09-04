@@ -229,6 +229,7 @@ async def main() -> int:
         total_elapsed_s <= SMOKE_MAX_SECONDS
         and projected_full_run_s <= FULL_RUN_MAX_SECONDS
     )
+    functional_ok = all(record.success for record in records)
 
     write_jsonl(run_dir / "records.jsonl", records)
     report = admit_cells(records, signals, required_arms=arms)
@@ -292,9 +293,10 @@ async def main() -> int:
         f"  timing: smoke={total_elapsed_s:.1f}s, projected full={projected_full_run_s / 60:.1f}m, "
         f"gate={'PASS' if timing_ok else 'FAIL'}"
     )
+    print(f"  functional gate: {'PASS' if functional_ok else 'FAIL'}")
     print(f"  artifacts: {run_dir}")
 
-    if report.discarded_cells or not timing_ok:
+    if report.discarded_cells or not timing_ok or not functional_ok:
         for verdict in report.verdicts:
             if not verdict.admitted:
                 print(f"  DISCARD {verdict.arm}: {verdict.reasons}")
@@ -303,6 +305,8 @@ async def main() -> int:
                 f"  TIMING GATE FAILED: smoke must be <= {SMOKE_MAX_SECONDS:.0f}s and "
                 f"projected full run must be <= {FULL_RUN_MAX_SECONDS / 3600:.1f}h"
             )
+        if not functional_ok:
+            print("  FUNCTIONAL GATE FAILED: every smoke arm must pass its executable checker")
         return 1
     return 0
 
