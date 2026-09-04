@@ -10,18 +10,22 @@ flatter us.
 `adapters/cachly/VENDOR_REVIEW.md` says the review window has not opened and no
 run has used the arm. That is correct, and everything below is a **private
 rehearsal on our own instances**, not a run of yours. It differs from the
-adapter as you checked it in, in three ways that all move the numbers:
+adapter as you checked it in, in four ways that all move the numbers:
 
 | | your `config.frozen.json` | what we ran |
 |---|---|---|
 | pin | `0.10.145` | `0.10.151` (005c), `.157` (006), `.161` (007) |
 | read tools | **6** — `smart_recall`, `recall_best_solution`, `recall_context`, `team_recall`, `brain_search`, `causal_trace` | **3** — `smart_recall`, `recall_best_solution`, `causal_trace` |
 | session env | none | `CACHLY_PROFILE=recall`, `CACHLY_RECALL_COMPACT=1` |
+| corpus | the 4,911-document haystack from part 3, generated with `scripts/generate_haystack.py` | the corpus as shipped in the repo: 156 distractors, no haystack generated |
 
-The last two are not incidental: they are two of the three cost levers this
-report is about. **A run on your wiring as checked in would produce our 005c
-column, not our 007 column** — roughly 170k–210k input tokens per session
-rather than 80k–90k. If you run the arm officially without changing anything,
+Two of these are the cost levers this report is about, and the fourth is the
+one that matters most for the win columns. **A run on your wiring as checked in
+would produce our 005c cost column, not our 007 one** — roughly 170k–210k input
+tokens per session rather than 80k–90k. And it would be a harder retrieval
+problem than ours: by your own figure in part 3, BM25 hit@1 falls from 0.485 on
+the shipped feed to 0.182 with the haystack. Our win columns sit on the easier
+side of that, and should be read as an upper bound rather than a forecast. If you run the arm officially without changing anything,
 please expect the expensive numbers, and read our cost sections as "what these
 two levers do" rather than as a prediction of your result.
 
@@ -345,6 +349,65 @@ None of this changes a number in the tables above. We include it because the
 issue that opened this collaboration promised a pre-registered weakness, and
 "your harness confirmed it, and here is how far we got with the fix" is the
 only honest way to close that loop.
+
+### On the 45 %, which you said you would most like broken
+
+From part 3:
+
+> On `superseded`, the largest single loss is that in 45 percent of sessions
+> neither planted document is retrieved at all. That is a query-formulation
+> problem rather than a retrieval-quality one, and it is already
+> preregistered. If someone has a better idea than mine, I would like to lose
+> that one.
+
+We may have half of one, and it is not about query formulation. It is about how
+many results the session is shown.
+
+Run 008 (pre-registered, finished 2026-09-04) changes exactly one value: the
+recall renders **ten** results instead of five. Nothing else moves. On
+`superseded`:
+
+| | 007 (five) | 008 (ten) |
+|---|---|---|
+| cachly | 22/30 | **26/30** |
+| bare | 18/30 | 16/30 |
+| **difference** | **+4** | **+10** |
+| recalls per session | 3.10 | **2.60** |
+| input tokens per session | 89,906 | **86,084** |
+
+More results, **fewer** searches, and slightly cheaper. The mechanism we think
+is behind it fits your description of the condition: `superseded` is where the
+store holds both versions. At five results the session often sees one of them
+and goes back for a second search. At ten they arrive side by side in one
+answer, and the session can compare instead of retrying.
+
+Two honest limits before anyone quotes this:
+
+- One run per cell, and our measured noise floor is ±4 cells per condition.
+  A change of +6 is above it, not far above it.
+- It is not free anywhere else. On `present` and `absent` the same change
+  costs 8–13 % more tokens for no gain in the difference, because there is
+  nothing to compare. Averaged over four conditions it misses two of our own
+  three pre-registered cost floors, and we are reporting it as missed.
+
+If the 45 % is sessions where neither planted document surfaces, widening the
+window is the cheapest thing to try before rewriting queries: it is one config
+value, it needs no new component, and in the one condition built around
+competing versions it moved the difference more than anything else we have
+tried. We would rather hand you that than a claim about our ranking.
+
+### Where our reading agrees with yours already
+
+Our planted/untouched split is not a new finding for you, and we should say so
+rather than present it as one. Part 3 already reports it from the other side:
+RE-call against a bare agent is +3 cells at p = 0.834, while the gain against
+the instruction-only arm is +20; and the per-condition table shows the same
+shape we found — memory pays on `present` and is flat or slightly negative on
+the conditions built to punish retrieval.
+
+We arrived at the same shape with a different product and a different control
+arm, without having read that table first. Two independent measurements of the
+same thing is worth more than either alone, and it is your finding first.
 
 ### Five product defects your process found
 
