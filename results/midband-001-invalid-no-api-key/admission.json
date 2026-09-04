@@ -1,0 +1,524 @@
+{
+  "required_arms": [
+    "bare"
+  ],
+  "admitted_cells": 0,
+  "discarded_cells": [
+    [
+      "ts-bool-env",
+      0
+    ],
+    [
+      "ts-bool-env",
+      1
+    ],
+    [
+      "ts-bool-env",
+      2
+    ],
+    [
+      "ts-bool-env",
+      3
+    ],
+    [
+      "ts-bool-env",
+      4
+    ],
+    [
+      "ts-bool-env",
+      5
+    ],
+    [
+      "ts-cli-exitcode",
+      0
+    ],
+    [
+      "ts-cli-exitcode",
+      1
+    ],
+    [
+      "ts-cli-exitcode",
+      2
+    ],
+    [
+      "ts-cli-exitcode",
+      3
+    ],
+    [
+      "ts-cli-exitcode",
+      4
+    ],
+    [
+      "ts-cli-exitcode",
+      5
+    ],
+    [
+      "ts-csv-quote",
+      0
+    ],
+    [
+      "ts-csv-quote",
+      1
+    ],
+    [
+      "ts-csv-quote",
+      2
+    ],
+    [
+      "ts-csv-quote",
+      3
+    ],
+    [
+      "ts-csv-quote",
+      4
+    ],
+    [
+      "ts-csv-quote",
+      5
+    ],
+    [
+      "ts-idempotent-run",
+      0
+    ],
+    [
+      "ts-idempotent-run",
+      1
+    ],
+    [
+      "ts-idempotent-run",
+      2
+    ],
+    [
+      "ts-idempotent-run",
+      3
+    ],
+    [
+      "ts-idempotent-run",
+      4
+    ],
+    [
+      "ts-idempotent-run",
+      5
+    ],
+    [
+      "ts-json-sorted",
+      0
+    ],
+    [
+      "ts-json-sorted",
+      1
+    ],
+    [
+      "ts-json-sorted",
+      2
+    ],
+    [
+      "ts-json-sorted",
+      3
+    ],
+    [
+      "ts-json-sorted",
+      4
+    ],
+    [
+      "ts-json-sorted",
+      5
+    ],
+    [
+      "ts-natural-order",
+      0
+    ],
+    [
+      "ts-natural-order",
+      1
+    ],
+    [
+      "ts-natural-order",
+      2
+    ],
+    [
+      "ts-natural-order",
+      3
+    ],
+    [
+      "ts-natural-order",
+      4
+    ],
+    [
+      "ts-natural-order",
+      5
+    ]
+  ],
+  "discarded_by_arm": {
+    "bare": 36
+  },
+  "verdicts": [
+    {
+      "task_id": "ts-bool-env",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bool-env",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Missing Authentication header"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "no system/init event: the session's real tool surface was never observed, so the arm cannot be verified",
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "no system/init event: the session's real tool surface was never observed, so the arm cannot be verified",
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "no system/init event: the session's real tool surface was never observed, so the arm cannot be verified",
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "no system/init event: the session's real tool surface was never observed, so the arm cannot be verified",
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 3,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "no system/init event: the session's real tool surface was never observed, so the arm cannot be verified",
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 4,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "no system/init event: the session's real tool surface was never observed, so the arm cannot be verified",
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 5,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "no system/init event: the session's real tool surface was never observed, so the arm cannot be verified",
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    }
+  ]
+}

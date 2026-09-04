@@ -37,6 +37,14 @@ staging/
 .venv/
 results/*/cfg/
 results/*.log
+results/*.err
+results/*.pid
+results/.ingest-staging/
+results/*-staging/
+results/*-tmp/
+results/abstention-002-endpoints.json
+results/diagnostic-009/
+.claude/
 
 # Assembled condition corpora: reproducible from the base corpus, plants.json and a seed.
 corpus/conditions/

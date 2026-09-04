@@ -1,0 +1,81 @@
+{
+  "run_id": "midband-001",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": [
+    "bare"
+  ],
+  "recall_instruction": "oneliner",
+  "recall_instruction_sha256": "e30f0e7fb29aadfedba32749afe53fccf938baed76957dec739709cd1a685034",
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-bool-env": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-cli-exitcode": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-csv-quote": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-idempotent-run": {
+      "match": true,
+      "reference_whitespace_tokens": 70,
+      "placebo_whitespace_tokens": 70,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-json-sorted": {
+      "match": true,
+      "reference_whitespace_tokens": 52,
+      "placebo_whitespace_tokens": 52,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    }
+  },
+  "prompt_sha256_by_task": {
+    "placebo": {
+      "ts-bool-env": "b3e6e6dc25d258835e7e26bc204a1d660851cef2c57b4b05459113155843bd3b",
+      "ts-cli-exitcode": "964a6eb05e86d4704c41f1da72fa30bd16d0c1201d9317032ba409c01b68b21e",
+      "ts-csv-quote": "c531c92a14136749dff4f28acf27930044b1ae2158a51a8d10d6e8a24633fa93",
+      "ts-idempotent-run": "4a45ef5fb3d812eb9a3689899267726b0e31de9511d17d233311d543d1d7a1a7",
+      "ts-json-sorted": "90ae0c68bad5ec88271df6e7aa0bac2e79dd23be36d97de63a7df33e6df7e961",
+      "ts-natural-order": "30109f3e22fa0bf2cd3466fc7dbe479ef4c9a547bf1ef659e7ca44a19124e48b"
+    },
+    "claude_md": {
+      "ts-bool-env": "1990196cf3550b9ce15909c6aca268047fd11d12a1bce1aca0a20a381ffbc677",
+      "ts-cli-exitcode": "b8a38b7b962d8eb491eeb49d8e417e20cc7273b246129933e3379e3b5c53f404",
+      "ts-csv-quote": "318233960624318adc2ffb64bff6a231d60ec37dbce9059d4d0645b9f07435f1",
+      "ts-idempotent-run": "96f935728a16528fac6e020bc3ba76c4e1c99a6bd223d7c98c7de0f174d889ea",
+      "ts-json-sorted": "f7eb0c881aba3825fe037bec0b78bab635e33fe83c2fe157c88aad61676e5add",
+      "ts-natural-order": "fb55fbd2e52a9651d80dcb4f69d5e2bd82093f55f2ba772246b305a4e0fe7509"
+    },
+    "recall": {
+      "ts-bool-env": "24ef69d8832bb49261e654a10dfa38fde8a40ca5500cd558e1e01863052ebbe6",
+      "ts-cli-exitcode": "42ed107992f664ac66972dcfb3358c0bd93ac92427e737dbc3f9c6eef3bc3dc8",
+      "ts-csv-quote": "a15172fa46d94f1f57606639e070153f31965121cad663a1802af3d5b647e1e1",
+      "ts-idempotent-run": "28b36326ef206b911279ebd8e8db19c3b59da28d377581bccd17864d6b425bb0",
+      "ts-json-sorted": "e3c2b61d57edfc6b682fd0a40a4e0e69dbc6ae8dae268e3164bb2a3c55f1029b",
+      "ts-natural-order": "b36da5a856f047bb192b3509a50ff6ecd6c05668b146285ee7627b9c365b2e13"
+    }
+  },
+  "namespace": "bench-recall-pilot"
+}

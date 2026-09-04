@@ -1,0 +1,67 @@
+{
+  "required_arms": [
+    "bare",
+    "claude_md",
+    "fs_grep",
+    "recall"
+  ],
+  "admitted_cells": 0,
+  "discarded_cells": [
+    [
+      "smoke-config-port",
+      0
+    ]
+  ],
+  "discarded_by_arm": {
+    "bare": 1,
+    "claude_md": 1,
+    "fs_grep": 1,
+    "recall": 1
+  },
+  "verdicts": [
+    {
+      "task_id": "smoke-config-port",
+      "seed": 0,
+      "arm": "bare",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Invalid bearer token"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "smoke-config-port",
+      "seed": 0,
+      "arm": "claude_md",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Invalid bearer token"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "smoke-config-port",
+      "seed": 0,
+      "arm": "fs_grep",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Invalid bearer token"
+      ],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "smoke-config-port",
+      "seed": 0,
+      "arm": "recall",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: api_error (HTTP 401) : Failed to authenticate. API Error: 401 Invalid bearer token"
+      ],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    }
+  ]
+}
