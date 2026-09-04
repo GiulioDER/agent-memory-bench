@@ -195,7 +195,7 @@ class SupermemoryAdapter(MemoryAdapter):
             result = self._request(
                 _DIRECT_MEMORY_PATH,
                 {"containerTag": namespace, "memories": list(pending_memories)},
-                timeout_s=60.0,
+                timeout_s=180.0,
             )
             stored = result.get("memories") if isinstance(result, dict) else None
             if not isinstance(stored, list) or len(stored) < len(pending_memories):
