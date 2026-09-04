@@ -247,13 +247,15 @@
       if (a.status === "held") tr.setAttribute("data-held", "true");
       tr.appendChild(cell(null, span("m", name, true)));
       tr.appendChild(cell("num", a.success == null ? null : span("m", pct(a.success))));
-      tr.appendChild(cell("num", a.cost ? span("m", money(a.cost.usd_per_admitted_cell)) : null));
-      tr.appendChild(cell("num", a.speed ? span("m", seconds(a.speed.mean_session_s)) : null));
+      var costValue = a.cost && a.cost.usd_per_admitted_cell != null ? a.cost.usd_per_admitted_cell : (a.cost ? a.cost.reported_usd_per_task : null);
+      tr.appendChild(cell("num", costValue == null ? null : span("m", money(costValue))));
+      tr.appendChild(cell("num", a.speed && a.speed.mean_session_s != null ? span("m", seconds(a.speed.mean_session_s)) : null));
       tr.appendChild(cell("num", a.delta_vs_baseline == null ? null : span("m", pts(a.delta_vs_baseline))));
       var read = "";
       if (a.status === "held") read = a.hold.reason;
       else if (name === "claude_md") read = "designated baseline";
       else if (analysis.best_visible_memory && name === analysis.best_visible_memory.arm) read = "best visible memory product";
+      else if (a.comparison) read = "joined vendor submission";
       else if (a.cost && a.speed) read = (a.cost.relative_to_baseline > 0 ? "higher spend" : "lower spend") + ", " + (a.speed.relative_to_baseline > 0 ? "slower" : "faster");
       tr.appendChild(cell(null, span("analysis-read", read)));
       analysisBody.appendChild(tr);

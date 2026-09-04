@@ -12,6 +12,12 @@ python -m scripts.analyze_official --run-id official-003 --check
 python scripts/build_leaderboard.py --check
 ```
 
+For a future frozen official run, replace `official-003` with its run id. For an accepted additive
+vendor submission, add its reviewed run under `arm_runs` in the leaderboard config and rerun the
+same command. The report then includes the joined vendor result, its submitted cost and token
+rates, condition deltas, and its join scope. Wall time and per-cell spend remain unavailable for
+an additive row unless the submission schema records those measurements.
+
 The first command writes four artifacts under `reports/`:
 
 * `<run_id>-analysis.json`, the machine-readable analysis consumed by the site;

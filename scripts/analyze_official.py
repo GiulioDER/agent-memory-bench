@@ -337,10 +337,15 @@ def _arm_analysis(
     return payload
 
 
-def _insights(arms: dict[str, dict[str, Any]], costs: dict[str, dict[str, Any]], summary: dict[str, Any]) -> list[str]:
+def _insights(
+    arms: dict[str, dict[str, Any]],
+    costs: dict[str, dict[str, Any]],
+    summary: dict[str, Any],
+    product_names: tuple[str, ...],
+) -> list[str]:
     visible = [arm for arm, data in arms.items() if data.get("status") != "held"]
     winner = max(visible, key=lambda arm: arms[arm]["success"])
-    products = [arm for arm in PRODUCTS if arm in arms and arms[arm].get("status") != "held"]
+    products = [arm for arm in product_names if arm in arms and arms[arm].get("status") != "held"]
     best_product = max(products, key=lambda arm: arms[arm]["success"]) if products else None
     insights = [
         f"{winner} is the highest scoring visible arm at {arms[winner]['success']:.1%}; this is not evidence that a memory layer won.",
@@ -350,13 +355,86 @@ def _insights(arms: dict[str, dict[str, Any]], costs: dict[str, dict[str, Any]],
         insights.append(f"The placebo exceeds the claude_md baseline by {arms['placebo']['delta_vs_baseline']:+.1%}, so the run does not isolate a memory benefit cleanly.")
     for arm in products:
         data = arms[arm]
-        if data["delta_vs_baseline"] > 0 and data.get("ci95") and data["ci95"][0] <= 0 <= data["ci95"][1]:
+        if data.get("delta_vs_baseline", 0) > 0 and data.get("ci95") and data["ci95"][0] <= 0 <= data["ci95"][1]:
             insights.append(f"{arm} shows a positive point estimate, but its published 95% interval crosses zero.")
-        if data["cost"].get("relative_to_baseline", 0) > 0.5:
+        if data.get("cost", {}).get("relative_to_baseline", 0) > 0.5:
             insights.append(f"{arm} costs {data['cost']['relative_to_baseline'] + 1:.1f} times the baseline per admitted cell, including retrieval context tokens.")
     if any(data.get("status") == "held" for data in arms.values()):
         insights.append("A vendor review hold suppresses one product's metrics from the public analysis until the hold is released.")
     return insights
+
+
+def _additive_arm_analysis(
+    repo_root: Path,
+    base_run_id: str,
+    summary: dict[str, Any],
+    baseline_stats: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Project accepted joined vendor submissions into the same report schema.
+
+    Additive submissions intentionally publish a joined summary rather than rerunning the frozen
+    base arms. Their result has no wall time field, so the report exposes submitted cost and token
+    rates while leaving speed and per-cell spend unavailable instead of inventing a denominator.
+    """
+
+    config = _load_json(repo_root / "site" / "data" / "leaderboard.config.json")
+    arm_runs = config.get("arm_runs", {}) or {}
+    if not isinstance(arm_runs, dict) or not arm_runs:
+        return {}
+    from scripts.build_leaderboard import _load_arm_submission
+
+    analyzed: dict[str, dict[str, Any]] = {}
+    for arm, configured in arm_runs.items():
+        submission_run = configured.get("run") if isinstance(configured, dict) else configured
+        if not isinstance(submission_run, str) or not submission_run:
+            raise ValueError(f"arm_runs entry {arm!r} must name a result run")
+        submission = _load_arm_submission(repo_root / "results", submission_run, arm, base_run_id, summary)
+        result = submission["result"]
+        join = submission["join"]
+        by_condition = result.get("byCondition", {})
+        condition_delta = {}
+        for condition in CONDITIONS:
+            product = by_condition.get(condition, {})
+            baseline = baseline_stats["by_condition"].get(condition, {})
+            product_rate = _rate(int(product.get("solved", 0)), int(product.get("cells", 0)))
+            baseline_rate = baseline.get("success")
+            condition_delta[condition] = _round(product_rate - baseline_rate) if product_rate is not None and baseline_rate is not None else None
+        held = _hold_map().get(arm)
+        if held:
+            analyzed[arm] = {"status": "held", "hold": held}
+            continue
+        joined_cells = int(join["joinedCells"])
+        total_tokens = int(result["totalTokens"])
+        analyzed[arm] = {
+            "status": "published",
+            "comparison": f"joined to {base_run_id}",
+            "source_run": submission_run,
+            "success": float(result["success"]),
+            "delta_vs_baseline": float(result["delta"]),
+            "ci95": result.get("ci"),
+            "solved_cells": None,
+            "admitted_cells": joined_cells,
+            "discarded_cells": int(result.get("discarded", 0)),
+            "by_condition": by_condition,
+            "condition_delta_vs_baseline": condition_delta,
+            "cost": {
+                "total_usd": None,
+                "usd_per_admitted_cell": None,
+                "reported_usd_per_task": result.get("costPerTask"),
+                "total_tokens": total_tokens,
+                "tokens_per_observed_session": result.get("tokensPerTask"),
+                "tokens_per_admitted_cell": round(total_tokens / joined_cells) if joined_cells else None,
+                "pricing_model": submission["run"].get("model"),
+                "pricing_as_of": None,
+                "relative_to_baseline": None,
+            },
+            "speed": {"mean_session_s": None, "ingest_s": None, "relative_to_baseline": None},
+            "efficiency": {},
+            "strongest_gains": [],
+            "largest_losses": [],
+            "join": join,
+        }
+    return analyzed
 
 
 def analyze(repo_root: Path, run_id: str) -> tuple[dict[str, Any], dict[str, Any], str, str]:
@@ -394,6 +472,9 @@ def analyze(repo_root: Path, run_id: str) -> tuple[dict[str, Any], dict[str, Any
         )
         for arm in arms
     }
+    additive_arms = _additive_arm_analysis(repo_root, run_id, summary, raw_stats[BASELINE])
+    analyzed_arms.update(additive_arms)
+    product_names = PRODUCTS + tuple(additive_arms)
     checks = _quality_checks(repo_root, run_id, summary, condition_data, raw_stats, costs)
     failures = sum(check["status"] == "fail" for check in checks)
     warnings = sum(check["status"] == "warn" for check in checks)
@@ -424,7 +505,7 @@ def analyze(repo_root: Path, run_id: str) -> tuple[dict[str, Any], dict[str, Any
         "best_visible_memory": {"arm": best_product, "success": visible_products[best_product]["success"], "delta_vs_baseline": visible_products[best_product]["delta_vs_baseline"]} if best_product else None,
         "admitted_cells": total_cells,
         "conditions": list(CONDITIONS),
-        "insights": _insights(analyzed_arms, costs, summary),
+        "insights": _insights(analyzed_arms, costs, summary, product_names),
         "report_markdown": f"reports/{run_id}-analysis.md",
         "audit_json": f"reports/{run_id}-audit.json",
         "arms": {
@@ -480,15 +561,22 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Tradeoffs by arm",
         "",
-        "| arm | success | delta vs baseline | cost per admitted cell | mean session seconds | tokens per admitted cell | status |",
+        "| arm | success | delta vs baseline | cost per admitted cell or task | mean session seconds | tokens per admitted cell | status |",
         "|---|---:|---:|---:|---:|---:|---|",
     ]
     for arm, data in report["arms"].items():
         if data.get("status") == "held":
             lines.append(f"| `{arm}` | withheld | withheld | withheld | withheld | withheld | {data['hold']['reason']} |")
             continue
+        cost = data["cost"].get("usd_per_admitted_cell")
+        cost_text = f"${cost:.4f}" if cost is not None else (
+            f"${data['cost']['reported_usd_per_task']:.4f}/task"
+            if data["cost"].get("reported_usd_per_task") is not None else "n/a"
+        )
+        speed_text = f"{data['speed']['mean_session_s']:.2f}" if data["speed"].get("mean_session_s") is not None else "n/a"
+        token_text = f"{data['cost']['tokens_per_admitted_cell']:,}" if data["cost"].get("tokens_per_admitted_cell") is not None else "n/a"
         lines.append(
-            f"| `{arm}` | {data['success']:.1%} | {data['delta_vs_baseline']:+.1%} | ${data['cost']['usd_per_admitted_cell']:.4f} | {data['speed']['mean_session_s']:.2f} | {data['cost']['tokens_per_admitted_cell']:,} | published |"
+            f"| `{arm}` | {data['success']:.1%} | {data['delta_vs_baseline']:+.1%} | {cost_text} | {speed_text} | {token_text} | {data.get('comparison', 'published')} |"
         )
     lines.extend(["", "## Condition analysis", "", "The condition delta is measured against `claude_md` within the same condition.", ""])
     lines.extend(["| arm | " + " | ".join(CONDITIONS) + " |", "|---|" + "---:|" * len(CONDITIONS)])
@@ -507,7 +595,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         losses = ", ".join(f"`{item['task']}` ({item['delta']:+.1%})" for item in data["largest_losses"][:3]) or "none"
         lines.append(f"1. `{arm}`: strongest gains {gains}; largest losses {losses}.")
     lines.extend(["", "## Audit status", "", f"Audit status: **{report['audit']['status']}**. See the generated audit artifact for each check and its evidence.", ""])
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines).rstrip("\n") + "\n"
 
 
 def render_audit_markdown(audit: dict[str, Any]) -> str:

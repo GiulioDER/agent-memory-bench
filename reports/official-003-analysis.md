@@ -18,7 +18,7 @@ The intervals are within run intervals over the admitted cells. They do not incl
 
 ## Tradeoffs by arm
 
-| arm | success | delta vs baseline | cost per admitted cell | mean session seconds | tokens per admitted cell | status |
+| arm | success | delta vs baseline | cost per admitted cell or task | mean session seconds | tokens per admitted cell | status |
 |---|---:|---:|---:|---:|---:|---|
 | `recall` | 65.9% | +8.2% | $0.0044 | 80.90 | 73,844 | published |
 | `mempalace` | withheld | withheld | withheld | withheld | withheld | held for vendor review |
