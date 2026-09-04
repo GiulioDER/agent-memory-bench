@@ -92,7 +92,7 @@ def test_not_calling_memory_is_a_result_rather_than_a_discard():
 
 
 def test_the_untested_hook_claim_expires_when_an_adapter_ships_hooks():
-    """Deliberately pinned to today's state so it FAILS when the harness improves.
+    """The contract records the first adapter that exercised the hook path.
 
     The contract says hook integration is supported and untested. That is true and it is a
     liability: it tells a hook-based product they will be first. When an adapter starts shipping a
@@ -105,8 +105,5 @@ def test_the_untested_hook_claim_expires_when_an_adapter_ships_hooks():
         for path in sorted((REPO / "adapters").glob("*/adapter.py"))
         if "config_dir=" in path.read_text(encoding="utf-8")
     ]
-    assert shipping == [], (
-        f"{shipping} now ship a config_dir, so hook integration is no longer untested. "
-        f"Update the Status section of docs/INTEGRATION-CONTRACT.md, then update this test."
-    )
-    assert "supported and UNTESTED" in TEXT
+    assert shipping == ["supermemory"]
+    assert "supported and exercised" in TEXT

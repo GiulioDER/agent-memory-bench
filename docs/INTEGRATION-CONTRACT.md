@@ -81,11 +81,10 @@ measure something nobody ships.
 
 * MCP-server integration: **exercised**. `recall` and `fs_grep` both run this way.
 * System-prompt instruction of arbitrary length: **exercised**.
-* Hook and plugin integration: **supported and UNTESTED**. `ClaudeExecConfig.config_dir`,
-  `ArmSpec.config_dir`, the `hook_ledger` and the gate's `required_hooks` check all exist, and no
-  adapter currently ships hooks, so that route has never been run end to end. If your integration
-  is hook-based, expect to be the first, and expect us to fix what breaks rather than asking you
-  to work around it.
+* Hook and plugin integration: **supported and exercised**. `ClaudeExecConfig.config_dir`,
+  `ArmSpec.config_dir`, the `hook_ledger` and the gate's `required_hooks` check all exist, and the
+  first qualified hook adapter has now run end to end. New hook integrations must still prove
+  their own lifecycle signals through the same admission gate.
 
 ## How to add your arm
 

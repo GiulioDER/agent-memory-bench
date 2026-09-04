@@ -178,8 +178,9 @@ design rule came from.
 Implemented and runnable today: `bare`, `claude_md` (designated baseline), `placebo`
 (length-matched neutral prose), `protocol` (the memory instruction with no memory layer, which is
 what separates the coaching from the retrieval), `fs_grep` (transcripts on disk plus grep),
-`recall`, and one newly integrated vendor adapter through its published MCP server and
-vendor-supplied bulk loader.
+`recall`, `recall_rerank`, `mempalace`, and an additional hook based vendor adapter.
+The additional adapter is qualified in repository documentation but held out of the public
+leaderboard until its disclosure and preregistered comparison are complete.
 
 **Not built yet:** three third-party memory products. Those three are not named yet. Every
 vendor is invited to review its own adapter and frozen config before any measured run, no

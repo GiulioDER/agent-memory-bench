@@ -169,10 +169,11 @@ python -m scripts.audit_plants
 
 ## Arms
 
-**Runnable today, seven:** `bare`, `placebo` (length-matched neutral prose), `claude_md`
+**Runnable today:** `bare`, `placebo` (length-matched neutral prose), `claude_md`
 (designated baseline), `protocol` (the shared memory instruction with no memory layer),
-`fs_grep` (transcripts on disk plus grep), `recall`, and, since 2026-08-29, the first
-third-party product. The registry is `ARMS` in `scripts/pilot.py`.
+`fs_grep` (transcripts on disk plus grep), `recall`, `recall_rerank`, `mempalace`, `cachly`,
+and the newly qualified hook based product adapter. The registry is `ARMS` in
+`scripts/pilot.py`.
 
 `protocol` is the arm that separates the coaching from the retrieval, and it exists because the
 recall arm's treatment was not only the memory layer. Until 2026-08-28 the recall arm carried
@@ -210,6 +211,12 @@ stdio MCP server, pinned to `@cachly-dev/mcp-server@0.10.145`. Its corpus load r
 vendor-supplied bulk loader, selected by `AMB_CACHLY_BULK_INGEST_COMMAND`, because the public
 MCP write tools are one at a time while the benchmark feed contains thousands of transcripts.
 The adapter refuses to run without that loader and a dedicated Brain instance.
+
+**Qualified in a control only pilot, not on the public board:** the new hook based product adapter
+landed with a pinned official Claude Code plugin and local service configuration. Its corrected
+2026-09-03 pilot admitted 89 paired cells from 180 records and discarded one bare timeout.
+Every product-arm record passed the lifecycle hook checks. This qualifies the treatment and timing;
+it does not publish a product score or enter the multi-product leaderboard.
 
 The name appears here and nowhere on the site, and that is the rule rather than an inconsistency:
 this repository is where a vendor reads what it is being asked to review, so

@@ -681,6 +681,11 @@ class RecallAdapter(MemoryAdapter):
                 # A small bound, always: fastembed pads a batch to its longest member, and an
                 # unbounded batch is how a 987-memo index run died of a bad allocation.
                 "RECALL_INDEX_BATCH_CHUNKS": os.environ.get("RECALL_INDEX_BATCH_CHUNKS", "16"),
+                **(
+                    {"PGOPTIONS": os.environ[str(self.config["postgres_options_env"])]}
+                    if os.environ.get(str(self.config.get("postgres_options_env", "")))
+                    else {}
+                ),
             },
             capture_output=True,
             text=True,

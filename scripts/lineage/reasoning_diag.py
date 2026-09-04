@@ -72,5 +72,6 @@ for task in tasks:
 Path("results/reasoning-diag.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
 print(f"\nwrote results/reasoning-diag.json  rows={len(out)}")
 for r in out:
-    t0 = r.get("t0", {}); t2 = r.get("t2", {})
+    t0 = r.get("t0", {})
+    t2 = r.get("t2", {})
     print(f"  {r['task']:<22} t0 {t0.get('verdicts')!s:<28} | t2 {t2.get('verdicts')}")

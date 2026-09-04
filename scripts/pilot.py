@@ -59,6 +59,7 @@ from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
+from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
 from harness.adapters.base import (
@@ -109,16 +110,18 @@ from scripts.validate_run_setup import validate as validate_setup
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
-    "mempalace", "recall_prefetch", "cachly",
+    "mempalace", "recall_prefetch", "cachly", "supermemory",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall", "recall_rerank", "mempalace", "cachly"})
+MEMORY_ARMS = frozenset(
+    {"fs_grep", "recall", "recall_rerank", "mempalace", "cachly", "supermemory"}
+)
 
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
-SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cachly")
+SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cachly", "supermemory")
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -225,6 +228,10 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["cachly"] = CachlyAdapter.shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
+    if "supermemory" in texts:
+        texts["supermemory"] = SupermemoryAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
             "protocol",
@@ -313,6 +320,8 @@ def adapter_for(
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
     if arm == "cachly":
         return CachlyAdapter(staging, static, instruction=texts.get("cachly") or None)
+    if arm == "supermemory":
+        return SupermemoryAdapter(staging, static, instruction=texts.get("supermemory") or None)
     if arm == "recall_prefetch":
         # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
         # is condition-aware for free: it delegates to whichever tenant the condition serves. The
@@ -645,6 +654,21 @@ async def main() -> int:
     # already up, which is exactly where you most want to check a command line first.
     if "recall" in run_arms and not args.dry_run and not os.environ.get("RECALL_DSN"):
         raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
+    if "supermemory" in run_arms and not args.dry_run:
+        missing = [
+            name
+            for name in ("SUPERMEMORY_PLUGIN_DIR",)
+            if not os.environ.get(name)
+        ]
+        if not (
+            os.environ.get("SUPERMEMORY_CC_API_KEY")
+            or os.environ.get("SUPERMEMORY_API_KEY")
+        ):
+            missing.append("SUPERMEMORY_CC_API_KEY or SUPERMEMORY_API_KEY")
+        if missing:
+            raise SystemExit(
+                "Supermemory is not configured; set " + ", ".join(missing)
+            )
 
     # The default grid, and the wider set a --tasks subset may name. Keeping these apart is what
     # lets a new class be calibrated without silently changing what an ordinary run measures.
@@ -931,8 +955,9 @@ async def main() -> int:
             model=args.model,
             cwd=cwd,
             timeout_s=args.timeout,
-            env=env,
+            env={**env, **spec.env},
             bare=spec.bare,
+            config_dir=spec.config_dir,
             mcp_config=spec.mcp_config,
             strict_mcp_config=bool(spec.mcp_config),
             allowed_tools=BASE_TOOLS + spec.extra_allowed_tools,
@@ -1011,6 +1036,14 @@ async def main() -> int:
         final = replace(
             record,
             success=ok and record.success,
+            config_dir_digest=specs[(task_id, arm)].config_dir_digest,
+            hook_ledger=(
+                registry.get("supermemory").read_hook_ledger(
+                    record.metadata.get("session_id"), specs[(task_id, arm)].config_dir
+                )
+                if arm == "supermemory" and specs[(task_id, arm)].config_dir is not None
+                else record.hook_ledger
+            ),
             metadata={**record.metadata, **extra},
         )
         # Fsynced per session: a run that dies keeps every finished cell.
