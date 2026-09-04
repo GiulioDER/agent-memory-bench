@@ -35,6 +35,7 @@ _WRAPPER_PATH = Path(__file__).with_name("hook_wrapper.js")
 _REQUIRED_HOOKS = ("SessionStart", "UserPromptSubmit")
 _DIRECT_MEMORY_PATH = "/v4/memories"
 _DIRECT_MEMORY_MAX_CHARS = 9000
+_DIRECT_MEMORY_BATCH_SIZE = 20
 _HOOK_FILES = {
     "SessionStart": "session-start.js",
     "UserPromptSubmit": "recall-directive.js",
@@ -184,6 +185,28 @@ class SupermemoryAdapter(MemoryAdapter):
         accepted = 0
         first_query = "project memory"
         ingest_mode = self._benchmark_ingest_mode()
+        pending_memories: list[dict[str, Any]] = []
+        pending_names: list[str] = []
+
+        def flush_direct_memories() -> None:
+            nonlocal accepted
+            if not pending_memories:
+                return
+            result = self._request(
+                _DIRECT_MEMORY_PATH,
+                {"containerTag": namespace, "memories": list(pending_memories)},
+                timeout_s=60.0,
+            )
+            stored = result.get("memories") if isinstance(result, dict) else None
+            if not isinstance(stored, list) or len(stored) < len(pending_memories):
+                raise RuntimeError(
+                    f"Supermemory accepted {len(stored) if isinstance(stored, list) else 0} of "
+                    f"{len(pending_memories)} direct memories ({pending_names[0]})"
+                )
+            accepted += len(stored)
+            pending_memories.clear()
+            pending_names.clear()
+
         for path in sorted(staged.glob("*.md")):
             content = path.read_text(encoding="utf-8")
             if content and first_query == "project memory":
@@ -210,31 +233,22 @@ class SupermemoryAdapter(MemoryAdapter):
                     for offset in range(0, len(content), _DIRECT_MEMORY_MAX_CHARS)
                 ] or [""]
                 for part_index, part in enumerate(parts, start=1):
-                    result = self._request(
-                        _DIRECT_MEMORY_PATH,
+                    pending_memories.append(
                         {
-                            "containerTag": namespace,
-                            "memories": [
-                                {
-                                    "content": part,
-                                    "isStatic": True,
-                                    "metadata": {
-                                        "source": "agent-memory-bench",
-                                        "corpus_path": path.relative_to(staged).as_posix(),
-                                        "part": str(part_index),
-                                        "parts": str(len(parts)),
-                                    },
-                                }
-                            ],
-                        },
-                        timeout_s=60.0,
+                            "content": part,
+                            "isStatic": True,
+                            "metadata": {
+                                "source": "agent-memory-bench",
+                                "corpus_path": path.relative_to(staged).as_posix(),
+                                "part": str(part_index),
+                                "parts": str(len(parts)),
+                            },
+                        }
                     )
-                    stored = result.get("memories") if isinstance(result, dict) else None
-                    if not isinstance(stored, list) or not stored:
-                        raise RuntimeError(
-                            f"Supermemory accepted no direct memory for {path.name} part {part_index}: {result!r}"
-                        )
-                    accepted += len(stored)
+                    pending_names.append(f"{path.name} part {part_index}")
+                    if len(pending_memories) >= _DIRECT_MEMORY_BATCH_SIZE:
+                        flush_direct_memories()
+        flush_direct_memories()
         verification_hits = 0
         deadline = time.monotonic() + min(60.0, float(self.config["ingest_timeout_s"]))
         while time.monotonic() < deadline and accepted:
