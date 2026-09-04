@@ -41,7 +41,8 @@ plugin's startup profile hook from injecting five full transcript memories into 
 prompt-time lifecycle recall remains enabled and is recorded by the required hooks. The setting is
 written into each isolated Claude config and included in its config digest.
 
-The direct static-memory write path submits two batches of 20 memories concurrently and permits
+The direct static-memory write path preserves each rendered transcript while splitting only above
+30,000 characters, then submits two batches of 20 memories concurrently and permits
 each local batch request up to 180 seconds for Supermemory Local's bounded two-worker embedding
 queue. Memory contents and metadata are unchanged; this is a transport-performance fix required
 to keep the official run within the five hour limit.
