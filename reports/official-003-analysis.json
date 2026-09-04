@@ -1,0 +1,1713 @@
+{
+  "schema": 1,
+  "generated_by": "scripts/analyze_official.py",
+  "run": {
+    "id": "official-003",
+    "date": "2026-09-02",
+    "cli": "claude-code",
+    "model": "deepseek/deepseek-v4-flash",
+    "tasks": 26,
+    "sessionsPerCell": 1,
+    "prereg": "preregistration/026-official-003-fair-instruction.md"
+  },
+  "sources": {
+    "summary": "results/official-003/leaderboard_summary.json",
+    "summary_sha256": "ac6f090bd6960146ad7a40abe44b94a607856eb80100daea6b1f2e6086c00c3c",
+    "condition_runs": [
+      "results/official-003-present",
+      "results/official-003-absent",
+      "results/official-003-superseded",
+      "results/official-003-contradictory",
+      "results/official-003-adjacent"
+    ]
+  },
+  "audit": {
+    "status": "warn",
+    "counts": {
+      "pass": 9,
+      "warn": 4,
+      "fail": 0
+    }
+  },
+  "headline": {
+    "overall_winner": "placebo",
+    "best_visible_memory": "recall",
+    "admitted_cells": 317,
+    "conditions": [
+      "present",
+      "absent",
+      "superseded",
+      "contradictory",
+      "adjacent"
+    ],
+    "records": 2920,
+    "discarded_cells": 48
+  },
+  "insights": [
+    "placebo is the highest scoring visible arm at 67.2%; this is not evidence that a memory layer won.",
+    "recall is the highest scoring visible memory product at 65.9%.",
+    "The placebo exceeds the claude_md baseline by +9.5%, so the run does not isolate a memory benefit cleanly.",
+    "recall shows a positive point estimate, but its published 95% interval crosses zero.",
+    "recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
+    "A vendor review hold suppresses one product's metrics from the public analysis until the hold is released."
+  ],
+  "arms": {
+    "recall": {
+      "status": "published",
+      "success": 0.6593,
+      "delta_vs_baseline": 0.082,
+      "ci95": [
+        -0.0063,
+        0.1808
+      ],
+      "solved_cells": 209,
+      "admitted_cells": 317,
+      "discarded_cells": 28,
+      "by_condition": {
+        "present": {
+          "solved": 56,
+          "cells": 111,
+          "success": 0.5045
+        },
+        "absent": {
+          "solved": 41,
+          "cells": 52,
+          "success": 0.7885
+        },
+        "superseded": {
+          "solved": 37,
+          "cells": 46,
+          "success": 0.8043
+        },
+        "contradictory": {
+          "solved": 37,
+          "cells": 51,
+          "success": 0.7255
+        },
+        "adjacent": {
+          "solved": 38,
+          "cells": 57,
+          "success": 0.6667
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.1171,
+        "absent": 0.1731,
+        "superseded": 0.1304,
+        "contradictory": -0.0392,
+        "adjacent": 0.0
+      },
+      "cost": {
+        "total_usd": 1.3942,
+        "usd_per_admitted_cell": 0.0044,
+        "total_tokens": 23408500,
+        "tokens_per_observed_session": 64133,
+        "tokens_per_admitted_cell": 73844,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22",
+        "relative_to_baseline": 2.2991
+      },
+      "speed": {
+        "mean_session_s": 80.9,
+        "ingest_s": 0.0,
+        "ingest_s_per_admitted_cell": 0.0,
+        "ingest_items_stored": 0,
+        "ingest_models": [],
+        "relative_to_baseline": 0.425
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 8.93,
+        "successes_per_dollar": 149.91
+      },
+      "strongest_gains": [
+        {
+          "task": "ts-atomic-write",
+          "delta": 0.6
+        },
+        {
+          "task": "ts-manifest-rel",
+          "delta": 0.5
+        },
+        {
+          "task": "ts-json-sorted",
+          "delta": 0.5
+        },
+        {
+          "task": "ts-mig-name",
+          "delta": 0.3636
+        },
+        {
+          "task": "ts-round-money",
+          "delta": 0.3333
+        }
+      ],
+      "largest_losses": [
+        {
+          "task": "ts-bom-merge",
+          "delta": -0.2
+        },
+        {
+          "task": "ts-cli-exitcode",
+          "delta": -0.2
+        },
+        {
+          "task": "ts-semver-pin",
+          "delta": -0.2
+        }
+      ]
+    },
+    "mempalace": {
+      "status": "held",
+      "hold": {
+        "until": "2026-09-15",
+        "issue": "https://github.com/MemPalace/mempalace/issues/2414",
+        "reason": "held for vendor review"
+      }
+    },
+    "fs_grep": {
+      "status": "published",
+      "success": 0.6309,
+      "delta_vs_baseline": 0.0536,
+      "ci95": [
+        -0.0031,
+        0.123
+      ],
+      "solved_cells": 200,
+      "admitted_cells": 317,
+      "discarded_cells": 2,
+      "by_condition": {
+        "present": {
+          "solved": 54,
+          "cells": 111,
+          "success": 0.4865
+        },
+        "absent": {
+          "solved": 39,
+          "cells": 52,
+          "success": 0.75
+        },
+        "superseded": {
+          "solved": 32,
+          "cells": 46,
+          "success": 0.6957
+        },
+        "contradictory": {
+          "solved": 36,
+          "cells": 51,
+          "success": 0.7059
+        },
+        "adjacent": {
+          "solved": 39,
+          "cells": 57,
+          "success": 0.6842
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.0991,
+        "absent": 0.1346,
+        "superseded": 0.0218,
+        "contradictory": -0.0588,
+        "adjacent": 0.0175
+      },
+      "cost": {
+        "total_usd": 0.9983,
+        "usd_per_admitted_cell": 0.0031,
+        "total_tokens": 16461669,
+        "tokens_per_observed_session": 45100,
+        "tokens_per_admitted_cell": 51930,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22",
+        "relative_to_baseline": 1.3623
+      },
+      "speed": {
+        "mean_session_s": 71.77,
+        "ingest_s": 0.0,
+        "ingest_s_per_admitted_cell": 0.0,
+        "ingest_items_stored": 24510,
+        "ingest_models": [],
+        "relative_to_baseline": 0.2641
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 12.15,
+        "successes_per_dollar": 200.34
+      },
+      "strongest_gains": [
+        {
+          "task": "ts-crlf-export",
+          "delta": 1.0
+        },
+        {
+          "task": "ts-round-money",
+          "delta": 0.6667
+        },
+        {
+          "task": "ts-manifest-rel",
+          "delta": 0.3182
+        },
+        {
+          "task": "ts-json-sorted",
+          "delta": 0.25
+        },
+        {
+          "task": "ts-golden-regen",
+          "delta": 0.2
+        }
+      ],
+      "largest_losses": [
+        {
+          "task": "ts-cli-exitcode",
+          "delta": -0.4
+        },
+        {
+          "task": "ts-idempotent-run",
+          "delta": -0.2
+        },
+        {
+          "task": "ts-semver-pin",
+          "delta": -0.08
+        },
+        {
+          "task": "ts-tz-utc",
+          "delta": -0.0477
+        },
+        {
+          "task": "ts-schema-additive",
+          "delta": -0.04
+        }
+      ]
+    },
+    "placebo": {
+      "status": "published",
+      "success": 0.6719,
+      "delta_vs_baseline": 0.0946,
+      "ci95": [
+        -0.0369,
+        0.2493
+      ],
+      "solved_cells": 213,
+      "admitted_cells": 317,
+      "discarded_cells": 8,
+      "by_condition": {
+        "present": {
+          "solved": 46,
+          "cells": 111,
+          "success": 0.4144
+        },
+        "absent": {
+          "solved": 43,
+          "cells": 52,
+          "success": 0.8269
+        },
+        "superseded": {
+          "solved": 38,
+          "cells": 46,
+          "success": 0.8261
+        },
+        "contradictory": {
+          "solved": 41,
+          "cells": 51,
+          "success": 0.8039
+        },
+        "adjacent": {
+          "solved": 45,
+          "cells": 57,
+          "success": 0.7895
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.027,
+        "absent": 0.2115,
+        "superseded": 0.1522,
+        "contradictory": 0.0392,
+        "adjacent": 0.1228
+      },
+      "cost": {
+        "total_usd": 0.4421,
+        "usd_per_admitted_cell": 0.0014,
+        "total_tokens": 7014648,
+        "tokens_per_observed_session": 19218,
+        "tokens_per_admitted_cell": 22128,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22",
+        "relative_to_baseline": 0.0461
+      },
+      "speed": {
+        "mean_session_s": 53.9,
+        "ingest_s": 0.0,
+        "ingest_s_per_admitted_cell": 0.0,
+        "ingest_items_stored": 0,
+        "ingest_models": [],
+        "relative_to_baseline": -0.0506
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 30.37,
+        "successes_per_dollar": 481.79
+      },
+      "strongest_gains": [
+        {
+          "task": "ts-legacy-hash",
+          "delta": 0.8261
+        },
+        {
+          "task": "ts-manifest-rel",
+          "delta": 0.5
+        },
+        {
+          "task": "ts-golden-regen",
+          "delta": 0.35
+        },
+        {
+          "task": "ts-mig-name",
+          "delta": 0.2273
+        },
+        {
+          "task": "ts-dedup-order",
+          "delta": 0.1053
+        }
+      ],
+      "largest_losses": [
+        {
+          "task": "ts-cli-exitcode",
+          "delta": -1.0
+        },
+        {
+          "task": "ts-idempotent-run",
+          "delta": -0.8
+        },
+        {
+          "task": "ts-natural-order",
+          "delta": -0.125
+        },
+        {
+          "task": "ts-semver-pin",
+          "delta": -0.08
+        },
+        {
+          "task": "ts-tz-utc",
+          "delta": -0.0477
+        }
+      ]
+    },
+    "claude_md": {
+      "status": "published",
+      "success": 0.5773,
+      "delta_vs_baseline": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "solved_cells": 183,
+      "admitted_cells": 317,
+      "discarded_cells": 6,
+      "by_condition": {
+        "present": {
+          "solved": 43,
+          "cells": 111,
+          "success": 0.3874
+        },
+        "absent": {
+          "solved": 32,
+          "cells": 52,
+          "success": 0.6154
+        },
+        "superseded": {
+          "solved": 31,
+          "cells": 46,
+          "success": 0.6739
+        },
+        "contradictory": {
+          "solved": 39,
+          "cells": 51,
+          "success": 0.7647
+        },
+        "adjacent": {
+          "solved": 38,
+          "cells": 57,
+          "success": 0.6667
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.0,
+        "absent": 0.0,
+        "superseded": 0.0,
+        "contradictory": 0.0,
+        "adjacent": 0.0
+      },
+      "cost": {
+        "total_usd": 0.4226,
+        "usd_per_admitted_cell": 0.0013,
+        "total_tokens": 6689688,
+        "tokens_per_observed_session": 18328,
+        "tokens_per_admitted_cell": 21103,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22"
+      },
+      "speed": {
+        "mean_session_s": 56.77,
+        "ingest_s": 0.0,
+        "ingest_s_per_admitted_cell": 0.0,
+        "ingest_items_stored": 0,
+        "ingest_models": []
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 27.36,
+        "successes_per_dollar": 433.03
+      },
+      "strongest_gains": [],
+      "largest_losses": []
+    },
+    "bare": {
+      "status": "published",
+      "success": 0.6593,
+      "delta_vs_baseline": 0.082,
+      "ci95": [
+        -0.0195,
+        0.1963
+      ],
+      "solved_cells": 209,
+      "admitted_cells": 317,
+      "discarded_cells": 5,
+      "by_condition": {
+        "present": {
+          "solved": 47,
+          "cells": 111,
+          "success": 0.4234
+        },
+        "absent": {
+          "solved": 42,
+          "cells": 52,
+          "success": 0.8077
+        },
+        "superseded": {
+          "solved": 34,
+          "cells": 46,
+          "success": 0.7391
+        },
+        "contradictory": {
+          "solved": 43,
+          "cells": 51,
+          "success": 0.8431
+        },
+        "adjacent": {
+          "solved": 43,
+          "cells": 57,
+          "success": 0.7544
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.036,
+        "absent": 0.1923,
+        "superseded": 0.0652,
+        "contradictory": 0.0784,
+        "adjacent": 0.0877
+      },
+      "cost": {
+        "total_usd": 0.4385,
+        "usd_per_admitted_cell": 0.0014,
+        "total_tokens": 6912860,
+        "tokens_per_observed_session": 18939,
+        "tokens_per_admitted_cell": 21807,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22",
+        "relative_to_baseline": 0.0376
+      },
+      "speed": {
+        "mean_session_s": 63.5,
+        "ingest_s": 0.0,
+        "ingest_s_per_admitted_cell": 0.0,
+        "ingest_items_stored": 0,
+        "ingest_models": [],
+        "relative_to_baseline": 0.1185
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 30.23,
+        "successes_per_dollar": 476.62
+      },
+      "strongest_gains": [
+        {
+          "task": "ts-legacy-hash",
+          "delta": 0.6522
+        },
+        {
+          "task": "ts-manifest-rel",
+          "delta": 0.3637
+        },
+        {
+          "task": "ts-mig-name",
+          "delta": 0.2727
+        },
+        {
+          "task": "ts-golden-regen",
+          "delta": 0.1
+        },
+        {
+          "task": "ts-tz-utc",
+          "delta": 0.0952
+        }
+      ],
+      "largest_losses": [
+        {
+          "task": "ts-cli-exitcode",
+          "delta": -0.8
+        },
+        {
+          "task": "ts-idempotent-run",
+          "delta": -0.8
+        },
+        {
+          "task": "ts-schema-additive",
+          "delta": -0.08
+        }
+      ]
+    },
+    "recall_prefetch": {
+      "status": "published",
+      "success": 0.612,
+      "delta_vs_baseline": 0.0347,
+      "ci95": null,
+      "solved_cells": 194,
+      "admitted_cells": 317,
+      "discarded_cells": 2,
+      "by_condition": {
+        "present": {
+          "solved": 45,
+          "cells": 111,
+          "success": 0.4054
+        },
+        "absent": {
+          "solved": 40,
+          "cells": 52,
+          "success": 0.7692
+        },
+        "superseded": {
+          "solved": 34,
+          "cells": 46,
+          "success": 0.7391
+        },
+        "contradictory": {
+          "solved": 34,
+          "cells": 51,
+          "success": 0.6667
+        },
+        "adjacent": {
+          "solved": 41,
+          "cells": 57,
+          "success": 0.7193
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.018,
+        "absent": 0.1538,
+        "superseded": 0.0652,
+        "contradictory": -0.098,
+        "adjacent": 0.0526
+      },
+      "cost": {
+        "total_usd": 0.5489,
+        "usd_per_admitted_cell": 0.0017,
+        "total_tokens": 8896070,
+        "tokens_per_observed_session": 24373,
+        "tokens_per_admitted_cell": 28063,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22",
+        "relative_to_baseline": 0.2989
+      },
+      "speed": {
+        "mean_session_s": 51.24,
+        "ingest_s": 0.0,
+        "ingest_s_per_admitted_cell": 0.0,
+        "ingest_items_stored": 0,
+        "ingest_models": [],
+        "relative_to_baseline": -0.0974
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 21.81,
+        "successes_per_dollar": 353.43
+      },
+      "strongest_gains": [
+        {
+          "task": "ts-golden-regen",
+          "delta": 0.7
+        },
+        {
+          "task": "ts-manifest-rel",
+          "delta": 0.5455
+        },
+        {
+          "task": "ts-bom-merge",
+          "delta": 0.1
+        },
+        {
+          "task": "ts-tz-utc",
+          "delta": 0.0952
+        },
+        {
+          "task": "ts-legacy-hash",
+          "delta": 0.0435
+        }
+      ],
+      "largest_losses": [
+        {
+          "task": "ts-cli-exitcode",
+          "delta": -0.6
+        },
+        {
+          "task": "ts-ignore-gen",
+          "delta": -0.2
+        },
+        {
+          "task": "ts-semver-pin",
+          "delta": -0.2
+        },
+        {
+          "task": "ts-mig-name",
+          "delta": -0.1818
+        },
+        {
+          "task": "ts-schema-additive",
+          "delta": -0.12
+        }
+      ]
+    },
+    "protocol": {
+      "status": "published",
+      "success": 0.612,
+      "delta_vs_baseline": 0.0347,
+      "ci95": null,
+      "solved_cells": 194,
+      "admitted_cells": 317,
+      "discarded_cells": 5,
+      "by_condition": {
+        "present": {
+          "solved": 49,
+          "cells": 111,
+          "success": 0.4414
+        },
+        "absent": {
+          "solved": 37,
+          "cells": 52,
+          "success": 0.7115
+        },
+        "superseded": {
+          "solved": 27,
+          "cells": 46,
+          "success": 0.587
+        },
+        "contradictory": {
+          "solved": 38,
+          "cells": 51,
+          "success": 0.7451
+        },
+        "adjacent": {
+          "solved": 43,
+          "cells": 57,
+          "success": 0.7544
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.054,
+        "absent": 0.0961,
+        "superseded": -0.0869,
+        "contradictory": -0.0196,
+        "adjacent": 0.0877
+      },
+      "cost": {
+        "total_usd": 0.5899,
+        "usd_per_admitted_cell": 0.0019,
+        "total_tokens": 9514261,
+        "tokens_per_observed_session": 26066,
+        "tokens_per_admitted_cell": 30013,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22",
+        "relative_to_baseline": 0.3959
+      },
+      "speed": {
+        "mean_session_s": 62.94,
+        "ingest_s": 0.0,
+        "ingest_s_per_admitted_cell": 0.0,
+        "ingest_items_stored": 0,
+        "ingest_models": [],
+        "relative_to_baseline": 0.1086
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 20.39,
+        "successes_per_dollar": 328.87
+      },
+      "strongest_gains": [
+        {
+          "task": "ts-atomic-write",
+          "delta": 0.6
+        },
+        {
+          "task": "ts-manifest-rel",
+          "delta": 0.2728
+        },
+        {
+          "task": "ts-mig-name",
+          "delta": 0.2727
+        },
+        {
+          "task": "ts-dedup-order",
+          "delta": 0.1053
+        },
+        {
+          "task": "ts-golden-regen",
+          "delta": 0.05
+        }
+      ],
+      "largest_losses": [
+        {
+          "task": "ts-schema-additive",
+          "delta": -0.2
+        },
+        {
+          "task": "ts-bom-merge",
+          "delta": -0.1
+        },
+        {
+          "task": "ts-semver-pin",
+          "delta": -0.04
+        }
+      ]
+    }
+  },
+  "task_profiles": {
+    "ts-atomic-write": {
+      "cells": 5,
+      "success": {
+        "recall": 0.6,
+        "mempalace": 0.2,
+        "fs_grep": 0.2,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.6
+      },
+      "delta_vs_baseline": {
+        "recall": 0.6,
+        "mempalace": 0.2,
+        "fs_grep": 0.2,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.6
+      }
+    },
+    "ts-base36-id": {
+      "cells": 16,
+      "success": {
+        "recall": 0.0625,
+        "mempalace": 0.0,
+        "fs_grep": 0.0625,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0625,
+        "mempalace": 0.0,
+        "fs_grep": 0.0625,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-bom-merge": {
+      "cells": 20,
+      "success": {
+        "recall": 0.65,
+        "mempalace": 0.75,
+        "fs_grep": 0.85,
+        "placebo": 0.95,
+        "claude_md": 0.85,
+        "bare": 0.9,
+        "recall_prefetch": 0.95,
+        "protocol": 0.75
+      },
+      "delta_vs_baseline": {
+        "recall": -0.2,
+        "mempalace": -0.1,
+        "fs_grep": 0.0,
+        "placebo": 0.1,
+        "claude_md": 0.0,
+        "bare": 0.05,
+        "recall_prefetch": 0.1,
+        "protocol": -0.1
+      }
+    },
+    "ts-casefold-sort": {
+      "cells": 5,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-cli-exitcode": {
+      "cells": 5,
+      "success": {
+        "recall": 0.8,
+        "mempalace": 0.8,
+        "fs_grep": 0.6,
+        "placebo": 0.0,
+        "claude_md": 1.0,
+        "bare": 0.2,
+        "recall_prefetch": 0.4,
+        "protocol": 1.0
+      },
+      "delta_vs_baseline": {
+        "recall": -0.2,
+        "mempalace": -0.2,
+        "fs_grep": -0.4,
+        "placebo": -1.0,
+        "claude_md": 0.0,
+        "bare": -0.8,
+        "recall_prefetch": -0.6,
+        "protocol": 0.0
+      }
+    },
+    "ts-config-layer": {
+      "cells": 4,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-crlf-export": {
+      "cells": 3,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 1.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 1.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-dedup-order": {
+      "cells": 19,
+      "success": {
+        "recall": 0.8947,
+        "mempalace": 0.8947,
+        "fs_grep": 0.8947,
+        "placebo": 1.0,
+        "claude_md": 0.8947,
+        "bare": 0.9474,
+        "recall_prefetch": 0.8947,
+        "protocol": 1.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.1053,
+        "claude_md": 0.0,
+        "bare": 0.0527,
+        "recall_prefetch": 0.0,
+        "protocol": 0.1053
+      }
+    },
+    "ts-empty-input": {
+      "cells": 4,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-golden-regen": {
+      "cells": 20,
+      "success": {
+        "recall": 0.3,
+        "mempalace": 0.25,
+        "fs_grep": 0.35,
+        "placebo": 0.5,
+        "claude_md": 0.15,
+        "bare": 0.25,
+        "recall_prefetch": 0.85,
+        "protocol": 0.2
+      },
+      "delta_vs_baseline": {
+        "recall": 0.15,
+        "mempalace": 0.1,
+        "fs_grep": 0.2,
+        "placebo": 0.35,
+        "claude_md": 0.0,
+        "bare": 0.1,
+        "recall_prefetch": 0.7,
+        "protocol": 0.05
+      }
+    },
+    "ts-idempotent-run": {
+      "cells": 5,
+      "success": {
+        "recall": 1.0,
+        "mempalace": 1.0,
+        "fs_grep": 0.8,
+        "placebo": 0.2,
+        "claude_md": 1.0,
+        "bare": 0.2,
+        "recall_prefetch": 1.0,
+        "protocol": 1.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": -0.2,
+        "placebo": -0.8,
+        "claude_md": 0.0,
+        "bare": -0.8,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-ignore-gen": {
+      "cells": 25,
+      "success": {
+        "recall": 1.0,
+        "mempalace": 1.0,
+        "fs_grep": 1.0,
+        "placebo": 1.0,
+        "claude_md": 1.0,
+        "bare": 1.0,
+        "recall_prefetch": 0.8,
+        "protocol": 1.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": -0.2,
+        "protocol": 0.0
+      }
+    },
+    "ts-json-sorted": {
+      "cells": 4,
+      "success": {
+        "recall": 0.5,
+        "mempalace": 0.25,
+        "fs_grep": 0.25,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.5,
+        "mempalace": 0.25,
+        "fs_grep": 0.25,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-legacy-hash": {
+      "cells": 23,
+      "success": {
+        "recall": 0.1739,
+        "mempalace": 0.0435,
+        "fs_grep": 0.1304,
+        "placebo": 0.8261,
+        "claude_md": 0.0,
+        "bare": 0.6522,
+        "recall_prefetch": 0.0435,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.1739,
+        "mempalace": 0.0435,
+        "fs_grep": 0.1304,
+        "placebo": 0.8261,
+        "claude_md": 0.0,
+        "bare": 0.6522,
+        "recall_prefetch": 0.0435,
+        "protocol": 0.0
+      }
+    },
+    "ts-log-mask": {
+      "cells": 5,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.2,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.2,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-manifest-rel": {
+      "cells": 22,
+      "success": {
+        "recall": 0.9545,
+        "mempalace": 0.6364,
+        "fs_grep": 0.7727,
+        "placebo": 0.9545,
+        "claude_md": 0.4545,
+        "bare": 0.8182,
+        "recall_prefetch": 1.0,
+        "protocol": 0.7273
+      },
+      "delta_vs_baseline": {
+        "recall": 0.5,
+        "mempalace": 0.1819,
+        "fs_grep": 0.3182,
+        "placebo": 0.5,
+        "claude_md": 0.0,
+        "bare": 0.3637,
+        "recall_prefetch": 0.5455,
+        "protocol": 0.2728
+      }
+    },
+    "ts-mig-name": {
+      "cells": 22,
+      "success": {
+        "recall": 0.7727,
+        "mempalace": 0.6818,
+        "fs_grep": 0.4545,
+        "placebo": 0.6364,
+        "claude_md": 0.4091,
+        "bare": 0.6818,
+        "recall_prefetch": 0.2273,
+        "protocol": 0.6818
+      },
+      "delta_vs_baseline": {
+        "recall": 0.3636,
+        "mempalace": 0.2727,
+        "fs_grep": 0.0454,
+        "placebo": 0.2273,
+        "claude_md": 0.0,
+        "bare": 0.2727,
+        "recall_prefetch": -0.1818,
+        "protocol": 0.2727
+      }
+    },
+    "ts-natural-order": {
+      "cells": 24,
+      "success": {
+        "recall": 1.0,
+        "mempalace": 0.8333,
+        "fs_grep": 1.0,
+        "placebo": 0.8333,
+        "claude_md": 0.9583,
+        "bare": 1.0,
+        "recall_prefetch": 0.9583,
+        "protocol": 1.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0417,
+        "mempalace": -0.125,
+        "fs_grep": 0.0417,
+        "placebo": -0.125,
+        "claude_md": 0.0,
+        "bare": 0.0417,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0417
+      }
+    },
+    "ts-nfc-count": {
+      "cells": 3,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-quote-shell": {
+      "cells": 3,
+      "success": {
+        "recall": 0.3333,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.3333,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-retry-cap": {
+      "cells": 2,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-round-money": {
+      "cells": 3,
+      "success": {
+        "recall": 0.3333,
+        "mempalace": 0.0,
+        "fs_grep": 0.6667,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.3333,
+        "mempalace": 0.0,
+        "fs_grep": 0.6667,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-schema-additive": {
+      "cells": 25,
+      "success": {
+        "recall": 1.0,
+        "mempalace": 0.96,
+        "fs_grep": 0.96,
+        "placebo": 0.96,
+        "claude_md": 1.0,
+        "bare": 0.92,
+        "recall_prefetch": 0.88,
+        "protocol": 0.8
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": -0.04,
+        "fs_grep": -0.04,
+        "placebo": -0.04,
+        "claude_md": 0.0,
+        "bare": -0.08,
+        "recall_prefetch": -0.12,
+        "protocol": -0.2
+      }
+    },
+    "ts-semver-pin": {
+      "cells": 25,
+      "success": {
+        "recall": 0.8,
+        "mempalace": 0.96,
+        "fs_grep": 0.92,
+        "placebo": 0.92,
+        "claude_md": 1.0,
+        "bare": 1.0,
+        "recall_prefetch": 0.8,
+        "protocol": 0.96
+      },
+      "delta_vs_baseline": {
+        "recall": -0.2,
+        "mempalace": -0.04,
+        "fs_grep": -0.08,
+        "placebo": -0.08,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": -0.2,
+        "protocol": -0.04
+      }
+    },
+    "ts-stable-sort": {
+      "cells": 4,
+      "success": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0,
+        "mempalace": 0.0,
+        "fs_grep": 0.0,
+        "placebo": 0.0,
+        "claude_md": 0.0,
+        "bare": 0.0,
+        "recall_prefetch": 0.0,
+        "protocol": 0.0
+      }
+    },
+    "ts-tz-utc": {
+      "cells": 21,
+      "success": {
+        "recall": 0.9524,
+        "mempalace": 0.9524,
+        "fs_grep": 0.8571,
+        "placebo": 0.8571,
+        "claude_md": 0.9048,
+        "bare": 1.0,
+        "recall_prefetch": 1.0,
+        "protocol": 0.9048
+      },
+      "delta_vs_baseline": {
+        "recall": 0.0476,
+        "mempalace": 0.0476,
+        "fs_grep": -0.0477,
+        "placebo": -0.0477,
+        "claude_md": 0.0,
+        "bare": 0.0952,
+        "recall_prefetch": 0.0952,
+        "protocol": 0.0
+      }
+    }
+  },
+  "leaderboard": {
+    "status": "warn",
+    "headline": "No clear memory winner",
+    "overall_winner": {
+      "arm": "placebo",
+      "success": 0.6719
+    },
+    "best_visible_memory": {
+      "arm": "recall",
+      "success": 0.6593,
+      "delta_vs_baseline": 0.082
+    },
+    "admitted_cells": 317,
+    "conditions": [
+      "present",
+      "absent",
+      "superseded",
+      "contradictory",
+      "adjacent"
+    ],
+    "insights": [
+      "placebo is the highest scoring visible arm at 67.2%; this is not evidence that a memory layer won.",
+      "recall is the highest scoring visible memory product at 65.9%.",
+      "The placebo exceeds the claude_md baseline by +9.5%, so the run does not isolate a memory benefit cleanly.",
+      "recall shows a positive point estimate, but its published 95% interval crosses zero.",
+      "recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
+      "A vendor review hold suppresses one product's metrics from the public analysis until the hold is released."
+    ],
+    "report_markdown": "reports/official-003-analysis.md",
+    "audit_json": "reports/official-003-audit.json",
+    "arms": {
+      "recall": {
+        "status": "published",
+        "success": 0.6593,
+        "delta_vs_baseline": 0.082,
+        "ci95": [
+          -0.0063,
+          0.1808
+        ],
+        "cost": {
+          "total_usd": 1.3942,
+          "usd_per_admitted_cell": 0.0044,
+          "total_tokens": 23408500,
+          "tokens_per_observed_session": 64133,
+          "tokens_per_admitted_cell": 73844,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 2.2991
+        },
+        "speed": {
+          "mean_session_s": 80.9,
+          "ingest_s": 0.0,
+          "ingest_s_per_admitted_cell": 0.0,
+          "ingest_items_stored": 0,
+          "ingest_models": [],
+          "relative_to_baseline": 0.425
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 8.93,
+          "successes_per_dollar": 149.91
+        }
+      },
+      "mempalace": {
+        "status": "held",
+        "hold": {
+          "until": "2026-09-15",
+          "issue": "https://github.com/MemPalace/mempalace/issues/2414",
+          "reason": "held for vendor review"
+        }
+      },
+      "fs_grep": {
+        "status": "published",
+        "success": 0.6309,
+        "delta_vs_baseline": 0.0536,
+        "ci95": [
+          -0.0031,
+          0.123
+        ],
+        "cost": {
+          "total_usd": 0.9983,
+          "usd_per_admitted_cell": 0.0031,
+          "total_tokens": 16461669,
+          "tokens_per_observed_session": 45100,
+          "tokens_per_admitted_cell": 51930,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 1.3623
+        },
+        "speed": {
+          "mean_session_s": 71.77,
+          "ingest_s": 0.0,
+          "ingest_s_per_admitted_cell": 0.0,
+          "ingest_items_stored": 24510,
+          "ingest_models": [],
+          "relative_to_baseline": 0.2641
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 12.15,
+          "successes_per_dollar": 200.34
+        }
+      },
+      "placebo": {
+        "status": "published",
+        "success": 0.6719,
+        "delta_vs_baseline": 0.0946,
+        "ci95": [
+          -0.0369,
+          0.2493
+        ],
+        "cost": {
+          "total_usd": 0.4421,
+          "usd_per_admitted_cell": 0.0014,
+          "total_tokens": 7014648,
+          "tokens_per_observed_session": 19218,
+          "tokens_per_admitted_cell": 22128,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 0.0461
+        },
+        "speed": {
+          "mean_session_s": 53.9,
+          "ingest_s": 0.0,
+          "ingest_s_per_admitted_cell": 0.0,
+          "ingest_items_stored": 0,
+          "ingest_models": [],
+          "relative_to_baseline": -0.0506
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 30.37,
+          "successes_per_dollar": 481.79
+        }
+      },
+      "claude_md": {
+        "status": "published",
+        "success": 0.5773,
+        "delta_vs_baseline": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "cost": {
+          "total_usd": 0.4226,
+          "usd_per_admitted_cell": 0.0013,
+          "total_tokens": 6689688,
+          "tokens_per_observed_session": 18328,
+          "tokens_per_admitted_cell": 21103,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22"
+        },
+        "speed": {
+          "mean_session_s": 56.77,
+          "ingest_s": 0.0,
+          "ingest_s_per_admitted_cell": 0.0,
+          "ingest_items_stored": 0,
+          "ingest_models": []
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 27.36,
+          "successes_per_dollar": 433.03
+        }
+      },
+      "bare": {
+        "status": "published",
+        "success": 0.6593,
+        "delta_vs_baseline": 0.082,
+        "ci95": [
+          -0.0195,
+          0.1963
+        ],
+        "cost": {
+          "total_usd": 0.4385,
+          "usd_per_admitted_cell": 0.0014,
+          "total_tokens": 6912860,
+          "tokens_per_observed_session": 18939,
+          "tokens_per_admitted_cell": 21807,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 0.0376
+        },
+        "speed": {
+          "mean_session_s": 63.5,
+          "ingest_s": 0.0,
+          "ingest_s_per_admitted_cell": 0.0,
+          "ingest_items_stored": 0,
+          "ingest_models": [],
+          "relative_to_baseline": 0.1185
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 30.23,
+          "successes_per_dollar": 476.62
+        }
+      },
+      "recall_prefetch": {
+        "status": "published",
+        "success": 0.612,
+        "delta_vs_baseline": 0.0347,
+        "ci95": null,
+        "cost": {
+          "total_usd": 0.5489,
+          "usd_per_admitted_cell": 0.0017,
+          "total_tokens": 8896070,
+          "tokens_per_observed_session": 24373,
+          "tokens_per_admitted_cell": 28063,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 0.2989
+        },
+        "speed": {
+          "mean_session_s": 51.24,
+          "ingest_s": 0.0,
+          "ingest_s_per_admitted_cell": 0.0,
+          "ingest_items_stored": 0,
+          "ingest_models": [],
+          "relative_to_baseline": -0.0974
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 21.81,
+          "successes_per_dollar": 353.43
+        }
+      },
+      "protocol": {
+        "status": "published",
+        "success": 0.612,
+        "delta_vs_baseline": 0.0347,
+        "ci95": null,
+        "cost": {
+          "total_usd": 0.5899,
+          "usd_per_admitted_cell": 0.0019,
+          "total_tokens": 9514261,
+          "tokens_per_observed_session": 26066,
+          "tokens_per_admitted_cell": 30013,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 0.3959
+        },
+        "speed": {
+          "mean_session_s": 62.94,
+          "ingest_s": 0.0,
+          "ingest_s_per_admitted_cell": 0.0,
+          "ingest_items_stored": 0,
+          "ingest_models": [],
+          "relative_to_baseline": 0.1086
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 20.39,
+          "successes_per_dollar": 328.87
+        }
+      }
+    }
+  },
+  "audit_details": {
+    "schema": 1,
+    "generated_by": "scripts/analyze_official.py",
+    "run_id": "official-003",
+    "status": "warn",
+    "counts": {
+      "pass": 9,
+      "warn": 4,
+      "fail": 0
+    },
+    "checks": [
+      {
+        "name": "config_points_to_run",
+        "status": "pass",
+        "detail": "official_run='official-003'"
+      },
+      {
+        "name": "summary_run_id",
+        "status": "pass",
+        "detail": "summary run id='official-003'"
+      },
+      {
+        "name": "condition_artifacts",
+        "status": "pass",
+        "detail": "all required artifacts exist"
+      },
+      {
+        "name": "condition_rosters",
+        "status": "pass",
+        "detail": "required arms=('bare', 'placebo', 'claude_md', 'protocol', 'fs_grep', 'recall', 'mempalace', 'recall_prefetch')"
+      },
+      {
+        "name": "admitted_cell_integrity",
+        "status": "pass",
+        "detail": "one admitted record per arm and cell"
+      },
+      {
+        "name": "admission_rederives",
+        "status": "pass",
+        "detail": "admitted cells match the discarded set"
+      },
+      {
+        "name": "summary_matches_records",
+        "status": "pass",
+        "detail": "headline and condition counts rederive from records"
+      },
+      {
+        "name": "summary_matches_costs",
+        "status": "pass",
+        "detail": "published token totals match ledgers"
+      },
+      {
+        "name": "summary_matches_admission",
+        "status": "pass",
+        "detail": "discard counts match admission ledgers"
+      },
+      {
+        "name": "published_token_rate_denominator",
+        "status": "warn",
+        "detail": "recall: published 66337, observed-session rate 64133; mempalace: published 104451, observed-session rate 103649; fs_grep: published 43766, observed-session rate 45100; placebo: published 19189, observed-session rate 19218; claude_md: published 17954, observed-session rate 18328; bare: published 18457, observed-session rate 18939"
+      },
+      {
+        "name": "preregistration_timing",
+        "status": "warn",
+        "detail": "the preregistration discloses that it was registered mid run"
+      },
+      {
+        "name": "write_path_scope",
+        "status": "warn",
+        "detail": "the leaderboard measures retrieval over a bulk-ingested corpus; write path is not measured"
+      },
+      {
+        "name": "replication_depth",
+        "status": "warn",
+        "detail": "one session per cell; uncertainty excludes run to run variance"
+      }
+    ],
+    "sources": {
+      "summary": "results/official-003/leaderboard_summary.json",
+      "summary_sha256": "ac6f090bd6960146ad7a40abe44b94a607856eb80100daea6b1f2e6086c00c3c",
+      "condition_runs": [
+        "results/official-003-present",
+        "results/official-003-absent",
+        "results/official-003-superseded",
+        "results/official-003-contradictory",
+        "results/official-003-adjacent"
+      ]
+    }
+  }
+}

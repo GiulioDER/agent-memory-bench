@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "generated_by": "scripts/analyze_official.py",
+  "run_id": "official-003",
+  "status": "warn",
+  "counts": {
+    "pass": 9,
+    "warn": 4,
+    "fail": 0
+  },
+  "checks": [
+    {
+      "name": "config_points_to_run",
+      "status": "pass",
+      "detail": "official_run='official-003'"
+    },
+    {
+      "name": "summary_run_id",
+      "status": "pass",
+      "detail": "summary run id='official-003'"
+    },
+    {
+      "name": "condition_artifacts",
+      "status": "pass",
+      "detail": "all required artifacts exist"
+    },
+    {
+      "name": "condition_rosters",
+      "status": "pass",
+      "detail": "required arms=('bare', 'placebo', 'claude_md', 'protocol', 'fs_grep', 'recall', 'mempalace', 'recall_prefetch')"
+    },
+    {
+      "name": "admitted_cell_integrity",
+      "status": "pass",
+      "detail": "one admitted record per arm and cell"
+    },
+    {
+      "name": "admission_rederives",
+      "status": "pass",
+      "detail": "admitted cells match the discarded set"
+    },
+    {
+      "name": "summary_matches_records",
+      "status": "pass",
+      "detail": "headline and condition counts rederive from records"
+    },
+    {
+      "name": "summary_matches_costs",
+      "status": "pass",
+      "detail": "published token totals match ledgers"
+    },
+    {
+      "name": "summary_matches_admission",
+      "status": "pass",
+      "detail": "discard counts match admission ledgers"
+    },
+    {
+      "name": "published_token_rate_denominator",
+      "status": "warn",
+      "detail": "recall: published 66337, observed-session rate 64133; mempalace: published 104451, observed-session rate 103649; fs_grep: published 43766, observed-session rate 45100; placebo: published 19189, observed-session rate 19218; claude_md: published 17954, observed-session rate 18328; bare: published 18457, observed-session rate 18939"
+    },
+    {
+      "name": "preregistration_timing",
+      "status": "warn",
+      "detail": "the preregistration discloses that it was registered mid run"
+    },
+    {
+      "name": "write_path_scope",
+      "status": "warn",
+      "detail": "the leaderboard measures retrieval over a bulk-ingested corpus; write path is not measured"
+    },
+    {
+      "name": "replication_depth",
+      "status": "warn",
+      "detail": "one session per cell; uncertainty excludes run to run variance"
+    }
+  ],
+  "sources": {
+    "summary": "results/official-003/leaderboard_summary.json",
+    "summary_sha256": "ac6f090bd6960146ad7a40abe44b94a607856eb80100daea6b1f2e6086c00c3c",
+    "condition_runs": [
+      "results/official-003-present",
+      "results/official-003-absent",
+      "results/official-003-superseded",
+      "results/official-003-contradictory",
+      "results/official-003-adjacent"
+    ]
+  }
+}

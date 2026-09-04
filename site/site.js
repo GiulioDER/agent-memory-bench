@@ -188,6 +188,85 @@
     scopeBox.appendChild(p);
   }
 
+  /* The generated analysis is the reader-facing interpretation layer. It is deliberately kept
+     separate from the ranking table: a high score is not automatically a good tradeoff when it
+     costs more tokens, takes longer, or comes from a held vendor. */
+  var analysis = D.analysis;
+  var analysisPanel = document.getElementById("run-analysis");
+  if (analysis && analysisPanel) {
+    analysisPanel.hidden = false;
+    var analysisHeadline = document.getElementById("analysis-headline");
+    var analysisSummary = document.getElementById("analysis-summary");
+    if (analysisHeadline) analysisHeadline.textContent = analysis.headline || "Run analysis";
+    if (analysisSummary) {
+      var winner = analysis.overall_winner;
+      var memory = analysis.best_visible_memory;
+      analysisSummary.textContent = "Audit " + analysis.status + " · " +
+        (winner ? winner.arm + " leads the visible arms at " + pct(winner.success) : "no visible winner") +
+        (memory ? " · " + memory.arm + " is the strongest visible memory product" : "") +
+        " · " + (analysis.admitted_cells || "pending") + " admitted cells";
+    }
+
+    var metrics = document.getElementById("analysis-metrics");
+    function metric(label, value, note) {
+      var box = document.createElement("div");
+      box.className = "analysis-metric";
+      box.appendChild(span("label m-dim", label));
+      box.appendChild(span("value", value, true));
+      if (note) box.appendChild(span("note m-dim", note));
+      metrics.appendChild(box);
+    }
+    if (metrics) {
+      metric("overall winner", analysis.overall_winner ? analysis.overall_winner.arm : "pending", analysis.overall_winner ? pct(analysis.overall_winner.success) : null);
+      metric("best memory product", analysis.best_visible_memory ? analysis.best_visible_memory.arm : "pending", analysis.best_visible_memory ? pts(analysis.best_visible_memory.delta_vs_baseline) : null);
+      metric("audit", String(analysis.status).toUpperCase(), "derived from published evidence");
+      metric("comparison frame", (analysis.conditions || []).length + " conditions", (analysis.admitted_cells || "pending") + " admitted cells");
+    }
+
+    var links = document.getElementById("analysis-links");
+    function repoLink(path, label) {
+      var link = document.createElement("a");
+      link.href = "https://github.com/GiulioDER/agent-memory-bench/blob/master/" + path;
+      link.rel = "noopener";
+      link.textContent = label;
+      return link;
+    }
+    if (links && analysis.report_markdown) {
+      links.appendChild(repoLink(analysis.report_markdown, "full report ↗"));
+      if (analysis.audit_json) links.appendChild(repoLink(analysis.audit_json, "audit JSON ↗"));
+    }
+
+    var analysisBody = document.getElementById("analysis-body");
+    function money(x) {
+      return x == null ? "pending" : "$" + (x >= 0.01 ? x.toFixed(3) : x.toFixed(4));
+    }
+    function seconds(x) { return x == null ? "pending" : x.toFixed(1) + " s"; }
+    if (analysisBody) Object.keys(analysis.arms || {}).forEach(function (name) {
+      var a = analysis.arms[name];
+      var tr = document.createElement("tr");
+      if (a.status === "held") tr.setAttribute("data-held", "true");
+      tr.appendChild(cell(null, span("m", name, true)));
+      tr.appendChild(cell("num", a.success == null ? null : span("m", pct(a.success))));
+      tr.appendChild(cell("num", a.cost ? span("m", money(a.cost.usd_per_admitted_cell)) : null));
+      tr.appendChild(cell("num", a.speed ? span("m", seconds(a.speed.mean_session_s)) : null));
+      tr.appendChild(cell("num", a.delta_vs_baseline == null ? null : span("m", pts(a.delta_vs_baseline))));
+      var read = "";
+      if (a.status === "held") read = a.hold.reason;
+      else if (name === "claude_md") read = "designated baseline";
+      else if (analysis.best_visible_memory && name === analysis.best_visible_memory.arm) read = "best visible memory product";
+      else if (a.cost && a.speed) read = (a.cost.relative_to_baseline > 0 ? "higher spend" : "lower spend") + ", " + (a.speed.relative_to_baseline > 0 ? "slower" : "faster");
+      tr.appendChild(cell(null, span("analysis-read", read)));
+      analysisBody.appendChild(tr);
+    });
+
+    var insights = document.getElementById("analysis-insights");
+    if (insights) (analysis.insights || []).forEach(function (text) {
+      var p = document.createElement("p");
+      p.textContent = text;
+      insights.appendChild(p);
+    });
+  }
+
   /* Run banner */
   var meta = document.getElementById("run-meta");
   if (meta) {
