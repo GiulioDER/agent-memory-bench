@@ -24,11 +24,15 @@ never involves a shell, so a task prompt cannot become a command.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import gzip
 import json
 import os
 import re
 import shutil
+import signal
+import subprocess
+import sys
 import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -36,6 +40,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .decision_trace import decisions_from_result_events, decisions_from_tool_calls
+from .retrieval_trace import summarize_memory_calls
 from .schema import DEFAULT_MEMORY_TOOL_PREFIX, SessionRecord
 
 if TYPE_CHECKING:  # Runner is only a return annotation here; runner.py is ported separately.
@@ -56,6 +62,75 @@ class ClaudeSessionTimeout(ClaudeTranscriptError):
     2.2 more turns). The retry rule's own docstring claimed it never read anything the model did;
     until 2026-08-28 it retried this.
     """
+
+
+async def _terminate_process_tree(
+    process: asyncio.subprocess.Process, process_group_id: int | None = None
+) -> None:
+    """Terminate a timed out Claude process and its descendants within a bounded wait."""
+
+    if sys.platform == "win32":
+        await asyncio.to_thread(
+            subprocess.run,
+            ["taskkill", "/T", "/F", "/PID", str(process.pid)],
+            capture_output=True,
+            check=False,
+        )
+    else:
+        try:
+            group_id = process_group_id if process_group_id is not None else os.getpgid(process.pid)
+            os.killpg(group_id, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    with contextlib.suppress(asyncio.TimeoutError):
+        await asyncio.wait_for(process.wait(), timeout=5.0)
+    if process.returncode is None:
+        process.kill()
+        with contextlib.suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(process.wait(), timeout=5.0)
+
+
+# The variables a session's subprocess is allowed to inherit from the host.
+#
+# A session runs model-written Bash under `acceptEdits`, so every variable reaching it is readable
+# by the agent and lands in a transcript that is committed. Inheriting the operator's whole
+# environment therefore hands each arm every OTHER arm's credentials plus anything else in the
+# shell, for no benefit: an arm needs the platform plumbing its CLI cannot start without, and the
+# values its own ArmSpec sets. Everything else is withheld.
+#
+# This mirrors what `write_mcp_config` already does for the MCP server's environment; the session
+# path simply never had it.
+_ENV_PASSTHROUGH = (
+    # POSIX plumbing
+    "PATH", "HOME", "LANG", "LC_ALL", "TZ", "TMPDIR", "SHELL", "USER", "LOGNAME", "TERM",
+    # Windows plumbing: CreateProcess and the Node runtime need these to start at all.
+    "SystemRoot", "SystemDrive", "windir", "COMSPEC", "PATHEXT", "APPDATA", "LOCALAPPDATA",
+    "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMDATA", "TEMP", "TMP", "USERPROFILE",
+    "HOMEDRIVE", "HOMEPATH", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
+    # Python, for the harness's own child tooling.
+    "PYTHONPATH", "PYTHONIOENCODING", "PYTHONUTF8",
+    # Outbound network configuration. These are settings, not credentials, and withholding them
+    # would break every session on a proxied or custom-CA host while protecting nothing.
+    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy",
+    "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE",
+)
+
+
+def session_environment(config: ClaudeExecConfig) -> dict[str, str]:
+    """Build the environment one session's subprocess gets.
+
+    Allow-list, not a copy: see `_ENV_PASSTHROUGH`. The arm's own `config.env` is applied on top,
+    so an arm can still pass exactly what it needs (its auth token, its DSN) without every other
+    arm inheriting it.
+    """
+
+    environment = {
+        name: os.environ[name] for name in _ENV_PASSTHROUGH if os.environ.get(name) is not None
+    }
+    environment.update({str(key): str(value) for key, value in config.env.items()})
+    if config.config_dir is not None:
+        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
+    return environment
 
 
 def resolve_claude_executable(name: str = "claude") -> str:
@@ -139,6 +214,9 @@ class ClaudeExecConfig:
     #: stream is the evidence; every number in the summary is derived from it and can be
     #: recomputed, so it is written by the adapter itself rather than by whatever calls it.
     stream_dir: str | Path | None = None
+    #: Claude Code's schema constrained terminal output. None preserves the historical transcript
+    #: mode; the benchmark pilot enables this explicitly when it is collecting decision traces.
+    json_schema: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.executable.strip():
@@ -162,6 +240,8 @@ class ClaudeExecConfig:
                 "strict_mcp_config with mcp_config=None yields a session with no MCP servers; "
                 "pass strict_mcp_config=False, or set mcp_config, to say which you meant"
             )
+        if self.json_schema is not None and not isinstance(self.json_schema, Mapping):
+            raise TypeError("json_schema must be a mapping when provided")
 
     def command(self, prompt: str) -> list[str]:
         """Build an argument list without invoking a shell."""
@@ -171,6 +251,13 @@ class ClaudeExecConfig:
             command.append("--bare")
         command.extend(("-p", prompt))
         command.extend(("--output-format", "stream-json", "--verbose"))
+        if self.json_schema is not None:
+            command.extend(
+                (
+                    "--json-schema",
+                    json.dumps(self.json_schema, separators=(",", ":"), sort_keys=True),
+                )
+            )
         if self.model:
             command.extend(("--model", self.model))
         if self.mcp_config is not None:
@@ -274,6 +361,30 @@ def _is_subagent(event: Mapping[str, Any]) -> bool:
     return event.get("parent_tool_use_id") is not None
 
 
+def _decision_identity(value: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Compare decisions without their transport source, so terminal echo is not double counted."""
+
+    return tuple(
+        value.get(key)
+        for key in ("decision", "confidence", "threshold", "reason", "stage")
+    )
+
+
+def _merge_runtime_decisions(
+    tool_decisions: Sequence[Mapping[str, Any]],
+    result_decisions: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Keep a StructuredOutput event once when Claude also echoes it as terminal output."""
+
+    merged = [dict(item) for item in tool_decisions]
+    tool_identities = {_decision_identity(item) for item in merged}
+    for item in result_decisions:
+        if _decision_identity(item) in tool_identities:
+            continue
+        merged.append(dict(item))
+    return tuple(merged)
+
+
 @dataclass(frozen=True)
 class TranscriptFields:
     """Everything the record needs that has to be reconstructed from the event stream."""
@@ -286,6 +397,8 @@ class TranscriptFields:
     retrieved_contexts: tuple[str, ...]
     failed_tool_calls: int
     subagent_tool_calls: int
+    runtime_decisions: tuple[dict[str, Any], ...]
+    memory_retrieval: dict[str, Any]
 
 
 #: One tool call as it is assembled from the stream. The values are genuinely heterogeneous
@@ -329,7 +442,9 @@ def transcript_fields(
                 }
                 calls[call_id] = call
                 order.append(call_id)
-                turn_calls.append({"name": call["name"], "args": call["args"]})
+                turn_calls.append(
+                    {"id": call["id"], "name": call["name"], "args": call["args"]}
+                )
             if text or turn_calls:
                 turn: dict[str, Any] = {"role": "assistant", "content": text}
                 if turn_calls:
@@ -366,7 +481,7 @@ def transcript_fields(
                     if finished is not None and started is not None and finished >= started
                     else None
                 )
-                conversation.append({"role": "tool", "content": output})
+                conversation.append({"role": "tool", "tool_use_id": call_id, "content": output})
         elif event_type == "result":
             final = event.get("result")
             if isinstance(final, str) and final:
@@ -391,6 +506,11 @@ def transcript_fields(
         }
         for call in ordered
     )
+    memory_retrieval = summarize_memory_calls(
+        tool_calls, memory_tool_prefix=memory_tool_prefix
+    )
+    tool_decisions = decisions_from_tool_calls(tool_calls)
+    result_decisions = decisions_from_result_events(events)
     return TranscriptFields(
         conversation=tuple(conversation),
         tool_calls=tool_calls,
@@ -402,6 +522,8 @@ def transcript_fields(
         retrieved_contexts=tuple(contexts),
         failed_tool_calls=sum(1 for call in ordered if call.get("is_error")),
         subagent_tool_calls=sum(1 for call in ordered if call.get("subagent")),
+        runtime_decisions=_merge_runtime_decisions(tool_decisions, result_decisions),
+        memory_retrieval=memory_retrieval,
     )
 
 
@@ -538,6 +660,7 @@ def build_record(
         "api_retries": len(retries),
         "failed_tool_calls": fields.failed_tool_calls,
         "subagent_tool_calls": fields.subagent_tool_calls,
+        "memory_retrieval": fields.memory_retrieval,
         # Kept apart because they are not priced alike: a cache read is far cheaper than a fresh
         # token and cache creation is dearer. input_tokens above is their sum.
         "fresh_input_tokens": usage.get("fresh_input_tokens"),
@@ -570,7 +693,15 @@ def build_record(
         conversation=conversation,
         reference_tool_calls=tuple(row.get("reference_tool_calls") or ()),
         tool_calls=fields.tool_calls,
+        runtime_decisions=fields.runtime_decisions,
         memory_call_count=fields.memory_call_count,
+        memory_calls_attempted=fields.memory_retrieval["attempted"],
+        memory_calls_succeeded=fields.memory_retrieval["succeeded"],
+        memory_calls_failed=fields.memory_retrieval["failed"],
+        memory_search_abstained=fields.memory_retrieval["abstained"],
+        memory_hits_returned=fields.memory_retrieval["hits_returned"],
+        memory_trust_states=tuple(fields.memory_retrieval["trust_states"]),
+        memory_error_codes=tuple(fields.memory_retrieval["error_codes"]),
         memory_latency_ms=fields.memory_latency_ms,
         input_tokens=usage["input_tokens"],
         output_tokens=usage["output_tokens"],
@@ -593,10 +724,12 @@ async def run_claude_case(
         raise ValueError(f"task {row.get('task_id')!r} has an empty user_input")
 
     command = config.command(prompt)
-    environment = dict(os.environ)
-    environment.update({str(key): str(value) for key, value in config.env.items()})
-    if config.config_dir is not None:
-        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
+    environment = session_environment(config)
+    process_options: dict[str, Any] = {}
+    if sys.platform == "win32":
+        process_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        process_options["start_new_session"] = True
 
     started = time.perf_counter()
     process = await asyncio.create_subprocess_exec(
@@ -608,12 +741,18 @@ async def run_claude_case(
         stderr=asyncio.subprocess.PIPE,
         cwd=str(config.cwd) if config.cwd else None,
         env=environment,
+        **process_options,
     )
+    process_group_id = None
+    if sys.platform != "win32":
+        with contextlib.suppress(ProcessLookupError, AttributeError):
+            process_group_id = os.getpgid(process.pid)
     try:
         stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=config.timeout_s)
     except TimeoutError:
-        process.kill()
-        await process.wait()
+        await _terminate_process_tree(process, process_group_id)
+        with contextlib.suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(process.communicate(), timeout=5.0)
         raise ClaudeSessionTimeout(
             f"claude exceeded timeout_s={config.timeout_s} for task {row.get('task_id')!r}"
         ) from None

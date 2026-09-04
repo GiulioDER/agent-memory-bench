@@ -1,0 +1,1 @@
+That is what it was doing. Writing it down as it stood then: a golden was edited in place by whoever changed the formatter, and the footer was appended by hand afterwards carrying the digest of the CASE INPUT, not of the output. The footer answered which case a golden came from, not what it contained. Nobody regenerated anything.

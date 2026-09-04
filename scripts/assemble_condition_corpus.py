@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from datetime import UTC, datetime, timedelta
@@ -43,11 +44,12 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.adapters.base import CorpusManifest
-from harness.damage import CONDITIONS
+from harness.damage import CORPUS_CONDITIONS, PRESENT
 from harness.plants import (
     PlantSpecError,
     assign_contradiction_dates,
     load_plants,
+    present_plan,
     sources_for,
 )
 from harness.tasks import discover_tasks
@@ -103,19 +105,176 @@ def _write_jsonl(path: Path, lines: list[dict]) -> None:
     path.write_text(body, encoding="utf-8", newline="\n")
 
 
-def assemble(condition: str, seed: int, selection: list[str], out_root: Path) -> dict:
-    if condition not in CONDITIONS:
-        raise SystemExit(f"unknown condition {condition!r}; expected one of {CONDITIONS}")
+from scripts.pilot import EXCLUDED_PREFIXES, SELECTABLE_PREFIXES
+
+
+def default_selection(condition: str) -> list[str]:
+    """Every task this condition can be built for, before any retirement list is applied.
+
+    ⚠️ The rule differs for `present` and that is the whole point of the condition.
+
+    An adversarial condition is a claim about a planted memo, so a task qualifies by DECLARING
+    one. Section 2 of `docs/reviews/2026-08-30-instrument-review.md` traced official-001's central
+    defect to that rule: plant expressiveness and difficulty are different properties, and
+    admitting on the first silently discarded the second, leaving a suite that could not measure
+    benefit at all.
+
+    `present` needs no plant, so applying the same rule would inherit the same bias and hand the
+    one condition that CAN measure benefit only the 15 tasks somebody has authored plants for.
+    Measured 2026-08-30: the declaring rule gives 15, this one gives 29, and the 14 it adds
+    include `ts-nfc-count`, `ts-round-money` and `ts-quote-shell`, which are precisely the tasks
+    section 7 of that review named as where a memory arm converts impossible into solved.
+
+    ⛔ Note what selection does and does not do here. For `present` the corpus is the identity
+    transform, so selecting a task changes NO bytes; it changes which tasks `condition.json`
+    records as under test, and therefore which cells the run grid covers. Getting it wrong
+    produces a corpus that looks right and a run that measures a third of what it should.
+    """
+
+    return [t for t in _declared_for(condition) if t.startswith(SELECTABLE_PREFIXES)]
+
+
+def _declared_for(condition: str) -> list[str]:
+    """Tasks the condition can be built for, BEFORE the class filter. See `excluded_by_class`."""
+
+    if condition == PRESENT:
+        return [
+            task.task_id
+            for task in discover_tasks()
+            if task.fact_terms and any((BASE_CORPUS / "sessions" / task.task_id).glob("*.jsonl"))
+        ]
+    return [
+        task.task_id
+        for task in discover_tasks()
+        if (spec := load_plants(task.path)) is not None and spec.plan(condition)
+    ]
+
+
+def excluded_by_class(condition: str) -> list[tuple[str, str]]:
+    """`(task, reason)` for every task this condition could cover but whose CLASS the grid refuses.
+
+    `scripts/pilot.py` accepts only `SELECTABLE_PREFIXES` and records why each other class is out
+    in `EXCLUDED_PREFIXES`. `default_selection` applies that filter so the assembler and the runner
+    cannot disagree about which tasks are under test; this exposes what it removed so the drop can
+    be announced rather than discovered.
+
+    ⚠️ It never fired on the four adversarial conditions, because a task qualifies there by
+    declaring plants and no `xs-` task does. `present` selects on having a recorded governing
+    session instead, so it picks up all three and a run died at argument validation with "unknown
+    task(s)". The pilot's refusal was correct; the selector was the thing that was wrong.
+    """
+
+    out = []
+    for task in _declared_for(condition):
+        if task.startswith(SELECTABLE_PREFIXES):
+            continue
+        prefix = next((p for p in EXCLUDED_PREFIXES if task.startswith(p)), None)
+        out.append((task, EXCLUDED_PREFIXES.get(prefix, "not a class the grid runs")))
+    return out
+
+
+
+def haystack_root() -> Path | None:
+    """The haystack every condition corpus is assembled around, or None for the standard feed.
+
+    ⚠️ One switch for the whole run, deliberately. The tenant builder, the grid and the plant
+    audit each assemble a condition corpus, and if they disagree the tenants serve one corpus
+    while the sessions run against another. That is the same class of failure
+    `test_the_assembler_default_matches_what_a_run_would_build` guards in the task dimension.
+
+    Why it exists at all: `docs/RETRIEVAL_DIFFICULTY.md` measures `voyage` hit@10 = 1.000 on the
+    standard 195-document feed. Retrieval is saturated there, so a run cannot separate "the
+    product retrieved badly" from "the agent never searched". With the haystack, BM25 hit@1 falls
+    0.485 -> 0.182 and voyage hit@10 1.000 -> 0.879.
+
+    Unset is the standard feed, which is what every prior run used and what keeps a run
+    comparable to them.
+    """
+
+    value = os.environ.get("AMB_HAYSTACK", "").strip()
+    if not value:
+        return None
+    root = Path(value)
+    if not (root / "synthetic").is_dir():
+        raise SystemExit(
+            f"AMB_HAYSTACK={root} holds no synthetic/ directory. Build one with "
+            f"`python -m scripts.generate_haystack --scale N --seed S`, or unset it to use the "
+            f"standard feed."
+        )
+    return root
+
+
+def assemble(
+    condition: str,
+    seed: int,
+    selection: list[str],
+    out_root: Path,
+    *,
+    haystack: Path | None = None,
+) -> dict:
+    if condition not in CORPUS_CONDITIONS:
+        raise SystemExit(f"unknown condition {condition!r}; expected one of {CORPUS_CONDITIONS}")
 
     tasks = {task.task_id: task for task in discover_tasks()}
     unknown = [task_id for task_id in selection if task_id not in tasks]
     if unknown:
         raise SystemExit(f"unknown task(s) in selection: {unknown}")
 
+    # Defence in depth, at the layer that actually DELETES. The containment check lives in
+    # `main()` and covers `--out` only, so the other four callers reach this `rmtree` with a
+    # constructed path and no check at all. Not exploitable today (the condition is validated
+    # above and every caller builds its own path), which is exactly the state to add a guard in
+    # rather than after.
+    #
+    # The rule is about WHAT is being removed, not where it sits: a location whitelist would
+    # have refused every test that assembles into a tmp directory, which is a legitimate caller.
+    # This function writes exactly the entries below, so a target holding anything else is not a
+    # condition corpus this code built and must not be deleted wholesale.
+    WRITES = {"sessions", "distractors", "synthetic", "condition.json", "manifest.json"}
     if out_root.exists():
+        # `.DS_Store`, `Thumbs.db` and `desktop.ini` are written by a file browser, not by a
+        # person, and refusing a legitimate re-assemble because one appeared would make this
+        # guard a nuisance that gets deleted rather than a guard.
+        IGNORED = {".DS_Store", "Thumbs.db", "desktop.ini"}
+        foreign = sorted(
+            p.name
+            for p in out_root.iterdir()
+            if p.name not in WRITES and p.name not in IGNORED
+        )
+        if foreign:
+            raise SystemExit(
+                f"refusing to delete {out_root.resolve()}: it holds {foreign}, which this "
+                f"function does not write, so it is not a condition corpus built by this code. "
+                f"Remove it deliberately if that is what you meant."
+            )
         shutil.rmtree(out_root)
     (out_root / "sessions").mkdir(parents=True)
     (out_root / "distractors").mkdir(parents=True)
+
+    # The generated haystack, when one is supplied. `CorpusManifest.build` already globs
+    # `synthetic/**/*.jsonl`, so a condition corpus carrying one is an ordinary corpus root that
+    # every adapter understands; this is the only place that never populated it.
+    #
+    # It is filler by construction and identical across conditions, so it changes retrieval
+    # difficulty without touching what any condition MEANS: the plants, the withheld sessions and
+    # the real precursors are unaffected.
+    if haystack is not None:
+        source = Path(haystack) / "synthetic"
+        if not source.is_dir():
+            raise SystemExit(
+                f"{haystack} holds no synthetic/ directory; generate one with "
+                f"`python -m scripts.generate_haystack --scale N --seed S`"
+            )
+        target = out_root / "synthetic"
+        target.mkdir(parents=True)
+        copied = 0
+        for path in sorted(source.rglob("*.jsonl")):
+            destination = target / path.relative_to(source)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            copied += 1
+        if copied == 0:
+            raise SystemExit(f"{source} contains no .jsonl; refusing to build an empty haystack")
 
     for path in sorted((BASE_CORPUS / "distractors").glob("*.jsonl")):
         shutil.copyfile(path, out_root / "distractors" / path.name)
@@ -141,14 +300,21 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
                 shutil.copyfile(path, out_root / "sessions" / task_id / path.name)
             continue
 
-        spec = load_plants(tasks[task_id].path)
-        plan = spec.plan(condition) if spec else None
-        if plan is None:
-            raise SystemExit(
-                f"{task_id} is in the selection but declares no {condition!r} condition in "
-                f"plants.json. A selected task with no plan would silently keep its true fact "
-                f"and be scored as {condition!r}."
-            )
+        if condition == PRESENT:
+            # `present` needs no plants.json and no declaration: it is the task's real session
+            # and nothing else. Requiring a declaration here would make the condition available
+            # only to the tasks somebody has already authored plants for, which is the exact
+            # selection bias section 2 of the instrument review found in the harm suite.
+            plan = present_plan()
+        else:
+            spec = load_plants(tasks[task_id].path)
+            plan = spec.plan(condition) if spec else None
+            if plan is None:
+                raise SystemExit(
+                    f"{task_id} is in the selection but declares no {condition!r} condition in "
+                    f"plants.json. A selected task with no plan would silently keep its true "
+                    f"fact and be scored as {condition!r}."
+                )
 
         dates = (
             assign_contradiction_dates(plan.plants, seed)
@@ -198,7 +364,7 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--condition", required=True, choices=list(CONDITIONS))
+    parser.add_argument("--condition", required=True, choices=list(CORPUS_CONDITIONS))
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument(
         "--tasks",
@@ -209,14 +375,38 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
+    if args.out is not None:
+        output = args.out.resolve()
+        conditions_root = CONDITIONS_ROOT.resolve()
+        if output == REPO.resolve() or conditions_root not in output.parents:
+            raise SystemExit(
+                f"--out must be inside {CONDITIONS_ROOT.relative_to(REPO)}; refusing to remove "
+                "an arbitrary existing directory"
+            )
+
     if args.tasks:
+        # An explicit list is obeyed exactly, including a retired task: assembling one
+        # deliberately is legitimate and the caller has said what they want.
         selection = list(args.tasks)
     else:
-        selection = []
-        for task in discover_tasks():
-            spec = load_plants(task.path)
-            if spec and spec.plan(args.condition):
-                selection.append(task.task_id)
+        # ⛔ The DEFAULT must match what a run would build, and for two days it did not.
+        # `scripts/abstention.py` runs `selection_for`, which subtracts RETIRED_TASKS; this CLI
+        # used `default_selection` raw, so a hand-assembled `adjacent` corpus carried 16 planted
+        # tasks where a real run carries 12. The four extra are the retired ones, and for each of
+        # them the corpus WITHHELD the real session and planted over it, so a probe pointed at
+        # that corpus was measuring a feed no run produces.
+        #
+        # Found on 2026-08-30 by two sessions comparing plant ranks and getting answers 45
+        # positions apart on `ts-glob-hidden`: one had assembled through this path and the other
+        # through the runner's. Imported inside the function because `scripts.abstention` imports
+        # this module at load time.
+        from scripts.abstention import RETIRED_TASKS
+
+        buildable = default_selection(args.condition)
+        selection = [task for task in buildable if task not in RETIRED_TASKS]
+        for task in buildable:
+            if task in RETIRED_TASKS:
+                print(f"[retired] {args.condition}: {task} excluded ({RETIRED_TASKS[task]})")
     if not selection:
         raise SystemExit(
             f"no task declares the {args.condition!r} condition; nothing to assemble"
@@ -224,7 +414,9 @@ def main() -> int:
 
     out_root = args.out or CONDITIONS_ROOT / args.condition / f"seed-{args.seed}"
     try:
-        provenance = assemble(args.condition, args.seed, selection, out_root)
+        provenance = assemble(
+            args.condition, args.seed, selection, out_root, haystack=haystack_root()
+        )
     except PlantSpecError as exc:
         # A missing recording is the ordinary state before a plant is recorded, not a crash.
         raise SystemExit(str(exc)) from None

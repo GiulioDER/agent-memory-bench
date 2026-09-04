@@ -1,0 +1,1 @@
+Agreed, that is what put it on the wrong environment. Decision: a backup excludes everything at the top level, because everything at the top level is regenerated and the next deploy rewrites them anyway. Restoring them is how a machine ends up pointing somewhere it was never meant to point. Nested directories are what the archive is for, since nothing else produces them.

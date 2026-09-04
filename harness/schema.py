@@ -11,8 +11,9 @@ because they were paid for:
 
 New in this repo: ``arm`` (an adapter name, not a role), ``seed`` (the repetition index of the
 (task, seed) grid cell), ``config_dir_digest`` (sha256 of the generated ``CLAUDE_CONFIG_DIR``
-tree, proving which integration the session ran with), and ``hook_ledger`` (the shim-recorded
-lifecycle hook events, the admission signal for hook-based integrations).
+tree, proving which integration the session ran with), ``hook_ledger`` (the shim-recorded
+lifecycle hook events, the admission signal for hook-based integrations), and first-class memory
+retrieval outcome counters.
 """
 
 from __future__ import annotations
@@ -78,7 +79,17 @@ class SessionRecord:
     conversation: tuple[dict[str, Any], ...] = ()
     reference_tool_calls: tuple[dict[str, Any], ...] = ()
     tool_calls: tuple[dict[str, Any], ...] = ()
+    runtime_decisions: tuple[dict[str, Any], ...] = ()
     memory_call_count: int = 0
+    # First-class retrieval outcome counters. The same values are also retained under metadata
+    # for consumers that already read the telemetry bundle.
+    memory_calls_attempted: int = 0
+    memory_calls_succeeded: int = 0
+    memory_calls_failed: int = 0
+    memory_search_abstained: int = 0
+    memory_hits_returned: int = 0
+    memory_trust_states: tuple[str, ...] = ()
+    memory_error_codes: tuple[str, ...] = ()
     memory_latency_ms: float | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
@@ -104,8 +115,17 @@ class SessionRecord:
             raise TypeError("success must be a bool")
         if not isinstance(self.metadata, Mapping):
             raise TypeError("metadata must be a mapping")
-        if self.memory_call_count < 0:
-            raise ValueError("memory_call_count must be nonnegative")
+        for name in (
+            "memory_call_count",
+            "memory_calls_attempted",
+            "memory_calls_succeeded",
+            "memory_calls_failed",
+            "memory_search_abstained",
+            "memory_hits_returned",
+        ):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(f"{name} must be a nonnegative int")
         for name in (
             "memory_latency_ms",
             "input_tokens",
@@ -144,7 +164,7 @@ class SessionRecord:
         """Return a JSON serializable representation."""
 
         return {
-            "record_version": 2,
+            "record_version": 3,
             "task_id": self.task_id,
             "arm": self.arm,
             "seed": self.seed,
@@ -157,7 +177,15 @@ class SessionRecord:
             "conversation": [dict(item) for item in self.conversation],
             "reference_tool_calls": [dict(item) for item in self.reference_tool_calls],
             "tool_calls": [dict(item) for item in self.tool_calls],
+            "runtime_decisions": [dict(item) for item in self.runtime_decisions],
             "memory_call_count": self.memory_call_count,
+            "memory_calls_attempted": self.memory_calls_attempted,
+            "memory_calls_succeeded": self.memory_calls_succeeded,
+            "memory_calls_failed": self.memory_calls_failed,
+            "memory_search_abstained": self.memory_search_abstained,
+            "memory_hits_returned": self.memory_hits_returned,
+            "memory_trust_states": list(self.memory_trust_states),
+            "memory_error_codes": list(self.memory_error_codes),
             "memory_latency_ms": self.memory_latency_ms,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
@@ -187,6 +215,18 @@ class SessionRecord:
             raise KeyError("record has neither 'arm' nor 'variant'")
         memory_calls = value.get("memory_call_count", value.get("recall_call_count", 0))
         memory_latency = value.get("memory_latency_ms", value.get("recall_latency_ms"))
+        retrieval = value.get("memory_retrieval")
+        if not isinstance(retrieval, Mapping):
+            metadata = value.get("metadata")
+            candidate = metadata.get("memory_retrieval") if isinstance(metadata, Mapping) else None
+            retrieval = candidate if isinstance(candidate, Mapping) else {}
+        attempted = value.get("memory_calls_attempted", retrieval.get("attempted", memory_calls))
+        succeeded = value.get("memory_calls_succeeded", retrieval.get("succeeded", 0))
+        failed = value.get("memory_calls_failed", retrieval.get("failed", 0))
+        abstained = value.get("memory_search_abstained", retrieval.get("abstained", 0))
+        hits = value.get("memory_hits_returned", retrieval.get("hits_returned", 0))
+        trust_states = value.get("memory_trust_states", retrieval.get("trust_states", ()))
+        error_codes = value.get("memory_error_codes", retrieval.get("error_codes", ()))
         return cls(
             task_id=str(value["task_id"]),
             arm=str(arm),
@@ -206,7 +246,17 @@ class SessionRecord:
                 value.get("reference_tool_calls"), "reference_tool_calls"
             ),
             tool_calls=_tuple_of_mappings(value.get("tool_calls"), "tool_calls"),
+            runtime_decisions=_tuple_of_mappings(
+                value.get("runtime_decisions"), "runtime_decisions"
+            ),
             memory_call_count=int(memory_calls),
+            memory_calls_attempted=int(attempted),
+            memory_calls_succeeded=int(succeeded),
+            memory_calls_failed=int(failed),
+            memory_search_abstained=int(abstained),
+            memory_hits_returned=int(hits),
+            memory_trust_states=_tuple_of_strings(trust_states, "memory_trust_states"),
+            memory_error_codes=_tuple_of_strings(error_codes, "memory_error_codes"),
             memory_latency_ms=memory_latency,
             input_tokens=value.get("input_tokens"),
             output_tokens=value.get("output_tokens"),

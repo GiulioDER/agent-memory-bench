@@ -42,7 +42,7 @@ from harness import sandbox
 from harness.adapters.base import ArmSpec, CorpusManifest
 from harness.adapters.registry import AdapterRegistry
 from harness.claude_exec import ClaudeExecConfig, run_claude_case
-from harness.costs import ModelPricing, summarize
+from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import admit_cells
 from harness.io import write_jsonl
 from harness.prereg import assert_preregistered
@@ -99,9 +99,7 @@ async def main() -> int:
     parser.add_argument("--run-id", default=None)
     # Read from the OpenRouter models endpoint on 2026-08-22 for deepseek/deepseek-v4-flash.
     # Override for any other model; the costs artifact records what was used.
-    parser.add_argument("--price-in", type=float, default=0.05866, help="USD per Mtok input")
-    parser.add_argument("--price-out", type=float, default=0.11732, help="USD per Mtok output")
-    parser.add_argument("--price-as-of", default="2026-08-22")
+    add_pricing_arguments(parser)
     args = parser.parse_args()
 
     assert_preregistered(REPO)
@@ -239,15 +237,9 @@ async def main() -> int:
     (run_dir / "admission.json").write_text(
         json.dumps(report.summary(), indent=2), encoding="utf-8"
     )
-    pricing = {
-        args.model: ModelPricing(
-            model=args.model,
-            usd_per_mtok_input=args.price_in,
-            usd_per_mtok_output=args.price_out,
-            as_of=args.price_as_of,
-            source="https://openrouter.ai/api/v1/models",
-        )
-    }
+    pricing = pricing_from_args(
+        args, model=args.model, source="https://openrouter.ai/api/v1/models"
+    )
     costs = summarize(records, ingest_reports, pricing=pricing, model=args.model)
     (run_dir / "costs.json").write_text(json.dumps(costs, indent=2), encoding="utf-8")
     (run_dir / "environment.json").write_text(

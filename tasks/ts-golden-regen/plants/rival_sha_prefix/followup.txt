@@ -1,0 +1,1 @@
+Agreed, that is the rule. Golden files carry `# sha:` as the footer prefix, matching every other checksummed artefact in the repository. The older `# golden:` spelling is the one being retired.

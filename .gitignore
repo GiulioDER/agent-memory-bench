@@ -1,11 +1,34 @@
 # Secrets and local environment. Both halves of a server config are disclosure: tokens
 # obviously, host inventories too. Neither ever lives in this tree.
 .env
+# Variants too: .env.local and .env.production are the same disclosure as .env, and only the
+# bare name was covered. The two tracked .env.production files under oracles/ and tasks/ are
+# ts-glob-hidden FIXTURES (that task is about globbing dotfiles), so they are re-included.
+.env.*
+!.env.example
+!oracles/**/.env.production
+!tasks/**/.env.production
 *.secrets.json
 pricing.json
 
+# Agent session state, project-scoped MCP config and audit bookkeeping. Local to a machine,
+# and on a developer box this can hold whole worktree checkouts.
+.claude/
+
+# Session scratch: one-off fix scripts and acceptance rigs. Durable guarantees belong in
+# tests/, which is what a reader can run; nothing here is evidence of anything.
+scratch/
+
 # Run artifacts are published deliberately, per run, after review; work dirs never.
 results/*/work/
+# Working state from a prepare or ingest step: a rendered corpus, staged prompts, a pid and a
+# stderr tail. None is evidence and `.prepare-feed/` holds a full corpus render, so a pathspec
+# `git add results/` must not sweep them in.
+results/.prepare-feed/
+results/.ingest-staging/
+results/.prepare-*.tgz
+results/prepare.err
+results/prepare.pid
 staging/
 **/__pycache__/
 *.pyc
@@ -18,3 +41,15 @@ results/*.log
 # Assembled condition corpora: reproducible from the base corpus, plants.json and a seed.
 corpus/conditions/
 .venv-bench/
+results/logs/
+
+# Produced by `pip install -e .`, which is now possible. CI asserts a clean tree.
+*.egg-info/
+
+# Generated haystack corpora: reproducible from the generator digest, the scale and the seed.
+# 25x is ~24 MB of transcripts, so the plan is the artefact and the corpus is rebuilt on demand.
+corpus/haystack/
+
+# Hugging Face payloads assembled by scripts/hf_stage.py. Reproducible from the tree and the
+# two cards, and a staged copy that drifts from its source is worse than no copy at all.
+build/

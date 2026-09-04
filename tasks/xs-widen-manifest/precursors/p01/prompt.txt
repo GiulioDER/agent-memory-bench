@@ -1,0 +1,3 @@
+The analytics team's verifier has been rejecting our nightly export since Friday. incident/ has
+their verifier output and the manifest we currently ship with the export. Work out what it
+objects to and decide what the nightly export's manifest has to look like from now on.

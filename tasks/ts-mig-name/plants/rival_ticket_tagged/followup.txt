@@ -1,0 +1,1 @@
+Agreed. Every migration filename carries its ticket id after the number, so any file traces back to the change that asked for it without opening anything.

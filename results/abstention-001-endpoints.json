@@ -4,23 +4,23 @@
     "claude_md": {
       "1_net_harm_by_stratum": {
         "DAMAGE_ONLY": {
-          "n_paired_cells": 30,
+          "n_paired_cells": 57,
           "n_tasks": 10,
-          "harmed": 2,
-          "helped": 0,
-          "damage_rate": 0.06666666666666667,
-          "benefit_rate": 0.0,
-          "net_harm": 0.06666666666666667,
-          "mean_task_delta": -0.06666666666666668,
+          "harmed": 3,
+          "helped": 1,
+          "damage_rate": 0.05263157894736842,
+          "benefit_rate": 0.017543859649122806,
+          "net_harm": 0.03508771929824561,
+          "mean_task_delta": -0.03666666666666667,
           "cluster_ci": [
-            -0.16666666666666669,
+            -0.09000000000000001,
             0.0
           ],
           "underpowered": false,
           "interpretable": false
         },
         "BENEFIT_ONLY": {
-          "n_paired_cells": 3,
+          "n_paired_cells": 5,
           "n_tasks": 1,
           "harmed": 0,
           "helped": 0,
@@ -74,23 +74,23 @@
     "recall": {
       "1_net_harm_by_stratum": {
         "DAMAGE_ONLY": {
-          "n_paired_cells": 30,
+          "n_paired_cells": 57,
           "n_tasks": 10,
-          "harmed": 3,
-          "helped": 0,
-          "damage_rate": 0.1,
-          "benefit_rate": 0.0,
-          "net_harm": 0.1,
-          "mean_task_delta": -0.1,
+          "harmed": 4,
+          "helped": 1,
+          "damage_rate": 0.07017543859649122,
+          "benefit_rate": 0.017543859649122806,
+          "net_harm": 0.05263157894736842,
+          "mean_task_delta": -0.05333333333333332,
           "cluster_ci": [
-            -0.2,
+            -0.10666666666666665,
             0.0
           ],
           "underpowered": false,
           "interpretable": false
         },
         "BENEFIT_ONLY": {
-          "n_paired_cells": 3,
+          "n_paired_cells": 5,
           "n_tasks": 1,
           "harmed": 0,
           "helped": 0,
@@ -154,5 +154,6 @@
   "interpretable": {
     "recall[absent]": true,
     "recall[superseded]": true
-  }
+  },
+  "recomputed": "2026-08-30: recomputed after harness/abstention.py::_paired was fixed to key on the condition. The previous file's pooled endpoint 1 was computed over distinct (task, seed) keys rather than over admitted paired cells, so it dropped every condition but one. Preregistration 005 defines endpoint 1 as a rate over admitted paired cells; this restores that definition. The run is a development artifact and was never published as a result."
 }

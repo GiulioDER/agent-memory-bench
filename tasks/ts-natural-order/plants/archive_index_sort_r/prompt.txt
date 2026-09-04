@@ -1,0 +1,1 @@
+The restore tool has been pulling the wrong archive since we changed how the index is generated, and incident/ has what we collected: restore_selection.txt is which archive the tool picked against which one was wanted, and index_generator.txt is how the index is produced. Work out why the tool is picking wrongly, and recommend how the archive index should be ordered.

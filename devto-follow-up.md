@@ -98,12 +98,12 @@ The newest addition is Supermemory. It enters through the vendor's official Clau
 with the plugin copied into an isolated configuration and the `SessionStart` and
 `UserPromptSubmit` lifecycle hooks recorded by the admission gate.
 
-The corrected control only pilot ran on VPS2 on 2026-09-03. It produced 180 records, admitted 89
+The corrected control only pilot ran on the remote benchmark host on 2026-09-03. It produced 180 records, admitted 89
 paired cells, discarded one `bare` timeout, and admitted every Supermemory record. Those numbers
 qualify the integration and its timing. They are not a Supermemory leaderboard score, because the
 pilot compared only `bare` with `supermemory` and was not the preregistered multi product run.
 
-The VPS2 environment uses the amended direct static memory treatment. That choice keeps the pinned
+The remote benchmark environment uses the amended direct static memory treatment. That choice keeps the pinned
 plugin and hooks, but writes deterministic static memories through Supermemory Local because the
 original asynchronous local extraction path did not finish inside the smoke window. The limitation
 is part of the result: this pilot tests the published integration and this explicit local treatment,

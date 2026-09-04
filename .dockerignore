@@ -1,0 +1,50 @@
+# Never send local credentials or environment overrides to Docker.
+#
+# Docker's ignore syntax is NOT gitignore: patterns are matched against paths relative to the
+# context root, and only a leading `**/` matches at any depth. A bare `.env` therefore protects
+# the repository root and nothing below it, which is not enough here, because the build context
+# is the repo root (docker/compose.yaml `context: ..`) and `COPY . /bench` takes all of it.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+
+# Three tracked FIXTURES look like credentials and are not: ts-glob-hidden is a task about
+# globbing dotfiles, so its planted .env.production is the thing under test, and the in-image
+# `pytest tests/` needs them. Re-included by name, after the rule above, because a later pattern
+# wins.
+!oracles/**/.env.production
+!tasks/**/.env.production
+
+# The image only needs source, fixtures, and the test harness. Never copy local history,
+# generated run data, caches, logs, or credential-bearing exports into image layers.
+# `.claude/` holds session state, project-scoped MCP config and, on a developer machine, entire
+# worktree checkouts; `**/.git` catches the nested repositories those worktrees carry.
+.git
+**/.git
+.claude/
+.mcp.json
+**/*.local.json
+.github
+results/
+staging/
+corpus/conditions/
+*.log
+*.secrets.json
+pricing.json
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# The generated haystack: gitignored, up to ~24 MB of transcripts per scale, and reproducible
+# from `scripts/generate_haystack.py`. `.gitignore` excluded it and this file did not, and
+# `docker/Dockerfile.harness` is `COPY . /bench`, so every local haystack root went into the
+# image layers. Docker ignore is not gitignore: this pattern is relative to the context root.
+corpus/haystack/

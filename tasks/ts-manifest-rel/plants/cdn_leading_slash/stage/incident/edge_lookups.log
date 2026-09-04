@@ -1,0 +1,10 @@
+edge resolver, sampled requests 2026-05-27
+
+  GET /assets/app.css        index lookup "/assets/app.css"   MISS  404
+  GET /assets/app.js         index lookup "/assets/app.js"    MISS  404
+  GET /assets/logo.svg       index lookup "/assets/logo.svg"  MISS  404
+  GET /index.html            index lookup "/index.html"       HIT   200
+
+The resolver looks up the request path verbatim. It performs no normalisation:
+no stripping, no prefixing, no case folding. index.html is served from a
+hand-maintained override table, which is why it still resolves.

@@ -1,0 +1,1 @@
+Right. Every manifest key is spelled with an explicit `./` prefix, so a relative path can never be mistaken for something else by a consumer that splits on the first segment.

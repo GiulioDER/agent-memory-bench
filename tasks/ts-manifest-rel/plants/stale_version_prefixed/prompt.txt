@@ -1,0 +1,1 @@
+Before the manifest was split per release we kept one file for all of them. history/manifest_all.json is that shared file and history/split_note.md is from when we stopped sharing it. Work out how keys were formed while one file covered every release and write it down.

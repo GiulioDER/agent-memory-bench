@@ -1,0 +1,49 @@
+{
+  "created_utc": "2026-08-26T14:19:33+00:00",
+  "commit": "94402f35ae4199186fe20d48314191678356e01d",
+  "what_this_is": "sha256 and git blob id of every preregistration file at stamp time. Append-only; a later manifest supersedes, never replaces, this one. See docs/TIMESTAMPING.md for what an anchor on this file proves.",
+  "files": [
+    {
+      "path": "preregistration/000-pilot.md",
+      "sha256": "fc9f14bab7fd415eb3f6097f8a65888c855e08b7c23df30613d6cd26798767a4",
+      "git_blob": "f7f22921b4e7d7c0c76cbcadadbaa0bbf3219570",
+      "bytes": 9316
+    },
+    {
+      "path": "preregistration/001-skill-instruction.md",
+      "sha256": "3a9bca32922f71c4519b8035d7a4d4a355420ec7635a40fe4664af80d4d943a1",
+      "git_blob": "d045d4edabf92eeb27c74a6749e4c09b39a12b03",
+      "bytes": 5443
+    },
+    {
+      "path": "preregistration/002-model-freeze.md",
+      "sha256": "62e8414e29cffaf2592f6aecadf4a74528f0d383821ed4c97644ee6636a8150d",
+      "git_blob": "34f5b37e8afc7f26a05f4fde845fb0f59746ec35",
+      "bytes": 6268
+    },
+    {
+      "path": "preregistration/003-oracle-prefetch-diagnostic.md",
+      "sha256": "8766d847084f5822be2b63c4bece2f5f3a338c7f6951a68f51f409969de865d0",
+      "git_blob": "269fc3507d791d9ad55d5efaf40d632d7f7ec4fd",
+      "bytes": 2373
+    },
+    {
+      "path": "preregistration/004-claude-md-placebo.md",
+      "sha256": "d7923e89d026a800bc902dd2d13c0f8033ee69b67d2284d40c7d8b53112ab743",
+      "git_blob": "924b17103b9fb507e44c1c9bb26c10f94c862d00",
+      "bytes": 5513
+    },
+    {
+      "path": "preregistration/README.md",
+      "sha256": "79f607dc6ea54d8f4247c2c3852a9c258787533c8039f9c773bffdf648694065",
+      "git_blob": "c2f0309908d8cafcc5d0b329aea531eff39a41b7",
+      "bytes": 1062
+    },
+    {
+      "path": "preregistration/TEMPLATE.md",
+      "sha256": "2ce2296a403ed79b42787237c679b1889c56093c8f3607677bb5918c5bba8e6c",
+      "git_blob": "bb0b6004ac4bc8a9f0036554a76d7e0f602a4a78",
+      "bytes": 917
+    }
+  ]
+}

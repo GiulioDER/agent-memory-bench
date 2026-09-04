@@ -42,39 +42,86 @@ import json
 import os
 import sys
 import time
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from adapters.bare.adapter import BareAdapter
+from adapters.cachly.adapter import CachlyAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
+from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
+from adapters.recall_rerank.adapter import RecallRerankAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import instructions, sandbox
 from harness.abstention import declines
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    namespace_path,
+)
 from harness.adapters.registry import AdapterRegistry
 from harness.claude_exec import ClaudeExecConfig, run_claude_case
-from harness.costs import ModelPricing, efficiency, summarize
-from harness.damage import CONDITIONS, outcome_for
+from harness.costs import (
+    add_pricing_arguments,
+    efficiency,
+    pricing_from_args,
+    summarize,
+)
+from harness.damage import CORPUS_CONDITIONS, PRESENT, Outcome, outcome_for
+from harness.decision_trace import (
+    DECISION_OUTPUT_INSTRUCTION,
+    DECISION_OUTPUT_SCHEMA,
+    DECISION_STAGE_INSTRUCTION,
+    STAGED_DECISION_OUTPUT_SCHEMA,
+    with_decision_output_instruction,
+)
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.io import write_jsonl
+from harness.mcp_probe import probe
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
+from scripts.validate_run_setup import validate as validate_setup
 
-#: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28.
-ARMS = ("bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "supermemory")
+#: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
+#: `mempalace` on 2026-08-29, `recall_prefetch` on 2026-08-30, `recall_rerank` and `cachly` on
+#: 2026-09-02.
+#:
+#: `recall_rerank` is `recall` with its Voyage reranker on, and it belongs in the SAME grid rather
+#: than in a second run: paired inside one grid the corpus feed, the model, the suite and the
+#: admitted set are held constant by construction, where across two runs none of them are.
+#:
+#: ⚠️ `oracle_memory` has an adapter and has run, and is deliberately absent. Its bundles are
+#: keyed by task with NO condition, so it would supply verified evidence in `absent`, the
+#: condition whose whole purpose is that the corpus does not contain the answer. It is a coherent
+#: ceiling in `present` and in the single-corpus diagnostic where it ran. Admitting it here needs
+#: condition-aware bundles, which is corpus work rather than wiring.
+ARMS = (
+    "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
+    "mempalace", "recall_prefetch", "cachly", "supermemory",
+)
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
-MEMORY_ARMS = frozenset({"fs_grep", "recall", "supermemory"})
+MEMORY_ARMS = frozenset(
+    {"fs_grep", "recall", "recall_rerank", "mempalace", "cachly", "supermemory"}
+)
+
+#: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
+#: because its tenant is indexed out of band against the frozen corpus manifest.
+SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cachly", "supermemory")
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -129,48 +176,71 @@ def recall_instruction(variant: str, *, neutral: bool = False) -> str:
         if text.startswith("---"):
             text = text.split("---", 2)[2]
         return text.strip()
-    if variant == "protocol":
-        return instructions.compose("recall", RECALL_SEARCH_SENTENCE, neutral=neutral)
+    if variant in SHARED_PROTOCOL_VARIANTS:
+        return instructions.compose(
+            "recall", RECALL_SEARCH_SENTENCE, neutral=neutral, variant=variant
+        )
     raise ValueError(f"unknown recall instruction variant {variant!r}")
+
+
+#: Variants where every memory arm carries one shared protocol byte for byte, so the fairness
+#: assertion is meaningful and a run is a comparison between PRODUCTS. `draft` is preregistration
+#: 024's variant and differs from `protocol` in exactly one section, generated rather than written.
+#: `skill` and `oneliner` are not here: they exist to reproduce runs that were never matched.
+SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
 
 
 def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = False) -> dict[str, str]:
     """The instruction each arm carries, keyed by arm. Arms with no memory surface carry "".
 
-    Under ``protocol`` every memory arm gets `adapters/_shared/memory_protocol.md` verbatim plus its
-    own capped appendix, and the fairness assertion below is meaningful. Under ``skill`` or
-    ``oneliner`` the arms are deliberately NOT matched, because those variants exist to reproduce
-    runs that were not matched, and the assertion is skipped with that stated in the artifact.
+    Under a shared-protocol variant every memory arm gets that protocol verbatim plus its own capped
+    appendix, and the fairness assertion below is meaningful. Under ``skill`` or ``oneliner`` the
+    arms are deliberately NOT matched, because those variants exist to reproduce runs that were not
+    matched, and the assertion is skipped with that stated in the artifact.
     """
 
+    shared = variant in SHARED_PROTOCOL_VARIANTS
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
         texts["recall"] = recall_instruction(variant, neutral=neutral)
-    if "supermemory" in texts:
-        texts["supermemory"] = (
-            SupermemoryAdapter.shared_instruction(neutral=neutral)
-            if variant == "protocol"
-            else instructions.compose(
-                "supermemory",
-                "Supermemory provides persistent project context through its official Claude Code "
-                "hooks; use that context before acting when relevant.",
-                neutral=neutral,
-            )
-        )
+    if "recall_rerank" in texts:
+        # The SAME call, not a copy of the same words. `recall_rerank` varies retrieval and nothing
+        # else, so its instruction must be byte-identical to `recall`'s; deriving both from one
+        # function makes that true by construction, where a second appendix file could drift and
+        # the drift would show up as a reranker effect.
+        texts["recall_rerank"] = recall_instruction(variant, neutral=neutral)
     if "fs_grep" in texts:
         texts["fs_grep"] = (
-            FsGrepAdapter.shared_instruction(neutral=neutral)
-            if variant == "protocol"
+            FsGrepAdapter.shared_instruction(neutral=neutral, variant=variant)
+            if shared
             # The historical sentence, so a `skill`/`oneliner` rerun reproduces the old asymmetry
             # rather than half-fixing it and being comparable to neither.
             else instructions.compose("fs_grep", FS_GREP_SEARCH_SENTENCE, neutral=neutral)
         )
+    if "mempalace" in texts:
+        # No historical variant to reproduce: this arm has never run, so it always carries a
+        # shared protocol. Under `skill`/`oneliner` that leaves it matched against an
+        # unmatched recall arm, which `instruction_manifest` publishes rather than hides.
+        texts["mempalace"] = MemPalaceAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
+    if "cachly" in texts:
+        texts["cachly"] = CachlyAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
+    if "supermemory" in texts:
+        texts["supermemory"] = SupermemoryAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
-            "protocol", PROTOCOL_SEARCH_SENTENCE, neutral=neutral
+            "protocol",
+            PROTOCOL_SEARCH_SENTENCE,
+            neutral=neutral,
+            variant=variant if shared else "protocol",
         )
-    if variant == "protocol":
-        instructions.assert_shared_protocol(texts, neutral=neutral)
+    if shared:
+        instructions.assert_shared_protocol(texts, neutral=neutral, variant=variant)
     return texts
 
 
@@ -197,7 +267,10 @@ def build_bundles(task, out_dir: Path, texts: dict[str, str]) -> dict[str, Path]
     placebo.write_text(render_placebo(static), encoding="utf-8", newline="\n")
     bundles["placebo"] = placebo
 
-    for arm in ("protocol", "fs_grep", "recall", "supermemory"):
+    # Derived, not listed: this loop used to name ("protocol", "fs_grep", "recall") literally,
+    # so an arm added to ARMS and to `memory_instructions` still got no bundle here and fell
+    # back to a bare prompt with its instruction silently dropped.
+    for arm in sorted(set(texts) - {"bare", "claude_md", "placebo"}):
         text = texts.get(arm, "")
         if not text:
             continue
@@ -239,8 +312,28 @@ def adapter_for(
         return FsGrepAdapter(staging, static, instruction=texts.get("fs_grep") or None)
     if arm == "recall":
         return RecallAdapter(staging, static, instruction=texts.get("recall") or None)
+    if arm == "recall_rerank":
+        return RecallRerankAdapter(
+            staging, static, instruction=texts.get("recall_rerank") or None
+        )
+    if arm == "mempalace":
+        return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
+    if arm == "cachly":
+        return CachlyAdapter(staging, static, instruction=texts.get("cachly") or None)
     if arm == "supermemory":
         return SupermemoryAdapter(staging, static, instruction=texts.get("supermemory") or None)
+    if arm == "recall_prefetch":
+        # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
+        # is condition-aware for free: it delegates to whichever tenant the condition serves. The
+        # gap between this arm and `recall` is the agent's DECISION to search, which the four
+        # adversarial conditions cannot otherwise separate from retrieval quality -- and on this
+        # feed retrieval is saturated (voyage hit@10 = 1.000), so that separation is the only
+        # place a difference can come from.
+        return RecallPrefetchAdapter(
+            RecallAdapter(staging, static, instruction=texts.get("recall") or None),
+            staging,
+            static,
+        )
     raise ValueError(f"no adapter for arm {arm!r}")
 
 
@@ -276,10 +369,24 @@ def classify_cell(
 
     if not condition:
         return {}
+    abstained, marker = declines(response)
+    if condition == PRESENT:
+        # `present` plants nothing, so there is no wrong fact for a detector to find and
+        # `detect_damage` refuses the condition outright. The cell still needs its outcome and,
+        # more importantly, its ABSTENTION flag: on `present` a decline is the missed-opportunity
+        # cell that the four adversarial conditions cannot express, which is the entire reason
+        # this condition exists. Routing it through the detector would raise ValueError on the
+        # first cell of the run.
+        return {
+            "condition": condition,
+            "outcome": (Outcome.SOLVED if checker_ok else Outcome.NEUTRAL_FAILURE).value,
+            "damage_reason": "no damage detector runs under `present`: nothing is planted",
+            "abstained": abstained,
+            "abstain_marker": marker,
+        }
     outcome, reason = outcome_for(
         task.path, workdir, task.oracle_dir, condition, checker_ok, verdict
     )
-    abstained, marker = declines(response)
     return {
         "condition": condition,
         "outcome": outcome.value,
@@ -328,6 +435,104 @@ def _refuse_a_dirty_work_root(work_root: Path, run_id: str) -> None:
     )
 
 
+#: Task-id prefixes an ordinary run measures when `--tasks` is not given.
+#:
+#: ⛔ This was a bare `startswith("ts-")` until 2026-08-30, and that single string is why the
+#: library stayed monotonic in practice. `xs-*`, the three cross-session synthesis tasks, have
+#: never appeared in a grid: they were authored, they pass their own tests, and the runner has
+#: skipped them since they were written. Nobody decided that. A string comparison decided it.
+#:
+#: ⚠️ **Nothing joins this tuple without a preregistration.** Admitting a class changes what every
+#: default run measures, and the preregistered runs did not contain it, so it is a measurement
+#: decision and not a wiring repair. `tests/test_pilot_subset.py` fired on the first attempt to
+#: add `fa-` here and was right to.
+GRID_PREFIXES = ("ts-",)
+
+#: Prefixes `--tasks` may name. Wider than the default grid on purpose: a new class has to be
+#: runnable before anyone can calibrate it, and calibrating it is the evidence a preregistration
+#: would rest on. Selecting one is explicit and leaves the default grid alone.
+SELECTABLE_PREFIXES = ("ts-", "fa-")
+
+#: Classes in neither, with the reason, so an absence is a decision on the record rather than an
+#: oversight.
+EXCLUDED_PREFIXES = {
+    "xs-": (
+        "cross-session synthesis; needs a corpus shape the grid does not assemble, and admitting "
+        "it changes what every run measures"
+    ),
+}
+
+
+def diagnostic_metadata(spec: Any) -> dict[str, Any]:
+    """The adapter's `memory_diagnostic`, to be merged into the session record.
+
+    ⛔ Without this the admission gate discards EVERY cell of EVERY condition.
+
+    A diagnostic adapter returns `AdmissionSignal(metadata={"diagnostic_kind": <arm>})` and puts a
+    matching `memory_diagnostic` on its `ArmSpec`. `harness.gate._check_diagnostic` compares the
+    two and refuses when they disagree, and a cell is admitted only when EVERY arm is admitted, so
+    one unstamped arm voids the whole grid.
+
+    `scripts/diagnostic.py` copied the spec metadata across and this runner never did, which is why
+    `recall_prefetch` worked in `diagnostic-010` (70 of 72 cells admitted) and destroyed
+    `official-002`: 360 sessions run, 44 of 60 prefetch sessions successful, and **0 cells
+    admitted**, all 60 discarded with
+    `diagnostic arm 'recall_prefetch' expected memory treatment 'recall_prefetch', got None`.
+
+    ⚠️ Only `memory_diagnostic` is carried, never the whole spec metadata. The adapter also sets
+    `prompt_sha256`, and the runner computes that itself from the file it actually used; a blanket
+    merge would silently let the adapter's value win.
+    """
+    metadata = getattr(spec, "metadata", None)
+    if isinstance(metadata, Mapping) and "memory_diagnostic" in metadata:
+        return {"memory_diagnostic": metadata["memory_diagnostic"]}
+    return {}
+
+
+def block_concurrency() -> int:
+    """How many (task, seed) cells run at once. `AMB_BLOCK_CONCURRENCY`, default 1.
+
+    Every arm of a cell already runs concurrently (`arm_concurrency` is None), so the default of 1
+    still puts one session per arm in flight. This multiplies that, and the multiplier is the whole
+    wall clock of a run: 2,555 sessions at seven-in-flight is hours.
+
+    ⛔ **The ceiling is host memory, and exceeding it does not raise, it DELETES DATA.** Three arms
+    spawn a per-session MCP server. Starve the host and the server never answers `initialize`,
+    Claude Code reports the server failed with an EMPTY error list, the session runs with no memory
+    tools, the model answers from its own knowledge, and the record looks perfectly ordinary. The
+    admission gate then discards the cell, correctly. So contention does not produce errors, it
+    produces missing cells, and a run can be quietly hollowed out while every log looks clean.
+    Measured in `diagnostic-002`: 421 MB free, and the recall arm failed nearly every session after
+    the first six.
+
+    ⚠️ It also widens the STARTUP race, which is the documented binding constraint on grid width.
+    The server takes ~12.3s to answer, `pilot-004` lost 8 of 72 recall sessions to it (11.1%), and
+    a cell is admitted only when EVERY arm wired: at that rate five memory servers admit a cell
+    with probability 0.889^5 = 0.55 against a 95% admission rule. `harness/memory_startup.py`
+    probes and retries, which is what makes raising this survivable rather than safe.
+
+    So this is bounded deliberately, and the bound is memory per concurrent memory-arm server
+    rather than CPU: the sessions are waiting on an API, not computing.
+    """
+    raw = os.environ.get("AMB_BLOCK_CONCURRENCY", "").strip()
+    if not raw:
+        return 1
+    try:
+        value = int(raw)
+    except ValueError:
+        print(f"[pilot] AMB_BLOCK_CONCURRENCY={raw!r} is not an integer; using 1", flush=True)
+        return 1
+    if value < 1:
+        print(f"[pilot] AMB_BLOCK_CONCURRENCY={value} is not positive; using 1", flush=True)
+        return 1
+    # A hard ceiling, not advice. Three memory arms at roughly 815 MB per server means 8 cells is
+    # ~20 GB of servers alone, which is the shape that produced the starvation above.
+    if value > 8:
+        print(f"[pilot] AMB_BLOCK_CONCURRENCY={value} exceeds the ceiling; using 8", flush=True)
+        return 8
+    return value
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default="pilot-001")
@@ -340,13 +545,16 @@ async def main() -> int:
         "--memory-instruction",
         "--recall-instruction",
         dest="memory_instruction",
-        choices=("oneliner", "skill", "protocol"),
+        choices=("oneliner", "skill", "protocol", "draft"),
         default="oneliner",
-        help="which instruction the memory arms carry; recorded in the artifacts. `protocol` is "
-        "the only variant in which the arms are matched: it gives every memory arm the shared "
-        "adapters/_shared/memory_protocol.md plus that product's own capped appendix. `skill` "
-        "reproduces pilot-002 through pilot-004, in which the recall arm carried 5,428 characters "
-        "and no other arm carried more than 231.",
+        help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
+        "`draft` are the matched variants: each gives every memory arm one shared protocol plus "
+        "that product's own capped appendix. `draft` is preregistration 024's variant and differs "
+        "from `protocol` in exactly one section, `## How to search`, telling the agent to search "
+        "with the text it is about to write rather than by decomposing the task into operations; "
+        "it is generated by scripts/build_draft_protocol.py so the one-variable claim is checkable. "
+        "`skill` reproduces pilot-002 through pilot-004, in which the recall arm carried 5,428 "
+        "characters and no other arm carried more than 231.",
     )
     parser.add_argument(
         "--neutral-protocol",
@@ -355,6 +563,19 @@ async def main() -> int:
         "wins when they disagree', 'do not conclude the project has no opinion'). Required for "
         "any run of the preregistration-005 abstention suite, where those sentences hand every arm "
         "the answer to what is being measured. Not comparable with a run without it.",
+    )
+    parser.add_argument(
+        "--emit-decisions",
+        action="store_true",
+        help="require each Claude session to finish with one schema-constrained decision object "
+        "containing decision and confidence, and record it in runtime_decisions. This changes "
+        "the prompt contract, so use it only in a separately preregistered run.",
+    )
+    parser.add_argument(
+        "--emit-decision-stages",
+        action="store_true",
+        help="ask the runtime to label checkpoint decisions as pre_action, evidence, action, "
+        "or final. Requires --emit-decisions and records only stages the runtime actually emits.",
     )
     parser.add_argument(
         "--arms",
@@ -378,7 +599,7 @@ async def main() -> int:
     parser.add_argument(
         "--condition",
         default="",
-        choices=("", *CONDITIONS),
+        choices=("", *CORPUS_CONDITIONS),
         help="the corpus condition this run is measuring. When set, every finished cell is "
         "classified through its task's damage detector while the sandbox still exists, and the "
         "outcome is written to the record. Without it a cell records pass or fail only, which is "
@@ -398,10 +619,11 @@ async def main() -> int:
         "executing anything. This is how you check a command line; running it with a "
         "placeholder API key instead executes the whole grid and burns the run id.",
     )
-    parser.add_argument("--price-in", type=float, default=0.05866)
-    parser.add_argument("--price-out", type=float, default=0.11732)
-    parser.add_argument("--price-as-of", default="2026-08-22")
+    add_pricing_arguments(parser)
     args = parser.parse_args()
+
+    if args.emit_decision_stages and not args.emit_decisions:
+        raise SystemExit("--emit-decision-stages requires --emit-decisions")
 
     # Before the dry-run return, deliberately: a dry run is how you check a command line, so it has
     # to catch the two things that make a real run worthless. A recall arm with no DSN is a run
@@ -415,12 +637,12 @@ async def main() -> int:
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
-    if "protocol" in run_arms and args.memory_instruction != "protocol":
+    if "protocol" in run_arms and args.memory_instruction not in SHARED_PROTOCOL_VARIANTS:
         raise SystemExit(
             "the `protocol` arm is the instruction-only control for the shared memory protocol, "
-            "so it is only meaningful with --memory-instruction protocol. With `skill` or "
-            "`oneliner` it would carry a different instruction from the memory arms it exists to "
-            "be compared against."
+            f"so it is only meaningful with --memory-instruction in {SHARED_PROTOCOL_VARIANTS}. "
+            "With `skill` or `oneliner` it would carry a different instruction from the memory "
+            "arms it exists to be compared against."
         )
     # Only the recall arm reads a corpus through a database. Demanding a DSN for a run that has no
     # recall arm would make a bare-only calibration impossible without standing up a database it
@@ -448,7 +670,10 @@ async def main() -> int:
                 "Supermemory is not configured; set " + ", ".join(missing)
             )
 
-    tasks = [task for task in discover_tasks() if task.task_id.startswith("ts-")]
+    # The default grid, and the wider set a --tasks subset may name. Keeping these apart is what
+    # lets a new class be calibrated without silently changing what an ordinary run measures.
+    prefixes = SELECTABLE_PREFIXES if args.tasks else GRID_PREFIXES
+    tasks = [task for task in discover_tasks() if task.task_id.startswith(prefixes)]
     if args.tasks:
         wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
         available = {task.task_id for task in tasks}
@@ -471,6 +696,7 @@ async def main() -> int:
         print(f"[dry-run] arms   {list(run_arms)}")
         print(f"[dry-run] instruction variant {args.memory_instruction!r}, "
               f"neutral={args.neutral_protocol}")
+        print(f"[dry-run] structured decisions {args.emit_decisions}")
         for arm in run_arms:
             print(f"[dry-run]   {arm:<10} instruction {manifest[arm]['bytes']:>5} bytes")
         print(f"[dry-run] tasks  {len(tasks)}: {', '.join(task.task_id for task in tasks)}")
@@ -502,14 +728,34 @@ async def main() -> int:
             f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
             f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
         )
-    if "fs_grep" in run_arms:
-        corpus = CorpusManifest.load(corpus_root)
-        print(f"[ingest] fs_grep from {corpus_root}", flush=True)
-        ingest_reports.append(registry.get("fs_grep").ingest(corpus, args.namespace))
-    if "supermemory" in run_arms:
-        corpus = CorpusManifest.load(corpus_root)
-        print(f"[ingest] supermemory from {corpus_root}", flush=True)
-        ingest_reports.append(registry.get("supermemory").ingest(corpus, args.namespace))
+    corpus = CorpusManifest.load(corpus_root) if (
+        "recall" in run_arms or any(arm in run_arms for arm in SELF_INGESTING_ARMS)
+    ) else None
+    self_ingesting = [arm for arm in SELF_INGESTING_ARMS if arm in run_arms]
+    if self_ingesting:
+        assert corpus is not None
+        for arm in self_ingesting:
+            print(f"[ingest] {arm} from {corpus_root}", flush=True)
+            report = registry.get(arm).ingest(corpus, args.namespace)
+            print(
+                f"[ingest] {arm}: {report.items_stored} item(s) from "
+                f"{report.sessions_offered} session(s)",
+                flush=True,
+            )
+            ingest_reports.append(report)
+    if "recall" in run_arms:
+        # Recall is indexed out of band, but a run still has to prove here that its tenant serves
+        # the active generation built from THIS frozen manifest. Previously pilot.py skipped this
+        # check because the abstention wrapper happened to perform it, leaving direct pilot runs
+        # able to spend against a missing or stale tenant.
+        assert corpus is not None
+        print(f"[verify] recall generation for {args.namespace}", flush=True)
+        report = registry.get("recall").ingest(corpus, args.namespace)
+        ingest_reports.append(report)
+        print(
+            f"[verify] recall: {report.notes[-1] if report.notes else 'generation verified'}",
+            flush=True,
+        )
 
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
     # until 2026-08-28 it was inline code here instead, so `adapters/` was reviewable and not run.
@@ -533,6 +779,43 @@ async def main() -> int:
                 by_task[task.task_id] = hashlib.sha256(Path(prompt).read_bytes()).hexdigest()
         prompt_hashes[arm] = by_task
     refuse_shared_prompts(prompt_hashes)
+
+    recall_preflight: dict[str, Any] = {"status": "not_required"}
+    if "recall" in run_arms:
+        # This is a real MCP tools/call, not only a process handshake. An empty result is valid,
+        # because an empty corpus response is a successful retrieval; a transport or server error
+        # is not. The result is written into environment.json before setup validation refuses a
+        # broken run, so the refusal remains auditable.
+        spec = specs[(tasks[0].task_id, "recall")]
+        required = [name.removeprefix(RECALL_PREFIX) for name in spec.extra_allowed_tools]
+        try:
+            tools = probe(
+                spec.mcp_config,
+                str(RECALL_CONFIG["server_name"]),
+                required,
+                probe_tool="recall_search",
+                probe_arguments={"query": tasks[0].prompt, "limit": 1},
+            )
+            recall_preflight = {
+                "status": "passed",
+                "server": RECALL_CONFIG["server_name"],
+                "required_tools": required,
+                "tools_observed": tools,
+                "search": "tools/call recall_search succeeded",
+            }
+            print(f"[preflight] recall MCP and search up: {len(tools)} tool(s)", flush=True)
+        except Exception as exc:  # noqa: BLE001, the setup gate records the concrete refusal
+            recall_preflight = {
+                "status": "failed",
+                "server": RECALL_CONFIG["server_name"],
+                "required_tools": required,
+                "error": str(exc)[-2000:],
+            }
+            print(
+                f"[preflight] recall FAILED: {recall_preflight['error']}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     signals = with_forbidden_prefixes(
         {
@@ -558,7 +841,32 @@ async def main() -> int:
                 "model": args.model,
                 "arms": list(run_arms),
                 "memory_instruction": args.memory_instruction,
+                "condition": args.condition,
                 "neutral_protocol": args.neutral_protocol,
+                "decision_output": {
+                    "enabled": args.emit_decisions,
+                    "staged": args.emit_decision_stages,
+                    "schema": (
+                        STAGED_DECISION_OUTPUT_SCHEMA
+                        if args.emit_decision_stages
+                        else DECISION_OUTPUT_SCHEMA
+                    ) if args.emit_decisions else None,
+                    "instruction_sha256": (
+                        hashlib.sha256(
+                            (
+                                DECISION_OUTPUT_INSTRUCTION
+                                + (f"\n\n{DECISION_STAGE_INSTRUCTION}" if args.emit_decision_stages else "")
+                            ).encode("utf-8")
+                        ).hexdigest()
+                        if args.emit_decisions
+                        else None
+                    ),
+                    "confidence_semantics": (
+                        "probability that the requested task was completed correctly"
+                        if args.emit_decisions
+                        else None
+                    ),
+                },
                 # The fairness disclosure, published beside the success rates. Under `skill` the
                 # recall arm carries thousands of bytes more than any other; under `protocol` the
                 # gap is each product's capped result-schema appendix and nothing else.
@@ -586,11 +894,46 @@ async def main() -> int:
                     if arm in registry.names()
                 },
                 "ingest": [report.to_dict() for report in ingest_reports],
+                "recall_preflight": recall_preflight,
             },
             indent=2,
         ),
         encoding="utf-8",
     )
+    # Refuse a misconfigured run HERE, before a single session is spent.
+    #
+    # This is the cheapest point there is: ingest is done (~20 min on the official corpus) and
+    # the sessions are not (~11 h, and the whole model bill). Both of this project's expensive
+    # failures were plainly visible in the dict written just above, and nobody compared it to an
+    # expectation. `official-002` published `instruction_excess_bytes` showing recall at 1,958
+    # bytes against mempalace's 853 for the whole of its life and its headline finding had to be
+    # withdrawn; the haystackless corpora published `sessions_offered: 207`. Recording a number
+    # is not checking it, and provenance without assertion reads exactly like provenance with it.
+    #
+    # The instruction checks are INVARIANTS and are always enforced: a roster whose arms do not
+    # share one protocol byte for byte is not measuring what it claims, whatever the run is for.
+    #
+    # The corpus floor is an EXPECTATION and is enforced only when supplied, because small
+    # corpora are legitimate here: `diagnostic-010` ran 125 sessions deliberately.
+    # `launch_official.sh` exports AMB_CORPUS_FLOOR because an official run always uses the
+    # haystack; a pilot leaves it unset and that check reports SKIP rather than passing.
+    setup_env = json.loads((run_dir / "environment.json").read_text(encoding="utf-8"))
+    setup_checks = validate_setup(
+        setup_env, corpus_floor=int(os.environ.get("AMB_CORPUS_FLOOR", "0"))
+    )
+    for check in setup_checks:
+        if check.ok is not True:
+            print(f"[setup] {check.mark} {check.name}: {check.detail}", flush=True)
+    if any(check.ok is False for check in setup_checks):
+        print(
+            "\n[setup] REFUSING to run sessions: this run is not configured to measure what it "
+            "claims. Nothing has been spent beyond ingest. Fix the setup, or say why the check is "
+            "wrong and change the check; do not route around it.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 2
+
     by_id = {task.task_id: task for task in tasks}
 
     env = {
@@ -623,10 +966,20 @@ async def main() -> int:
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
             stream_dir=run_dir / "streams",
+            json_schema=(
+                STAGED_DECISION_OUTPUT_SCHEMA
+                if args.emit_decision_stages
+                else DECISION_OUTPUT_SCHEMA
+            ) if args.emit_decisions else None,
         )
 
     records_path = run_dir / "records.jsonl"
-    fs_grep_memory = staging / args.namespace / "memory" if "fs_grep" in run_arms else None
+    # `--namespace` is a CLI argument and this path is handed to the fs_grep arm as its
+    # store. Validated here for the same reason the adapter validates its own join.
+    fs_grep_memory = (
+        namespace_path(staging, args.namespace, "memory") if "fs_grep" in run_arms
+        else None
+    )
 
     async def runner(row, arm):
         task_id, seed = str(row["task_id"]), int(row["seed"])
@@ -635,7 +988,26 @@ async def main() -> int:
         digest = sandbox.restore(task_id, workdir, overlay=overlay)
         record = await run_claude_case(row, arm, config_for(task_id, seed, arm, workdir))
         ok, verdict = run_checker(by_id[task_id], workdir)
-        prompt_file = specs[(task_id, arm)].append_system_prompt_file
+        spec = specs[(task_id, arm)]
+        prompt_file = spec.append_system_prompt_file
+
+        # ⛔ Carry the adapter's diagnostic metadata into the RECORD, or the admission gate
+        # discards every cell of every condition.
+        #
+        # A diagnostic adapter returns `AdmissionSignal(metadata={"diagnostic_kind": <arm>})` and
+        # puts the matching `memory_diagnostic` on its `ArmSpec`. `harness.gate._check_diagnostic`
+        # compares the two and refuses when they disagree. `scripts/diagnostic.py` copied the spec
+        # metadata across; this runner never did, so `recall_prefetch` sessions RAN, SUCCEEDED, and
+        # were then discarded to a cell with
+        #     diagnostic arm 'recall_prefetch' expected memory treatment 'recall_prefetch', got None
+        # and because a cell is admitted only when EVERY arm is admitted, one unstamped arm voids
+        # the entire grid. Measured 2026-08-31 on official-002: 360 sessions run, 0 cells admitted,
+        # 60 of 60 discarded, all attributed to recall_prefetch.
+        #
+        # ⚠️ Only `memory_diagnostic` is carried, not the whole spec metadata: the adapter also
+        # sets `prompt_sha256`, which this runner computes itself from the file it actually used,
+        # and a blanket merge would let the adapter's value win.
+        diagnostic_extra = diagnostic_metadata(spec)
 
         # Classify HERE, not in the analysis. A damage detector needs the finished working tree,
         # and by the time anything reads records.jsonl the sandbox is gone. Without this the
@@ -647,6 +1019,7 @@ async def main() -> int:
         extra = {
             "checker": verdict,
             **condition_extra,
+            **diagnostic_extra,
             # Compared ACROSS a cell's arms by harness.gate.admit_cells. Recorded since the first
             # commit and, until 2026-08-28, read by nothing.
             "sandbox_digest": digest,
@@ -681,7 +1054,17 @@ async def main() -> int:
         return final
 
     rows = [
-        {"task_id": task.task_id, "seed": seed, "user_input": task.prompt}
+        {
+            "task_id": task.task_id,
+            "seed": seed,
+            "user_input": (
+                with_decision_output_instruction(
+                    task.prompt, staged=args.emit_decision_stages
+                )
+                if args.emit_decisions
+                else task.prompt
+            ),
+        }
         for task in tasks
         for seed in range(args.seeds)
     ]
@@ -691,7 +1074,7 @@ async def main() -> int:
         flush=True,
     )
     started = time.monotonic()
-    records = await run_grid(rows, run_arms, runner, block_concurrency=1)
+    records = await run_grid(rows, run_arms, runner, block_concurrency=block_concurrency())
     wall_min = (time.monotonic() - started) / 60
 
     write_jsonl(run_dir / "records.final.jsonl", records)
@@ -699,15 +1082,7 @@ async def main() -> int:
     (run_dir / "admission.json").write_text(
         json.dumps(report.summary(), indent=2), encoding="utf-8"
     )
-    pricing = {
-        args.model: ModelPricing(
-            model=args.model,
-            usd_per_mtok_input=args.price_in,
-            usd_per_mtok_output=args.price_out,
-            as_of=args.price_as_of,
-            source="https://openrouter.ai/api/v1/models",
-        )
-    }
+    pricing = pricing_from_args(args, model=args.model, source="https://openrouter.ai/api/v1/models")
     costs = summarize(records, ingest_reports, pricing=pricing, model=args.model)
     admitted_cells = {record.cell: True for record in report.admitted}
     costs["efficiency"] = efficiency(records, admitted_cells=admitted_cells)

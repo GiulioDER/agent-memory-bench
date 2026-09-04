@@ -1,0 +1,1 @@
+Right. Every migration filename carries the date it was written, as eight digits after the number, so two people working the same week cannot collide.

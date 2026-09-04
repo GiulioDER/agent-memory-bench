@@ -1,0 +1,1 @@
+The Windows deploy target has been reporting every manifest entry as missing since we switched generators, and incident/ has what we collected: target_compare.txt is the comparison the target performs, and target_log.txt is what it printed on the last attempt. Work out why the comparison never matches, and recommend how the manifest should key its entries.

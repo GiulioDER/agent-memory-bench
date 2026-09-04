@@ -1,0 +1,3 @@
+That is what happened, and it needs to be on the record in those terms. The consolidation step was deduplicating on order_id. Two suppliers reuse the same id range, so order_id is not unique on its own, and every order from the second supplier whose id had already been seen was discarded as a duplicate. We dropped 1,214 orders that month and none of them was a duplicate.
+
+I am deliberately not choosing the replacement key here. That is a data-ownership question and the people who can answer it are not in this thread. What must not happen again is deduplicating on order_id.

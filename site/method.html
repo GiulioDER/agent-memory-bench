@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem("amb-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<title>Method — agent-memory-bench</title>
+<meta name="description" content="How agent-memory-bench works: neutral corpus, per-arm ingestion, sandboxed Claude Code sessions, an admission gate, execution grading, and preregistered analysis.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Spline+Sans+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html" aria-label="agent-memory-bench home">
+      <span class="tick" aria-hidden="true"></span>
+      <span><strong class="long">agent-memory-bench</strong><strong class="short">AMB</strong><span class="full"> / AMB</span></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="method.html" aria-current="page">Method</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="submit.html">Submit</a>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+      <button class="theme-toggle" type="button" aria-label="Switch between light and dark"><span class="sw" aria-hidden="true"></span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="sheet">
+
+  <section class="page-head">
+    <span class="kicker reveal">Method</span>
+    <h1 class="reveal r2">One neutral feed in.<br>One <em>executed</em> artifact out.</h1>
+    <p class="dek reveal r3">Every arm receives the same recorded experience, works the same
+    tasks in the same sandbox, and is graded by the same checkers. The only variable is the
+    memory layer. Everything below is enforced by the harness, not by convention.</p>
+  </section>
+
+  <section class="pad-y-s" id="pipeline">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>The pipeline</h2>
+      <span class="aside">harness/</span>
+    </div>
+
+    <div class="pipeline mt-s" role="img" aria-label="Pipeline diagram: corpus feeds per-arm ingestion, then a sandboxed session, then the admission gate which either discards the cell or passes it to execution grading, and results land in the ledger.">
+      <svg viewBox="0 0 1040 176" xmlns="http://www.w3.org/2000/svg" fill="none">
+        <style>
+          .bx { stroke: var(--ink); fill: var(--paper); }
+          .tt { font: 600 13px "Spline Sans Mono", monospace; fill: var(--ink); }
+          .ts { font: 400 9.5px "Spline Sans Mono", monospace; fill: var(--ink-faint); }
+          .ln { stroke: var(--ink); }
+          .dsh { stroke: var(--ink); stroke-dasharray: 3 4; }
+          rect.dsh { fill: var(--paper); }
+        </style>
+        <rect class="bx" x="4"   y="24" width="148" height="52"/>
+        <rect class="bx" x="180" y="24" width="148" height="52"/>
+        <rect class="bx" x="356" y="24" width="148" height="52"/>
+        <rect class="bx" x="532" y="24" width="148" height="52"/>
+        <rect class="bx" x="708" y="24" width="148" height="52"/>
+        <rect class="bx" x="884" y="24" width="152" height="52"/>
+
+        <text class="tt" x="18"  y="46">CORPUS</text>       <text class="ts" x="18"  y="63">verbatim transcripts</text>
+        <text class="tt" x="194" y="46">INGEST</text>       <text class="ts" x="194" y="63">each arm's write path</text>
+        <text class="tt" x="370" y="46">SESSION</text>      <text class="ts" x="370" y="63">Claude Code, sandboxed</text>
+        <text class="tt" x="546" y="46">GATE</text>         <text class="ts" x="546" y="63">proof of treatment</text>
+        <text class="tt" x="722" y="46">EXECUTE</text>      <text class="ts" x="722" y="63">checker vs oracle</text>
+        <text class="tt" x="898" y="46">LEDGER</text>       <text class="ts" x="898" y="63">score + full costs</text>
+
+        <line class="ln" x1="152" y1="50" x2="180" y2="50"/>
+        <line class="ln" x1="328" y1="50" x2="356" y2="50"/>
+        <line class="ln" x1="504" y1="50" x2="532" y2="50"/>
+        <line class="ln" x1="680" y1="50" x2="708" y2="50"/>
+        <line class="ln" x1="856" y1="50" x2="884" y2="50"/>
+        <path d="M175 46 L180 50 L175 54" class="ln"/>
+        <path d="M351 46 L356 50 L351 54" class="ln"/>
+        <path d="M527 46 L532 50 L527 54" class="ln"/>
+        <path d="M703 46 L708 50 L703 54" class="ln"/>
+        <path d="M879 46 L884 50 L879 54" class="ln"/>
+
+        <line class="dsh" x1="606" y1="76" x2="606" y2="122"/>
+        <path d="M602 117 L606 122 L610 117" class="ln"/>
+        <rect class="dsh" x="516" y="122" width="180" height="42"/>
+        <text class="tt" x="530" y="140">DISCARDED</text>
+        <text class="ts" x="530" y="156">counts published per arm</text>
+      </svg>
+    </div>
+
+    <div class="prose mt-m">
+      <p>The corpus is fed to every adapter as identical bytes. Each product ingests it through
+      its own published write path, so what its extraction pipeline keeps, and what it throws
+      away, is part of what is measured. The agent then works each task in a fresh sandbox with
+      that arm's integration installed and nothing else.</p>
+      <p>Before a session is scored it must pass the admission gate. After it, the artifact the
+      agent left behind is run against an executable checker whose oracle inputs the sandbox
+      never contained. The result, with every token spent on both ingestion and the session,
+      lands in one per-arm ledger.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="arms">
+    <div class="section-head">
+      <span class="no">02</span>
+      <h2>The arms</h2>
+      <span class="aside">what each one removes</span>
+    </div>
+    <div class="prose mt-s">
+      <p>An arm is not a contestant. Each one exists to <strong>remove a competing
+      explanation</strong> for what the product does, so that a difference at the end has one
+      story left that fits it. Read down the table and the design is the argument: by the last
+      row, "the memory layer did it" is the only surviving account.</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead>
+          <tr><th>arm</th><th>what it is</th><th>the explanation it removes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="m">bare</span></td>
+            <td>no memory layer, no CLAUDE.md, nothing but the repository and the prompt</td>
+            <td>"the task was solvable anyway." It is the floor, it runs in every cell, and
+            <strong>damage is defined against it</strong>: an arm damaged a cell when it failed
+            what <code>bare</code> solved. Without it, harm has no referent</td>
+          </tr>
+          <tr>
+            <td><span class="m">placebo</span></td>
+            <td>project-shaped prose with no memory content, matched to the baseline bundle on
+            line count and whitespace tokens</td>
+            <td>"any extra context would have helped." If <code>placebo</code> moves the number,
+            the treatment was <em>volume of plausible text</em>, not retrieval. This is the
+            control most memory benchmarks omit, and omitting it is how context stuffing gets
+            reported as memory</td>
+          </tr>
+          <tr>
+            <td><span class="m">claude_md</span></td>
+            <td>a curated static instruction bundle, the file a careful team already maintains</td>
+            <td>"a memory product beats having nothing." The honest competitor is not nothing, it
+            is a good README. It costs zero tokens per query and never goes stale mid-session, so
+            <strong>a memory layer that cannot beat it has not earned its retrieval
+            budget.</strong> It is the baseline, and every delta is quoted against it</td>
+          </tr>
+          <tr>
+            <td><span class="m">fs_grep</span></td>
+            <td>the whole corpus on disk, and grep</td>
+            <td>"a memory product beats searching the transcripts." The cheap answer costs no
+            index, no embedding and no server. A product is worth its infrastructure only if it
+            beats this, and it is a <em>non-memory</em> retrieval baseline, so a gap here is
+            about the memory layer rather than about having the text at all</td>
+          </tr>
+          <tr>
+            <td><span class="m">recall</span></td>
+            <td>MCP server, 8 read and navigation tools including its reasoning and graph surface</td>
+            <td>product under test</td>
+          </tr>
+          <tr>
+            <td><span class="m">qualified hook arm</span></td>
+            <td>an official lifecycle-hook integration with its own pinned plugin and local service</td>
+            <td>treatment presence and hook timing are checked, but the arm is held out of the public product ranking until its disclosure window and preregistered comparison are complete</td>
+          </tr>
+          <tr>
+            <td><span class="m">recall_prefetch</span></td>
+            <td>the same retrieval, run in the harness with the task prompt already in hand</td>
+            <td>"the product cannot find it." Query formulation is removed, so this is the
+            ceiling the live arm is reaching for. It is a reference track, never ranked</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose mt-m">
+      <p><strong>Write tools and write-side hooks are withheld.</strong> The product ships them
+      and would use them, but the corpus has to be frozen across arms and cells: a session that
+      wrote would change what the next seed reads, and one that solved a task could write its
+      answer where the next cell retrieves it. That limitation is stated in the scope line above
+      every ranking rather than in a footnote: <strong>this measures retrieval, not memory
+      formation</strong>, and gives no credit for extraction or consolidation at write time.</p>
+      <p>Each product carries <strong>its own shipped instruction</strong>. Equalising the text
+      measures a denominator no vendor ships; this measures what a user installs. Per-arm
+      instruction sizes are published with every run so the asymmetry is visible.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="tasks">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>Tasks</h2>
+      <span class="aside">tasks/&lt;id&gt;/ · oracles/&lt;id&gt;/</span>
+    </div>
+    <div class="prose mt-s">
+      <p>A task is a fixture repository, a task spec, and an executable checker. Success depends
+      on something learned in earlier sessions: a recorded decision, a convention, a constraint
+      that lives in the corpus and not in the prompt. The suite holds <strong>34 tasks</strong>
+      (identifiers like <code>ts-tz-utc</code>, <code>ts-stable-sort</code>,
+      <code>ts-log-mask</code>). Three of them, the <code>xs-</code> set, state their governing
+      rule across two sessions rather than one, so no single document answers them: a suite where
+      combining sessions is never necessary cannot detect a product that combines them.</p>
+      <p>Every task ships two reference solutions, asserted in CI on every commit:</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead>
+          <tr><th>reference</th><th>encodes</th><th>must</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="m">naive/</span></td>
+            <td>the plausible solution an agent produces <em>without</em> the recorded knowledge</td>
+            <td><strong>fail</strong> the checker</td>
+          </tr>
+          <tr>
+            <td><span class="m">informed/</span></td>
+            <td>the solution that uses what the corpus knows</td>
+            <td><strong>pass</strong> the checker</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose mt-s dim">If the naive solution passes, the task is not measuring memory and
+    is rejected. A do-nothing session scores zero by construction: there is no partial credit
+    from a judge, because there is no judge.</p>
+    <div class="prose mt-m">
+      <p><strong>How one cell actually runs.</strong> A cell is one task at one seed, and every
+      arm runs it. Take <code>ts-tz-utc</code>, whose governing fact is a timezone convention
+      this project settled months ago and wrote down nowhere in the code.</p>
+      <ol>
+        <li>The corpus is ingested once per condition, before any session, through each
+        product's own write path. It is then <strong>frozen</strong>: no arm writes to its store
+        again for the rest of the run.</li>
+        <li>A fresh sandbox is built from the task's fixture repository. It contains the code and
+        nothing else: no oracle, no reference solution, no corpus on disk. The sandbox cannot
+        reach the benchmark repository, because a single <code>cd ..</code> would otherwise reach
+        the answers.</li>
+        <li>The agent gets the prompt and that arm's integration, and only that arm's. The
+        prompt never states the governing fact. It is answerable from the corpus, or from
+        nothing.</li>
+        <li>The session ends. Before it can be scored it passes the <a href="#gate">admission
+        gate</a>, which checks that the arm's tools were actually listed at session init and
+        that no arm held another arm's tools.</li>
+        <li>The checker runs the artifact against oracle inputs the sandbox never contained. For
+        <code>ts-tz-utc</code> that means feeding timestamps whose correct handling depends on
+        the convention, and comparing output. Pass or fail. That is the score.</li>
+      </ol>
+      <p>The two reference solutions are what make the task <em>about memory</em> rather than
+      about competence. <code>naive/</code> is the good-faith answer an able engineer writes
+      without the recorded knowledge, and CI asserts it <strong>fails</strong>. <code>informed/</code>
+      uses the recorded fact and CI asserts it <strong>passes</strong>. If the naive solution ever
+      starts passing, the task has stopped measuring memory and is rejected rather than kept.</p>
+      <p>The official run works the subset that carries planted corpus conditions: <strong>73
+      task-conditions</strong> in all. One task cannot express <code>contradictory</code>
+      observably and says so in its own directory rather than being quietly dropped.</p>
+    </div>
+
+  </section>
+
+  <section class="pad-y-s" id="corpus">
+    <div class="section-head">
+      <span class="no">04</span>
+      <h2>The corpus</h2>
+      <span class="aside">corpus/ · sha256 manifest</span>
+    </div>
+    <div class="prose mt-s">
+      <p>The experience feed is <strong>verbatim recorded agent session transcripts</strong>,
+      pinned by a sha256 manifest. It is deliberately not a curated fact list: it carries the
+      noise, the dead ends and the distractor sessions real agent history carries. No arm gets a
+      different feed, and the only asymmetry a product can gain is what it extracts.</p>
+      <p><strong>It is 4,900 documents per condition, and it was made harder on purpose.</strong>
+      The 196-document feed every earlier run used was saturated: hit@10 was 1.000, so every
+      memory arm found the governing session every time and the grid could not separate "the
+      product retrieved badly" from "the agent never searched". On the current corpus
+      <code>bm25</code> hit@1 is 0.182 against 0.485, and <code>voyage</code> hit@10 is 0.879
+      against 1.000. Containment is checked against the built corpus rather than trusted: no fact
+      term of any task appears in any synthetic document, or the <code>absent</code> condition
+      would be silently broken for that task.</p>
+      <p class="dim">That change breaks comparability. No number measured on this corpus may be
+      differenced against a number from any earlier run.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="harm">
+    <div class="section-head">
+      <span class="no">05</span>
+      <h2>The harm suite</h2>
+      <span class="aside">does memory ever make it worse?</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Every task described above places its governing fact <em>in</em> the corpus, so that
+      suite can only ask whether memory helps. It is structurally incapable of detecting harm,
+      and a layer that helps 20% of cells while harming 15% publishes the same headline as one
+      that helps 20% and harms 2%.</p>
+      <p>So a second suite varies <strong>what the corpus contains</strong>, never what a product
+      does about it. Every arm ingests identical bytes under each condition. Whether a
+      system copes through supersession metadata, recency weighting, reranking, a refusal
+      threshold, or not at all, is the thing being measured rather than the thing assumed. Damage
+      is defined against the memory-free arm: failing a cell that <code>bare</code> solved.</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead>
+          <tr><th>condition</th><th>the corpus holds</th><th>correct behaviour</th><th>damage signature</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="m">absent</span></td>
+              <td>no governing fact for this task</td>
+              <td>solve from the repository, or say it is unknown</td>
+              <td>invents a convention and applies it</td></tr>
+          <tr><td><span class="m">superseded</span></td>
+              <td>the old fact and the newer one, both dated</td>
+              <td>apply the current fact</td>
+              <td>ships the stale convention</td></tr>
+          <tr><td><span class="m">contradictory</span></td>
+              <td>two undated memos that disagree, neither marked</td>
+              <td>surface the conflict rather than choose</td>
+              <td>chooses silently</td></tr>
+          <tr><td><span class="m">adjacent</span></td>
+              <td>a confident, high-similarity memo governing a <em>different</em> subsystem</td>
+              <td>recognise that it does not apply here</td>
+              <td>applies the other subsystem's rule</td></tr>
+          <tr><td><span class="m">present</span></td>
+              <td>the governing fact, plainly, with nothing done to it</td>
+              <td>find it and apply it</td>
+              <td>none; this is the condition memory should win</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose mt-m dim">The fifth condition exists because the other four all vary how the
+    evidence is <em>bad</em>, which made never searching a dominant strategy: an arm that ignored
+    its memory entirely forfeited nothing. <code>present</code> is the identity transform, and it
+    is what a degenerate strategy loses. A plant is measurable only if every reading of it gives a
+    different observable outcome, which is why one task carries two damage conditions rather than
+    four: its <code>adjacent</code> damage would be byte-identical to the factless answer. Eleven
+    tasks carry all four.</p>
+  </section>
+
+  <section class="pad-y-s" id="gate">
+    <div class="section-head">
+      <span class="no">06</span>
+      <h2>The admission gate</h2>
+      <span class="aside">discard, never score</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Silent failure is the standing hazard of agent benchmarks: an MCP server that never
+      attached, a hook that never fired, a sandbox missing its files. A session in that state
+      measures nothing, and scoring it poisons the average in whichever direction luck chooses.</p>
+      <p>So a grid cell is <strong>discarded, not scored</strong>, unless every arm proves its
+      treatment was applied:</p>
+    </div>
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr><th>integration</th><th>required proof</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">MCP server</span></td><td>tools listed at session init, in the session's own record</td></tr>
+          <tr><td><span class="m">lifecycle hooks</span></td><td>hooks demonstrably fired, with output</td></tr>
+          <tr><td><span class="m">sandbox files</span></td><td>digest-verified against the frozen bundle</td></tr>
+          <tr><td><span class="m">isolation</span></td><td>no arm holding another arm's tools</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose mt-s dim">Discard counts are published per arm, so a product that only runs
+    cleanly half the time cannot hide it in a smaller denominator.</p>
+
+    <p class="prose mt-s dim">Two consequences the gate cannot state for itself. Only an arm
+    with a memory surface can fail to wire, so the rule protects one class of arm's worst outcome
+    and no other's, and every headline is published beside an intention-to-treat column over all
+    complete cells. And a startup failure is a transient, not an outcome: a preflight speaks the
+    protocol to the server before a session is paid for, and a session whose treatment failed to
+    wire is retried under a rule that reads the admission surface and never reads
+    <code>success</code>, the checker verdict, or anything the model did.</p>
+
+  </section>
+
+  <section class="pad-y-s" id="scoring">
+    <div class="section-head">
+      <span class="no">07</span>
+      <h2>Scoring and costs</h2>
+      <span class="aside">harness/costs.py</span>
+    </div>
+    <div class="prose mt-s">
+      <p>The primary endpoint is <strong>task success</strong>: the checker passes or it does
+      not. Analysis is paired per task, arms are contrasted against the
+      <code>claude_md</code> baseline, and deltas below the preregistered minimum effect are
+      reported as noise rather than dressed up as findings.</p>
+      <p>Costs are end-to-end. Ingestion tokens, session tokens, wall time and negative-transfer
+      counts land in one per-arm ledger beside the success rate, because a layer that buys two
+      points for triple the tokens is a different product than its headline suggests. No arm has
+      been run at a matched budget, so the ledger carries success per million tokens and reports
+      the asymmetry rather than smoothing it.</p>
+      <p>Two details that sound like bookkeeping and are not. <strong>Input is not one
+      price:</strong> fresh input, cache reads and cache creation are metered separately, because
+      one arm's input can be two-thirds cache reads while a baseline's is under half, and a single
+      rate then overstates spend unevenly between exactly the two arms being compared.
+      <strong>Prices are stated, never defaulted:</strong> a live run refuses to start without
+      them. Compare runs on tokens.</p>
+      <p>An arm that ingests with a model on the benchmark host reports zero hosted tokens and
+      names the model, so its zero is never read as zero cost.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="diagnostic">
+    <div class="section-head">
+      <span class="no">08</span>
+      <h2>Diagnostic reference tracks</h2>
+      <span class="aside">unranked, by design</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Task success says whether the memory path worked, not which part failed. A memory arm can
+      lose three ways: the agent never searched, it searched badly, or the store did not hold the
+      answer. <code>recall_prefetch</code> separates the first from the rest by running retrieval
+      in the harness with the exact task prompt and injecting what comes back. It <strong>is</strong>
+      in the official run, as an upper bound; it is never ranked against the products, because an
+      arm that cannot lose does not belong in a ranking.</p>
+      <p class="dim"><code>oracle_memory</code>, which injects the exact evidence and removes
+      retrieval altogether, is <strong>not</strong> in the run. Its bundles are keyed by task and
+      carry no corpus condition, so under <code>absent</code> it would supply an answer that
+      condition is defined not to contain. It returns when its bundles are condition-aware. The
+      contrasts below are the decomposition it belongs to, stated so its absence is a recorded
+      choice.</p>
+    </div>
+    <div class="mt-m">
+      <div class="contrast">
+        <span class="expr">oracle_memory − claude_md</span>
+        <p>Oracle headroom: how much this task set can reward correct evidence at all.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">recall − claude_md</span>
+        <p>Natural memory lift: the product as an agent actually experiences it.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">recall_prefetch − claude_md</span>
+        <p>Prefetch memory lift: retrieval quality with query formulation removed.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">oracle_memory − recall</span>
+        <p>Access gap: everything lost between perfect evidence and the live memory path.</p>
+      </div>
+      <div class="contrast">
+        <span class="expr">recall_prefetch − recall</span>
+        <p>Prefetch gap: how much is lost to the agent's own decision to search, and its query.</p>
+      </div>
+    </div>
+    <p class="prose mt-m dim">A gap is evidence about a causal path, not a claim that a product
+    is first or unique. Diagnostic arms never enter the product ranking.</p>
+  </section>
+
+  <section class="pad-y-s" id="why">
+    <div class="section-head">
+      <span class="no">09</span>
+      <h2>Why this is a test of memory</h2>
+      <span class="aside">and not of retrieval prose</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Most memory benchmarks ask a model questions about synthetic conversations and score
+      the answers with another model: a needle someone planted, found under a judge whose failure
+      modes correlate with the thing being judged. Five properties here are chosen against
+      that.</p>
+      <p><strong>The grade is execution.</strong> A checker runs the artifact against oracle
+      inputs the sandbox never contained. No partial credit, no rubric, no judge in the primary
+      endpoint, so a fluent wrong answer scores what a silent one does: zero.</p>
+      <p><strong>The corpus is raw.</strong> Verbatim recorded sessions, dead ends and noise
+      included. Distilling signal from that stream is what a memory product claims to do, so the
+      benchmark refuses to do it for anyone. The only asymmetry available is what a product
+      keeps.</p>
+      <p><strong>Harm is measured.</strong> A suite where every governing fact sits in the corpus
+      can only ask whether memory helps, and a layer that helps 20% of cells while harming 15%
+      publishes the same headline as one that helps 20% and harms 2%. The corpus conditions ask
+      whether the product notices stale, contradictory and off-subsystem evidence.</p>
+      <p><strong>The comparison is paired.</strong> Every arm meets the same task, seed and
+      fixture, so a cell is a within-subject comparison rather than a difference of averages
+      across arms that met different work. Arm order is randomised per cell and recorded.</p>
+      <p><strong>Treatment is proved.</strong> A stdio server that fails to start is invisible in
+      a transcript: no memory tool calls, which looks exactly like a model that chose not to
+      search. The gate discards any cell where an arm cannot prove its treatment applied.</p>
+      <p>The result is a benchmark that can return a null and survive it. If memory layers do not
+      beat a good static instruction file on real coding work, that is the finding, and it is
+      published as readily as the opposite.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="prereg">
+    <div class="section-head">
+      <span class="no">10</span>
+      <h2>Preregistration</h2>
+      <span class="aside">preregistration/</span>
+    </div>
+    <div class="prose mt-s">
+      <p>Every measured run is preregistered: the question, the predictions, the endpoints, the
+      contrast families, the exclusion rules and the sizing are committed <strong>before the
+      first session starts</strong>. The run scripts enforce the mechanical half: they refuse to
+      start while the preregistration directory is dirty.</p>
+    </div>
+    <div class="callout mt-m">
+      <span class="kicker">The honest half, by convention</span>
+      <div class="prose">
+        <p><strong>Never edit a number in a committed preregistration.</strong> Not a
+        prediction, not a measured value, not a date. Append a correction underneath.</p>
+        <p><strong>Results are appended below the frozen prediction</strong>, under a marked
+        line, in the same file, so prediction and outcome are read together.</p>
+        <p><strong>Falsified predictions stay.</strong> The gap between expected and measured is
+        the only part of a result that teaches anything.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="foot-title">agent-memory-bench</div>
+      <div class="dim">A preregistered, execution-graded benchmark of pluggable memory layers
+      for coding agents. Apache-2.0. Built in the open; results published win or lose.</div>
+    </div>
+    <div>
+      <div class="foot-title">Pages</div>
+      <a href="method.html">Method</a><br>
+      <a href="leaderboard.html">Leaderboard</a><br>
+      <a href="submit.html">Submit &amp; reproduce</a>
+    </div>
+    <div>
+      <div class="foot-title">Source</div>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">Repository</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/preregistration">Preregistrations</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/adapters/VENDOR_REVIEW_TEMPLATE.md">Vendor review</a>
+    </div>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>

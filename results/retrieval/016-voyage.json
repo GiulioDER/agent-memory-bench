@@ -1,0 +1,693 @@
+[
+  {
+    "summary": {
+      "corpus": "corpus/haystack/scale-4/seed-1-semantic-only",
+      "backend": "voyage",
+      "documents": 780,
+      "windows": 5216,
+      "queries": 33,
+      "hit@1": 0.3939,
+      "hit@5": 0.8788,
+      "hit@10": 0.9697,
+      "mrr@10": 0.5647,
+      "median_rank": 2,
+      "mean_competitors_above_gold": 2.67,
+      "misses": 0,
+      "all_shards@10": 1.0,
+      "competitor_tiers": {
+        "real-distractor": 55,
+        "other-task-signal": 3,
+        "semantic": 26,
+        "background": 4
+      }
+    },
+    "per_task": [
+      {
+        "task_id": "ts-append-only",
+        "gold_documents": 1,
+        "rank": 6,
+        "all_shards_rank": 6,
+        "competitors_above_gold": 5,
+        "competitor_tiers": {
+          "real-distractor": 5
+        }
+      },
+      {
+        "task_id": "ts-atomic-write",
+        "gold_documents": 1,
+        "rank": 2,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 1,
+        "competitor_tiers": {
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "ts-base36-id",
+        "gold_documents": 1,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "competitor_tiers": {
+          "real-distractor": 3,
+          "other-task-signal": 1
+        }
+      },
+      {
+        "task_id": "ts-bom-merge",
+        "gold_documents": 1,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "competitor_tiers": {
+          "real-distractor": 2
+        }
+      },
+      {
+        "task_id": "ts-bool-env",
+        "gold_documents": 1,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "competitor_tiers": {
+          "real-distractor": 2
+        }
+      },
+      {
+        "task_id": "ts-casefold-sort",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-cli-exitcode",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-config-layer",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-crlf-export",
+        "gold_documents": 1,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "competitor_tiers": {
+          "real-distractor": 4
+        }
+      },
+      {
+        "task_id": "ts-csv-quote",
+        "gold_documents": 1,
+        "rank": 2,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 1,
+        "competitor_tiers": {
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "ts-dedup-order",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-empty-input",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-glob-hidden",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-golden-regen",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-idempotent-run",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-ignore-gen",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-json-sorted",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-legacy-hash",
+        "gold_documents": 1,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "competitor_tiers": {
+          "real-distractor": 2
+        }
+      },
+      {
+        "task_id": "ts-log-mask",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-manifest-rel",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-mig-name",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-natural-order",
+        "gold_documents": 1,
+        "rank": 31,
+        "all_shards_rank": 31,
+        "competitors_above_gold": 30,
+        "competitor_tiers": {
+          "semantic": 24,
+          "real-distractor": 1,
+          "background": 4,
+          "other-task-signal": 1
+        }
+      },
+      {
+        "task_id": "ts-nfc-count",
+        "gold_documents": 1,
+        "rank": 9,
+        "all_shards_rank": 9,
+        "competitors_above_gold": 8,
+        "competitor_tiers": {
+          "real-distractor": 8
+        }
+      },
+      {
+        "task_id": "ts-quote-shell",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-retry-cap",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-round-money",
+        "gold_documents": 1,
+        "rank": 8,
+        "all_shards_rank": 8,
+        "competitors_above_gold": 7,
+        "competitor_tiers": {
+          "real-distractor": 6,
+          "semantic": 1
+        }
+      },
+      {
+        "task_id": "ts-schema-additive",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-semver-pin",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-stable-sort",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 2,
+          "semantic": 1
+        }
+      },
+      {
+        "task_id": "ts-tz-utc",
+        "gold_documents": 1,
+        "rank": 2,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 1,
+        "competitor_tiers": {
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "xs-evolve-lease",
+        "gold_documents": 3,
+        "rank": 1,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "xs-join-batch",
+        "gold_documents": 2,
+        "rank": 2,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 1,
+        "competitor_tiers": {
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "xs-widen-manifest",
+        "gold_documents": 2,
+        "rank": 3,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 2,
+        "competitor_tiers": {
+          "other-task-signal": 1,
+          "real-distractor": 1
+        }
+      }
+    ]
+  },
+  {
+    "summary": {
+      "corpus": "corpus/haystack/scale-25/seed-1-with-semantic",
+      "backend": "voyage",
+      "documents": 4875,
+      "windows": 23191,
+      "queries": 33,
+      "hit@1": 0.3333,
+      "hit@5": 0.697,
+      "hit@10": 0.8788,
+      "mrr@10": 0.4667,
+      "median_rank": 4,
+      "mean_competitors_above_gold": 10.64,
+      "misses": 0,
+      "all_shards@10": 0.3333,
+      "competitor_tiers": {
+        "real-distractor": 55,
+        "other-task-signal": 3,
+        "near_miss": 117,
+        "topical": 96,
+        "semantic": 29,
+        "background": 51
+      }
+    },
+    "per_task": [
+      {
+        "task_id": "ts-append-only",
+        "gold_documents": 1,
+        "rank": 6,
+        "all_shards_rank": 6,
+        "competitors_above_gold": 5,
+        "competitor_tiers": {
+          "real-distractor": 5
+        }
+      },
+      {
+        "task_id": "ts-atomic-write",
+        "gold_documents": 1,
+        "rank": 2,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 1,
+        "competitor_tiers": {
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "ts-base36-id",
+        "gold_documents": 1,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "competitor_tiers": {
+          "real-distractor": 3,
+          "other-task-signal": 1
+        }
+      },
+      {
+        "task_id": "ts-bom-merge",
+        "gold_documents": 1,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "competitor_tiers": {
+          "real-distractor": 2
+        }
+      },
+      {
+        "task_id": "ts-bool-env",
+        "gold_documents": 1,
+        "rank": 9,
+        "all_shards_rank": 9,
+        "competitors_above_gold": 8,
+        "competitor_tiers": {
+          "real-distractor": 2,
+          "near_miss": 6
+        }
+      },
+      {
+        "task_id": "ts-casefold-sort",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-cli-exitcode",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-config-layer",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-crlf-export",
+        "gold_documents": 1,
+        "rank": 9,
+        "all_shards_rank": 9,
+        "competitors_above_gold": 8,
+        "competitor_tiers": {
+          "real-distractor": 4,
+          "near_miss": 4
+        }
+      },
+      {
+        "task_id": "ts-csv-quote",
+        "gold_documents": 1,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "competitor_tiers": {
+          "near_miss": 3,
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "ts-dedup-order",
+        "gold_documents": 1,
+        "rank": 8,
+        "all_shards_rank": 8,
+        "competitors_above_gold": 7,
+        "competitor_tiers": {
+          "near_miss": 7
+        }
+      },
+      {
+        "task_id": "ts-empty-input",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-glob-hidden",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-golden-regen",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-idempotent-run",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-ignore-gen",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-json-sorted",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-legacy-hash",
+        "gold_documents": 1,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "competitor_tiers": {
+          "real-distractor": 2
+        }
+      },
+      {
+        "task_id": "ts-log-mask",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-manifest-rel",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-mig-name",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-natural-order",
+        "gold_documents": 1,
+        "rank": 206,
+        "all_shards_rank": 206,
+        "competitors_above_gold": 205,
+        "competitor_tiers": {
+          "near_miss": 35,
+          "topical": 93,
+          "semantic": 26,
+          "real-distractor": 1,
+          "background": 49,
+          "other-task-signal": 1
+        }
+      },
+      {
+        "task_id": "ts-nfc-count",
+        "gold_documents": 1,
+        "rank": 25,
+        "all_shards_rank": 25,
+        "competitors_above_gold": 24,
+        "competitor_tiers": {
+          "near_miss": 12,
+          "real-distractor": 8,
+          "background": 2,
+          "topical": 2
+        }
+      },
+      {
+        "task_id": "ts-quote-shell",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-retry-cap",
+        "gold_documents": 1,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "ts-round-money",
+        "gold_documents": 1,
+        "rank": 27,
+        "all_shards_rank": 27,
+        "competitors_above_gold": 26,
+        "competitor_tiers": {
+          "real-distractor": 6,
+          "near_miss": 19,
+          "semantic": 1
+        }
+      },
+      {
+        "task_id": "ts-schema-additive",
+        "gold_documents": 1,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "competitor_tiers": {
+          "real-distractor": 3
+        }
+      },
+      {
+        "task_id": "ts-semver-pin",
+        "gold_documents": 1,
+        "rank": 9,
+        "all_shards_rank": 9,
+        "competitors_above_gold": 8,
+        "competitor_tiers": {
+          "near_miss": 8
+        }
+      },
+      {
+        "task_id": "ts-stable-sort",
+        "gold_documents": 1,
+        "rank": 23,
+        "all_shards_rank": 23,
+        "competitors_above_gold": 22,
+        "competitor_tiers": {
+          "near_miss": 17,
+          "real-distractor": 2,
+          "semantic": 2,
+          "topical": 1
+        }
+      },
+      {
+        "task_id": "ts-tz-utc",
+        "gold_documents": 1,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "competitor_tiers": {
+          "near_miss": 1,
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "xs-evolve-lease",
+        "gold_documents": 3,
+        "rank": 1,
+        "all_shards_rank": 18,
+        "competitors_above_gold": 0,
+        "competitor_tiers": {}
+      },
+      {
+        "task_id": "xs-join-batch",
+        "gold_documents": 2,
+        "rank": 2,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 1,
+        "competitor_tiers": {
+          "real-distractor": 1
+        }
+      },
+      {
+        "task_id": "xs-widen-manifest",
+        "gold_documents": 2,
+        "rank": 8,
+        "all_shards_rank": 19,
+        "competitors_above_gold": 7,
+        "competitor_tiers": {
+          "near_miss": 5,
+          "other-task-signal": 1,
+          "real-distractor": 1
+        }
+      }
+    ]
+  }
+]

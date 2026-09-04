@@ -15,7 +15,42 @@ from pathlib import Path
 from harness.checker_run import run_bounded
 
 
+def _oracle_defect(oracle_dir: Path) -> str | None:
+    """Why this oracle could no longer tell the naive solution from the informed one, or None.
+
+    Both the backup and what it is compared against are read from the staged tree, so an oracle
+    with no dotfiles is self-consistent: a glob-based walk copies every file it can see, nothing
+    is missing, and the verdict below claims "hidden ones included" over a tree that had none.
+    An oracle with no files at all passes for the same reason, vacuously.
+
+    See `tasks/ts-natural-order/checker.py::_oracle_defect` for why this fails closed with a
+    verdict rather than raising.
+    """
+
+    project = oracle_dir / "project"
+    if not project.is_dir():
+        return f"{project} does not exist"
+    files = [path for path in project.rglob("*") if path.is_file()]
+    if not files:
+        return f"{project} holds no files"
+    hidden = [
+        path.relative_to(project).as_posix()
+        for path in files
+        if any(part.startswith(".") for part in path.relative_to(project).parts)
+    ]
+    if not hidden:
+        return (
+            f"no file under {project.name}/ is hidden, so a glob-based walk copies everything "
+            f"and produces a complete backup without the convention"
+        )
+    return None
+
+
 def check(workdir: Path, oracle_dir: Path) -> tuple[bool, str]:
+    defect = _oracle_defect(oracle_dir)
+    if defect is not None:
+        return False, f"oracle is not well formed: {defect}"
+
     script = workdir / "backup.py"
     if not script.is_file():
         return False, "backup.py was never written"

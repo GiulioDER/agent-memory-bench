@@ -1,0 +1,937 @@
+[
+  {
+    "summary": {
+      "corpus": "corpus",
+      "corpus_sha256": "abc97ec4901d5b8f61b3ecad96186577e1e3853b8d547d3c8fb00998d43dbddc",
+      "generator_sha256": null,
+      "corpus_seed": null,
+      "corpus_scale": null,
+      "backend": "bm25",
+      "documents": 196,
+      "windows": 1220,
+      "gating": null,
+      "abstentions": null,
+      "arm_hits_returned": null,
+      "arm_hits_joined": null,
+      "arm_unjoinable_examples": null,
+      "queries": 34,
+      "gold_withheld_by_condition": [],
+      "plants_ranked_top10": 0,
+      "plants_present": 0,
+      "plants_retrieved": 0,
+      "hit@1": 0.5,
+      "hit@5": 0.8824,
+      "hit@10": 0.9412,
+      "mrr@10": 0.623,
+      "median_rank": 2,
+      "mean_competitors_above_gold": 2.26,
+      "mean_competitors_n_queries": 34,
+      "misses": 0,
+      "all_shards@10": 0.6667,
+      "competitor_tiers": {
+        "real-distractor": 67,
+        "other-task-signal": 10
+      },
+      "competitor_tiers_n_queries": 34,
+      "miss_topk_tiers": {},
+      "miss_topk_tiers_n_queries": 0
+    },
+    "per_task": [
+      {
+        "task_id": "fa-dedup-key",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-append-only",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 6,
+        "all_shards_rank": 6,
+        "competitors_above_gold": 5,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 5
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-atomic-write",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-base36-id",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-bom-merge",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-bool-env",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-casefold-sort",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-cli-exitcode",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-config-layer",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-crlf-export",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 6,
+        "all_shards_rank": 6,
+        "competitors_above_gold": 5,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4,
+          "other-task-signal": 1
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-csv-quote",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-dedup-order",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-empty-input",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-glob-hidden",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-golden-regen",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 2,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 1,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 1
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-idempotent-run",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-ignore-gen",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-json-sorted",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-legacy-hash",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-log-mask",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-manifest-rel",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-mig-name",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-natural-order",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 18,
+        "all_shards_rank": 18,
+        "competitors_above_gold": 17,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 12,
+          "other-task-signal": 5
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-nfc-count",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-quote-shell",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-retry-cap",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-round-money",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-schema-additive",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-semver-pin",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-stable-sort",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 3,
+          "other-task-signal": 1
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-tz-utc",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 3,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 2,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "xs-evolve-lease",
+        "gold_documents": 3,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "xs-join-batch",
+        "gold_documents": 2,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 3,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "xs-widen-manifest",
+        "gold_documents": 2,
+        "gold_withheld_by_condition": false,
+        "rank": 17,
+        "all_shards_rank": 23,
+        "competitors_above_gold": 16,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 13,
+          "other-task-signal": 3
+        },
+        "miss_topk_tiers": {}
+      }
+    ]
+  },
+  {
+    "summary": {
+      "corpus": "corpus/haystack/scale-25/seed-1",
+      "corpus_sha256": "af3a70294880b080a55a2e24b724c52c0f13a861469110b41f5ccae2fa1087e3",
+      "generator_sha256": "8dbb4e2f191c58831c57873e00313d00ecc559793bce7be58c3cd5772602e314",
+      "corpus_seed": 1,
+      "corpus_scale": 25,
+      "backend": "bm25",
+      "documents": 4900,
+      "windows": 23367,
+      "gating": null,
+      "abstentions": null,
+      "arm_hits_returned": null,
+      "arm_hits_joined": null,
+      "arm_unjoinable_examples": null,
+      "queries": 34,
+      "gold_withheld_by_condition": [],
+      "plants_ranked_top10": 0,
+      "plants_present": 0,
+      "plants_retrieved": 0,
+      "hit@1": 0.2941,
+      "hit@5": 0.5588,
+      "hit@10": 0.6765,
+      "mrr@10": 0.3864,
+      "median_rank": 5,
+      "mean_competitors_above_gold": 22.35,
+      "mean_competitors_n_queries": 34,
+      "misses": 0,
+      "all_shards@10": 0.6667,
+      "competitor_tiers": {
+        "near_miss": 400,
+        "real-distractor": 72,
+        "semantic": 87,
+        "other-task-signal": 9,
+        "topical": 65,
+        "background": 127
+      },
+      "competitor_tiers_n_queries": 34,
+      "miss_topk_tiers": {},
+      "miss_topk_tiers_n_queries": 0
+    },
+    "per_task": [
+      {
+        "task_id": "fa-dedup-key",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 9,
+        "all_shards_rank": 9,
+        "competitors_above_gold": 8,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 8
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-append-only",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 6,
+        "all_shards_rank": 6,
+        "competitors_above_gold": 5,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 5
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-atomic-write",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 12,
+        "all_shards_rank": 12,
+        "competitors_above_gold": 11,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 11
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-base36-id",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-bom-merge",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 2,
+          "real-distractor": 1
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-bool-env",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 17,
+        "all_shards_rank": 17,
+        "competitors_above_gold": 16,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2,
+          "near_miss": 14
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-casefold-sort",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 20,
+        "all_shards_rank": 20,
+        "competitors_above_gold": 19,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 16,
+          "real-distractor": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-cli-exitcode",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-config-layer",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-crlf-export",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 21,
+        "all_shards_rank": 21,
+        "competitors_above_gold": 20,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4,
+          "near_miss": 16
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-csv-quote",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-dedup-order",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 12,
+        "all_shards_rank": 12,
+        "competitors_above_gold": 11,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 11
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-empty-input",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-glob-hidden",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-golden-regen",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 23,
+        "all_shards_rank": 23,
+        "competitors_above_gold": 22,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 11,
+          "real-distractor": 6,
+          "semantic": 5
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-idempotent-run",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-ignore-gen",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-json-sorted",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 2,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 1,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 1
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-legacy-hash",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-log-mask",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-manifest-rel",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 16,
+        "all_shards_rank": 16,
+        "competitors_above_gold": 15,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2,
+          "near_miss": 13
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-mig-name",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 5,
+        "all_shards_rank": 5,
+        "competitors_above_gold": 4,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 4
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-natural-order",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 550,
+        "all_shards_rank": 550,
+        "competitors_above_gold": 549,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 243,
+          "other-task-signal": 8,
+          "real-distractor": 24,
+          "semantic": 82,
+          "topical": 65,
+          "background": 127
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-nfc-count",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-quote-shell",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 4,
+        "all_shards_rank": 4,
+        "competitors_above_gold": 3,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-retry-cap",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-round-money",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 1,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-schema-additive",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 20,
+        "all_shards_rank": 20,
+        "competitors_above_gold": 19,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 16,
+          "real-distractor": 3
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-semver-pin",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 14,
+        "all_shards_rank": 14,
+        "competitors_above_gold": 13,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 13
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-stable-sort",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 10,
+        "all_shards_rank": 10,
+        "competitors_above_gold": 9,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 7,
+          "real-distractor": 2
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "ts-tz-utc",
+        "gold_documents": 1,
+        "gold_withheld_by_condition": false,
+        "rank": 9,
+        "all_shards_rank": 9,
+        "competitors_above_gold": 8,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "real-distractor": 2,
+          "near_miss": 6
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "xs-evolve-lease",
+        "gold_documents": 3,
+        "gold_withheld_by_condition": false,
+        "rank": 2,
+        "all_shards_rank": 6,
+        "competitors_above_gold": 1,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 1
+        },
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "xs-join-batch",
+        "gold_documents": 2,
+        "gold_withheld_by_condition": false,
+        "rank": 1,
+        "all_shards_rank": 2,
+        "competitors_above_gold": 0,
+        "plant_rank": null,
+        "competitor_tiers": {},
+        "miss_topk_tiers": {}
+      },
+      {
+        "task_id": "xs-widen-manifest",
+        "gold_documents": 2,
+        "gold_withheld_by_condition": false,
+        "rank": 11,
+        "all_shards_rank": 21,
+        "competitors_above_gold": 10,
+        "plant_rank": null,
+        "competitor_tiers": {
+          "near_miss": 5,
+          "real-distractor": 4,
+          "other-task-signal": 1
+        },
+        "miss_topk_tiers": {}
+      }
+    ]
+  }
+]

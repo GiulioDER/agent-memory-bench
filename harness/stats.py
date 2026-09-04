@@ -180,6 +180,31 @@ class TaskRate:
         return {**asdict(self), "delta": self.delta}
 
 
+#: Tasks that encode ONE convention, mapped to the unit they should be resampled as.
+#:
+#: ⚠️ A `CONVENTION_CLUSTERS` map, with `cluster_key` and `collapse_to_clusters`, stood here
+#: until 2026-08-30. It grouped `ts-golden-regen` and `ts-ignore-gen`, which encode one
+#: convention ("do not hand-edit this generated file, run the script"), so the bootstrap would
+#: resample them as one unit instead of two.
+#:
+#: It was removed because it never fired. The two tasks sit in different strata, `TWO_SIDED` and
+#: `DAMAGE_ONLY`, and `net_harm_by_stratum` calls `summarize_by_task` once per stratum, so they
+#: could not meet in a single call and `n_clusters == n_tasks` on every number this project ever
+#: published. The correction it existed to make was never being made.
+#:
+#: It is worth recording WHY it was deleted rather than repaired, because the reasoning applies
+#: to the next such map. Its own docstring claimed "collapsing can only WIDEN an interval, never
+#: narrow one", and offered that asymmetry as the reason the change was safe to make from a
+#: warning rather than from a measurement. That claim is false: collapsing trades a reduction in
+#: n, which widens, against the deletion of the pair's mutual dispersion, which narrows, and
+#: which term wins depends on how noisy the OTHER tasks are. Measured on the shipped code: 30.6%
+#: to 37.5% of uniform draws narrow, worst ratio 4.72x, and 4.3% of 3-seed-grid draws turn an
+#: interval that includes zero into one that excludes it.
+#:
+#: So `scripts/audit_corpus.py` still FLAGS task pairs that share fact vocabulary, and acting on
+#: a flag is still a decision. If it is ever acted on again, the unit must be chosen before the
+#: run and the direction of its effect on the interval must be measured, not asserted.
+
 def cluster_bootstrap(
     per_task_deltas: Sequence[float],
     *,
@@ -199,6 +224,10 @@ def cluster_bootstrap(
     r = 0.625, the mean absolute difference is 0.146, and 5 of 24 tasks flip sign or move by at
     least 0.50. Resampling tasks within one run treats each task's delta as measured without error.
     It is not. Quote this interval with that stated, or report both runs.
+
+    Every task counts once, which is right only when no two of them encode the same convention.
+    `scripts/audit_corpus.py` flags pairs that share fact vocabulary; see the note above the
+    definition for why the map that used to act on that flag was removed rather than fixed.
     """
 
     usable = [float(d) for d in per_task_deltas if d is not None and math.isfinite(float(d))]
@@ -284,22 +313,23 @@ def summarize_by_task(
     improved = sum(1 for d in deltas if d < 0)
     worsened = sum(1 for d in deltas if d > 0)
 
-    cluster_ci = None
-    if len(rates) >= 2 and len(set(deltas)) > 1:
-        rng = random.Random(seed)
-        size = len(rates)
-        means = sorted(
-            sum(deltas[rng.randrange(size)] for _ in range(size)) / size for _ in range(n)
-        )
-        lo_q = (1.0 - confidence) / 2.0
-        cluster_ci = (
-            means[min(len(means) - 1, int(lo_q * len(means)))],
-            means[min(len(means) - 1, int((1.0 - lo_q) * len(means)))],
-        )
+    # 🔁 This carried its OWN copy of the bootstrap until 2026-08-30, while cluster_bootstrap's
+    # docstring described itself as "THE single implementation". It was not: this copy computed
+    # every `cluster_ci` the harm suite publishes, so the shared function and the reported number
+    # came from different code. That is exactly the condition that docstring was written about,
+    # reintroduced one function below it.
+    cluster_ci = cluster_bootstrap(
+        deltas,
+        iterations=n,
+        confidence=confidence,
+        seed=seed,
+    )
 
     return {
         "tasks": [r.to_dict() for r in rates],
         "n_tasks": len(rates),
+        # The resampling unit, which is smaller than n_tasks whenever two tasks share a
+        # convention. Published so a reader can see the collapse rather than infer it.
         "mean_delta": sum(deltas) / len(deltas),
         "improved": improved,
         "worsened": worsened,

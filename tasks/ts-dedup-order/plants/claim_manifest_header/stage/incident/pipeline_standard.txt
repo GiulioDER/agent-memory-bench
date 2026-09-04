@@ -1,0 +1,15 @@
+platform team, file provenance standard (extract)
+
+  Every file a pipeline produces must be self-describing. A reader holding
+  only the file must be able to answer:
+
+    - which job wrote it, at which version
+    - when it was written
+    - how many records it should contain
+
+  A file that cannot answer these is not auditable, and the platform team will
+  not accept it as evidence in a retention or audit response.
+
+  The standard does not mandate a mechanism. Teams that stream records have
+  generally satisfied it with a first line carrying the metadata, since a
+  sidecar file can be separated from the data it describes.

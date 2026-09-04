@@ -19,12 +19,54 @@ Three rules, enforced by tooling:
    asserts presence (the task's own sessions state it), containment (no other task's
    sessions or distractors do), and locus (neither the fixture nor the CLAUDE.md bundle do).
 
+   A `xs-*` task's fact is **distributed across its own sessions**, one share per session, and
+   the audit adds a fourth assertion for it: each shard states its own share and no session
+   states another's. For `evolve` that runs forwards only, since the session that supersedes a
+   value names the value it replaces. `scripts/record_precursor.py` enforces the same rule while
+   recording, so a session that wandered into the other half is refused rather than ingested.
+   See `docs/CROSS_SESSION_SYNTHESIS.md`.
+
 `sessions/<task_id>/` holds precursors; `distractors/` holds mundane sessions establishing
 no governing fact, recorded the same way (`scripts/record_distractor.py`), targeting a
-distractor-to-signal ratio of at least 4:1.
+distractor-to-signal ratio of at least 4:1. Measured 2026-08-29 after the d100 to d156 batch:
+**39 signal sessions, 156 distractors, 4.00:1**, all 195 listed in `manifest.json`. A signal
+session that is on disk and NOT in the manifest is invisible to every arm and makes its task
+unwinnable by retrieval; six tasks sat that way until that date.
+
+🔁 **Re-measured 2026-09-01: 40 sessions, 156 distractors, 196 entries in `manifest.json`.** The
+count above is dated rather than wrong: `sessions/fa-dedup-key/p01.jsonl` arrived with #34 on
+2026-08-30. Two of the 40 are `sessions/smoke/`, which are bring-up wiring rather than signal, so
+the ratio is 4.11:1 over the 38 real signal sessions and 3.90:1 counting every entry. Corrected
+in place rather than left to the reader because this file **ships inside the Hugging Face
+dataset**, where a stale count becomes a published claim. Manifest and disk agreed in both
+directions at that measurement, which matters more than the count itself:
+
+```bash
+python -c "import json;m=json.load(open('corpus/manifest.json'))['sessions'];print(len(m),sum(k.startswith('sessions/') for k in m),sum(k.startswith('distractors/') for k in m))"
+```
 
 Because content is verbatim, tool results carry the recording environment's paths and
 usernames; redacting them afterwards would break the verbatim rule, so the fix is
 prevention. Sessions recorded on the Windows dev machine are **pipeline-validation
 recordings**; the corpus for the preregistered run is recorded inside the Docker harness,
 where paths and users are neutral by construction.
+
+## The generated haystack (added 2026-08-30)
+
+The three rules above govern **this directory**. They do not govern `corpus/haystack/`, and that
+is why the haystack is a separate directory rather than more files in `distractors/`.
+
+`scripts/generate_haystack.py --scale 25 --seed 1` assembles a corpus root of 4,875 documents:
+these 195 real files copied byte for byte, plus 4,680 generated sessions under `synthetic/`.
+Generated sessions are **not verbatim agent output**. They are structurally real (the tool
+results are real reads of a real generated repository) and their provenance, tier, domain and
+near-miss target are recorded per file in `haystack.json`, along with the sha256 of the
+generator. A haystack is reproduced from its seed rather than committed, because 25x is 20 MB.
+
+Rule 3 still holds and is enforced the same way: every generated session is checked against
+every task's `fact_terms`, and a violator is discarded rather than emitted.
+
+⚠️ **A run against a haystack root is not comparable with any published run.** `corpus/` remains
+the frozen 195-entry feed and `corpus/manifest.json` is never rewritten by the generator. See
+`docs/RETRIEVAL_DIFFICULTY.md` for what the haystack measured, including the finding that corpus
+size on its own changed retrieval by nothing at all.

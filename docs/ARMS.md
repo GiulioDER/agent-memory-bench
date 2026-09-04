@@ -14,6 +14,9 @@ and diagnostic tracks locate the point where the memory path succeeds or fails.
 | `protocol` | The shared memory instruction, but no memory surface | An instruction control. It separates the effect of telling an agent to search from the effect of retrieval. |
 | `fs_grep` | The transcript corpus as files, searched with ordinary repository tools | A simple retrieval control. It asks whether a product beats a searchable folder of raw sessions. |
 | `recall` | The RE call memory layer and its MCP search tools | Natural product use. The agent decides whether to search and how to formulate the query. |
+| `recall_rerank` | RE call with the pinned reranker enabled | A retrieval ablation. It holds the product and task constant while testing whether reranking changes the result. |
+| `mempalace` | The MemPalace MCP server and its corpus loader | A separately wired product integration under the same task, corpus, and admission rules. |
+| `cachly` | The Cachly stdio MCP server and its bulk loader | A separately wired product integration whose loader and pinned server are recorded before measurement. |
 | `supermemory` | The official Supermemory Claude Code plugin, lifecycle hooks, and local memory service | An official hook based product integration. Its corrected pilot qualified the treatment and timing, but did not create a leaderboard row. |
 | `recall_prefetch` | RE call retrieval performed by the harness from the exact task prompt | A diagnostic. It removes the agent's search decision and most query formulation from the path. |
 | `oracle_memory` | The exact relevant evidence supplied by the harness | A ceiling diagnostic. It asks whether correct evidence would be enough if retrieval were perfect. |
@@ -27,6 +30,8 @@ The useful comparisons are paired and have different meanings:
 * `protocol` against `bare` measures memory coaching without memory.
 * `recall` against `protocol` measures what the memory surface adds after the coaching is present.
 * `fs_grep` against `recall` compares a simple searchable feed with a product integration.
+* `recall_rerank` against `recall` measures the retrieval effect of the pinned reranker.
+* `mempalace` and `cachly` are product comparisons and must be read with their own treatment evidence.
 * `recall_prefetch` against `recall` measures the gap caused by the agent's search decision and
   query formulation.
 * `oracle_memory` against `claude_md` estimates how much headroom the task set offers when the
@@ -40,7 +45,7 @@ baseline, its paired confidence interval, its discard count, and its treatment e
 Supermemory uses the vendor's official Claude Code integration, not a benchmark invented API. The
 adapter copies the pinned plugin into an isolated Claude configuration, records the
 `SessionStart` and `UserPromptSubmit` hook evidence required by the admission gate, and uses
-Supermemory Local on VPS2. The amended pilot writes deterministic static memories through the
+Supermemory Local on the remote benchmark host. The amended pilot writes deterministic static memories through the
 vendor's documented memory endpoint because asynchronous local extraction did not finish within
 the original smoke window.
 
@@ -81,7 +86,7 @@ python -m scripts.pilot \
 ```
 
 Supermemory qualification additionally requires the pinned plugin directory and its explicitly
-configured local service. The VPS2 pilot details belong in preregistration 020; do not silently
+configured local service. The remote host pilot details belong in preregistration 020; do not silently
 switch to the hosted service or pool its direct static memory treatment with a different ingest
 mode.
 

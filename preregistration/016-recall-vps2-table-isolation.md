@@ -1,10 +1,10 @@
-# 016: Recall VPS2 table isolation amendment
+# 016: Recall table isolation amendment
 
 Status: FROZEN before the amended Recall smoke measurement.
 
 ## Reason for amendment
 
-The pinned Recall package is `recall-rag[fastembed,mcp]==0.10.0`, while the existing VPS2
+The pinned Recall package is `recall-rag[fastembed,mcp]==0.10.0`, while the existing remote benchmark host
 `amb_bench` database has a newer global migration ledger than that package understands. A fresh
 database could not be created by the benchmark user. Running the pinned comparison against the
 public `chunks` table would therefore either refuse at startup or risk touching data outside this
@@ -12,7 +12,7 @@ benchmark.
 
 ## Amended treatment
 
-The Recall arm keeps its published CLI index command and published stdio MCP server. VPS2 provides
+The Recall arm keeps its published CLI index command and published stdio MCP server. The remote benchmark host provides
 `PGOPTIONS=-c search_path=<dedicated schema>,public`, with a dedicated schema and a fresh
 `chunks` table initialized by the pinned package. This isolates the benchmark rows and the pinned
 package's migration ledger from the live public table. The schema name, search path, package pin,

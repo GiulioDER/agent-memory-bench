@@ -1,0 +1,1 @@
+I need to know why some cache directories in the archive have four-character names and ours have eight. archive/cache_layout.md describes the old layout and archive/widening.md is from when it changed. Work out what the old key width was and write it down.

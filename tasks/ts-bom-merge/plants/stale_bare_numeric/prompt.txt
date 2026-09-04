@@ -1,0 +1,1 @@
+Our older merged exports have bare numeric ids and the newer ones do not. archive/merged_2025.csv is an old export and archive/prefix_note.md is from when it changed. Work out what the id column held back then and write it down.

@@ -20,21 +20,302 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import shlex
 import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    RankedHit,
+    RankedResult,
+    namespace_path,
+    validate_namespace,
+)
 from harness.gate import AdmissionSignal
+from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 
+#: A POSIX environment variable name. See `RecallAdapter._extra_env` for why a name from a
+#: config file is validated rather than quoted.
+_ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+
+
+def resolve_location(config: dict, key: str) -> str:
+    """The value of a host-specific setting, from the environment the frozen config names.
+
+    THE single resolver. `scripts/prepare_recall_corpora.py` carried a second, near-identical one,
+    and two copies of a rule drift: adding a sixth location key could leave one refusing and the
+    other defaulting. The same argument is made in
+    `tests/test_audit_p1_fixes.py::test_both_execution_paths_share_one_allow_list`, about the
+    environment allow-list this file's sibling already unified.
+
+    Raises `KeyError` when the config does not name the variable and `LookupError` when the
+    variable is unset, so each caller can convert to the refusal its own layer wants: the adapter
+    raises `RuntimeError` mid-run, the prepare script exits.
+    """
+
+    var = str(config[f"{key}_env"])
+    value = os.environ.get(var, "")
+    if not value:
+        raise LookupError(var)
+    return value
+
+
+def corpus_fingerprint(corpus: CorpusManifest) -> str:
+    """A deterministic identity for the corpus CONTENT this run assembled.
+
+    `CorpusManifest` carries `sessions`, a mapping of transcript path to sha256, so hashing its
+    canonical form identifies the feed exactly: a changed transcript, an added session or a
+    withheld one all move it. The remote build records the same value beside the tenant it built,
+    which is what lets `ingest` refuse a tenant serving an older corpus.
+
+    Sorted and separator-pinned because a fingerprint that depends on dict ordering or on
+    json.dumps' default spacing is a fingerprint that changes for no reason.
+    """
+
+    payload = json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def manifest_key(source: str) -> str:
+    """Invert `render_corpus`'s naming, so a recall hit can be joined to the corpus.
+
+    recall indexes the directory this adapter renders, and `harness.transcripts.render_corpus`
+    names each file from its path relative to the corpus root with separators flattened to
+    ``__`` and the suffix changed: ``sessions/ts-dedup-order/p01.jsonl`` is stored as
+    ``sessions__ts-dedup-order__p01.md``. So a hit's ``source_path`` is that name, possibly with
+    a directory prefix, and it can NEVER be equal to a manifest key. Without this the recall arm
+    scores a structural hit@1 of 0.000 that reads exactly like a product retrieving nothing.
+
+    The inverse is exact rather than heuristic: `render_corpus` raises on a name collision, so
+    the encoding it applies is injective over any corpus it accepted. It is not injective over
+    arbitrary paths, though (a directory literally containing ``__`` would round-trip wrong), so
+    a reconstructed key is a CANDIDATE. `ArmBackend` checks every one against the manifest and
+    refuses to publish a number when none of them join, which is where a wrong guess surfaces
+    rather than being absorbed into a score.
+
+    A name with no ``__`` carries no directory information to restore, so it is returned
+    unchanged: inventing a plausible ``sessions/`` prefix would manufacture a join that might be
+    wrong, and being visibly unjoinable is the better failure.
+    """
+
+    tail = source.replace("\\", "/").rsplit("/", 1)[-1]
+    if not tail.endswith(".md") or "__" not in tail:
+        return source
+    return tail[: -len(".md")].replace("__", "/") + ".jsonl"
+
+
+def parse_ranked_search(
+    stdout: str, *, gating: str, query: str, limit: int
+) -> RankedResult:
+    """Turn `recall search --evidence` output into a ranked list, PRESERVING the API's order.
+
+    Split out from the adapter so the part that can be wrong without a database is the part that
+    is tested. Three things it will not do:
+
+    * **re-sort**. The response order is the ranking, and that is the measurement.
+    * **invent a source**. A hit with no ``source_path`` cannot be joined to a corpus document,
+      so it is dropped and counted in ``detail`` rather than given a placeholder that would score
+      as a miss against the wrong document.
+    * **turn an abstention into an empty result silently**. Abstaining is a decision the product
+      made and is reported as one; an empty list from a product that engaged is a different
+      outcome with the same shape.
+    """
+
+    # ⛔ Whole-stream first. The reverse line scan below requires a SINGLE line that both starts
+    # with `{` and ends with `}`, and recall's own `_print_evidence` emits
+    # `json.dumps(payload, indent=2)`. Against real output nothing matched, `payload` stayed `{}`,
+    # and every query came back empty, which the probe scored as the vendor retrieving nothing.
+    payload: dict[str, Any] = {}
+    found = False
+    stripped_all = stdout.strip()
+    if stripped_all.startswith("{"):
+        try:
+            payload = json.loads(stripped_all)
+            found = True
+        except json.JSONDecodeError:
+            found = False
+    if not found:
+        for line in reversed(stdout.splitlines()):
+            stripped = line.strip()
+            if stripped.startswith("{") and stripped.endswith("}"):
+                try:
+                    payload = json.loads(stripped)
+                except json.JSONDecodeError:
+                    continue
+                found = True
+                break
+    if not found:
+        # ⛔ Raise, never return empty. `MemoryAdapter.search`'s own docstring says an empty list
+        # is a legitimate "found nothing", so conflating it with a parse failure lets a broken
+        # integration score as a product that retrieves badly. This implementation broke that
+        # rule one file away from where it is written down.
+        raise RuntimeError(
+            "recall search produced no JSON object this parser could read; refusing to report "
+            f"an empty result, which would be indistinguishable from a genuine zero-hit answer. "
+            f"First 500 bytes: {stdout[:500]!r}"
+        )
+
+    bundle = payload.get("bundle") if isinstance(payload.get("bundle"), dict) else {}
+    raw = payload.get(
+        "evidence", payload.get("hits", payload.get("results", bundle.get("items", []))))
+    if not isinstance(raw, list):
+        raw = []
+
+    # Collapse CHUNKS to DOCUMENTS, first occurrence winning so the API's order survives. The
+    # probe treats a position in this list as a document rank: two chunks of one gold shard
+    # satisfied `len(positions) == len(gold)` and published an `xs-*` task as having found both
+    # halves of a two-session fact when it had found one, and every extra chunk of a distractor
+    # counted as another wrong session above gold.
+    hits: list[RankedHit] = []
+    seen: set[str] = set()
+    unsourced = 0
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        source = item.get("source_path") or item.get("source")
+        if not source:
+            unsourced += 1
+            continue
+        # Normalised to a manifest key BEFORE dedup, because two chunks of one document can
+        # come back under names that differ only in a prefix recall added.
+        source = manifest_key(str(source))
+        if source in seen:
+            continue
+        seen.add(source)
+        hits.append(
+            RankedHit(
+                source_path=source,
+                score=float(item.get("score", item.get("similarity", 0.0)) or 0.0),
+                rank=len(hits) + 1,
+            )
+        )
+        if len(hits) >= limit:
+            break
+    abstained = bool(
+        payload.get(
+            "abstained",
+            payload.get("status") == "abstained" or bundle.get("decision") == "abstain",
+        )
+    )
+    return RankedResult(
+        hits=tuple(hits),
+        gating=gating,
+        abstained=abstained,
+        query_sha256=hashlib.sha256(query.encode("utf-8")).hexdigest(),
+        detail={
+            "payload_found": found,
+            "chunks_returned": len(raw),
+            "documents": len(hits),
+            # Hits carrying NO source field. This is not the same as a hit whose source does not
+            # join to the corpus, which is what actually happens with recall and which this
+            # counter was mistakenly believed to catch; the probe checks joinability itself.
+            "unsourced": unsourced,
+        },
+    )
+
 
 class RecallAdapter(MemoryAdapter):
     name = "recall"
+
+    #: The frozen configuration this arm IS, read through `self` and never through the module
+    #: constant. A sibling arm is the same product under a different retrieval setting, so it
+    #: subclasses this class and repoints one path; `build` and `describe` publish a sha256 of this
+    #: file, and hashing the module constant would stamp every variant with the base arm's digest.
+    #: Two arms whose records claim the same configuration are two arms a reader cannot tell apart,
+    #: which is the failure the digest exists to prevent.
+    config_path: Path = _CONFIG_PATH
+
+    #: Environment keys a variant config may NOT set through `extra_env`.
+    #:
+    #: These five decide WHAT is served: the database, the embedder, the tenant, the store the
+    #: search reads, and the trust gate. Everything a variant is for lives downstream of them, in
+    #: how the retrieved candidates are ranked. A variant that could reach these would be a
+    #: different experiment wearing the same product's name, and it would be invisible in the
+    #: records because both arms publish the same tool prefix and the same server.
+    reserved_env = frozenset(
+        {"RECALL_DSN", "RECALL_EMBEDDER", "RECALL_TENANT", "RECALL_ENV", "RECALL_TRUST_MODE"}
+    )
+
+    #: `served` only, and the absence of `raw` is a deliberate refusal rather than a gap.
+    #:
+    #: A `raw` mode would mean overriding `RECALL_TRUST_MODE`, which is `strict` in
+    #: `config.frozen.json`. That would measure a configuration that is neither the frozen one nor
+    #: the one any session runs, and it would do so by editing the single field a vendor is
+    #: invited to review. The number would be better and would mean less. If ungated ranking is
+    #: ever the question, it needs its own record saying so, not a flag on this method.
+    supported_gatings = ("served",)
+
+    def search(
+        self,
+        namespace: str,
+        query: str,
+        *,
+        gating: str = "served",
+        limit: int = 10,
+        runner: Any = None,
+    ) -> RankedResult:
+        """The ranked list recall's own published search path returns, in ITS order.
+
+        ⚠️ Order is the entire payload, and this is where the obvious implementation is wrong.
+        `adapters/recall_prefetch.parse_prefetch_output` ends with
+        ``items.sort(key=lambda item: item.memory_id)``, which is harmless there because a bundle
+        is injected whole, and fatal here: sorting by id discards the ranking and would produce a
+        hit@1 that is an artefact of identifier assignment. This parses the response itself and
+        preserves the order the API returned.
+
+        ``served`` means what a session gets: the certified threshold applies and the product may
+        abstain, which is reported rather than smoothed into an empty list.
+        """
+
+        if gating != "served":
+            raise ValueError(
+                f"{self.name} supports {self.supported_gatings} only. A {gating!r} list would "
+                f"require overriding RECALL_TRUST_MODE, which config.frozen.json pins to "
+                f"{self.config['trust_mode']!r}; that measures a configuration no session runs."
+            )
+        # Refused before it reaches argv: a namespace beginning with `-` would be read by
+        # the child's argparse as an option rather than as data, and the same string is
+        # joined onto staging paths elsewhere in this adapter.
+        validate_namespace(namespace)
+        command = [
+            sys.executable,
+            "-m",
+            "recall.cli",
+            "--tenant",
+            namespace,
+            "search",
+            "-k",
+            str(limit),
+            "--evidence",
+            query,
+        ]
+        run = runner or subprocess.run
+        result = run(
+            command,
+            env=self.search_env(namespace),
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"recall search failed with exit {result.returncode}: {result.stderr[-500:]}"
+            )
+        return parse_ranked_search(result.stdout, gating="served", query=query, limit=limit)
 
     def __init__(
         self,
@@ -44,22 +325,100 @@ class RecallAdapter(MemoryAdapter):
     ) -> None:
         self.staging_root = Path(staging_root)
         self.base_prompt_file = Path(base_prompt_file)
-        self.config = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+        self.config = json.loads(self.config_path.read_text(encoding="utf-8"))
         #: Which instruction to put ABOVE the static bundle. None keeps the frozen
         #: one-liner. scripts/pilot.py has always chosen this per run and the pilots
         #: chose the shipped skill; the diagnostic could not, so its recall arm was a
         #: different treatment from the one it was built to explain.
         self.instruction_override = instruction
 
-    def _dsn(self) -> str:
-        dsn_env = self.config["dsn_env"]
-        dsn = os.environ.get(dsn_env, "")
-        if not dsn:
+    def _location(self, key: str) -> str:
+        """A host-specific value, read from the environment because it is not published.
+
+        The frozen config names the variable and never holds the value. A host inventory is
+        disclosure without a credential attached, this repository's .gitignore says so in its
+        first three lines, and every run publishes the config file. Location is also not a
+        protocol fact, by the same argument ``notes.transport`` makes about the carrier: which
+        machine serves the corpus cannot change what recall returns, so a reader checking the
+        experiment loses nothing.
+
+        Refusing beats defaulting. A default here would point a run at whichever host the
+        string happened to name, which is how the ``dsn`` key this replaced came to sit in a
+        public artifact for a day.
+        """
+
+        try:
+            return resolve_location(self.config, key)
+        except LookupError as exc:
             raise RuntimeError(
-                f"the recall arm needs {dsn_env} in the environment; refusing to guess a "
-                f"database rather than quietly pointing at somebody else's"
+                f"the recall arm needs {exc.args[0]} in the environment to know its {key}; "
+                f"refusing to guess rather than quietly reaching for somebody else's host. Put "
+                f"it in the secrets file scripts/launch_official.sh sources, and see "
+                f"adapters/recall/location.example.env for the shape."
+            ) from None
+
+    def _remote_label(self) -> str:
+        """A name for the machine serving recall, for ERROR MESSAGES only. Never raises.
+
+        `_location` refuses on an unset variable, which is right where the value is about to be
+        used and wrong inside a message: an error path that raises while describing its own error
+        replaces the diagnosis with a complaint about configuration. These three call sites fire
+        under `transport: host`, where there is no ssh alias at all, so naming one would be
+        inaccurate as well as fragile.
+        """
+
+        transport = str(self.config.get("transport", "local"))
+        if transport != "ssh":
+            return f"the corpus host ({transport} transport)"
+        return os.environ.get(
+            str(self.config["ssh_host_env"]), f"<{self.config['ssh_host_env']} unset>"
+        )
+
+    def _dsn(self) -> str:
+        return self._location('dsn')
+
+    def _extra_env(self) -> dict[str, str]:
+        """Retrieval settings a variant config adds to the server's environment.
+
+        Absent from `adapters/recall/config.frozen.json` on purpose, so the base arm's server
+        command stays BYTE-IDENTICAL to the one every published run used. A variant declares its
+        settings here rather than in code, which keeps the whole difference between two arms
+        readable in one diff of two frozen files.
+
+        Refuses rather than merges on a reserved key. Silently letting a variant repoint
+        `RECALL_TENANT` would serve it a different corpus while every gate, digest and admission
+        signal still read `recall`; the same argument the frozen config's `location` note makes
+        about defaults applies to overrides.
+        """
+
+        raw = self.config.get("extra_env") or {}
+        if not isinstance(raw, dict):
+            raise TypeError(
+                f"{self.config_path.name}: extra_env must be an object of environment "
+                f"assignments, not {type(raw).__name__}"
             )
-        return dsn
+        reserved = sorted(set(raw) & self.reserved_env)
+        if reserved:
+            raise RuntimeError(
+                f"{self.config_path.name}: extra_env may not set {reserved}. Those keys decide "
+                f"which corpus is served and under which trust gate, so a variant that moved them "
+                f"would be a different experiment publishing this arm's name."
+            )
+        # ⛔ The KEYS are validated, not just quoted, because `_remote_command` interpolates them
+        # into a shell command as `KEY=<quoted value>`. `shlex.quote` is applied to the value and
+        # cannot be applied to the name, so a key holding a space or a `;` would inject a command
+        # into the string a login shell then executes on the serving host. Nothing before this
+        # change could reach that interpolation with attacker-shaped text, because every key was a
+        # literal in this file; `extra_env` is the first path that carries a name in from data, and
+        # the same class of hole was found in `launch_official.sh` during the 2026-08-30 audit.
+        for key in raw:
+            if not _ENV_NAME.fullmatch(str(key)):
+                raise RuntimeError(
+                    f"{self.config_path.name}: extra_env key {key!r} is not an environment "
+                    f"variable name. It is interpolated into a shell command on the serving host, "
+                    f"where a name is not quotable."
+                )
+        return {str(key): str(value) for key, value in raw.items()}
 
     def _server_env(self, namespace: str) -> dict[str, str]:
         # The env block REPLACES the environment: everything the server needs must be here.
@@ -68,16 +427,29 @@ class RecallAdapter(MemoryAdapter):
             "RECALL_EMBEDDER": str(self.config["embedder"]),
             "RECALL_TRUST_MODE": str(self.config["trust_mode"]),
             "RECALL_TENANT": namespace,
+            # ⛔ Without this the search takes recall's LEGACY path, which never consults
+            # `GenerationStore`, so it reports `generation -` and `calibration status missing` and
+            # a strict policy refuses -- correctly, since an uncalibrated answer has no threshold
+            # behind it. The frozen config has declared `environment: production` all along and it
+            # was applied to the remote command and the MCP server env but NOT here, so the
+            # published search path and the prefetch path disagreed about which store they read.
+            "RECALL_ENV": str(self.config["environment"]),
+            **self._extra_env(),
         }
-        options_env = str(self.config.get("postgres_options_env", ""))
-        options = os.environ.get(options_env, "") if options_env else ""
-        if options:
-            # A benchmark may provide a dedicated PostgreSQL search_path so the pinned Recall
-            # server cannot read or mutate the live public `chunks` table. PostgreSQL applies
-            # this to both the MCP server and the CLI writer without changing Recall's published
-            # command or its SQL path.
-            env["PGOPTIONS"] = options
-        for passthrough in ("APPDATA", "SystemRoot", "PYTHONPATH", "PATH"):
+        # ⚠️ The list below is the WHOLE environment the child gets, and it was written when the
+        # embedder was a local model that needed no credential. `voyage:voyage-4` is hosted, so
+        # without its key the child dies with
+        #     embedder 'voyage:voyage-4': RuntimeError: VoyageEmbedder needs VOYAGE_API_KEY
+        # which surfaces as `PrefetchError: recall prefetch failed with exit 1` and stops the whole
+        # run at the first task of the first condition.
+        #
+        # This is the same failure as an MCP `env` block replacing rather than extending the
+        # environment, and it is worth naming twice: a hand-written passthrough list is correct
+        # only for the configuration it was written against, and nothing re-checks it when the
+        # configuration moves. Switching from a local embedder to a hosted one is exactly such a
+        # move, and it changes no line of this file.
+        credentials = ("VOYAGE_API_KEY", "OPENAI_API_KEY", "COHERE_API_KEY", "ANTHROPIC_API_KEY")
+        for passthrough in ("APPDATA", "SystemRoot", "PYTHONPATH", "PATH", *credentials):
             value = os.environ.get(passthrough)
             if value:
                 env[passthrough] = value
@@ -93,7 +465,10 @@ class RecallAdapter(MemoryAdapter):
         return int(self.config.get("prefetch_k", 5))
 
     def _prompt_path(self, namespace: str) -> Path:
-        return self.staging_root / namespace / "prompt.md"
+        # Same join, same risk: this namespace comes from the same argument as the staging
+        # directory's. Found by widening `tests/test_namespace_guard.py`'s scan, which is a
+        # tripwire for common shapes and NOT a proof that none is left; see that file.
+        return namespace_path(self.staging_root, namespace, "prompt.md")
 
     def _write_prompt(self, namespace: str) -> Path:
         return self._write_prompt_at(self._prompt_path(namespace))
@@ -112,15 +487,178 @@ class RecallAdapter(MemoryAdapter):
         )
         return prompt
 
+    def _remote_rows(self, namespace: str) -> int:
+        """How many chunk rows the remote tenant actually holds.
+
+        ⛔ Counted with an EXPLICIT `where tenant_id = ...` rather than by setting the
+        `recall.tenant_id` GUC and trusting row-level security, which is what `_rows_for_tenant`
+        does. Measured 2026-08-29: the benchmark role bypasses RLS (the server warns about exactly
+        this at startup), so the policy never applies and the count silently returns EVERY
+        tenant's rows. It read 1544 for a tenant holding 683, because 683 + 861 is 1544, and that
+        number was printed into a run log as the corpus size.
+
+        Reported as provenance, so it has to be the real number rather than a plausible one.
+        """
+
+
+        sql = (
+            "select count(*) from recall_chunks_v1 where tenant_id = "
+            f"{self._sql_literal(namespace)}"
+        )
+        remote = (
+            f"psql {shlex.quote(self._dsn())} -tAc {shlex.quote(sql)}"
+        )
+        result = self._shell(remote, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"could not count rows for tenant {namespace!r}: {result.stderr.strip()[-300:]}"
+            )
+        return int(result.stdout.strip() or 0)
+
+    def _shell(self, command: str, *, timeout: float) -> subprocess.CompletedProcess[str]:
+        """Run one POSIX shell command ON THE HOST THAT SERVES THE CORPUS.
+
+        Two transports reach the same host and must produce the same answer:
+
+        * ``ssh``  the harness runs elsewhere and the command is carried to VPS2.
+        * ``host`` the harness runs ON VPS2, so the command is handed to a local shell.
+
+        The command string is IDENTICAL either way, which is the point: the verification, the row
+        count and the server launch are then provably the same work, and moving the harness onto
+        the serving host cannot quietly change what is checked. It also removes the co-location
+        asymmetry between the two products, since under ``host`` neither pays a network hop.
+        """
+
+        import subprocess
+
+        if str(self.config.get("transport", "local")) == "host":
+            argv = ["/bin/bash", "-lc", command]
+        else:
+            argv = ["ssh", "-o", "BatchMode=yes", self._location('ssh_host'), command]
+        return subprocess.run(
+            argv, capture_output=True, text=True, timeout=timeout, check=False
+        )
+
+    @staticmethod
+    def _sql_literal(value: str) -> str:
+        """A single-quoted SQL literal. Tenant names are ours, but this is a query built by
+        concatenation and an unescaped quote would be a syntax error at best."""
+
+        escaped = value.replace("'", "''")
+        return f"'{escaped}'"
+
+
+    def _verify_remote_generation(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
+        """Confirm the remote tenant serves a promoted, certified generation of THIS corpus.
+
+        The corpus is built and calibrated by `scripts/prepare_recall_corpora.py`, deliberately as
+        a separate step rather than here. Two reasons, and the second is the one that matters:
+
+        1. A generation build embeds the whole corpus and a calibration fits a threshold to it.
+           Doing that inside a run means a remote failure kills the run mid-flight, which is how
+           `abstention-002` lost 86 sessions to an unrelated interruption.
+        2. The corpus must be FROZEN across arms and cells. A step that can build is a step that
+           can silently rebuild, and a rebuilt corpus mid-run is a different experiment.
+
+        So this asserts rather than acts. What it actually checks, which is less than this
+        docstring used to claim:
+
+        - that an ACTIVE generation exists for the tenant, and
+        - that the corpus fingerprint stamped beside it equals the manifest this run is about to
+          serve. A tenant carrying last week's corpus answers every query happily.
+
+        ⚠️ **It does NOT check that the calibration is CERTIFIED**, although this docstring said
+        it did until 2026-08-30. Certification is enforced upstream instead, by recall's own
+        `promote()` when `serving_environment == "production"`, which is what
+        `scripts/prepare_recall_corpora.py` sets. That covers a generation promoted through this
+        pipeline and nothing else: recall's `rollback` does not refuse on certification grounds,
+        so a generation made active by hand can be uncertified and this check will not see it.
+
+        ⚠️ **The stamp is not bound to a generation id either.** It is a bare fingerprint written
+        beside the tenant, so promoting a different generation afterwards leaves the stamp
+        matching and this verification passing. Filed as AMB-009.
+
+        Both gaps are recorded rather than fixed because a false promise in a docstring is the
+        defect this project retired from `harness/stats.py` on the same day, and stating the
+        weaker truth is worth more than a claim nobody has tested.
+        """
+
+
+        expected = corpus_fingerprint(corpus)
+        remote = (
+            f"cd {shlex.quote(self._location('remote_root'))} && "
+            f"set -a && . {shlex.quote(self._location('remote_env_file'))} && set +a && "
+            f"export RECALL_DSN={shlex.quote(self._dsn())} "
+            f"RECALL_EMBEDDER={shlex.quote(str(self.config['embedder']))} "
+            f"RECALL_ENV={shlex.quote(str(self.config['environment']))} && "
+            f"{shlex.quote(self._location('remote_python'))} -m recall.cli "
+            f"--tenant {shlex.quote(namespace)} generation list"
+        )
+        result = self._shell(remote, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"cannot list generations for tenant {namespace!r} on "
+                f"{self._remote_label()}: {result.stderr.strip()[-500:]}"
+            )
+        active = [line for line in result.stdout.splitlines() if " active " in f" {line} "]
+        if not active:
+            raise RuntimeError(
+                f"tenant {namespace!r} has no ACTIVE generation on {self._remote_label()}. "
+                f"Run scripts/prepare_recall_corpora.py before the suite: a tenant with no active "
+                f"generation raises NoActiveGeneration under production rather than refusing "
+                f"politely, and one carrying an older corpus would answer every query happily."
+            )
+        line = active[0]
+
+        # The corpus the remote build actually used, recorded beside the tenant by
+        # `scripts/prepare_recall_corpora.py`. Compared rather than trusted: a tenant carrying an
+        # older corpus answers every query happily and nothing in a session record would say so.
+        stamp = self._shell(
+            f"cat {shlex.quote(self._location('remote_root'))}/{shlex.quote(namespace)}.corpus",
+            timeout=120,
+        )
+        recorded = stamp.stdout.strip()
+        if stamp.returncode != 0 or not recorded:
+            raise RuntimeError(
+                f"tenant {namespace!r} has an active generation but no corpus stamp on "
+                f"{self._remote_label()}, so nothing proves WHICH corpus it was built from. "
+                f"Rebuild with scripts/prepare_recall_corpora.py, which writes the stamp."
+            )
+        if recorded != expected:
+            raise RuntimeError(
+                f"tenant {namespace!r} serves a generation built from a DIFFERENT corpus than this "
+                f"run assembled.\n  active:   {line.strip()}\n  recorded: {recorded}\n"
+                f"  expected: {expected}\nRebuild with scripts/prepare_recall_corpora.py."
+            )
+        stored = self._remote_rows(namespace)
+        return IngestReport(
+            arm=self.name,
+            namespace=namespace,
+            sessions_offered=len(corpus.sessions),
+            items_stored=stored,
+            wall_time_ms=0.0,
+            notes=(
+                f"verified remote generation {line.strip()[:80]}",
+                f"corpus fingerprint {expected}",
+            ),
+        )
+
+
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
-        staged = self.staging_root / namespace / "feed"
+        if str(self.config.get("transport", "local")) in ("ssh", "host"):
+            return self._verify_remote_generation(corpus, namespace)
+        # Validated at the join: `shutil.rmtree(staged)` is four lines below. F-15
+        # was demonstrated on fs_grep and fixed there; this is the same line of code
+        # in a different adapter, and the fix did not reach it.
+        staged = namespace_path(self.staging_root, namespace, "feed")
         # Fresh render: leftovers from an earlier feed layout must not survive into the
         # index (and the subsequent re-index prunes what is no longer on disk).
         if staged.exists():
             shutil.rmtree(staged)
+        _paths = [corpus.root / rel for rel in corpus.sessions]
         count = render_corpus(
-            [corpus.root / rel for rel in corpus.sessions], staged, root=corpus.root
+            _paths, staged, root=corpus.root, lineage=lineage_from_env(_paths, corpus.root)
         )
         start = time.monotonic()
         # recall's own write path: the published CLI, one tenant per namespace. Re-indexing
@@ -206,9 +744,7 @@ class RecallAdapter(MemoryAdapter):
             import psycopg
         except ImportError:  # pragma: no cover - environment without the driver
             return -1
-        options_env = str(self.config.get("postgres_options_env", ""))
-        options = os.environ.get(options_env, "") if options_env else ""
-        with psycopg.connect(self._dsn(), options=options or None) as connection, connection.cursor() as cursor:
+        with psycopg.connect(self._dsn()) as connection, connection.cursor() as cursor:
             # `set_config`, NOT `SET LOCAL ... = %s`. Postgres does not accept a parameter
             # placeholder in a SET statement, and the first version of this raised
             # `syntax error at or near "$1"` AFTER a twenty-minute embed had already succeeded.
@@ -218,6 +754,51 @@ class RecallAdapter(MemoryAdapter):
             cursor.execute("SELECT count(*) FROM chunks")
             row = cursor.fetchone()
         return int(row[0]) if row else 0
+
+    def _remote_command(self, namespace: str) -> str:
+        """The single shell command SSH runs on the remote host.
+
+        ⛔ The environment is INLINED here rather than passed through the MCP config's `env` block,
+        because SSH forwards no arbitrary environment: an `env` block would be applied to the local
+        `ssh` process and never reach the server. This is the shape recall's own production servers
+        are deployed with.
+
+        `RECALL_TRUST_MODE` is UNSET rather than set to a value. Strict is the shipped default and
+        is expressed by absence; setting it to any string is how a corpus ends up served relaxed
+        while the config claims otherwise.
+        """
+
+        exports = {
+            "RECALL_DSN": self._dsn(),
+            "RECALL_EMBEDDER": str(self.config["embedder"]),
+            "RECALL_TENANT": namespace,
+            "RECALL_ENV": str(self.config["environment"]),
+            **self._extra_env(),
+        }
+        assignments = " ".join(f"{k}={shlex.quote(v)}" for k, v in exports.items())
+        return (
+            f"cd {shlex.quote(self._location('remote_root'))} && "
+            f"set -a && . {shlex.quote(self._location('remote_env_file'))} && set +a && "
+            f"export {assignments} && unset RECALL_TRUST_MODE && "
+            f"exec {shlex.quote(self._location('remote_python'))} -m recall_mcp.server"
+        )
+
+    def _remote_server_argv(self, namespace: str) -> tuple[str, list[str]]:
+        """`(command, args)` for an SSH-transported server."""
+
+        if str(self.config.get("transport", "local")) == "host":
+            # Same command string, handed to a shell instead of to ssh. `-l` so the login profile
+            # is read, which is where the serving host's own environment lives.
+            return "/bin/bash", ["-lc", self._remote_command(namespace)]
+        return "ssh", [
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ServerAliveInterval=30",
+            self._location('ssh_host'),
+            self._remote_command(namespace),
+        ]
+
 
     def _server_command(self) -> str:
         """The interpreter that starts the MCP server, resolved rather than passed through.
@@ -259,19 +840,31 @@ class RecallAdapter(MemoryAdapter):
         # A file path, not inline JSON: the config may carry credentials, and an inline
         # --mcp-config would copy them into every recorded command line.
         mcp_config_path = session_dir / "recall.mcp.json"
+        if str(self.config.get("transport", "local")) in ("ssh", "host"):
+            command, args = self._remote_server_argv(namespace)
+            # Only what the LOCAL ssh client needs. The server's own environment travels inside
+            # the remote command, because ssh forwards none of this.
+            env = {
+                key: value
+                for key in ("PATH", "SystemRoot", "USERPROFILE", "HOME", "APPDATA")
+                if (value := os.environ.get(key))
+            }
+        else:
+            command, args = self._server_command(), list(self.config["args"])
+            env = self._server_env(namespace)
         mcp_config = {
             "mcpServers": {
                 str(self.config["server_name"]): {
-                    "command": self._server_command(),
-                    "args": list(self.config["args"]),
-                    "env": self._server_env(namespace),
+                    "command": command,
+                    "args": args,
+                    "env": env,
                 }
             }
         }
         mcp_config_path.write_text(json.dumps(mcp_config, indent=2), encoding="utf-8")
         prefix = str(self.config["tool_prefix"])
         digest = hashlib.sha256(
-            _CONFIG_PATH.read_bytes() + prompt.read_bytes()
+            self.config_path.read_bytes() + prompt.read_bytes()
         ).hexdigest()
         return ArmSpec(
             arm=self.name,
@@ -319,6 +912,6 @@ class RecallAdapter(MemoryAdapter):
         return {
             "arm": self.name,
             "memory": "static+retrieved",
-            "config_sha256": hashlib.sha256(_CONFIG_PATH.read_bytes()).hexdigest(),
+            "config_sha256": hashlib.sha256(self.config_path.read_bytes()).hexdigest(),
             "package_pin": self.config.get("package_pin"),
         }

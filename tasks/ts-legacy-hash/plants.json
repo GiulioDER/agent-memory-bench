@@ -1,0 +1,70 @@
+{
+  "task_id": "ts-legacy-hash",
+  "conditions": {
+    "absent": {
+      "include_real": false,
+      "plants": []
+    },
+    "superseded": {
+      "include_real": true,
+      "plants": [
+        "stale_short_digest"
+      ]
+    },
+    "contradictory": {
+      "include_real": false,
+      "plants": [
+        "rival_family_key",
+        "rival_length_bucket"
+      ]
+    },
+    "adjacent": {
+      "include_real": false,
+      "plants": [
+        "thumbnail_prefix_key"
+      ]
+    }
+  },
+  "plants": {
+    "stale_short_digest": {
+      "wrong_terms": [
+        "truncated to four characters",
+        "four characters was thought to be plenty"
+      ],
+      "session_date": "2026-01-27",
+      "rationale": "The key width as it genuinely stood when the cache was small: four characters. Superseded by the real session's move to a wider key. Applying it writes a four-character stem, which collides for the two oracle ids exactly as the eight character one does, but is a different width from anything the factless slip writes.",
+      "term_choice": "The plant cannot say WHICH digest to truncate, only how wide the key is. Naming a digest would either reproduce fast_hash, which is the factless slip and would be unattributable, or point at hash_key, which is the true fact and would answer the task. Width alone is enough to be observable and is safe on both sides.",
+      "signature": "a four-character cache key"
+    },
+    "rival_family_key": {
+      "wrong_terms": [
+        "keyed on the resource family",
+        "before the first slash"
+      ],
+      "session_date": "2026-05-19",
+      "rationale": "Memo A of the contradictory pair. A confident decision, backed by a real hit-rate measurement, that the cache is keyed on the resource family. Applying it writes `reports.json` for both oracle ids, which collides.",
+      "term_choice": "Paired with rival_length_bucket so both memos answer the SAME question, what a cache entry is keyed on, incompatibly, and neither is the truth. A family name is a non-hex stem, so it is separable from every digest-shaped key including the factless one.",
+      "signature": "the cache key is the resource family, a non-hex stem"
+    },
+    "rival_length_bucket": {
+      "wrong_terms": [
+        "a bucket number",
+        "modulo sixteen"
+      ],
+      "session_date": "2026-06-11",
+      "rationale": "Memo B of the contradictory pair. The same question answered the other way, from a real operational problem. Applying it writes a small integer stem, and the two oracle ids are the same length so they land in the same bucket and collide.",
+      "term_choice": "Distinct from memo A in the artefact produced: a bucket number is a small integer, a family is a word, and neither is hex. 'Picked a side' is only measurable when the sides are separable.",
+      "signature": "the cache key is a small integer bucket"
+    },
+    "thumbnail_prefix_key": {
+      "wrong_terms": [
+        "the first fifteen characters",
+        "slashes replaced by underscores"
+      ],
+      "session_date": "2026-04-05",
+      "rationale": "A memo that is TRUE and about a DIFFERENT cache. The thumbnail cache really does key on an id prefix, safely, because its ids are content digests. The memo says so and even names the condition under which a prefix key fails. Carrying it across writes `reports_2026-07-` for both oracle ids, which collides.",
+      "term_choice": "The adjacent memo must be correct within its own scope or the condition degenerates into a second superseded arm. A fifteen-character underscored prefix is separable from a family name, a bucket number and every hex digest, so the damage stays attributable even though every one of them collides.",
+      "signature": "the cache key is a fifteen-character underscored id prefix"
+    }
+  }
+}

@@ -19,7 +19,41 @@ from harness.checker_run import run_bounded
 NAME = re.compile(r"^report-(\d+)\.txt$")
 
 
+def _oracle_defect(oracle_dir: Path) -> str | None:
+    """Why this oracle could no longer tell the naive solution from the informed one, or None.
+
+    `expected` is derived from the SAME directory the artifact is handed, which makes a thinned
+    oracle self-consistent instead of detectable: drop the two-digit reports and numeric order
+    equals lexicographic order, so `sorted(os.listdir(...))` scores as correct and the verdict
+    below still reads "9 before 10" over evidence it never saw. The whole discrimination this
+    task is admitted on lives in the oracle's contents, so it is asserted rather than assumed.
+
+    Returning a verdict rather than raising is deliberate. `harness.tasks.run_checker` converts
+    any exception into a failure anyway, so raising buys a worse message and nothing else; failing
+    closed makes BOTH references fail, which turns `test_informed_reference_passes` red and names
+    the instrument instead of quietly passing a solution that does not deserve it.
+    """
+
+    reports = oracle_dir / "reports"
+    if not reports.is_dir():
+        return f"{reports} does not exist"
+    names = [match.group(0) for path in reports.iterdir() if (match := NAME.match(path.name))]
+    if not names:
+        return f"{reports} holds no report-<n>.txt files"
+    numeric = [name for _number, name in sorted((int(NAME.match(n).group(1)), n) for n in names)]
+    if numeric == sorted(names):
+        return (
+            f"numeric and lexicographic order agree over {sorted(names)}, so sorting the names "
+            f"is indistinguishable from sorting by report number; the oracle must run past nine"
+        )
+    return None
+
+
 def check(workdir: Path, oracle_dir: Path) -> tuple[bool, str]:
+    defect = _oracle_defect(oracle_dir)
+    if defect is not None:
+        return False, f"oracle is not well formed: {defect}"
+
     script = workdir / "list_reports.py"
     if not script.is_file():
         return False, "list_reports.py was never written"

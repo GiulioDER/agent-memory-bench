@@ -8,13 +8,30 @@ byte-identical wherever it is used: a feed that differs between arms is not a sh
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
+from harness.lineage import render_frontmatter
 
-def render_transcript(jsonl_path: Path) -> str:
-    """Render one session transcript JSONL into greppable markdown, verbatim content."""
 
-    lines = [f"# Session notes: {jsonl_path.stem}", ""]
+def render_transcript(
+    jsonl_path: Path, frontmatter: Mapping[str, str] | None = None
+) -> str:
+    """Render one session transcript JSONL into greppable markdown, verbatim content.
+
+    ``frontmatter`` prepends a YAML block declaring validity and supersession, which is the only
+    place recall can learn that one document replaces another; see `harness/lineage.py`.
+
+    It defaults to None, producing output byte-identical to before preregistration 023. That is
+    deliberate: the control tier then needs no separate code path and cannot drift away from the
+    thing it is controlling for.
+    """
+
+    lines: list[str] = []
+    block = render_frontmatter(frontmatter)
+    if block:
+        lines.append(block)
+    lines.extend([f"# Session notes: {jsonl_path.stem}", ""])
     for raw in jsonl_path.read_text(encoding="utf-8").splitlines():
         if not raw.strip():
             continue
@@ -34,7 +51,11 @@ def render_transcript(jsonl_path: Path) -> str:
 
 
 def render_corpus(
-    session_paths: list[Path], target_dir: Path, *, root: Path | None = None
+    session_paths: list[Path],
+    target_dir: Path,
+    *,
+    root: Path | None = None,
+    lineage: Mapping[Path, Mapping[str, str]] | None = None,
 ) -> int:
     """Render transcripts into ``target_dir``; returns the count written.
 
@@ -44,6 +65,14 @@ def render_corpus(
     retrieval result. Without ``root``, bare filenames are used and a collision RAISES,
     because the first version of this function silently overwrote colliding names and
     shipped a corpus holding one precursor out of twenty-four.
+
+    ``lineage`` maps a session path to the frontmatter it should carry, as built by
+    `harness.lineage.frontmatter_for`. The pairing logic lives there rather than here: this
+    function decides NAMES, and a renderer that also decided which document supersedes which would
+    be two responsibilities in one place, neither testable alone.
+
+    Omitted, every render is byte-identical to before preregistration 023, so the control tier is
+    the same code path as production rather than a reconstruction of it.
     """
 
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -60,6 +89,9 @@ def render_corpus(
                 f"{name!r}; pass root= so names mirror their paths"
             )
         seen[name] = source
-        (target_dir / name).write_text(render_transcript(source), encoding="utf-8")
+        meta = (lineage or {}).get(source)
+        (target_dir / name).write_text(
+            render_transcript(source, meta), encoding="utf-8"
+        )
         written += 1
     return written

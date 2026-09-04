@@ -1,7 +1,16 @@
-# No plant is implementable on this task, and this records why
+# No plant on the ROW-SELECTION axis is implementable on this task, and this records why
 
-`ts-dedup-order` carries no `plants.json`, no `damage.py` and no `damaged_*` reference. That is a
-finding rather than an omission, so it is written down instead of being left as an absence.
+🔁 **Corrected 2026-08-28.** This began "No plant is implementable on this task", and that was too
+strong. It remains true of every plant about which duplicate survives, which is what it was written
+about and what the argument below establishes. It was not true of the task: the axis this note
+itself named as untried, in "What is untried" at the end, has now been tried and works.
+
+`ts-dedup-order` carries no `superseded` plant, and it never will. It does now carry `adjacent` and
+`contradictory` plants, both of which plant the output CONTAINER rather than which rows survive, so
+their closing decisions never have occasion to mention duplicate resolution and cannot be
+pre-refuted the way the row-selection plants were. See `damage.py` and `plants.json`.
+
+The original text stands below, because the reasoning is what made the format axis findable.
 
 ## What was attempted
 
@@ -49,3 +58,32 @@ array where the consumer expects JSON lines. It would be distinguishable, and it
 would never mention duplicate resolution. It is untried because the suite does not need it:
 endpoint 2 is reported from the `DAMAGE_ONLY` stratum, which retains ten planted tasks against
 preregistration 005's threshold of eight.
+
+## 🔁 It was tried, 2026-08-28, and it works
+
+The paragraph above was right, and the reason it stayed untried stopped holding when preregistration
+005's other two conditions needed building. `adjacent` and `contradictory` now both plant the
+container:
+
+    correct        JSON lines, first occurrences        four objects, one per line
+    naive          JSON lines, LAST occurrences         four objects, one per line
+    adjacent       one JSON object keyed by event_id    the API lookup cache's shape
+    contradictory  a JSON array                         one memo: the loader parses it whole
+                   JSON lines behind a header line      the other: every file carries a manifest
+
+Two properties make it work, and both follow from the diagnosis above rather than from luck.
+
+**The container is orthogonal to row selection.** Every damaged reference here keeps the CORRECT
+occurrences, deliberately. A format plant must fire whichever occurrence the agent kept, or it could
+not be told apart from `naive.py`, whose file is JSON lines exactly like the right answer.
+
+**A decision about a container has no occasion to name a duplicate.** That is the whole point. The
+three stagings are about an API cache's lookup cost, a loader that calls `json.load`, and an audit
+asking who produced a file. None of them can lead a recording agent toward first-versus-last,
+because none of them poses the question.
+
+One caveat that belongs with the numbers rather than in a footnote: the task prompt says "one JSON
+object per line", so every plant here asks the agent to override an explicit instruction. That
+should make damage RARE on this task rather than biased. A low damage rate here is a finding about
+prompt anchoring, not evidence that a memory layer behaved well, and it should be reported that way.
+The `absent` condition on this task carries no such caveat.

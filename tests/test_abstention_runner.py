@@ -181,49 +181,6 @@ def test_naming_a_task_that_does_not_declare_the_condition_is_refused():
 
 
 # ---------------------------------------------------------------------------------------
-# the work root, which is where a re-run quietly loses cells
-# ---------------------------------------------------------------------------------------
-
-
-def test_a_work_root_that_already_holds_sandboxes_is_refused(tmp_path):
-    """An operator error must not arrive disguised as eight bad sessions.
-
-    `sandbox.restore` refuses a destination with contents, which is right. But that refusal lands
-    PER CELL, is caught as "the session did not complete", and becomes a DISCARDED CELL. So a
-    re-run under a run id whose work root survived loses exactly the cells the previous attempt
-    reached, and `admission.json` blames the sessions.
-
-    Measured 2026-08-29 on `abstention-002`: two aborted launches left sandboxes for eight cells and
-    the third launch discarded all eight, taking `absent` from 30 cells to 22 while every recorded
-    reason was a FileExistsError naming a path from a run that no longer existed. The results
-    directory already had a "refusing to mix runs" guard; the work root did not, which is why
-    archiving the results directories was not enough to make the re-run clean.
-
-    Mutation: deleting the call. The run starts and the cells vanish into the discard list.
-    """
-
-    from scripts.pilot import _refuse_a_dirty_work_root
-
-    work_root = tmp_path / "run"
-    (work_root / "work" / "ts-append-only" / "s0" / "bare").mkdir(parents=True)
-
-    with pytest.raises(SystemExit) as excinfo:
-        _refuse_a_dirty_work_root(work_root, "some-run")
-    message = str(excinfo.value)
-    assert "ts-append-only" in message, "the operator must be told WHICH sandboxes survive"
-    assert "DISCARDED" in message, "and what would happen if the run proceeded"
-    assert "not removed automatically" in message, "and that the harness will not delete evidence"
-
-
-def test_a_fresh_work_root_is_allowed(tmp_path):
-    from scripts.pilot import _refuse_a_dirty_work_root
-
-    _refuse_a_dirty_work_root(tmp_path / "never-used", "some-run")
-    (tmp_path / "empty" / "work").mkdir(parents=True)
-    _refuse_a_dirty_work_root(tmp_path / "empty", "some-run")
-
-
-# ---------------------------------------------------------------------------------------
 # the classification hook in pilot.py
 # ---------------------------------------------------------------------------------------
 
@@ -372,3 +329,56 @@ def test_the_dry_run_assembles_a_real_corpus_and_executes_nothing():
     assert "session file(s) in the feed" in out
     assert "nothing was ingested, run or analysed" in out
     assert not (REPO / "results" / "unit-probe-absent").exists()
+
+
+def test_an_unclassified_arm_is_refused_rather_than_silently_skipped():
+    """Mutation: pass an arm that is in neither MEMORY_ARMS nor NON_MEMORY_ARMS.
+
+    This exists because of `official-001`. `mempalace` was never added to MEMORY_ARMS, so the run
+    published no search rate for it and never applied the 0.50 interpretability floor to it.
+    Recomputed afterwards, its rate on `absent` was 0.545 against recall's 0.848: barely above the
+    floor, and materially different from the arm it was being compared against.
+
+    Nothing errored. The arm ran, produced records, and was simply absent from one table. A
+    reader would have seen four rows where there should have been eight and had no reason to
+    count. Refusing up front is the only version of this check that cannot be missed.
+    """
+
+    import pytest
+
+    from scripts.abstention import _classify_arms
+
+    _classify_arms(["bare", "claude_md", "recall", "mempalace"])  # must not raise
+
+    with pytest.raises(SystemExit) as excinfo:
+        _classify_arms(["bare", "recall", "brand_new_product"])
+    assert "brand_new_product" in str(excinfo.value)
+
+
+def test_retired_tasks_are_excluded_and_announced(capsys):
+    """A task no arm has ever failed is dropped, and the drop is printed rather than silent.
+
+    Both halves matter. official-001 spent 82.2% of its sessions on cells where every arm produced
+    the same outcome, which is the reason for the exclusion. And the last time this suite dropped
+    something quietly it was a whole product arm missing from MEMORY_ARMS, invisible in the
+    artifact until someone counted rows. A grid that shrinks without saying so is that same
+    failure with a different subject.
+    """
+
+    from scripts.abstention import RETIRED_TASKS, selection_for
+
+    assert RETIRED_TASKS, "the retirement list must not be silently emptied"
+
+    tasks = selection_for("absent")
+    assert tasks, "retiring tasks must not empty a condition"
+    for retired in RETIRED_TASKS:
+        assert retired not in tasks, f"{retired} is retired and must not be selected"
+
+    printed = capsys.readouterr().out
+    for retired in RETIRED_TASKS:
+        assert retired in printed, f"{retired} was dropped without saying so"
+        assert RETIRED_TASKS[retired] in printed, "the reason must travel with the exclusion"
+
+    quiet = selection_for("absent", announce=False)
+    assert quiet == tasks
+    assert not capsys.readouterr().out

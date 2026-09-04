@@ -1,0 +1,6 @@
+[
+  {"answerable": true, "confidence": 0.9, "id": "p1"},
+  {"answerable": true, "confidence": 0.8, "id": "p2"},
+  {"answerable": false, "confidence": 0.2, "id": "n1"},
+  {"answerable": false, "confidence": 0.1, "id": "n2"}
+]

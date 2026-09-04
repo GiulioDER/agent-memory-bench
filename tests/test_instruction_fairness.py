@@ -12,6 +12,11 @@ check nobody has watched fail is a fairness check that will pass forever.
 
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
@@ -35,6 +40,7 @@ from scripts.pilot import (
 )
 
 MEMORY_ARMS = ("recall", "fs_grep")
+REPO = Path(__file__).resolve().parents[1]
 
 
 # ---------------------------------------------------------------------------------------
@@ -217,3 +223,139 @@ def test_fs_grep_keeps_its_legacy_sentence_when_no_instruction_is_given(tmp_path
     adapter = FsGrepAdapter(tmp_path, tmp_path / "base.md")
     assert adapter._instruction_text().startswith("Notes from previous work sessions")
     assert len(adapter._instruction_text()) < 400
+
+
+# ---------------------------------------------------------------------------------------
+# the analyser, which could not read the arm that isolates the instruction
+# ---------------------------------------------------------------------------------------
+
+
+def _pilot_run(tmp_path, arms, *, manifest=None, record_bytes=None, tasks=("ts-a", "ts-b")):
+    """A minimal admitted grid on disk, in the layout `scripts.analyze_pilot` reads."""
+
+    run = tmp_path / "run-x"
+    (run).mkdir(parents=True, exist_ok=True)
+    lines = []
+    for task in tasks:
+        for seed in (0, 1):
+            for arm in arms:
+                metadata = {}
+                if record_bytes is not None and arm in record_bytes:
+                    metadata["instruction_bytes"] = record_bytes[arm]
+                lines.append(
+                    json.dumps(
+                        {
+                            "task_id": task,
+                            "arm": arm,
+                            "seed": seed,
+                            # recall wins one cell, so the contrasts have something to report.
+                            "success": arm == "recall" and task == "ts-a",
+                            "metadata": metadata,
+                        },
+                        sort_keys=True,
+                    )
+                )
+    (run / "records.final.jsonl").write_text(
+        "".join(line + "\n" for line in lines), encoding="utf-8"
+    )
+    (run / "admission.json").write_text(
+        json.dumps({"discarded_cells": []}), encoding="utf-8"
+    )
+    if manifest is not None:
+        (run / "environment.json").write_text(
+            json.dumps({"run_id": "run-x", "instruction_manifest": manifest}),
+            encoding="utf-8",
+        )
+    return run
+
+
+def _analyze(tmp_path, arms, **kwargs):
+    _pilot_run(tmp_path, arms, **kwargs)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "scripts.analyze_pilot",
+            "--run-id",
+            "run-x",
+            "--results-root",
+            str(tmp_path),
+            "--arms",
+            ",".join(arms),
+        ],
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result
+
+
+def test_the_arm_that_isolates_the_instruction_can_actually_be_analysed(tmp_path):
+    """Mutation: dropping `protocol` from SUPPORTED_ARMS again. `scripts/pilot.py` grew the control
+    arm and the analyser did not, so the run that answers "is the headline partly prompt
+    engineering" could be spent and then not read: the analyser exited `unknown arms`."""
+
+    result = _analyze(tmp_path, ("claude_md", "protocol", "recall"))
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert "instruction_only_protocol_vs_claude_md" in analysis
+    assert "store_net_of_instruction_recall_vs_protocol" in analysis
+
+
+def test_a_roster_without_bare_screens_on_the_baseline_instead_of_crashing(tmp_path):
+    """The instruction-only roster has no `bare` arm, and the ceiling screen used to index it
+    unconditionally."""
+
+    result = _analyze(tmp_path, ("claude_md", "protocol", "recall"))
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert "exploratory_bare_vs_claude_md" not in analysis
+    assert set(analysis["screening"]) == {"ts-a", "ts-b"}
+
+
+def test_fs_grep_is_analysable_too(tmp_path):
+    result = _analyze(tmp_path, ("claude_md", "fs_grep", "recall"))
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert "fs_grep_vs_claude_md" in analysis
+
+
+def test_a_roster_without_the_designated_baseline_is_refused(tmp_path):
+    result = _analyze(tmp_path, ("bare", "recall"))
+    assert result.returncode != 0
+    assert "claude_md is the designated baseline" in (result.stdout + result.stderr)
+
+
+def test_the_instruction_budget_is_published_beside_the_success_rate(tmp_path):
+    """Mutation: dropping `arm_instruction_bytes`. The published tables then show three success
+    rates and no sign that one arm was given 5,428 characters and another none."""
+
+    manifest = {
+        "claude_md": {"bytes": 0, "chars": 0, "sha256": "x"},
+        "protocol": {"bytes": 880, "chars": 880, "sha256": "y"},
+        "recall": {"bytes": 921, "chars": 921, "sha256": "z"},
+    }
+    result = _analyze(tmp_path, ("claude_md", "protocol", "recall"), manifest=manifest)
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert analysis["arm_instruction_bytes"] == {
+        "claude_md": 0,
+        "protocol": 880,
+        "recall": 921,
+    }
+    assert set(analysis["arm_success"]) == set(analysis["arm_instruction_bytes"])
+
+
+def test_the_budget_falls_back_to_the_records_and_reports_absence_as_absent(tmp_path):
+    """A run that wrote no manifest still has per-session `instruction_bytes`; a run older than
+    both reports None, because "told nothing" and "not written down" are different claims."""
+
+    result = _analyze(
+        tmp_path,
+        ("claude_md", "recall"),
+        record_bytes={"recall": 921},
+    )
+    assert result.returncode == 0, result.stderr
+    analysis = json.loads((tmp_path / "run-x" / "analysis.json").read_text("utf-8"))
+    assert analysis["arm_instruction_bytes"] == {"claude_md": None, "recall": 921}

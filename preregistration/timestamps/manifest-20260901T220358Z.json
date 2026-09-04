@@ -1,0 +1,175 @@
+{
+  "created_utc": "2026-09-01T22:03:58+00:00",
+  "commit": "efa6ef44c0f44845a72c4f01011d9eb4ab23c1e3",
+  "what_this_is": "sha256 and git blob id of every preregistration file at stamp time. Append-only; a later manifest supersedes, never replaces, this one. See docs/TIMESTAMPING.md for what an anchor on this file proves.",
+  "files": [
+    {
+      "path": "preregistration/000-pilot.md",
+      "sha256": "6d21bcd493475648f8679da4dbff102f1ac6bc02b6940525cf21026cdcd902b6",
+      "git_blob": "f568d10b21692652eb401cf09b959687abbd21cb",
+      "bytes": 9857
+    },
+    {
+      "path": "preregistration/001-skill-instruction.md",
+      "sha256": "401b5e5694a5199b5f2fbb31ce2dc53b24b677a76ae71e224e43740d265c1a55",
+      "git_blob": "18f3f4504a0cfda1368b9a17d0e6b3736062e778",
+      "bytes": 5984
+    },
+    {
+      "path": "preregistration/002-model-freeze.md",
+      "sha256": "ec1f401bf7dea0dd0e767d6db74f9061fc9e2af44eaacfc30369e3df9ad617b1",
+      "git_blob": "f28a477df214f714c394a6d8f75df6946d192fe4",
+      "bytes": 17622
+    },
+    {
+      "path": "preregistration/003-oracle-prefetch-diagnostic.md",
+      "sha256": "8766d847084f5822be2b63c4bece2f5f3a338c7f6951a68f51f409969de865d0",
+      "git_blob": "269fc3507d791d9ad55d5efaf40d632d7f7ec4fd",
+      "bytes": 2373
+    },
+    {
+      "path": "preregistration/004-claude-md-placebo.md",
+      "sha256": "c43925856c0fc2021aec4c67606a20c5cc27de6ce2ef790ef6c1f1557689d8f0",
+      "git_blob": "29d2e401e94278ef787762397aebbe6e161800d3",
+      "bytes": 7140
+    },
+    {
+      "path": "preregistration/005-abstention-suite.md",
+      "sha256": "68366109f528bf9fb04ae5b74ead8d71da2084af725d1be038b37eda24cf0fce",
+      "git_blob": "db2393e13356672ef2125998f830224a4f7ccda3",
+      "bytes": 8452
+    },
+    {
+      "path": "preregistration/006-longitudinal-suite.md",
+      "sha256": "1c06cb3eb8119a035ed7925aa8261bfa10ccd2a99e9df8257d5ac82367f6b589",
+      "git_blob": "f4e74280e06ddedb609fff795fd64f4361ae82e3",
+      "bytes": 9665
+    },
+    {
+      "path": "preregistration/007-abstention-task-selection.md",
+      "sha256": "69685ac28338ca83a8755e3b8bc1b04a2c35122f8156a5eff80a3055df4fa5cf",
+      "git_blob": "e91152c79baf52a7552971105041c517d4008cba",
+      "bytes": 12459
+    },
+    {
+      "path": "preregistration/008-midband-task-calibration.md",
+      "sha256": "6624f8a3dc000a940525558f2a0adc54169e54e8386d892cdd00e69b53b7f003",
+      "git_blob": "6a0d2c33d4940a188f9f1cbb47e45950ea9220b0",
+      "bytes": 11209
+    },
+    {
+      "path": "preregistration/009-bare-resolution-remeasure.md",
+      "sha256": "da70011d75736460a95ebc03086e35ae0ad71403c3ad2b44654de259ff6dcd62",
+      "git_blob": "69dac76d10a68a66472e4fb298e55e03cfc831f8",
+      "bytes": 15139
+    },
+    {
+      "path": "preregistration/010-abstention-partial-execution.md",
+      "sha256": "f43a04f01a98b399f292fe717be08aa86552b51c5ed067f50121a250303114ff",
+      "git_blob": "3dc1783a3077b2682277fe093b7296b7d91b01dc",
+      "bytes": 5223
+    },
+    {
+      "path": "preregistration/011-abstention-four-conditions.md",
+      "sha256": "2a8bd106913dd436458d068723a1318366ff49c8cbd7a132359eb13b0e910e04",
+      "git_blob": "a6937dd191396e41f7ab9b0b73dfc7338ffbc4fb",
+      "bytes": 13324
+    },
+    {
+      "path": "preregistration/011-cross-session-synthesis.md",
+      "sha256": "c417e3f966ae84271836c285ad4c8ba676d6bcae2fb9d270b86712254de6663e",
+      "git_blob": "39a519a4aba04757f3a79c890180b52028d52d05",
+      "bytes": 12165
+    },
+    {
+      "path": "preregistration/012-recall-arm-package-pin.md",
+      "sha256": "7803820e35c3613355bf2fe581c91dffc26e3c62cbecde479eb38dfb7fe3b145",
+      "git_blob": "a4c8e07bdfec0eecabfb8c389481a9dfe11145a2",
+      "bytes": 4139
+    },
+    {
+      "path": "preregistration/013-recall-arm-version-move.md",
+      "sha256": "9782b2de023478d89918085eb5a1851bc2312863798b49fa27e15a0d168ac19d",
+      "git_blob": "16aba3b87c3d9d065cc7717919b32da58e34e2ec",
+      "bytes": 7997
+    },
+    {
+      "path": "preregistration/014-official-run-recall-vs-mempalace.md",
+      "sha256": "9d8c6558eef504455a734525d9720230cbde3fe3f687c8b68cf7fcfd871ed3a6",
+      "git_blob": "462c401b20b028995f7d975ea7c93c5bcd4dae4b",
+      "bytes": 22564
+    },
+    {
+      "path": "preregistration/015-corpus-scale-retrieval-difficulty.md",
+      "sha256": "7e0d374888dbfb323cc46faec4082104765fc6d5ddb5b8e61a3e84bb25b073ff",
+      "git_blob": "c95ec18a205e7e564e25511ffbdb3f40ae6ca2b9",
+      "bytes": 19292
+    },
+    {
+      "path": "preregistration/016-semantic-hard-negatives.md",
+      "sha256": "6e7ac6f247aec9706c31405b03422b5e4ff609d1340c1edebfa00d611cd764b6",
+      "git_blob": "86f8b243a121552d1b372e296f900e4701df97b1",
+      "bytes": 14473
+    },
+    {
+      "path": "preregistration/017-present-condition-and-usefulness.md",
+      "sha256": "8b2241a16cbdfccbe0c90f25e2443029b0f31f1eafd3575c43d4f911ef129971",
+      "git_blob": "12ad54f1313270329539e62fd894c273f35863b8",
+      "bytes": 6586
+    },
+    {
+      "path": "preregistration/018-register-not-subject.md",
+      "sha256": "aefe1ad9b8b0f97426d7ffaee8a7d787e067a55b012e590844f1e4456ca4df24",
+      "git_blob": "8f69614fbadb1be20d7116429876255db61a7f92",
+      "bytes": 7983
+    },
+    {
+      "path": "preregistration/019-instrument-validation.md",
+      "sha256": "c339c171b79813aa002abcff78dbfc6704198d23427271fdbd6650b1c2ec9ba2",
+      "git_blob": "8d32560ce8a05027c128653865a318765f1b7c89",
+      "bytes": 7076
+    },
+    {
+      "path": "preregistration/020-official-002.md",
+      "sha256": "80741eed96cbbaaf8db7feb6d7e04649487a83fd8d4f0a3e69b741b241077b8e",
+      "git_blob": "ddab6e7ffc02222ffc0e59b02ac41dafb7a420b1",
+      "bytes": 18180
+    },
+    {
+      "path": "preregistration/021-official-002-hard-corpus.md",
+      "sha256": "eae39f4f615eafe47eb75f176040a1c0f1f025244d5c0caa273f06f6bd721194",
+      "git_blob": "33134f7bf11616246f231fcb0a44c68ccd93492d",
+      "bytes": 13660
+    },
+    {
+      "path": "preregistration/023-corpus-lineage-tiers.md",
+      "sha256": "bfb8f9c23f5ef5bc652b3e8d11e60d13be5d71743b52211f4cd3a8c946306d40",
+      "git_blob": "9f4209d4e337f9f5bd028f87bcd3c2c8208fa7f7",
+      "bytes": 10745
+    },
+    {
+      "path": "preregistration/024-draft-query-formulation.md",
+      "sha256": "acb3b35f93e65e34f948d3179ebb97fcdf01abd0096c0bf6c2bb69c6870ac7bf",
+      "git_blob": "43453785a2de8693c611e7a4881696312768bf76",
+      "bytes": 9522
+    },
+    {
+      "path": "preregistration/026-official-003-fair-instruction.md",
+      "sha256": "f95223d37fafaad309db0f0cf09341e617655f9e0435413b9acb01445a1c980b",
+      "git_blob": "1d3c1d213e277d19969d885f78c5b8d6b36a42c9",
+      "bytes": 7239
+    },
+    {
+      "path": "preregistration/README.md",
+      "sha256": "79f607dc6ea54d8f4247c2c3852a9c258787533c8039f9c773bffdf648694065",
+      "git_blob": "c2f0309908d8cafcc5d0b329aea531eff39a41b7",
+      "bytes": 1062
+    },
+    {
+      "path": "preregistration/TEMPLATE.md",
+      "sha256": "2ce2296a403ed79b42787237c679b1889c56093c8f3607677bb5918c5bba8e6c",
+      "git_blob": "bb0b6004ac4bc8a9f0036554a76d7e0f602a4a78",
+      "bytes": 917
+    }
+  ]
+}

@@ -54,7 +54,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .damage import CONDITIONS
+from .damage import CONDITIONS, PRESENT
 
 #: Emphasis and word-joining characters that a substring test must not be fooled by.
 _NOISE = re.compile(r"[*_`~]+")
@@ -93,6 +93,11 @@ def normalise(text: str) -> str:
 #: whether the task's own true precursor stays in the corpus; a condition that gets this wrong is
 #: a different condition wearing the right name.
 CONDITION_SHAPE: dict[str, dict[str, object]] = {
+    # the governing fact, correct and unambiguous: the real session and nothing else. The
+    # identity transform, which is why it needs no plant and no author. It is the only condition
+    # in which ABSTAINING is a loss, and without it abstinence is a dominant strategy across the
+    # whole suite. See `harness.damage.PRESENT`.
+    "present": {"include_real": True, "min_plants": 0, "max_plants": 0},
     # no governing fact for this task: the real session is withheld and nothing replaces it
     "absent": {"include_real": False, "min_plants": 0, "max_plants": 0},
     # the old fact AND the newer one: the real session IS the newer one
@@ -140,7 +145,23 @@ class PlantSpec:
     conditions: dict[str, ConditionPlan] = field(default_factory=dict)
 
     def plan(self, condition: str) -> ConditionPlan | None:
+        if condition == PRESENT:
+            return present_plan()
         return self.conditions.get(condition)
+
+
+def present_plan() -> ConditionPlan:
+    """The `present` condition, which is the same for every task and is never authored.
+
+    Every other condition is a claim about what somebody planted, so it has to be declared per
+    task in ``plants.json`` and validated. `present` is the identity transform: the task's real
+    precursor session and nothing else. There is nothing to declare, nothing to record and
+    nothing that can be got wrong, which is why a task needs no ``plants.json`` at all to be
+    assembled in it. That matters practically: most tasks have no ``plants.json``, and under the
+    four adversarial conditions they were therefore unassemblable and invisible to the suite.
+    """
+
+    return ConditionPlan(condition=PRESENT, include_real=True, plants=())
 
 
 def _require(ok: bool, message: str) -> None:
@@ -176,6 +197,13 @@ def load_plants(task_dir: str | Path) -> PlantSpec | None:
     _require(isinstance(conditions_raw, dict), f"{task_id}: 'conditions' must be an object")
     conditions: dict[str, ConditionPlan] = {}
     for condition, body in conditions_raw.items():
+        _require(
+            condition != PRESENT,
+            f"{task_id}: plants.json declares {PRESENT!r}. That condition is the identity "
+            f"transform and is never authored: it is the task's real session and nothing else. "
+            f"Declaring it would let a plant into the one condition whose whole purpose is that "
+            f"the evidence is correct.",
+        )
         _require(
             condition in CONDITIONS,
             f"{task_id}: unknown condition {condition!r}; expected one of {CONDITIONS}",

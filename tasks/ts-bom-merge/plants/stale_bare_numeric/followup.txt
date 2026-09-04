@@ -1,0 +1,1 @@
+That is it. The old rule, recorded: the letter prefix identified the partner, so it was redundant once the rows were merged per partner and the id column held the bare number only.

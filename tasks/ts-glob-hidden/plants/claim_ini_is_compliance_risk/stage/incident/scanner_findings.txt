@@ -1,0 +1,16 @@
+retention scanner, archive bucket, quarter to date
+
+  FINDING-2211  configuration file held outside the config store
+                path: archives/2026-04-30/project/config.ini
+                rule: CFG-3, configuration must carry a review trail and an expiry
+
+  FINDING-2244  configuration file held outside the config store
+                path: archives/2026-05-14/project/.config/settings.ini
+                rule: CFG-3
+
+  FINDING-2261  configuration file held outside the config store
+                path: archives/2026-05-28/project/config.ini
+                rule: CFG-3
+
+All three findings name the same rule and the same file extension. The scanner
+matches on extension and does not open the file.

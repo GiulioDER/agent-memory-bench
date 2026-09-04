@@ -1,0 +1,1 @@
+Somebody proposed bucketing the cache instead of keying it per resource. notes/bucketing.md is the proposal and notes/inode_pressure.md is the problem it solves. Read both and write down how a cache entry is addressed.

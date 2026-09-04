@@ -58,14 +58,21 @@ def compare(records, higher_is_better: bool = True) -> dict:
                 deltas.append(value)
         contrasts[name] = {"mean_delta": sum(deltas) / len(deltas) if deltas else None, "cluster_ci": _cluster_ci(deltas), "n_tasks": len(deltas)}
     oracle_by_task = {row["task_id"]: row["arms"]["oracle_memory"]["delta"] for row in per_task}
-    contrasts["access_gap"] = {
-        "mean_delta": (sum((row["arms"]["oracle_memory"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task) / len(per_task)) if per_task else None,
-        "cluster_ci": _cluster_ci([(row["arms"]["oracle_memory"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task]) if per_task else None,
-    }
-    contrasts["prefetch_gap"] = {
-        "mean_delta": (sum((row["arms"]["recall_prefetch"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task) / len(per_task)) if per_task else None,
-        "cluster_ci": _cluster_ci([(row["arms"]["recall_prefetch"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task]) if per_task else None,
-    }
+    # A task an arm never ran is UNMEASURED, not a task that arm failed. Coercing a missing rate
+    # to 0 scored a discarded cell as 0% success and dragged the gap toward the measured arm; the
+    # named contrasts above already drop None deltas, so the two families disagreed on the same
+    # data. Both gaps now use only tasks where BOTH arms have a rate, and publish that denominator.
+    for gap_name, arm in (("access_gap", "oracle_memory"), ("prefetch_gap", "recall_prefetch")):
+        deltas = [
+            row["arms"][arm]["rate"] - row["arms"]["recall"]["rate"]
+            for row in per_task
+            if row["arms"][arm]["rate"] is not None and row["arms"]["recall"]["rate"] is not None
+        ]
+        contrasts[gap_name] = {
+            "mean_delta": (sum(deltas) / len(deltas)) if deltas else None,
+            "cluster_ci": _cluster_ci(deltas),
+            "n_tasks": len(deltas),
+        }
     diagnostic_records = [record for record in records if isinstance(record.metadata.get("memory_diagnostic"), dict)]
     natural = [record for record in records if record.arm == "recall"]
     return {

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem("amb-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<title>agent-memory-bench — memory for coding agents, graded by execution</title>
+<meta name="description" content="A preregistered, execution-graded benchmark of pluggable memory layers for coding agents. Real tasks, real repositories, no LLM judge in the primary endpoint.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Spline+Sans+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html" aria-label="agent-memory-bench home">
+      <span class="tick" aria-hidden="true"></span>
+      <span><strong class="long">agent-memory-bench</strong><strong class="short">AMB</strong><span class="full"> / AMB</span></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="index.html" aria-current="page">Overview</a>
+      <a href="method.html">Method</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="submit.html">Submit</a>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+      <button class="theme-toggle" type="button" aria-label="Switch between light and dark"><span class="sw" aria-hidden="true"></span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="sheet">
+
+  <section class="hero">
+    <span class="kicker reveal">A preregistered, execution-graded benchmark</span>
+    <h1 class="reveal r2">Memory for coding agents, graded by <em>execution.</em></h1>
+    <p class="dek reveal r3">Existing memory benchmarks ask a model questions about synthetic
+    conversations and let an LLM judge the answers. This one gives a real agent real work in a
+    real repository, where success depends on something learned in earlier sessions, and grades
+    the artifact by execution: <strong>tests pass or they do not.</strong> No judge anywhere in
+    the primary endpoint.</p>
+    <div class="hero-cta reveal r4">
+      <a class="btn btn-solid" href="method.html">Read the method</a>
+      <a class="btn btn-ghost" href="leaderboard.html">Leaderboard</a>
+    </div>
+  </section>
+
+  <section class="stat-band" aria-label="Benchmark at a glance">
+    <div class="stat-grid">
+      <div><div class="n">6</div><div class="l">arms on the leaderboard</div></div>
+      <div><div class="n">34</div><div class="l">executable tasks</div></div>
+      <div><div class="n">5</div><div class="l">corpus conditions</div></div>
+      <div><div class="n">0</div><div class="l">LLM judges in the endpoint</div></div>
+    </div>
+  </section>
+
+  <div class="status-line" role="status">
+    <span class="live">Phase 0 · instrument bring-up</span>
+    <span>Retrieval was saturated on the feed every earlier run used: hit@10 was 1.000, so every
+    memory arm found the governing session every time and the grid measured judgement rather than
+    memory. The official run moves to a 4,900-document corpus where it does not.</span>
+    <span>The leaderboard stays empty until a preregistered run publishes a summary.</span>
+    <span><a href="#progress">What has been built, and what has not &#8594;</a></span>
+  </div>
+
+  <section class="pad-y" id="decisions">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>Design in six decisions</h2>
+      <span class="aside">the whole benchmark, compressed</span>
+    </div>
+
+    <div class="decisions">
+      <div class="decision">
+        <span class="idx">D1</span>
+        <div>
+          <h3>Official integrations, frozen and vendor-reviewed</h3>
+          <p>Every product enters through its own published Claude Code integration: plugin, MCP
+          server, or lifecycle hooks. Each adapter's config is hash-pinned in
+          <code>config.frozen.json</code>, and each vendor is publicly invited to review it before
+          the run. The invitation, the response, or the documented silence is committed to the
+          repository.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="idx">D2</span>
+        <div>
+          <h3>Each product carries its own shipped integration</h3>
+          <p>Every memory arm is the same CLAUDE.md bundle plus that product, wired exactly as
+          its vendor ships it: its own skills, its own MCP server, its own instruction text. The
+          baseline is <code>claude_md</code>, not <code>bare</code>: nobody runs a coding agent
+          memory-free, so nothing is measured against a strawman.</p>
+          <p>The instruction is a treatment, not scaffolding. Equalising it across arms measures
+          a denominator no vendor ships; letting each carry its own measures what a user installs.
+          The official run does the second and publishes every arm's instruction size beside its
+          result. The equalised variant exists as a separate, labelled ablation.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="idx">D3</span>
+        <div>
+          <h3>One neutral experience feed, each product's own write path</h3>
+          <p>The corpus is verbatim recorded agent session transcripts. Every adapter ingests
+          identical bytes; what its extraction pipeline keeps is part of what is measured.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="idx">D4</span>
+        <div>
+          <h3>Executable endpoints only</h3>
+          <p>Checkers run the artifact against oracles the sandbox never contained. A do-nothing
+          session scores zero. Every task ships a naive reference solution that must fail and an
+          informed one that must pass, asserted in CI.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="idx">D5</span>
+        <div>
+          <h3>The admission gate</h3>
+          <p>A grid cell is discarded, not scored, unless every arm can prove its treatment was
+          applied: MCP tools listed at session init, lifecycle hooks demonstrably fired with
+          output, sandbox files digest-verified, and no arm holding another arm's tools. Discard
+          counts are published per arm.</p>
+          <p>Only an arm with a memory surface can fail to wire, so the rule protects one class
+          of arm's worst outcome and no other's. Every headline is published beside an
+          intention-to-treat column. A timeout is an outcome, not a wiring fault, and is never
+          retried.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="idx">D6</span>
+        <div>
+          <h3>Costs are end-to-end</h3>
+          <p>Ingestion tokens and session tokens land in one per-arm ledger, alongside wall time
+          and negative-transfer counts. Deltas below the preregistered minimum effect are
+          reported as noise, not as findings.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="arms">
+    <div class="section-head">
+      <span class="no">02</span>
+      <h2>The arms</h2>
+      <span class="aside">same feed, same tasks, same gate</span>
+    </div>
+
+    <div class="arm-strip mt-s">
+      <div class="arm-cell"><div class="arm-name">bare</div><div class="arm-type">no memory, no CLAUDE.md</div><span class="badge">floor</span></div>
+      <div class="arm-cell"><div class="arm-name">placebo</div><div class="arm-type">inert prose, no memory content</div><span class="badge">control</span></div>
+      <div class="arm-cell"><div class="arm-name">claude_md</div><div class="arm-type">curated CLAUDE.md bundle</div><span class="badge">baseline</span></div>
+      <div class="arm-cell"><div class="arm-name">fs_grep</div><div class="arm-type">transcripts on disk plus grep</div><span class="badge">control</span></div>
+      <div class="arm-cell"><div class="arm-name">recall</div><div class="arm-type">MCP server</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">mempalace</div><div class="arm-type">MCP server</div><span class="badge">product</span></div>
+      <div class="arm-cell"><div class="arm-name">protocol</div><div class="arm-type">the instruction, no memory behind it</div><span class="badge">reference</span></div>
+      <div class="arm-cell"><div class="arm-name">recall_prefetch</div><div class="arm-type">harness-side retrieval</div><span class="badge">reference</span></div>
+      <div class="arm-cell"><div class="arm-name">qualification</div><div class="arm-type">official hook integration</div><span class="badge">held back</span></div>
+    </div>
+
+    <p class="prose mt-m">Each arm exists to remove one explanation for a result.
+    <code>bare</code> is the reference damage is defined against. <code>placebo</code> is
+    project-shaped prose with no memory content, matched to the baseline bundle on line count and
+    whitespace tokens, and it separates "memory helped" from "any extra context helped".
+    <code>claude_md</code> is the honest competitor: a well-written static instruction file costs
+    nothing per query and is what most teams actually have. A memory product that cannot beat it
+    has not earned its tokens.
+    <a href="method.html#arms">What each arm isolates, in full&nbsp;&#8594;</a></p>
+
+    <p class="prose mt-m"><code>protocol</code> is the control two readers asked for, and it is
+    the one that changed the question. It carries the complete memory instruction and no memory,
+    so it separates <em>the memory</em> from <em>the telling</em>. Because every memory product
+    requires that instruction, "does memory beat no memory" is not directly answerable; what is
+    answerable is whether a product earns back the cost of asking for it.</p>
+
+    <p class="prose mt-m dim"><code>fs_grep</code> and <code>recall_prefetch</code> bracket the
+    product. The first is the cheap answer, the whole corpus on disk with grep over it; the second
+    runs retrieval in the harness with the task prompt already in hand, which is the ceiling the
+    live arm is trying to reach. Neither is ranked as a competitor.
+    <a href="method.html#diagnostic">How they decompose the problem&nbsp;&#8594;</a></p>
+
+    <p class="prose mt-m dim">One arm is <strong>not</strong> running, and its absence is a
+    recorded choice: <code>oracle_memory</code> injects the exact evidence, so under the
+    <code>absent</code> condition it would hand over an answer the corpus is defined not to
+    contain. It returns when its bundles are condition-aware.</p>
+  </section>
+
+  <section class="pad-y-s" id="progress">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>Where this actually stands</h2>
+      <span class="aside">2026-08-31</span>
+    </div>
+
+    <div class="table-scroll mt-s">
+      <table>
+        <thead><tr><th>piece</th><th>state</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m">harness</span></td>
+              <td>runs; sandbox, admission gate, paired statistics, cost ledger, MCP preflight and bounded retry</td></tr>
+          <tr><td><span class="m">tasks</span></td>
+              <td><strong>34</strong> executable tasks, each with a naive and an informed reference asserted in CI. Three of them need two sessions combined, which single-fact retrieval cannot do</td></tr>
+          <tr><td><span class="m">harm suite</span></td>
+              <td>five corpus conditions across <strong>73 task-conditions</strong>; eleven tasks carry all four damage conditions, above the threshold of eight for reporting one as a result</td></tr>
+          <tr><td><span class="m">arms</span></td>
+              <td><strong>eight in the approved run:</strong> <code>bare</code>, <code>placebo</code>, <code>claude_md</code>, <code>protocol</code>, <code>fs_grep</code>, <code>recall</code>, <code>mempalace</code>, <code>recall_prefetch</code>. A newly qualified official hook integration remains held back from this public roster until its disclosure window and preregistered comparison are complete</td></tr>
+          <tr><td><span class="m">corpus</span></td>
+              <td>4,900 documents per condition, up from 196. It was rebuilt because the old feed was too easy: <code>bm25</code> hit@1 fell 0.485 to 0.182 and <code>voyage</code> hit@10 fell 1.000 to 0.879 on the new one</td></tr>
+          <tr><td><span class="m">runs</span></td>
+              <td>every run so far is <strong>bring-up, not result</strong>: five pilots, a harm-suite first pass, a calibration, a diagnostic and one full grid. The grid is treated as calibration because it showed the feed could not separate the arms. No arm-level number from any of them is quoted</td></tr>
+          <tr><td><span class="m">leaderboard</span></td>
+              <td>empty by construction: a number reaches it only from a published run summary</td></tr>
+          <tr><td><span class="m">reproducibility</span></td>
+              <td><strong>checkable, not yet re-runnable.</strong> <code>python -m scripts.verify_run --all</code> re-derives the ledger, the endpoints and the discard set from the published sessions with no credentials and no money. Re-running is the gap: <code>bare</code>, <code>placebo</code>, <code>claude_md</code> and <code>fs_grep</code> need only the CLI and a model key, while <code>recall</code> needs a database, an embedding key and a built index that the compose stack does not start</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout mt-l">
+      <span class="kicker">The long version</span>
+      <div class="prose">
+        <p>The dated status page in the repository carries the run-by-run table, the open
+        blockers in the order they have to be cleared, and the command that re-derives every
+        claim on this page:
+        <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/docs/STATUS.md">docs/STATUS.md</a>.
+        Every change to the instrument that moves a published number is recorded in
+        <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/docs/audit">docs/audit/</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="disclosure">
+    <div class="callout callout-invert">
+      <span class="kicker">Disclosure</span>
+      <p>This benchmark is built by the authors of <strong>recall</strong>, which competes in it.
+      That is exactly why the methodology is preregistered, the harness is open, every adapter
+      config is vendor-reviewable before any run, and all results are published, including the
+      ones recall loses. The full run's protocol is committed under
+      <code>preregistration/</code> before a single session starts.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="foot-title">agent-memory-bench</div>
+      <div class="dim">A preregistered, execution-graded benchmark of pluggable memory layers
+      for coding agents. Apache-2.0. Built in the open; results published win or lose.</div>
+    </div>
+    <div>
+      <div class="foot-title">Pages</div>
+      <a href="method.html">Method</a><br>
+      <a href="leaderboard.html">Leaderboard</a><br>
+      <a href="submit.html">Submit &amp; reproduce</a>
+    </div>
+    <div>
+      <div class="foot-title">Source</div>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">Repository</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/preregistration">Preregistrations</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/adapters/VENDOR_REVIEW_TEMPLATE.md">Vendor review</a>
+    </div>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>

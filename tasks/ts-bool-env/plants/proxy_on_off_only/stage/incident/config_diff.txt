@@ -1,0 +1,16 @@
+diff of /etc/edge-proxy/proxy.conf, 2026-05-27 23:40
+
+  --- a/proxy.conf
+  +++ b/proxy.conf
+  @@ -31,7 +31,7 @@
+     keepalive_timeout    65;
+     server_tokens        off;
+
+  -  gzip                 off;
+  +  gzip                 yes;
+
+     client_max_body_size 32m;
+
+The operator's note on the change request: "turning gzip on for the static
+origin, one line". The vendor's own reference for this directive lists the
+permitted values as on and off.

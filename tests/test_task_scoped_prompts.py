@@ -42,7 +42,7 @@ def _spec(tmp_path: Path, task_id: str, namespace: str = "ns"):
     )
 
 
-def test_each_task_receives_its_own_bundle(tmp_path, monkeypatch):
+def test_each_task_receives_its_own_bundle(tmp_path, monkeypatch, recall_location):
     """Mutation: dropping the build_for_task override so it falls back to the namespace cache.
     THE bug. Every task then reads the first task's notes and nothing raises."""
 
@@ -56,7 +56,7 @@ def test_each_task_receives_its_own_bundle(tmp_path, monkeypatch):
     assert len({*texts.values()}) == len(TASKS)
 
 
-def test_the_shared_namespace_does_not_collapse_the_prompts(tmp_path, monkeypatch):
+def test_the_shared_namespace_does_not_collapse_the_prompts(tmp_path, monkeypatch, recall_location):
     """All three tasks use ONE namespace, which is the condition that triggered the bug."""
 
     monkeypatch.setenv("RECALL_DSN", "postgresql://irrelevant/for-this-test")
@@ -64,7 +64,7 @@ def test_the_shared_namespace_does_not_collapse_the_prompts(tmp_path, monkeypatc
     assert len({str(p) for p in paths.values()}) == len(TASKS), "prompts shared a path"
 
 
-def test_the_tool_instruction_still_leads_the_prompt(tmp_path, monkeypatch):
+def test_the_tool_instruction_still_leads_the_prompt(tmp_path, monkeypatch, recall_location):
     """The one-line instruction goes at the TOP; buried after the bundle it measured a 0% search
     rate, and then the benchmark measures prompt placement rather than retrieval."""
 
@@ -74,7 +74,7 @@ def test_the_tool_instruction_still_leads_the_prompt(tmp_path, monkeypatch):
     assert text.index("recall_search") < text.index("# notes for ts-alpha")
 
 
-def test_prompts_are_written_with_unix_line_endings(tmp_path, monkeypatch):
+def test_prompts_are_written_with_unix_line_endings(tmp_path, monkeypatch, recall_location):
     """scripts/pilot.py writes newline='\\n' and the adapter did not, so diagnostic-001's prompts
     were CRLF where pilot-004's were LF: 7 to 10 bytes per file, in a benchmark that scores
     line-ending tasks."""
@@ -84,7 +84,7 @@ def test_prompts_are_written_with_unix_line_endings(tmp_path, monkeypatch):
     assert b"\r\n" not in raw
 
 
-def test_build_still_caches_per_namespace_for_single_task_callers(tmp_path, monkeypatch):
+def test_build_still_caches_per_namespace_for_single_task_callers(tmp_path, monkeypatch, recall_location):
     """Mutation: making build() task scoped too. scripts/pilot.py and scripts/smoke.py call it and
     their behaviour must not move, or pilot-003 and pilot-004 stop being reproducible."""
 

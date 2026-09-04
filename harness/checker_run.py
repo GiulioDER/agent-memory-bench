@@ -35,6 +35,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from harness.claude_exec import _ENV_PASSTHROUGH
+
 #: Nothing a checker runs is allowed to take longer than this, whatever it spawns.
 DEFAULT_TIMEOUT_S = 120.0
 
@@ -127,7 +129,19 @@ def run_bounded(
     rather than only on what it printed.
     """
 
-    merged = dict(os.environ)
+    # Allow-list, NOT a copy of the operator's environment. What runs here is the deliverable the
+    # model just wrote plus the task's checker, and `scripts/launch_official.sh` sources a secrets
+    # file into the environment they would inherit, so a wholesale copy hands model-authored code
+    # OPENROUTER_API_KEY and every other arm's credentials for no benefit.
+    #
+    # `harness/claude_exec.py::_ENV_PASSTHROUGH` is the same decision already made for the SESSION
+    # subprocess, with its reasoning written out there. Shared rather than restated: two
+    # allow-lists drift, and the drift is invisible until something leaks.
+    merged = {
+        name: os.environ[name]
+        for name in _ENV_PASSTHROUGH
+        if os.environ.get(name) is not None
+    }
     if env:
         merged.update(env)
     # A statement, not the ternary this used to be, and the difference is the whole fix. mypy
@@ -152,6 +166,7 @@ def run_bounded(
         encoding="utf-8",
         errors="replace",
         creationflags=creation_flags,
+        start_new_session=sys.platform != "win32",
     )
     timed_out = False
     try:

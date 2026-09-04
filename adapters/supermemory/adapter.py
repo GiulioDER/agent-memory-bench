@@ -18,7 +18,14 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport, MemoryAdapter, digest_tree
+from harness.adapters.base import (
+    ArmSpec,
+    CorpusManifest,
+    IngestReport,
+    MemoryAdapter,
+    digest_tree,
+    namespace_path,
+)
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
 from harness.transcripts import render_corpus
@@ -55,12 +62,13 @@ class SupermemoryAdapter(MemoryAdapter):
         self.plugin_dir = Path(configured) if configured else None
 
     @staticmethod
-    def shared_instruction(*, neutral: bool = False) -> str:
+    def shared_instruction(*, neutral: bool = False, variant: str = "protocol") -> str:
         return compose(
             "supermemory",
             "Supermemory provides persistent project context through its official Claude Code "
             "hooks; use that context before acting when relevant.",
             neutral=neutral,
+            variant=variant,
         )
 
     def _base_url(self) -> str:
@@ -153,7 +161,7 @@ class SupermemoryAdapter(MemoryAdapter):
 
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
-        staged = self.staging_root / namespace / "feed"
+        staged = namespace_path(self.staging_root, namespace, "feed")
         if staged.exists():
             shutil.rmtree(staged)
         render_corpus(
@@ -250,7 +258,7 @@ class SupermemoryAdapter(MemoryAdapter):
         )
 
     def _prompt_path(self, namespace: str) -> Path:
-        return self.staging_root / namespace / "prompt.md"
+        return namespace_path(self.staging_root, namespace, "prompt.md")
 
     def _write_prompt(self, namespace: str) -> Path:
         path = self._prompt_path(namespace)

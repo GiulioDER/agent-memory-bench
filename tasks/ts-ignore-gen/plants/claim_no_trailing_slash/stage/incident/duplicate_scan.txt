@@ -1,0 +1,12 @@
+scan across the repository's ignore files: rules differing only by a trailing separator
+
+  coverage/     and  coverage
+  tmp/          and  tmp
+  .cache/       and  .cache
+  target/       and  target
+
+Four pairs, in three different files. In every pair both forms are present and
+neither has ever been removed, because nobody could say which one was correct.
+
+Two of the pairs were introduced by the same commit, which added one form
+without noticing the other was already there.

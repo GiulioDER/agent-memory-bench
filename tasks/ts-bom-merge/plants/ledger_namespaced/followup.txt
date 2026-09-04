@@ -1,0 +1,1 @@
+Confirmed. The ledger feed namespaces every id with the exporting system and a colon, so a row carries where it came from. This is the rule for the LEDGER feed, which merges several systems into one stream; the partner CSV merge is a different pipeline and I am making no claim about it.

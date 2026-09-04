@@ -58,6 +58,7 @@ def conversation_to_corpus(
     lines: list[dict] = [{"role": "user", "content": prompt, "ts": _stamp(base, 0)}]
     index = 1
     pending: list[dict] = []
+    pending_by_id: dict[str, dict] = {}
     for turn in conversation:
         role = turn.get("role")
         if role == "user":
@@ -69,17 +70,35 @@ def conversation_to_corpus(
                 lines.append({"role": "assistant", "content": text, "ts": _stamp(base, index)})
                 index += 1
             for call in calls:
-                pending.append(
-                    {
-                        "role": "assistant",
-                        "content": text.strip(),
-                        "tool_name": str(call.get("name", "")),
-                        "tool_input": json.dumps(call.get("args", {}), ensure_ascii=False),
-                    }
-                )
+                entry = {
+                    "role": "assistant",
+                    "content": text.strip(),
+                    "tool_name": str(call.get("name", "")),
+                    "tool_input": json.dumps(call.get("args", {}), ensure_ascii=False),
+                }
+                pending.append(entry)
+                call_id = str(call.get("id", ""))
+                if call_id:
+                    pending_by_id[call_id] = entry
                 text = ""  # the text belongs to the first call of the turn only
         elif role == "tool":
-            entry = pending.pop(0) if pending else {"role": "assistant", "content": ""}
+            call_id = str(turn.get("tool_use_id", ""))
+            entry = pending_by_id.pop(call_id, None) if call_id else None
+            if entry is not None:
+                pending.remove(entry)
+            elif pending:
+                # Older captured conversations did not preserve the tool_use_id. Keep the
+                # historical fallback for those inputs, while ID-bearing streams pair safely
+                # even when results arrive out of order.
+                entry = pending.pop(0)
+                stale_ids = [
+                    pending_id for pending_id, pending_entry in pending_by_id.items()
+                    if pending_entry is entry
+                ]
+                for pending_id in stale_ids:
+                    pending_by_id.pop(pending_id, None)
+            else:
+                entry = {"role": "assistant", "content": ""}
             entry["tool_result"] = str(turn.get("content", ""))[:2000]
             entry["ts"] = _stamp(base, index)
             index += 1
@@ -90,6 +109,26 @@ def conversation_to_corpus(
         lines.append(entry)
     lines.append({"role": "user", "content": followup, "ts": _stamp(base, index + 1)})
     return lines
+
+
+def _required_terms(task, precursor: str) -> tuple[tuple[str, ...], str]:
+    """Which fact terms this particular recording has to surface.
+
+    An ordinary task states its whole fact in every session it owns, so the gate is every term. A
+    task whose fact is DISTRIBUTED states one share per session, so demanding every term would
+    refuse every valid recording of it, and the obvious fix under time pressure ("just record both
+    halves in one session") destroys exactly the property the task exists to test.
+    """
+
+    if task.synthesis is None:
+        return task.fact_terms, "the fact"
+    for shard in task.synthesis.shards:
+        if shard.precursor == precursor:
+            return shard.terms, f"shard {precursor}'s share of the fact"
+    raise SystemExit(
+        f"{task.task_id} declares a distributed fact and no shard named {precursor!r}; "
+        f"shards are {', '.join(task.synthesis.precursors)}"
+    )
 
 
 async def main() -> int:
@@ -153,12 +192,27 @@ async def main() -> int:
     lines = conversation_to_corpus(prompt, record.conversation, followup, base)
     text = "\n".join(json.dumps(line, ensure_ascii=False) for line in lines) + "\n"
 
-    missing = [term for term in task.fact_terms if term.lower() not in text.lower()]
+    required, scope = _required_terms(task, args.precursor)
+    missing = [term for term in required if term.lower() not in text.lower()]
     if missing:
         raise SystemExit(
-            f"fact terms {missing} absent from the transcript; the fact never surfaced. "
+            f"fact terms {missing} absent from the transcript; {scope} never surfaced. "
             f"Fix the staging or the followup wording, and re-run"
         )
+    if task.synthesis is not None:
+        others = [
+            term
+            for shard in task.synthesis.shards
+            if shard.precursor != args.precursor
+            for term in shard.terms
+        ]
+        strayed = [term for term in others if term.lower() in text.lower()]
+        if strayed:
+            raise SystemExit(
+                f"this session states another shard's terms {strayed}. The fact is supposed to "
+                f"be distributed, and a session holding two shares answers the task alone. "
+                f"Re-stage so the other half is out of reach, and re-record"
+            )
 
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8", newline="\n")

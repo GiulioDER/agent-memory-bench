@@ -1,0 +1,1 @@
+Agreed. Every merged id is qualified with the source file stem and a hyphen, so two partners can use the same id without colliding in the merged file.

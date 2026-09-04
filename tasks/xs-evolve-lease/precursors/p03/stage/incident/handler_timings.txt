@@ -1,0 +1,10 @@
+handler wall time, queue alpha, June and July, p99 by hour
+
+  hour   p99      max observed
+  01     11.4s    38s
+  02     22.9s    74s
+  03     41.6s    133s   <- the 21 July stall sits here
+  04     9.8s     27s
+
+The broker's TTL is 120 seconds and it is measured from the last successful renewal. Any
+interval that leaves less headroom than the worst handler we have measured will stall again.
