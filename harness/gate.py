@@ -291,6 +291,11 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
                     f"lifecycle hook {hook!r} produced no output; an empty injection is "
                     f"indistinguishable from the hook not running"
                 )
+            if entry.get("hook_error"):
+                reasons.append(
+                    f"lifecycle hook {hook!r} reported an integration error: "
+                    f"{entry['hook_error']}"
+                )
 
     if signal.sandbox_paths:
         present = record.metadata.get("sandbox_paths_present")

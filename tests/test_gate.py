@@ -110,6 +110,22 @@ def test_required_hook_missing_or_failing_is_discarded():
         signal,
     )
     assert ok.admitted
+    hook_error = check_session(
+        _record(
+            "mem0",
+            hook_ledger=(
+                {
+                    "event": "SessionStart",
+                    "exit_code": 0,
+                    "output_sha256": "ab",
+                    "hook_error": "<supermemory-status>unreachable</supermemory-status>",
+                },
+            ),
+        ),
+        signal,
+    )
+    assert not hook_error.admitted
+    assert any("integration error" in reason for reason in hook_error.reasons)
 
 
 def test_sandbox_path_and_prompt_hash_checks():

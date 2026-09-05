@@ -115,6 +115,45 @@ def test_the_two_denominators_differ_exactly_by_the_discards(tmp_path):
     )
 
 
+def test_supermemory_search_rate_uses_hook_ledger_not_memory_tool_count(tmp_path):
+    run = _run_dir(
+        tmp_path,
+        [
+            {
+                "task_id": "ts-tz-utc",
+                "seed": 0,
+                "arm": "supermemory",
+                "memory_call_count": 0,
+                "hook_ledger": [
+                    {
+                        "event": "UserPromptSubmit",
+                        "exit_code": 0,
+                        "output_sha256": "a",
+                        "injection_status": "context",
+                        "recalled_count": 5,
+                    }
+                ],
+            },
+            {
+                "task_id": "ts-tz-utc",
+                "seed": 1,
+                "arm": "supermemory",
+                "memory_call_count": 0,
+                "hook_ledger": [
+                    {
+                        "event": "UserPromptSubmit",
+                        "exit_code": 0,
+                        "output_sha256": "b",
+                        "injection_status": "empty",
+                        "recalled_count": 0,
+                    }
+                ],
+            },
+        ],
+    )
+    assert search_rate_for(run)["supermemory"] == 0.5
+
+
 def test_both_rates_are_published_under_distinct_names():
     """A reader must be able to see the gap rather than take one denominator on trust."""
 

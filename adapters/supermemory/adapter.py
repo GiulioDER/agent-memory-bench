@@ -104,9 +104,10 @@ class SupermemoryAdapter(MemoryAdapter):
 
     @staticmethod
     def _benchmark_profile_items() -> int | None:
-        raw = os.environ.get(_PROFILE_ITEMS_ENV)
-        if raw is None:
-            return None
+        # Freeze the vendor documented default in the benchmark adapter. An unset environment
+        # must not silently turn the profile surface off or make two runs depend on whatever
+        # settings happen to exist on the host.
+        raw = os.environ.get(_PROFILE_ITEMS_ENV, "5")
         try:
             value = int(raw)
         except ValueError as error:
@@ -378,6 +379,10 @@ class SupermemoryAdapter(MemoryAdapter):
         ledger = config_dir / "hook-ledger.jsonl"
         home = config_dir / "home"
         home.mkdir(exist_ok=True)
+        # The vendor SessionStart hook installs its optional statusline under ~/.claude. Creating
+        # the directory keeps that optional side effect from producing a false error in every
+        # measured session, while leaving the vendor hook itself unchanged.
+        (home / ".claude").mkdir(exist_ok=True)
         prompt = prompt_path or session_dir / "prompt.md"
         prompt.parent.mkdir(parents=True, exist_ok=True)
         prompt.write_text(
