@@ -202,6 +202,21 @@ manifests. The submission descriptor cannot override them. The checked in
 `preregistration/challenge_policy.json` is a draft template and cannot be used for a prize run
 until its model and provider identifiers are replaced and independently approved.
 
+The repository also includes a dependency free reference adapter in
+`examples/challenge_adapter.py`. Its normal mode is a deterministic lexical baseline and its
+`--empty` mode is the deliberately bad adapter. After both have been evaluated against the same
+frozen private pack, the ordering gate is run with:
+
+```bash
+python -m scripts.verify_challenge_ordering \
+  --baseline /private/results/baseline-public.json \
+  --deliberately-bad /private/results/empty-public.json \
+  --minimum-margin 0.10
+```
+
+The gate checks supplied manifests; it does not manufacture baseline evidence. Both manifests
+must come from independent runs under the frozen policy and private pack.
+
 Before execution, the organizer can audit all rendered task commands without starting an image:
 
 ```bash
