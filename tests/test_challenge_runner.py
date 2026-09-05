@@ -12,7 +12,11 @@ from harness.challenge_pack import (
     load_private_pack,
     load_submission,
 )
-from harness.challenge_runner import ChallengeRunnerError, build_docker_argv
+from harness.challenge_runner import (
+    ChallengeRunnerError,
+    build_adapter_service_argv,
+    build_docker_argv,
+)
 
 
 def _pack(tmp_path: Path):
@@ -109,3 +113,28 @@ def test_model_only_requires_evaluator_proxy(tmp_path: Path):
     plan = build_execution_plan(pack, submission, "task-a")
     with pytest.raises(ChallengeRunnerError, match="model proxy"):
         build_docker_argv(pack, plan, tmp_path / "output", container_name="amb-test")
+
+
+def test_sidecar_command_mounts_no_task_prompt_or_fixture(tmp_path: Path):
+    pack = _pack(tmp_path)
+    submission = _submission(tmp_path)
+    plan = build_execution_plan(pack, submission, "task-a")
+    argv = build_adapter_service_argv(
+        pack,
+        plan,
+        tmp_path / "output",
+        tmp_path / "runtime",
+        container_name="amb-sidecar-test",
+    )
+    command = " ".join(argv)
+    assert "/challenge/corpus" in command
+    assert "/challenge/runtime" in command
+    assert "/challenge/output" in command
+    assert "/challenge/task" not in command
+    assert "/challenge/prompt.txt" not in command
+    assert "fixtures" not in command
+    assert "prompts" not in command
+    assert "checkers" not in command
+    assert "oracles" not in command
+    assert "references" not in command
+    assert "AMB_ADAPTER_SOCKET=/challenge/runtime/adapter.sock" in command

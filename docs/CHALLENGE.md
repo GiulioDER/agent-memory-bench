@@ -122,6 +122,39 @@ memory layer, how task context is mediated, and how reset and usage events are r
 that protocol is frozen, a one shot image must not be compared as an adapter only result because
 its prompt construction, model calls or agent loop could become an unrecorded advantage.
 
+The recommended final shape is a sidecar service. The fixed evaluator owns the model and task
+agent. The submitted image receives only the shared corpus and an empty runtime directory, then
+serves the evaluator over `/challenge/runtime/adapter.sock`. The task fixture and prompt stay in
+the evaluator's task container and are never mounted into the memory sidecar.
+
+The proposed protocol is intentionally small. Each socket connection carries one newline delimited
+JSON request and one response using API `amb-challenge-adapter-v1`:
+
+```json
+{"api":"amb-challenge-adapter-v1","id":"req-1","method":"search","params":{"task_id":"heldout-task-001","query":"...","limit":10}}
+```
+
+The allowed methods are `health`, `search` and `reset`. The adapter starts with the mounted corpus
+and must report readiness through `health`. `search` returns ranked memory results. `reset` clears
+task session state and is called before every new session. The evaluator validates every response,
+applies the fixed timeout and records protocol errors as run outcomes. An `ingest` method is not
+exposed to the agent protocol because corpus ingestion belongs to sidecar startup.
+
+A successful `search` response has this result shape:
+
+```json
+{
+  "hits": [
+    {"source_id":"sessions/example.jsonl","text":"...","score":0.91,"rank":1}
+  ],
+  "abstained": false,
+  "usage": {"input_tokens":0,"output_tokens":0}
+}
+```
+
+The evaluator treats returned text as untrusted model context and records the raw response. The
+adapter cannot report correctness, checker verdicts or oracle data through this protocol.
+
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these
 behaviours. The evaluator also runs a red team check for filesystem, environment, network and

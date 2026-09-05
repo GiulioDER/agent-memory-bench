@@ -21,6 +21,7 @@ from .challenge_pack import (
     ChallengeSubmission,
     build_execution_plan,
 )
+from .challenge_protocol import ADAPTER_API
 
 DEFAULT_TIMEOUT_SECONDS = 15 * 60
 MEMORY_LIMIT = "2g"
@@ -68,6 +69,20 @@ def _reject_output_overlap(path: Path, pack: ChallengePack) -> Path:
     if output_root == pack.root or pack.root in output_root.parents:
         raise ChallengeRunnerError(f"output root is inside the private pack: {output_root}")
     return output_root
+
+
+def _reject_runtime_overlap(path: Path, pack: ChallengePack) -> Path:
+    raw_runtime_root = path.expanduser()
+    if raw_runtime_root.exists() and raw_runtime_root.is_symlink():
+        raise ChallengeRunnerError(f"runtime root must not be a symlink: {raw_runtime_root}")
+    runtime_root = raw_runtime_root.resolve()
+    if runtime_root == PUBLIC_REPO_ROOT or PUBLIC_REPO_ROOT in runtime_root.parents:
+        raise ChallengeRunnerError(
+            f"runtime root is inside the public repository: {runtime_root}"
+        )
+    if runtime_root == pack.root or pack.root in runtime_root.parents:
+        raise ChallengeRunnerError(f"runtime root is inside the private pack: {runtime_root}")
+    return runtime_root
 
 
 def _mount_source(
@@ -179,6 +194,93 @@ def build_docker_argv(
             ]
         )
 
+    if plan.network != "none":
+        raise ChallengeRunnerError("network policy was not reduced to an isolated mode")
+    argv.extend(["--entrypoint", plan.entrypoint[0], plan.image, *plan.entrypoint[1:]])
+    return argv
+
+
+def build_adapter_service_argv(
+    pack: ChallengePack,
+    plan: ChallengeExecutionPlan,
+    output_root: str | Path,
+    runtime_root: str | Path,
+    *,
+    container_name: str,
+    docker_binary: str = "docker",
+    model_proxy_socket: str | Path | None = None,
+) -> list[str]:
+    """Build a sidecar command that exposes only corpus and a dedicated socket directory."""
+
+    if not container_name or any(
+        character not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-"
+        for character in container_name
+    ):
+        raise ChallengeRunnerError(f"invalid container name: {container_name!r}")
+    output_base = _reject_output_overlap(Path(output_root), pack)
+    runtime_base = _reject_runtime_overlap(Path(runtime_root), pack)
+    argv = [
+        docker_binary,
+        "run",
+        "--rm",
+        "--pull=never",
+        "--name",
+        container_name,
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges:true",
+        f"--pids-limit={PIDS_LIMIT}",
+        f"--memory={MEMORY_LIMIT}",
+        f"--cpus={CPU_LIMIT}",
+        f"--ulimit=nofile={NOFILE_LIMIT}",
+        "--tmpfs",
+        TMPFS_SPEC,
+        "--network=none",
+        "--workdir",
+        "/challenge",
+        "--env",
+        f"AMB_TASK_ID={plan.task_id}",
+        "--env",
+        f"AMB_ADAPTER_API={ADAPTER_API}",
+        "--env",
+        "AMB_ADAPTER_SOCKET=/challenge/runtime/adapter.sock",
+    ]
+    if plan.network == "model-only":
+        if model_proxy_socket is None:
+            raise ChallengeRunnerError(
+                "model-only submissions require an evaluator-managed model proxy socket"
+            )
+        raw_proxy = Path(model_proxy_socket).expanduser()
+        if raw_proxy.is_symlink():
+            raise ChallengeRunnerError(f"model proxy socket must not be a symlink: {raw_proxy}")
+        proxy = raw_proxy.resolve()
+        if not proxy.exists():
+            raise ChallengeRunnerError(f"model proxy socket is not a regular path: {proxy}")
+        argv.extend(
+            [
+                "--mount",
+                _mount_arg(proxy, "/challenge/model-proxy.sock", read_only=True),
+                "--env",
+                "AMB_MODEL_PROXY_SOCKET=/challenge/model-proxy.sock",
+            ]
+        )
+    elif plan.network != "none":
+        raise ChallengeRunnerError(f"unsupported challenge network: {plan.network!r}")
+
+    corpus_mount = next(mount for mount in plan.mounts if mount.get("name") == "corpus")
+    corpus_source = _mount_source(pack, plan, corpus_mount, output_base)
+    output_mount = next(mount for mount in plan.mounts if mount.get("name") == "output")
+    output_source = _mount_source(pack, plan, output_mount, output_base)
+    argv.extend(
+        [
+            "--mount",
+            _mount_arg(corpus_source, "/challenge/corpus", read_only=True),
+            "--mount",
+            _mount_arg(runtime_base, "/challenge/runtime", read_only=False),
+            "--mount",
+            _mount_arg(output_source, "/challenge/output", read_only=False),
+        ]
+    )
     if plan.network != "none":
         raise ChallengeRunnerError("network policy was not reduced to an isolated mode")
     argv.extend(["--entrypoint", plan.entrypoint[0], plan.image, *plan.entrypoint[1:]])
