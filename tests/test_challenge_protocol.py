@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import socket
 
 import pytest
 
@@ -11,6 +12,7 @@ from harness.challenge_protocol import (
     ChallengeProtocolError,
     make_request,
     parse_response,
+    request_unix_socket,
 )
 
 
@@ -48,6 +50,15 @@ def test_response_requires_matching_version_id_and_shape():
         "req-1",
     )
     assert response["result"] == {"hits": []}
+
+
+def test_socket_request_rejects_a_regular_file_at_the_adapter_path(tmp_path):
+    if not hasattr(socket, "AF_UNIX"):
+        pytest.skip("Unix sockets are unavailable on this host")
+    socket_path = tmp_path / "adapter.sock"
+    socket_path.write_text("not a socket", encoding="utf-8")
+    with pytest.raises(ChallengeProtocolError, match="not a Unix socket"):
+        request_unix_socket(str(socket_path), "req-1", "health")
 
 
 @pytest.mark.parametrize(

@@ -122,10 +122,10 @@ memory layer, how task context is mediated, and how reset and usage events are r
 that protocol is frozen, a one shot image must not be compared as an adapter only result because
 its prompt construction, model calls or agent loop could become an unrecorded advantage.
 
-The recommended final shape is a sidecar service. The fixed evaluator owns the model and task
-agent. The submitted image receives only the shared corpus and an empty runtime directory, then
-serves the evaluator over `/challenge/runtime/adapter.sock`. The task fixture and prompt stay in
-the evaluator's task container and are never mounted into the memory sidecar.
+The final evaluator shape is a sidecar service. The fixed evaluator owns the model and task agent.
+The submitted image receives only the shared corpus and an empty runtime directory, then serves the
+evaluator over `/challenge/runtime/adapter.sock`. The task fixture and prompt stay in the
+evaluator's task process and are never mounted into the memory sidecar.
 
 The proposed protocol is intentionally small. Each socket connection carries one newline delimited
 JSON request and one response using API `amb-challenge-adapter-v1`:
@@ -161,6 +161,19 @@ bounded host process. The checker receives the finished task directory and its p
 directory. It never runs in the entrant container. A public score manifest contains task ids and
 pass or fail outcomes, but not private checker messages, oracle paths or oracle explanations.
 The aggregate is deterministic and must contain exactly one result for every task.
+
+The coordinator enforces this order independently for every task:
+
+1. Create a fresh task output directory and empty sidecar runtime directory.
+2. Start the submitted sidecar with only its corpus and runtime socket mounts.
+3. Wait for `health`, then send `reset` before the fixed agent begins.
+4. Run the fixed agent with only the current fixture, prompt, output directory and adapter client.
+5. Stop and remove the sidecar before starting the private checker.
+6. Run the private checker and add exactly one task score to the aggregate manifest.
+
+The fixed agent callback receives a narrow task context and cannot access the pack object. It must
+use the supplied adapter client for memory operations. Provider credentials, model settings and
+the model proxy remain evaluator configuration and are never loaded from a submission descriptor.
 
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these

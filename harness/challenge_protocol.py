@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import socket
+import stat
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 ADAPTER_API = "amb-challenge-adapter-v1"
@@ -108,6 +110,9 @@ def request_unix_socket(
         raise ChallengeProtocolError("Unix sockets are unavailable on this host")
     request = make_request(request_id, method, params)
     try:
+        socket_stat = Path(socket_path).lstat()
+        if stat.S_ISLNK(socket_stat.st_mode) or not stat.S_ISSOCK(socket_stat.st_mode):
+            raise ChallengeProtocolError("adapter socket path is not a Unix socket")
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as channel:
             channel.settimeout(timeout_seconds)
             channel.connect(socket_path)

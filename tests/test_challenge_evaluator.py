@@ -1,0 +1,123 @@
+"""Tests for evaluator sequencing and the fixed sidecar client."""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+from pathlib import Path
+
+import pytest
+
+from harness.challenge_evaluator import (
+    ChallengeAdapterClient,
+    ChallengeEvaluatorError,
+    evaluate_submission,
+)
+from harness.challenge_protocol import ADAPTER_API
+
+
+def test_sidecar_client_sends_fixed_task_scoped_requests(monkeypatch, tmp_path: Path):
+    requests: list[tuple[str, str, dict]] = []
+
+    def fake_request(socket_path, request_id, method, params):
+        requests.append((request_id, method, params))
+        return {"api": ADAPTER_API, "id": request_id, "ok": True, "result": {"ready": True}}
+
+    monkeypatch.setattr("harness.challenge_evaluator.request_unix_socket", fake_request)
+    client = ChallengeAdapterClient(tmp_path / "adapter.sock", "task-a")
+    assert client.health() == {"ready": True}
+    assert client.search("find this", limit=3) == {"ready": True}
+    assert client.reset() == {"ready": True}
+    assert requests == [
+        ("task-a-1", "health", None),
+        ("task-a-2", "search", {"task_id": "task-a", "query": "find this", "limit": 3}),
+        ("task-a-3", "reset", {"task_id": "task-a"}),
+    ]
+
+
+def test_sidecar_client_turns_protocol_error_into_evaluator_error(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.request_unix_socket",
+        lambda *_args: {
+            "api": ADAPTER_API,
+            "id": "task-a-1",
+            "ok": False,
+            "error": {"code": "bad_request"},
+        },
+    )
+    with pytest.raises(ChallengeEvaluatorError, match="adapter health failed"):
+        ChallengeAdapterClient(tmp_path / "adapter.sock", "task-a").health()
+
+
+def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypatch, tmp_path: Path):
+    fixture = tmp_path / "fixture.json"
+    prompt = tmp_path / "prompt.md"
+    checker = tmp_path / "checker.py"
+    oracle = tmp_path / "oracle"
+    fixture.write_text("{}", encoding="utf-8")
+    prompt.write_text("Answer", encoding="utf-8")
+    checker.write_text("", encoding="utf-8")
+    oracle.mkdir()
+    task = SimpleNamespace(
+        task_id="task-a",
+        fixture=fixture,
+        prompt=prompt,
+        checker=checker,
+        oracle=oracle,
+        reference=None,
+    )
+    pack = SimpleNamespace(tasks=(task,))
+    submission = SimpleNamespace(submission_id="entry-a")
+    events: list[str] = []
+
+    class FakeHandle:
+        socket_path = tmp_path / "adapter.sock"
+
+        def wait_ready(self):
+            events.append("health")
+
+        def stop(self):
+            events.append("stop")
+
+    def fake_start(*_args, **_kwargs):
+        events.append("start")
+        return FakeHandle()
+
+    monkeypatch.setattr("harness.challenge_evaluator.start_challenge_adapter", fake_start)
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.ChallengeAdapterClient.reset",
+        lambda _client: events.append("reset") or {"reset": True},
+    )
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.run_private_checker",
+        lambda _task, output, timeout_s: (
+            events.append(f"check:{output.name}"),
+            SimpleNamespace(task_id="task-a", passed=True),
+        )[1],
+    )
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.build_score_manifest",
+        lambda _pack, _submission, _scores, public: {"public": public},
+    )
+
+    def agent_runner(context):
+        events.append("agent")
+        assert context.task_id == "task-a"
+        assert context.fixture == fixture
+        assert context.prompt == prompt
+        assert context.output == tmp_path / "output" / "entry-a" / "task-a"
+        assert context.adapter_socket == tmp_path / "adapter.sock"
+        assert not hasattr(context, "task")
+        assert not hasattr(context, "checker")
+        assert not hasattr(context, "oracle")
+
+    public, private = evaluate_submission(
+        pack,
+        submission,
+        tmp_path / "output",
+        tmp_path / "runtime",
+        agent_runner,
+    )
+
+    assert events == ["start", "health", "reset", "agent", "stop", "check:task-a"]
+    assert public == {"public": True}
+    assert private == {"public": False}

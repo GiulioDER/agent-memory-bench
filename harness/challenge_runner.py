@@ -333,16 +333,12 @@ def build_adapter_service_argv(
 
     corpus_mount = next(mount for mount in plan.mounts if mount.get("name") == "corpus")
     corpus_source = _mount_source(pack, plan, corpus_mount, output_base)
-    output_mount = next(mount for mount in plan.mounts if mount.get("name") == "output")
-    output_source = _mount_source(pack, plan, output_mount, output_base)
     argv.extend(
         [
             "--mount",
             _mount_arg(corpus_source, "/challenge/corpus", read_only=True),
             "--mount",
             _mount_arg(runtime_base, "/challenge/runtime", read_only=False),
-            "--mount",
-            _mount_arg(output_source, "/challenge/output", read_only=False),
         ]
     )
     if plan.network != "none":

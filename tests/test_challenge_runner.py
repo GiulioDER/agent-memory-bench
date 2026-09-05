@@ -129,7 +129,7 @@ def test_sidecar_command_mounts_no_task_prompt_or_fixture(tmp_path: Path):
     command = " ".join(argv)
     assert "/challenge/corpus" in command
     assert "/challenge/runtime" in command
-    assert "/challenge/output" in command
+    assert "/challenge/output" not in command
     assert "/challenge/task" not in command
     assert "/challenge/prompt.txt" not in command
     assert "fixtures" not in command
