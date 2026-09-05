@@ -156,6 +156,12 @@ A successful `search` response has this result shape:
 The evaluator treats returned text as untrusted model context and records the raw response. The
 adapter cannot report correctness, checker verdicts or oracle data through this protocol.
 
+After the sidecar and fixed agent finish, the evaluator runs the private checker in a separate
+bounded host process. The checker receives the finished task directory and its private oracle
+directory. It never runs in the entrant container. A public score manifest contains task ids and
+pass or fail outcomes, but not private checker messages, oracle paths or oracle explanations.
+The aggregate is deterministic and must contain exactly one result for every task.
+
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these
 behaviours. The evaluator also runs a red team check for filesystem, environment, network and
