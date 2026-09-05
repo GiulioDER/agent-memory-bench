@@ -192,11 +192,15 @@ python -m scripts.evaluate_challenge \
   --runtime-root /private/amb-challenge-runtime \
   --public-manifest /private/amb-results/public.json \
   --private-manifest /private/amb-results/private.json \
+  --policy /private/amb-challenge-policy.json \
   --agent-command "python /evaluator/fixed_agent.py"
 ```
 
 The command and all timeout, model, seed, retry and budget values are evaluator configuration. They
-must be frozen and hashed before entries open. The submission descriptor cannot override them.
+must be frozen and hashed before entries open. The policy digest is recorded in both score
+manifests. The submission descriptor cannot override them. The checked in
+`preregistration/challenge_policy.json` is a draft template and cannot be used for a prize run
+until its model and provider identifiers are replaced and independently approved.
 
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "kind": "amb-challenge-evaluation-policy",
+  "policy_id": "challenge-draft-001",
+  "agent_timeout_seconds": 900,
+  "checker_timeout_seconds": 900,
+  "adapter_call_budget": 128,
+  "model_id": "TO_BE_FROZEN",
+  "provider_id": "TO_BE_FROZEN",
+  "temperature": 0,
+  "context_limit_tokens": 32768,
+  "infrastructure_retries": 1
+}
