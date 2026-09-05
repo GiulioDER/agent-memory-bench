@@ -50,6 +50,10 @@ That check proves the pack is separate from the public repository and that every
 prompt, checker, oracle and reference path exists inside it without symlink escapes. It does not
 replace the process sandbox required when executing an untrusted submission.
 
+Validation also compares corpus file hashes with every private checker, oracle and reference file.
+An exact duplicate fails the pack audit because it can expose the answer surface through the memory
+corpus. Suspicious corpus filenames are reported for human review even when their bytes are unique.
+
 When the organizer has prepared the heldout source bundle in a separate location, it can be copied
 into a fresh private destination and validated in one step:
 
