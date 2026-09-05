@@ -215,6 +215,17 @@ python -m scripts.audit_challenge_submission \
 This is a policy gate, not proof of container isolation. The release process still requires a real
 Docker red team run against the frozen image and host configuration.
 
+The synthetic Docker probe exercises that boundary without using heldout data:
+
+```bash
+python -m scripts.run_challenge_red_team --image ubuntu:24.04
+```
+
+It resolves the local image to a digest, launches hostile one shot and sidecar commands, and fails
+if private mounts, host credentials, a default route or a writable result mount are visible. It is
+necessary evidence for the container policy, but it does not validate the real heldout corpus or
+the provider's model isolation.
+
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these
 behaviours. The evaluator also runs a red team check for filesystem, environment, network and

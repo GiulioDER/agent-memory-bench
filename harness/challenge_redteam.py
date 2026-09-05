@@ -45,7 +45,12 @@ def audit_plan(plan: ChallengeExecutionPlan) -> None:
 def audit_docker_argv(argv: Sequence[str], *, sidecar: bool = False) -> None:
     """Check the rendered Docker argv for forbidden privileges and mounts."""
 
-    command = " ".join(argv)
+    values = list(argv)
+    try:
+        image_end = values.index("--entrypoint") + 2
+    except ValueError:
+        image_end = len(values)
+    command = " ".join(values[:image_end])
     for token in FORBIDDEN_TOKENS:
         if token in command:
             raise ChallengeRedTeamError(f"forbidden Docker token present: {token}")

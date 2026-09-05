@@ -92,6 +92,7 @@ def test_docker_command_is_per_task_and_never_mounts_private_checker_inputs(tmp_
     assert "--read-only" in command
     assert "--cap-drop=ALL" in command
     assert "no-new-privileges:true" in command
+    assert ",rw" not in command
     assert "/challenge/task" in command
     assert "/challenge/prompt.txt" in command
     assert "checkers" not in command

@@ -209,8 +209,8 @@ def _mount_source(
 
 
 def _mount_arg(source: Path, target: str, *, read_only: bool) -> str:
-    option = "readonly" if read_only else "rw"
-    return f"type=bind,src={source},dst={target},{option}"
+    option = ",readonly" if read_only else ""
+    return f"type=bind,src={source},dst={target}{option}"
 
 
 def build_docker_argv(
