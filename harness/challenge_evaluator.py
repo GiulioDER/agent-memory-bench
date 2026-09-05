@@ -13,6 +13,9 @@ from .challenge_runner import (
     DEFAULT_TIMEOUT_SECONDS,
     ChallengeAdapterHandle,
     ChallengeRunnerError,
+    _reject_output_overlap,
+    _reject_runtime_overlap,
+    _reject_shared_root_overlap,
     start_challenge_adapter,
 )
 from .challenge_scoring import ChallengeTaskScore, build_score_manifest, run_private_checker
@@ -130,15 +133,14 @@ def evaluate_submission(
     and adapter socket. It must not receive the pack root, checker, oracle or reference paths.
     """
 
-    raw_output_base = Path(output_root).expanduser()
-    raw_runtime_base = Path(runtime_root).expanduser()
     if adapter_call_budget <= 0:
         raise ChallengeEvaluatorError("adapter call budget must be positive")
-    for root_name, root in (("output", raw_output_base), ("runtime", raw_runtime_base)):
-        if root.exists() and root.is_symlink():
-            raise ChallengeEvaluatorError(f"{root_name} root must not be a symlink: {root}")
-    output_base = raw_output_base.resolve()
-    runtime_base = raw_runtime_base.resolve()
+    try:
+        output_base = _reject_output_overlap(Path(output_root), pack)
+        runtime_base = _reject_runtime_overlap(Path(runtime_root), pack)
+        _reject_shared_root_overlap(output_base, runtime_base)
+    except ChallengeRunnerError as error:
+        raise ChallengeEvaluatorError(f"invalid evaluator roots: {error}") from error
     scores: list[ChallengeTaskScore] = []
     for task in pack.tasks:
         task_runtime = runtime_base / task.task_id

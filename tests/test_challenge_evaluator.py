@@ -82,7 +82,8 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
         oracle=oracle,
         reference=None,
     )
-    pack = SimpleNamespace(tasks=(task,))
+    pack = SimpleNamespace(tasks=(task,), root=tmp_path / "pack")
+    pack.root.mkdir()
     submission = SimpleNamespace(submission_id="entry-a")
     events: list[str] = []
 
@@ -139,3 +140,21 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
     assert events == ["start", "health", "reset", "agent", "stop", "check:task-a"]
     assert public == {"public": True}
     assert private == {"public": False}
+
+
+def test_evaluator_rejects_private_pack_output_before_creating_directories(tmp_path: Path):
+    pack_root = tmp_path / "pack"
+    pack_root.mkdir()
+    pack = SimpleNamespace(tasks=(), root=pack_root)
+    submission = SimpleNamespace(submission_id="entry-a")
+    output_root = pack_root / "output"
+
+    with pytest.raises(ChallengeEvaluatorError, match="private pack"):
+        evaluate_submission(
+            pack,
+            submission,
+            output_root,
+            tmp_path / "runtime",
+            lambda _context: None,
+        )
+    assert not output_root.exists()
