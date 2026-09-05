@@ -135,8 +135,9 @@ JSON request and one response using API `amb-challenge-adapter-v1`:
 ```
 
 The allowed methods are `health`, `search` and `reset`. The adapter starts with the mounted corpus
-and must report readiness through `health`. `search` returns ranked memory results. `reset` clears
-task session state and is called before every new session. The evaluator validates every response,
+and must report readiness through `health`, whose result includes `{"ready":true}`. `search`
+returns ranked memory results. `reset` clears task session state and is called before every new
+session. The evaluator validates every response,
 applies the fixed timeout and records protocol errors as run outcomes. An `ingest` method is not
 exposed to the agent protocol because corpus ingestion belongs to sidecar startup.
 

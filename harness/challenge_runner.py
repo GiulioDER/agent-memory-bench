@@ -12,7 +12,8 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 
 from .challenge_pack import (
     PUBLIC_REPO_ROOT,
@@ -21,7 +22,7 @@ from .challenge_pack import (
     ChallengeSubmission,
     build_execution_plan,
 )
-from .challenge_protocol import ADAPTER_API
+from .challenge_protocol import ADAPTER_API, ChallengeProtocolError, request_unix_socket
 
 DEFAULT_TIMEOUT_SECONDS = 15 * 60
 MEMORY_LIMIT = "2g"
@@ -55,6 +56,69 @@ class ChallengeRunResult:
             "stdout": self.stdout,
             "stderr": self.stderr,
         }
+
+
+@dataclass
+class ChallengeAdapterHandle:
+    """A running sidecar and the resources needed to stop it safely."""
+
+    process: subprocess.Popen[str]
+    container_name: str
+    docker_binary: str
+    socket_path: Path
+
+    def wait_ready(self, *, timeout_seconds: float = 30.0) -> dict[str, Any]:
+        """Poll the sidecar health endpoint until it is ready or exits."""
+
+        if timeout_seconds <= 0:
+            raise ChallengeRunnerError("timeout_seconds must be positive")
+        deadline = time.monotonic() + timeout_seconds
+        last_error: Exception | None = None
+        while time.monotonic() < deadline:
+            if self.process.poll() is not None:
+                raise ChallengeRunnerError(
+                    f"adapter container exited before health check: {self.process.returncode}"
+                )
+            try:
+                response = request_unix_socket(
+                    str(self.socket_path),
+                    "health-check",
+                    "health",
+                    timeout_seconds=min(1.0, max(0.1, deadline - time.monotonic())),
+                )
+                if response.get("ok") and response.get("result", {}).get("ready") is True:
+                    return response
+            except ChallengeProtocolError as error:
+                last_error = error
+            time.sleep(0.1)
+        detail = f": {last_error}" if last_error else ""
+        raise ChallengeRunnerError(f"adapter health check timed out{detail}")
+
+    def stop(self) -> None:
+        """Remove the container and terminate the Docker client if still attached."""
+
+        subprocess.run(
+            [self.docker_binary, "rm", "-f", self.container_name],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=30,
+        )
+        if self.process.poll() is None:
+            self.process.kill()
+        self.process.communicate()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        _type: type[BaseException] | None,
+        _value: BaseException | None,
+        _traceback: TracebackType | None,
+    ) -> None:
+        self.stop()
 
 
 def _reject_output_overlap(path: Path, pack: ChallengePack) -> Path:
@@ -285,6 +349,56 @@ def build_adapter_service_argv(
         raise ChallengeRunnerError("network policy was not reduced to an isolated mode")
     argv.extend(["--entrypoint", plan.entrypoint[0], plan.image, *plan.entrypoint[1:]])
     return argv
+
+
+def start_challenge_adapter(
+    pack: ChallengePack,
+    submission: ChallengeSubmission,
+    task_id: str,
+    output_root: str | Path,
+    runtime_root: str | Path,
+    *,
+    docker_binary: str = "docker",
+    model_proxy_socket: str | Path | None = None,
+) -> ChallengeAdapterHandle:
+    """Start one sidecar with an empty runtime directory and no inherited host environment."""
+
+    plan = build_execution_plan(pack, submission, task_id)
+    output_base = _reject_output_overlap(Path(output_root), pack)
+    runtime_base = _reject_runtime_overlap(Path(runtime_root), pack)
+    if runtime_base.exists() and any(runtime_base.iterdir()):
+        raise ChallengeRunnerError(f"runtime root must start empty: {runtime_base}")
+    runtime_base.mkdir(parents=True, exist_ok=True)
+    task_output = output_base / submission.submission_id / task_id
+    if task_output.exists() and task_output.is_symlink():
+        raise ChallengeRunnerError(f"task output directory must not be a symlink: {task_output}")
+    task_output.mkdir(parents=True, exist_ok=True)
+
+    container_name = f"amb-adapter-{uuid.uuid4().hex}"
+    argv = build_adapter_service_argv(
+        pack,
+        plan,
+        output_base,
+        runtime_base,
+        container_name=container_name,
+        docker_binary=docker_binary,
+        model_proxy_socket=model_proxy_socket,
+    )
+    try:
+        process = subprocess.Popen(
+            argv,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError as error:
+        raise ChallengeRunnerError(f"could not start Docker: {error}") from error
+    return ChallengeAdapterHandle(
+        process=process,
+        container_name=container_name,
+        docker_binary=docker_binary,
+        socket_path=runtime_base / "adapter.sock",
+    )
 
 
 def run_challenge_task(
