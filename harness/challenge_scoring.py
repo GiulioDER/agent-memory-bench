@@ -52,6 +52,8 @@ def _checker_command(task: ChallengeTask, workdir: Path) -> list[str]:
     return [
         sys.executable,
         str(wrapper),
+        "--task-id",
+        task.task_id,
         "--checker",
         str(task.checker),
         "--workdir",

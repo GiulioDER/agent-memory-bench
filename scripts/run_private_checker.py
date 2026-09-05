@@ -10,6 +10,7 @@ from pathlib import Path
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task-id", required=True)
     parser.add_argument("--checker", required=True, type=Path)
     parser.add_argument("--workdir", required=True, type=Path)
     parser.add_argument("--oracle", required=True, type=Path)
@@ -30,7 +31,7 @@ def main() -> int:
         print(
             json.dumps(
                 {
-                    "task_id": args.checker.parent.name,
+                    "task_id": args.task_id,
                     "ok": False,
                     "verdict": f"checker raised: {type(error).__name__}: {error}",
                 }
@@ -45,7 +46,7 @@ def main() -> int:
     print(
         json.dumps(
             {
-                "task_id": args.checker.parent.name,
+                "task_id": args.task_id,
                 "ok": ok,
                 "verdict": str(verdict),
             }
