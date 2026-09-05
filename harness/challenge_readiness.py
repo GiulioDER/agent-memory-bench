@@ -103,12 +103,18 @@ def evaluate_readiness(
 
     if baseline_path is None or deliberately_bad_path is None:
         gates.append(ChallengeReadinessGate("baseline_ordering", False, "baseline and deliberately bad manifests are required"))
+    elif pack is None or policy is None:
+        gates.append(ChallengeReadinessGate("baseline_ordering", False, "private pack and frozen policy are required to bind baseline evidence"))
     else:
         try:
             result = verify_baseline_ordering(
                 _read_json(Path(baseline_path)),
                 _read_json(Path(deliberately_bad_path)),
                 minimum_margin=0.0,
+                expected_pack_id=pack.manifest["pack_id"],
+                expected_policy_digest=policy.digest(),
+                expected_scoring_version=pack.manifest["scoring_version"],
+                expected_task_ids=(task.task_id for task in pack.tasks),
             )
             gates.append(ChallengeReadinessGate("baseline_ordering", True, json.dumps(result, sort_keys=True)))
         except (OSError, TypeError, ValueError, ChallengeBaselineError) as error:

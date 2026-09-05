@@ -130,8 +130,31 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
     )
     baseline_path = tmp_path / "baseline.json"
     bad_path = tmp_path / "bad.json"
-    baseline_path.write_text(json.dumps({"score": 0.8}), encoding="utf-8")
-    bad_path.write_text(json.dumps({"score": 0.1}), encoding="utf-8")
+    def manifest(score: float, passed_count: int, submission_id: str) -> dict:
+        return {
+            "schema": 1,
+            "kind": "amb-challenge-score-manifest",
+            "pack_id": "pack-readiness",
+            "scoring_version": "score-readiness",
+            "policy_digest": loaded_policy.digest(),
+            "submission_id": submission_id,
+            "image": "registry.example/entry@sha256:" + "a" * 64,
+            "task_count": 1,
+            "passed_count": passed_count,
+            "score": score,
+            "tasks": [
+                {
+                    "task_id": "task-a",
+                    "passed": bool(passed_count),
+                    "checker_returncode": 0,
+                    "checker_timed_out": False,
+                }
+            ],
+            "private_details_included": False,
+        }
+
+    baseline_path.write_text(json.dumps(manifest(1.0, 1, "baseline")), encoding="utf-8")
+    bad_path.write_text(json.dumps(manifest(0.0, 0, "bad")), encoding="utf-8")
 
     result = readiness_result(
         evaluate_readiness(
