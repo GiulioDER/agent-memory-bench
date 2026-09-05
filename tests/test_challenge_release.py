@@ -5,9 +5,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from harness.challenge_pack import load_private_pack
 from harness.challenge_policy import load_policy
-from harness.challenge_release import build_release_manifest, hash_private_pack
+from harness.challenge_release import (
+    build_release_manifest,
+    hash_private_pack,
+    write_release_manifest,
+)
 
 
 def _pack(root: Path):
@@ -63,3 +69,11 @@ def test_release_manifest_changes_when_private_bytes_change(tmp_path: Path):
 def test_pack_hash_is_stable_for_same_bytes(tmp_path: Path):
     pack = _pack(tmp_path / "pack")
     assert hash_private_pack(pack) == hash_private_pack(load_private_pack(pack.root))
+
+
+def test_release_manifest_cannot_be_overwritten(tmp_path: Path):
+    target = tmp_path / "release.json"
+    write_release_manifest(target, {"version": 1})
+    with pytest.raises(ValueError, match="already exists"):
+        write_release_manifest(target, {"version": 2})
+    assert json.loads(target.read_text(encoding="utf-8")) == {"version": 1}

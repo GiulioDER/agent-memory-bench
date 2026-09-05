@@ -16,7 +16,7 @@ def hash_private_pack(pack: ChallengePack) -> str:
     """Hash every regular file and its portable relative path in a validated private pack."""
 
     digest = hashlib.sha256()
-    for path in sorted((candidate for candidate in pack.root.rglob("*") if candidate.is_file())):
+    for path in sorted(candidate for candidate in pack.root.rglob("*") if candidate.is_file()):
         relative = path.relative_to(pack.root).as_posix().encode("utf-8")
         content = path.read_bytes()
         digest.update(len(relative).to_bytes(8, "big"))
@@ -51,14 +51,15 @@ def build_release_manifest(
 
 
 def write_release_manifest(path: str | Path, manifest: dict[str, Any]) -> None:
-    """Write the release record using stable JSON formatting."""
+    """Create an immutable release record using stable JSON formatting."""
 
     target = Path(path).expanduser()
     if target.exists() and target.is_symlink():
         raise ValueError(f"release manifest target must not be a symlink: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    content = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    try:
+        with target.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+    except FileExistsError as error:
+        raise ValueError(f"release manifest target already exists: {target}") from error
