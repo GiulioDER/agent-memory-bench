@@ -194,7 +194,7 @@ class SupermemoryAdapter(MemoryAdapter):
         staged = namespace_path(self.staging_root, namespace, "feed")
         if staged.exists():
             shutil.rmtree(staged)
-        rendered = render_corpus(
+        render_corpus(
             [corpus.root / rel for rel in corpus.sessions], staged, root=corpus.root
         )
         start = time.monotonic()
@@ -298,7 +298,7 @@ class SupermemoryAdapter(MemoryAdapter):
                 "did not become ready within the bounded settle window"
             )
         base_url = self._base_url().lower()
-        local = base_url.startswith("http://localhost") or base_url.startswith("http://127.0.0.1")
+        local = base_url.startswith(("http://localhost", "http://127.0.0.1"))
         return IngestReport(
             arm=self.name,
             namespace=namespace,
