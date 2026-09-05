@@ -52,6 +52,49 @@ def test_response_requires_matching_version_id_and_shape():
     assert response["result"] == {"hits": []}
 
 
+def test_search_response_has_a_fixed_result_shape():
+    response = parse_response(
+        json.dumps(
+            {
+                "api": ADAPTER_API,
+                "id": "req-1",
+                "ok": True,
+                "result": {
+                    "hits": [
+                        {"source_id": "session-1", "text": "memory", "score": 0.9, "rank": 1}
+                    ],
+                    "abstained": False,
+                    "usage": {"input_tokens": 3, "output_tokens": 0},
+                },
+            }
+        ),
+        "req-1",
+        method="search",
+    )
+    assert response["result"]["hits"][0]["rank"] == 1
+
+
+def test_search_response_rejects_uncontracted_fields():
+    with pytest.raises(ChallengeProtocolError, match="unexpected field set"):
+        parse_response(
+            json.dumps(
+                {
+                    "api": ADAPTER_API,
+                    "id": "req-1",
+                    "ok": True,
+                    "result": {
+                        "hits": [],
+                        "abstained": False,
+                        "usage": {"input_tokens": 0, "output_tokens": 0},
+                        "answer": "hidden channel",
+                    },
+                }
+            ),
+            "req-1",
+            method="search",
+        )
+
+
 def test_socket_request_rejects_a_regular_file_at_the_adapter_path(tmp_path):
     if not hasattr(socket, "AF_UNIX"):
         pytest.skip("Unix sockets are unavailable on this host")

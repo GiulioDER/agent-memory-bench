@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import socket
 import stat
 from collections.abc import Mapping
@@ -13,6 +14,7 @@ ADAPTER_API = "amb-challenge-adapter-v1"
 METHODS = frozenset({"health", "search", "reset"})
 MAX_MESSAGE_BYTES = 1_048_576
 MAX_QUERY_CHARS = 32_768
+MAX_HITS = 100
 
 
 class ChallengeProtocolError(ValueError):
@@ -60,7 +62,12 @@ def make_request(request_id: str, method: str, params: Mapping[str, Any] | None 
     return encoded
 
 
-def parse_response(raw: bytes | str, request_id: str) -> dict[str, Any]:
+def parse_response(
+    raw: bytes | str,
+    request_id: str,
+    *,
+    method: str | None = None,
+) -> dict[str, Any]:
     """Decode one response and require it to match the request id and API version."""
 
     if isinstance(raw, bytes):
@@ -89,9 +96,52 @@ def parse_response(raw: bytes | str, request_id: str) -> dict[str, Any]:
     if payload["ok"]:
         if not isinstance(payload.get("result"), dict):
             raise ChallengeProtocolError("successful adapter response needs an object result")
+        if method is not None:
+            _validate_result(method, payload["result"])
     elif not isinstance(payload.get("error"), dict):
         raise ChallengeProtocolError("failed adapter response needs an object error")
     return payload
+
+
+def _validate_result(method: Any, result: dict[str, Any]) -> None:
+    """Validate the method-specific result without allowing an unbounded side channel."""
+
+    if method == "health":
+        if not isinstance(result.get("ready"), bool):
+            raise ChallengeProtocolError("health result needs a boolean ready field")
+        return
+    if method == "reset":
+        return
+    if method != "search":
+        raise ChallengeProtocolError(f"unsupported response method: {method!r}")
+
+    if set(result) != {"hits", "abstained", "usage"}:
+        raise ChallengeProtocolError("search result has an unexpected field set")
+    hits = result["hits"]
+    if not isinstance(hits, list) or len(hits) > MAX_HITS:
+        raise ChallengeProtocolError("search result hits must be a list of at most 100 items")
+    for hit in hits:
+        if not isinstance(hit, dict) or set(hit) != {"source_id", "text", "score", "rank"}:
+            raise ChallengeProtocolError("search hit has the wrong field set")
+        if not isinstance(hit["source_id"], str) or not hit["source_id"].strip():
+            raise ChallengeProtocolError("search hit source_id must be a non empty string")
+        if not isinstance(hit["text"], str):
+            raise ChallengeProtocolError("search hit text must be a string")
+        if (
+            isinstance(hit["score"], bool)
+            or not isinstance(hit["score"], (int, float))
+            or not math.isfinite(hit["score"])
+        ):
+            raise ChallengeProtocolError("search hit score must be a finite number")
+        if isinstance(hit["rank"], bool) or not isinstance(hit["rank"], int) or hit["rank"] < 1:
+            raise ChallengeProtocolError("search hit rank must be a positive integer")
+    usage = result["usage"]
+    if not isinstance(usage, dict) or set(usage) != {"input_tokens", "output_tokens"}:
+        raise ChallengeProtocolError("search usage has the wrong field set")
+    for field in ("input_tokens", "output_tokens"):
+        value = usage[field]
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ChallengeProtocolError(f"search usage {field} must be a non negative integer")
 
 
 def request_unix_socket(
@@ -129,4 +179,4 @@ def request_unix_socket(
         raise ChallengeProtocolError(f"could not contact adapter socket: {error}") from error
     if len(response) > MAX_MESSAGE_BYTES:
         raise ChallengeProtocolError("adapter response exceeds the message size limit")
-    return parse_response(bytes(response), request_id)
+    return parse_response(bytes(response), request_id, method=method)
