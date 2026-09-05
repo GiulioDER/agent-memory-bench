@@ -93,6 +93,29 @@ The plan is not an executor. The eventual evaluator must enforce its read only r
 capabilities, no new privileges, network policy and private path exclusions in the container
 runtime.
 
+The repository includes a conservative Docker runner for one task. It defaults to a dry run and
+uses an explicit execute flag. The image must already be present locally, because the runner uses
+`--pull=never`:
+
+```bash
+python -m scripts.run_challenge_task \
+  --pack /private/amb-challenge-pack \
+  --submission submission.json \
+  --task heldout-task-001 \
+  --output-root /private/amb-challenge-output
+
+python -m scripts.run_challenge_task \
+  --pack /private/amb-challenge-pack \
+  --submission submission.json \
+  --task heldout-task-001 \
+  --output-root /private/amb-challenge-output \
+  --execute
+```
+
+Execution uses no host network, a read only root, dropped capabilities, no new privileges,
+resource limits and no evaluator mounts. A submission declaring `model-only` must use an
+evaluator managed model proxy socket. Direct outbound network access is never granted.
+
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these
 behaviours. The evaluator also runs a red team check for filesystem, environment, network and
