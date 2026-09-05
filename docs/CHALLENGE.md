@@ -230,6 +230,7 @@ python -m scripts.finalize_challenge_release \
   --pack /private/amb-challenge-pack \
   --policy /private/amb-challenge-policy.json \
   --rules /private/amb-challenge-rules.json \
+  --evaluator-revision <clean-evaluator-git-commit> \
   --output /private/amb-release.json
 ```
 
@@ -257,6 +258,7 @@ python -m scripts.check_challenge_readiness \
   --pack /private/amb-challenge-pack \
   --policy /private/amb-challenge-policy.json \
   --rules /private/amb-challenge-rules.json \
+  --evaluator-revision <clean-evaluator-git-commit> \
   --release /private/amb-release.json \
   --baseline /private/results/baseline-public.json \
   --deliberately-bad /private/results/empty-public.json

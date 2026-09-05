@@ -28,6 +28,7 @@ def main() -> int:
     parser.add_argument("--policy", required=True, type=Path)
     parser.add_argument("--rules", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--evaluator-revision", required=True)
     args = parser.parse_args()
     try:
         pack = load_private_pack(args.pack)
@@ -35,7 +36,12 @@ def main() -> int:
         policy = load_policy(args.policy, require_frozen=True)
         rules = load_rules(args.rules, require_final=True)
         validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
-        manifest = build_release_manifest(pack, policy, rules)
+        manifest = build_release_manifest(
+            pack,
+            policy,
+            rules,
+            evaluator_revision=args.evaluator_revision,
+        )
         write_release_manifest(args.output, manifest)
     except (
         ChallengePackError,

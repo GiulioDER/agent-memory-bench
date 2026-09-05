@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from .challenge_pack import ChallengePack
 from .challenge_policy import ChallengeEvaluationPolicy
 from .challenge_rules import rules_digest
+
+EVALUATOR_REVISION = re.compile(r"^[0-9a-f]{40,64}$")
 
 
 def hash_private_pack(pack: ChallengePack) -> str:
@@ -30,6 +33,8 @@ def build_release_manifest(
     pack: ChallengePack,
     policy: ChallengeEvaluationPolicy,
     rules: dict[str, Any] | None = None,
+    *,
+    evaluator_revision: str | None = None,
 ) -> dict[str, Any]:
     """Build the immutable release record held by the independent reviewer."""
 
@@ -44,6 +49,10 @@ def build_release_manifest(
         "scoring_version": pack.manifest["scoring_version"],
         "task_count": len(pack.tasks),
     }
+    if evaluator_revision is not None:
+        if not EVALUATOR_REVISION.fullmatch(evaluator_revision):
+            raise ValueError("evaluator_revision must be a 40 to 64 character lowercase commit hash")
+        manifest["evaluator_revision"] = evaluator_revision
     if rules is not None:
         manifest["rules_id"] = rules["rules_id"]
         manifest["rules_digest"] = rules_digest(rules)

@@ -22,6 +22,7 @@ def main() -> int:
     parser.add_argument("--release", type=Path)
     parser.add_argument("--baseline", type=Path)
     parser.add_argument("--deliberately-bad", type=Path)
+    parser.add_argument("--evaluator-revision")
     args = parser.parse_args()
     result = readiness_result(
         evaluate_readiness(
@@ -31,6 +32,7 @@ def main() -> int:
             release_path=args.release,
             baseline_path=args.baseline,
             deliberately_bad_path=args.deliberately_bad,
+            evaluator_revision=args.evaluator_revision,
         )
     )
     print(json.dumps(result, indent=2, sort_keys=True))

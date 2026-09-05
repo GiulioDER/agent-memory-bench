@@ -71,6 +71,15 @@ def test_pack_hash_is_stable_for_same_bytes(tmp_path: Path):
     assert hash_private_pack(pack) == hash_private_pack(load_private_pack(pack.root))
 
 
+def test_release_manifest_binds_evaluator_revision(tmp_path: Path):
+    pack = _pack(tmp_path / "pack")
+    policy = load_policy(Path(__file__).parents[1] / "preregistration" / "challenge_policy.json")
+    manifest = build_release_manifest(pack, policy, evaluator_revision="a" * 40)
+    assert manifest["evaluator_revision"] == "a" * 40
+    with pytest.raises(ValueError, match="commit hash"):
+        build_release_manifest(pack, policy, evaluator_revision="dirty")
+
+
 def test_release_manifest_cannot_be_overwritten(tmp_path: Path):
     target = tmp_path / "release.json"
     write_release_manifest(target, {"version": 1})
