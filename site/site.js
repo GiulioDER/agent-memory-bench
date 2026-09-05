@@ -242,10 +242,22 @@
       return x == null ? "pending" : "$" + (x >= 0.01 ? x.toFixed(3) : x.toFixed(4));
     }
     function seconds(x) { return x == null ? "pending" : x.toFixed(1) + " s"; }
-    if (analysisBody) Object.keys(analysis.arms || {}).forEach(function (name) {
-      var a = analysis.arms[name];
+    var analysisRows = Object.keys(analysis.arms || {}).map(function (name) {
+      return { name: name, data: analysis.arms[name] };
+    });
+    /* Pending arms are intentionally absent from the official analysis artifact because they
+       have no observations. Keep them visible in this reader-facing table without fabricating
+       analysis values. */
+    D.arms.filter(function (arm) { return arm.pending; }).forEach(function (arm) {
+      var alreadyIncluded = analysisRows.some(function (row) { return row.name === arm.name; });
+      if (!alreadyIncluded) analysisRows.push({ name: arm.name, data: { status: "pending" } });
+    });
+    if (analysisBody) analysisRows.forEach(function (entry) {
+      var name = entry.name;
+      var a = entry.data;
       var tr = document.createElement("tr");
       if (a.status === "held") tr.setAttribute("data-held", "true");
+      if (a.status === "pending") tr.setAttribute("data-pending", "true");
       tr.appendChild(cell(null, span("m", name, true)));
       tr.appendChild(cell("num", a.success == null ? null : span("m", pct(a.success))));
       var costValue = a.cost && a.cost.usd_per_admitted_cell != null ? a.cost.usd_per_admitted_cell : (a.cost ? a.cost.reported_usd_per_task : null);
@@ -254,6 +266,7 @@
       tr.appendChild(cell("num", a.delta_vs_baseline == null ? null : span("m", pts(a.delta_vs_baseline))));
       var read = "";
       if (a.status === "held") read = a.hold.reason;
+      else if (a.status === "pending") read = "pending";
       else if (name === "claude_md") read = "designated baseline";
       else if (analysis.best_visible_memory && name === analysis.best_visible_memory.arm) read = "best visible memory product";
       else if (a.comparison) read = "joined vendor submission";

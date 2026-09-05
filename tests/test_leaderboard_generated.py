@@ -432,6 +432,13 @@ def test_the_page_does_not_rank_a_held_arm():
     assert "a.held" in js and "heldUntil" in js, "site.js does not render the hold reason"
 
 
+def test_the_analysis_table_keeps_pending_arms_visible_without_metrics():
+    js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
+    assert "D.arms.filter(function (arm) { return arm.pending; })" in js
+    assert 'data: { status: "pending" }' in js
+    assert 'read = "pending"' in js
+
+
 def test_the_front_page_arm_count_matches_the_generator():
     """The hand-written stat tile on index.html must agree with `public_arms()`.
 
