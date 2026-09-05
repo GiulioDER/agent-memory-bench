@@ -50,6 +50,18 @@ That check proves the pack is separate from the public repository and that every
 prompt, checker, oracle and reference path exists inside it without symlink escapes. It does not
 replace the process sandbox required when executing an untrusted submission.
 
+When the organizer has prepared the heldout source bundle in a separate location, it can be copied
+into a fresh private destination and validated in one step:
+
+```bash
+python -m scripts.materialize_challenge_pack \
+  --source /secure/amb-heldout-source \
+  --destination /private/amb-challenge-pack
+```
+
+The materializer refuses public repository sources, nonempty destinations and invalid pack paths.
+It never creates a private pack from the public task and oracle directories.
+
 The manifest shape is intentionally small and explicit:
 
 ```json
