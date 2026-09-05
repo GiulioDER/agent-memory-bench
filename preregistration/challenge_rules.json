@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "kind": "amb-challenge-rules",
+  "rules_id": "challenge-draft-001",
+  "status": "draft",
+  "prize_total_usd": 200,
+  "winner_count": 1,
+  "appeal_window_days": 7,
+  "entry_deadline_utc": "TO_BE_APPROVED",
+  "tie_breaker_task_ids": [
+    "TO_BE_APPROVED"
+  ],
+  "independent_reviewer_count": 1,
+  "sponsor_entry_eligible": false,
+  "infrastructure_retry_count": 1,
+  "appeal_scope": "reproducible evaluator defect or scoring application error",
+  "publication": {
+    "publish_failed_entries": true,
+    "publish_score_manifest": true,
+    "publish_submission_image_digest": true
+  }
+}

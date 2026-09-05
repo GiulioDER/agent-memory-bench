@@ -303,6 +303,11 @@ clearly labelled reference run, but it must not determine eligibility, approve i
 or be the only party holding the private evaluator. A reviewer who did not implement the winning
 entry signs the final score manifest.
 
+The machine readable draft rules are in `preregistration/challenge_rules.json`. They record the
+200 USD total prize, one winner, seven day appeal window, sponsor exclusion and publication policy.
+The deadline and tie breaker task IDs intentionally remain approval placeholders. The challenge
+cannot move from draft to open until those values and the independent reviewer are recorded.
+
 After the deadline, the evaluator publishes the winning submission digest, the complete score
 manifest, aggregate results for every entry, discard counts, costs, checker version and any
 withdrawn or disqualified entries with the reason. A failed entry is still reported as a failed
