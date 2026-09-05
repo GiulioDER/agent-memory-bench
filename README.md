@@ -26,6 +26,10 @@ announced in advance. Both deviations are disclosed in the record.
 The detailed, dated state of the benchmark is in [`docs/STATUS.md`](docs/STATUS.md). Every number
 there has a command or artifact that can re-derive it.
 
+The separate prize challenge is still in design. Its rules and readiness gates are in
+[`docs/CHALLENGE.md`](docs/CHALLENGE.md); the public repository is a smoke and audit surface, not
+the private scoring surface.
+
 ## What is measured
 
 The benchmark measures whether a coding agent can use prior-session information while completing
@@ -124,15 +128,24 @@ python -m scripts.audit_corpus
 python -m scripts.audit_plants
 ```
 
-Re-derive every published run without credentials, a database or model calls:
+Re-derive the current published run without credentials, a database or model calls:
 
 ```bash
-python -m scripts.verify_run --all
+python -m scripts.verify_run \
+  results/official-003-absent \
+  results/official-003-superseded \
+  results/official-003-contradictory \
+  results/official-003-adjacent \
+  results/official-003-present
 ```
 
 This checks the published records against the admission, cost and endpoint artifacts. It checks
 arithmetic and provenance, not whether the benchmark is fair. The method, preregistrations and
 vendor reviews are the evidence for that question.
+
+The broader `python -m scripts.verify_run --all` command is an archive audit. It also visits
+historical bring-up and incomplete runs whose missing streams are deliberately reported as
+failures, so a non-zero result there does not mean the current published run is broken.
 
 ## Run it
 
@@ -141,6 +154,10 @@ Dry run:
 ```bash
 python -m scripts.pilot --dry-run --arms bare,claude_md,recall
 ```
+
+The dry run needs no API key, database, or model call. It resolves the selected arms and tasks,
+then stops before creating a run directory. A measured run has separate credential and pricing
+requirements described below.
 
 A live run requires the Claude Code CLI, the credentials listed in `.env.example`, and explicit
 prices:

@@ -194,6 +194,18 @@ def test_a_dry_run_writes_nothing_and_executes_nothing(probe_run_dir):
     assert not target.exists(), "a dry run created the run directory"
 
 
+@needs_clean_preregistration
+def test_a_dry_run_does_not_require_model_credentials():
+    """A command-line check must work before a participant has an API key."""
+
+    result = _run(
+        ["--arms", "bare", "--tasks", "ts-json-sorted", "--seeds", "1", "--dry-run"],
+        {"RECALL_DSN": None, "OPENROUTER_API_KEY": None},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "would run 1 session(s)" in result.stdout
+
+
 def test_the_default_task_set_is_unchanged():
     """No --tasks means every ts-* task, exactly as the three preregistered runs invoked it."""
 
