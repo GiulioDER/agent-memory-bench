@@ -9,6 +9,7 @@ import pytest
 
 from harness.challenge_pack import load_private_pack, load_submission
 from harness.challenge_scoring import (
+    ChallengeTaskScore,
     ChallengeScoringError,
     build_score_manifest,
     run_private_checker,
@@ -119,3 +120,27 @@ def test_score_manifest_write_is_stable(tmp_path: Path):
     first = target.read_bytes()
     write_score_manifest(target, manifest)
     assert target.read_bytes() == first
+
+
+def test_score_manifest_omits_run_specific_checker_timing(tmp_path: Path):
+    pack = _pack(tmp_path)
+    submission = _submission(tmp_path)
+    first = ChallengeTaskScore(
+        task_id="task-a",
+        passed=True,
+        verdict="private",
+        checker_returncode=0,
+        checker_timed_out=False,
+        checker_wall_s=0.1,
+    )
+    second = ChallengeTaskScore(
+        task_id="task-a",
+        passed=True,
+        verdict="private",
+        checker_returncode=0,
+        checker_timed_out=False,
+        checker_wall_s=9.9,
+    )
+    assert build_score_manifest(pack, submission, [first], public=True) == build_score_manifest(
+        pack, submission, [second], public=True
+    )

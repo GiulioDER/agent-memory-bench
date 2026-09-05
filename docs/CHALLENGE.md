@@ -209,7 +209,8 @@ Secondary metrics are published but do not silently replace the primary score:
 
 * harm rate under absent, superseded, contradictory and adjacent information;
 * abstention or uncertainty behaviour where the task supports it;
-* input and output tokens, wall time and infrastructure cost;
+* input and output tokens, wall time and infrastructure cost, published as run telemetry separate
+  from the deterministic score manifest;
 * admitted cells, discarded cells and every discard reason;
 * per task results and paired deltas against the fixed baseline.
 

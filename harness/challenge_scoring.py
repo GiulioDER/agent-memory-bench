@@ -32,7 +32,6 @@ class ChallengeTaskScore:
             "verdict": self.verdict,
             "checker_returncode": self.checker_returncode,
             "checker_timed_out": self.checker_timed_out,
-            "checker_wall_s": round(self.checker_wall_s, 6),
         }
 
     def public_dict(self) -> dict[str, Any]:
@@ -43,7 +42,6 @@ class ChallengeTaskScore:
             "passed": self.passed,
             "checker_returncode": self.checker_returncode,
             "checker_timed_out": self.checker_timed_out,
-            "checker_wall_s": round(self.checker_wall_s, 6),
         }
 
 
