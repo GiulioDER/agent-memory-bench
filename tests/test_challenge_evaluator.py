@@ -122,10 +122,11 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
         assert context.fixture == fixture
         assert context.prompt == prompt
         assert context.output == tmp_path / "output" / "entry-a" / "task-a"
-        assert context.adapter_socket == tmp_path / "adapter.sock"
         assert not hasattr(context, "task")
         assert not hasattr(context, "checker")
         assert not hasattr(context, "oracle")
+        assert not hasattr(context.adapter, "reset")
+        assert not hasattr(context.adapter, "health")
 
     public, private = evaluate_submission(
         pack,

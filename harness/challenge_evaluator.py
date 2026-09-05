@@ -32,8 +32,7 @@ class ChallengeTaskContext:
     fixture: Path
     prompt: Path
     output: Path
-    adapter_socket: Path
-    adapter: "ChallengeAdapterClient"
+    adapter: "ChallengeAgentAdapter"
 
 
 AgentRunner = Callable[[ChallengeTaskContext], None]
@@ -81,6 +80,16 @@ class ChallengeAdapterClient:
 
     def reset(self) -> dict[str, Any]:
         return self._request("reset", {"task_id": self.task_id})
+
+
+@dataclass(frozen=True)
+class ChallengeAgentAdapter:
+    """Search-only adapter view exposed to the fixed task agent."""
+
+    _client: ChallengeAdapterClient
+
+    def search(self, query: str, *, limit: int = 10) -> dict[str, Any]:
+        return self._client.search(query, limit=limit)
 
 
 def _task_paths(
@@ -156,8 +165,7 @@ def evaluate_submission(
                 fixture=fixture,
                 prompt=prompt,
                 output=output,
-                adapter_socket=handle.socket_path,
-                adapter=client,
+                adapter=ChallengeAgentAdapter(client),
             )
             agent_runner(context)
         except ChallengeRunnerError as error:
