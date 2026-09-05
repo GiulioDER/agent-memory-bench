@@ -115,6 +115,25 @@ def test_model_only_requires_evaluator_proxy(tmp_path: Path):
         build_docker_argv(pack, plan, tmp_path / "output", container_name="amb-test")
 
 
+def test_model_only_mounts_only_the_evaluator_proxy(tmp_path: Path):
+    pack = _pack(tmp_path)
+    submission = _submission(tmp_path, network="model-only")
+    plan = build_execution_plan(pack, submission, "task-a")
+    proxy = tmp_path / "model-proxy.sock"
+    proxy.write_text("proxy placeholder", encoding="utf-8")
+    argv = build_docker_argv(
+        pack,
+        plan,
+        tmp_path / "output",
+        container_name="amb-test",
+        model_proxy_socket=proxy,
+    )
+    command = " ".join(argv)
+    assert "--network=none" in command
+    assert f"src={proxy.resolve()}" in command
+    assert "AMB_MODEL_PROXY_SOCKET=/challenge/model-proxy.sock" in command
+
+
 def test_sidecar_command_mounts_no_task_prompt_or_fixture(tmp_path: Path):
     pack = _pack(tmp_path)
     submission = _submission(tmp_path)

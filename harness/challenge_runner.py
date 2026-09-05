@@ -284,7 +284,7 @@ def build_docker_argv(
             ]
         )
 
-    if plan.network != "none":
+    if plan.network not in {"none", "model-only"}:
         raise ChallengeRunnerError("network policy was not reduced to an isolated mode")
     argv.extend(["--entrypoint", plan.entrypoint[0], plan.image, *plan.entrypoint[1:]])
     return argv
@@ -368,7 +368,7 @@ def build_adapter_service_argv(
             _mount_arg(runtime_base, "/challenge/runtime", read_only=False),
         ]
     )
-    if plan.network != "none":
+    if plan.network not in {"none", "model-only"}:
         raise ChallengeRunnerError("network policy was not reduced to an isolated mode")
     argv.extend(["--entrypoint", plan.entrypoint[0], plan.image, *plan.entrypoint[1:]])
     return argv
