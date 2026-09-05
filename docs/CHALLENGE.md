@@ -202,6 +202,19 @@ manifests. The submission descriptor cannot override them. The checked in
 `preregistration/challenge_policy.json` is a draft template and cannot be used for a prize run
 until its model and provider identifiers are replaced and independently approved.
 
+Before execution, the organizer can audit all rendered task commands without starting an image:
+
+```bash
+python -m scripts.audit_challenge_submission \
+  --pack /private/amb-challenge-pack \
+  --submission submission.json \
+  --output-root /private/amb-challenge-output \
+  --runtime-root /private/amb-challenge-runtime
+```
+
+This is a policy gate, not proof of container isolation. The release process still requires a real
+Docker red team run against the frozen image and host configuration.
+
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these
 behaviours. The evaluator also runs a red team check for filesystem, environment, network and
