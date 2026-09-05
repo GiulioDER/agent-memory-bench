@@ -54,3 +54,12 @@ def test_fixed_agent_command_receives_only_explicit_task_environment(tmp_path: P
 def test_fixed_agent_command_rejects_empty_command(tmp_path: Path):
     with pytest.raises(ChallengeAgentError, match="non empty"):
         run_fixed_agent_command([], _context(tmp_path))
+
+
+def test_fixed_agent_command_cannot_override_task_identity(tmp_path: Path):
+    with pytest.raises(ChallengeAgentError, match="reserved variables"):
+        run_fixed_agent_command(
+            ["python", "-c", "pass"],
+            _context(tmp_path),
+            extra_env={"AMB_TASK_ID": "other-task"},
+        )

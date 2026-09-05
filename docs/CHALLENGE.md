@@ -184,6 +184,10 @@ CLI. The command receives `AMB_TASK_ID`, `AMB_TASK_FIXTURE`, `AMB_TASK_PROMPT`, 
 `AMB_ADAPTER_SOCKET`, `AMB_CHALLENGE_API` and `AMB_AGENT_PROTOCOL`. It is executed as an argument
 list without a shell, with the complete process tree killed at the fixed timeout:
 
+The evaluator additionally injects the frozen `AMB_MODEL_ID`, `AMB_PROVIDER_ID`,
+`AMB_TEMPERATURE`, `AMB_CONTEXT_LIMIT_TOKENS` and, when applicable, the evaluator model proxy
+socket. Task identity variables are reserved and cannot be overridden by provider configuration.
+
 ```bash
 python -m scripts.evaluate_challenge \
   --pack /private/amb-challenge-pack \

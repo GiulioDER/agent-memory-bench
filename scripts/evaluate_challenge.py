@@ -61,6 +61,17 @@ def main() -> int:
             make_command_agent_runner(
                 command,
                 timeout_seconds=policy.agent_timeout_seconds,
+                extra_env={
+                    "AMB_MODEL_ID": policy.model_id,
+                    "AMB_PROVIDER_ID": policy.provider_id,
+                    "AMB_TEMPERATURE": str(policy.temperature),
+                    "AMB_CONTEXT_LIMIT_TOKENS": str(policy.context_limit_tokens),
+                    **(
+                        {"AMB_MODEL_PROXY_SOCKET": str(args.model_proxy_socket)}
+                        if args.model_proxy_socket is not None
+                        else {}
+                    ),
+                },
             ),
             checker_timeout_s=policy.checker_timeout_seconds,
             model_proxy_socket=args.model_proxy_socket,

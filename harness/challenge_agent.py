@@ -10,6 +10,17 @@ from .challenge_protocol import ADAPTER_API
 from .checker_run import Completed, run_bounded
 
 DEFAULT_AGENT_TIMEOUT_SECONDS = 15 * 60
+RESERVED_AGENT_ENV = frozenset(
+    {
+        "AMB_CHALLENGE_API",
+        "AMB_AGENT_PROTOCOL",
+        "AMB_TASK_ID",
+        "AMB_TASK_FIXTURE",
+        "AMB_TASK_PROMPT",
+        "AMB_TASK_OUTPUT",
+        "AMB_ADAPTER_SOCKET",
+    }
+)
 
 
 class ChallengeAgentError(RuntimeError):
@@ -59,6 +70,11 @@ def _command_env(
         "AMB_ADAPTER_SOCKET": str(context.adapter.socket_path),
     }
     if extra_env:
+        reserved = RESERVED_AGENT_ENV.intersection(extra_env)
+        if reserved:
+            raise ChallengeAgentError(
+                f"fixed agent configuration cannot override reserved variables: {sorted(reserved)}"
+            )
         env.update(extra_env)
     return env
 
