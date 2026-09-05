@@ -187,3 +187,20 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
     )
     release_gate = next(gate for gate in invalid_revision["gates"] if gate["name"] == "release_record")
     assert release_gate["passed"] is False
+
+    invalid_release = json.loads(release_path.read_text(encoding="utf-8"))
+    invalid_release["schema"] = 99
+    release_path.write_text(json.dumps(invalid_release), encoding="utf-8")
+    invalid_schema = readiness_result(
+        evaluate_readiness(
+            pack.root,
+            policy_path,
+            rules_path,
+            release_path=release_path,
+            baseline_path=baseline_path,
+            deliberately_bad_path=bad_path,
+            evaluator_revision="a" * 40,
+        )
+    )
+    release_gate = next(gate for gate in invalid_schema["gates"] if gate["name"] == "release_record")
+    assert release_gate["passed"] is False

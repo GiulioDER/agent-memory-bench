@@ -95,16 +95,11 @@ def evaluate_readiness(
                     evaluator_revision=evaluator_revision,
                 )
                 release = _read_json(Path(release_path))
-                fields = (
-                    "pack_id",
-                    "pack_digest",
-                    "policy_id",
-                    "policy_digest",
-                    "rules_id",
-                    "rules_digest",
-                    "evaluator_revision",
-                )
-                mismatches = [field for field in fields if release.get(field) != expected.get(field)]
+                mismatches = [
+                    field
+                    for field in sorted(set(expected) | set(release))
+                    if release.get(field) != expected.get(field)
+                ]
                 gates.append(
                     ChallengeReadinessGate(
                         "release_record",
