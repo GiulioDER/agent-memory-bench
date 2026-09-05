@@ -202,6 +202,17 @@ manifests. The submission descriptor cannot override them. The checked in
 `preregistration/challenge_policy.json` is a draft template and cannot be used for a prize run
 until its model and provider identifiers are replaced and independently approved.
 
+The final release record is generated only from a validated private pack, a non placeholder policy,
+and final contest rules:
+
+```bash
+python -m scripts.finalize_challenge_release \
+  --pack /private/amb-challenge-pack \
+  --policy /private/amb-challenge-policy.json \
+  --rules /private/amb-challenge-rules.json \
+  --output /private/amb-release.json
+```
+
 The repository also includes a dependency free reference adapter in
 `examples/challenge_adapter.py`. Its normal mode is a deterministic lexical baseline and its
 `--empty` mode is the deliberately bad adapter. After both have been evaluated against the same

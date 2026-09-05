@@ -9,6 +9,7 @@ from typing import Any
 
 from .challenge_pack import ChallengePack
 from .challenge_policy import ChallengeEvaluationPolicy
+from .challenge_rules import rules_digest
 
 
 def hash_private_pack(pack: ChallengePack) -> str:
@@ -28,10 +29,11 @@ def hash_private_pack(pack: ChallengePack) -> str:
 def build_release_manifest(
     pack: ChallengePack,
     policy: ChallengeEvaluationPolicy,
+    rules: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the immutable release record held by the independent reviewer."""
 
-    return {
+    manifest = {
         "schema": 1,
         "kind": "amb-challenge-release",
         "pack_id": pack.manifest["pack_id"],
@@ -42,6 +44,10 @@ def build_release_manifest(
         "scoring_version": pack.manifest["scoring_version"],
         "task_count": len(pack.tasks),
     }
+    if rules is not None:
+        manifest["rules_id"] = rules["rules_id"]
+        manifest["rules_digest"] = rules_digest(rules)
+    return manifest
 
 
 def write_release_manifest(path: str | Path, manifest: dict[str, Any]) -> None:
