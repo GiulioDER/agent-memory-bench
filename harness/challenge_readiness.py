@@ -47,6 +47,7 @@ def evaluate_readiness(
     pack = None
     policy = None
     rules = None
+    rules_match_pack = False
     try:
         pack = load_private_pack(pack_path)
         gates.append(ChallengeReadinessGate("private_pack", True, f"{len(pack.tasks)} task(s)"))
@@ -67,11 +68,19 @@ def evaluate_readiness(
         gates.append(ChallengeReadinessGate("evaluation_policy", False, str(error)))
     try:
         rules = load_rules(rules_path, require_final=True)
+        if pack is not None:
+            pack_task_ids = {task.task_id for task in pack.tasks}
+            unknown_tie_breakers = sorted(set(rules["tie_breaker_task_ids"]) - pack_task_ids)
+            if unknown_tie_breakers:
+                raise ChallengeRulesError(
+                    f"final rules name unknown tie breaker task(s): {unknown_tie_breakers}"
+                )
+            rules_match_pack = True
         gates.append(ChallengeReadinessGate("final_rules", True, rules_digest(rules)))
     except (ChallengeRulesError, OSError, ValueError) as error:
         gates.append(ChallengeReadinessGate("final_rules", False, str(error)))
 
-    if pack is not None and policy is not None and rules is not None:
+    if pack is not None and policy is not None and rules is not None and rules_match_pack:
         expected = build_release_manifest(pack, policy, rules)
         if release_path is None:
             gates.append(ChallengeReadinessGate("release_record", False, "release record was not supplied"))

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -53,16 +54,22 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         raise ChallengeRulesError("entry_deadline_utc must be a non empty string")
     if not isinstance(data["appeal_scope"], str) or not data["appeal_scope"].strip():
         raise ChallengeRulesError("appeal_scope must be a non empty string")
-    numeric_positive = ("prize_total_usd", "winner_count", "appeal_window_days", "independent_reviewer_count")
-    for field in numeric_positive:
+    prize_total_usd = data["prize_total_usd"]
+    if (
+        isinstance(prize_total_usd, bool)
+        or not isinstance(prize_total_usd, (int, float))
+        or not math.isfinite(prize_total_usd)
+        or prize_total_usd <= 0
+    ):
+        raise ChallengeRulesError("rules field 'prize_total_usd' must be a positive finite number")
+    for field in ("winner_count", "appeal_window_days", "independent_reviewer_count"):
         value = data[field]
         if (
             isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(value)
+            or not isinstance(value, int)
             or value <= 0
         ):
-            raise ChallengeRulesError(f"rules field {field!r} must be positive")
+            raise ChallengeRulesError(f"rules field {field!r} must be a positive integer")
     if not isinstance(data["infrastructure_retry_count"], int) or data["infrastructure_retry_count"] < 0:
         raise ChallengeRulesError("infrastructure_retry_count must be non negative")
     if data["sponsor_entry_eligible"] is not False:
@@ -71,6 +78,8 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         isinstance(task_id, str) and task_id.strip() for task_id in data["tie_breaker_task_ids"]
     ):
         raise ChallengeRulesError("tie_breaker_task_ids must be a list of non empty strings")
+    if len(set(data["tie_breaker_task_ids"])) != len(data["tie_breaker_task_ids"]):
+        raise ChallengeRulesError("tie_breaker_task_ids must not contain duplicates")
     if not isinstance(data["publication"], dict):
         raise ChallengeRulesError("publication must be an object")
     if any(not isinstance(value, bool) for value in data["publication"].values()):
@@ -82,6 +91,13 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
             raise ChallengeRulesError("final rules contain unresolved approval placeholders")
         if not data["tie_breaker_task_ids"]:
             raise ChallengeRulesError("final rules need at least one tie breaker task")
+        deadline = data["entry_deadline_utc"]
+        try:
+            parsed_deadline = datetime.fromisoformat(deadline)
+        except ValueError as error:
+            raise ChallengeRulesError("final rules entry_deadline_utc must be an ISO 8601 UTC timestamp") from error
+        if parsed_deadline.tzinfo is None or parsed_deadline.utcoffset() != timedelta(0):
+            raise ChallengeRulesError("final rules entry_deadline_utc must include UTC timezone")
     return data
 
 

@@ -5,7 +5,50 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from harness.challenge_pack import load_private_pack
+from harness.challenge_policy import load_policy
 from harness.challenge_readiness import evaluate_readiness, readiness_result
+from harness.challenge_release import build_release_manifest, write_release_manifest
+
+
+def _private_pack(root: Path):
+    files = {
+        "corpus/session.txt": "memory only",
+        "fixtures/task-a/input.txt": "fixture",
+        "prompts/task-a.txt": "prompt",
+        "checkers/task-a/checker.py": "checker",
+        "oracles/task-a/value.txt": "secret oracle",
+        "references/task-a/answer.txt": "reference",
+    }
+    for relative, content in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    (root / "pack.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "kind": "amb-private-evaluation-pack",
+                "visibility": "private",
+                "pack_id": "pack-readiness",
+                "source_public_commit": "commit-readiness",
+                "scoring_version": "score-readiness",
+                "corpus": "corpus",
+                "tasks": [
+                    {
+                        "task_id": "task-a",
+                        "fixture": "fixtures/task-a",
+                        "prompt": "prompts/task-a.txt",
+                        "checker": "checkers/task-a/checker.py",
+                        "oracle": "oracles/task-a",
+                        "reference": "references/task-a",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return load_private_pack(root)
 
 
 def test_readiness_reports_missing_external_gates(tmp_path: Path):
@@ -38,3 +81,66 @@ def test_readiness_requires_both_baseline_manifests(tmp_path: Path):
     )
     gate = next(gate for gate in result if gate.name == "baseline_ordering")
     assert gate.passed is False
+
+
+def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
+    pack = _private_pack(tmp_path / "pack")
+    policy_path = tmp_path / "policy.json"
+    policy = {
+        "schema": 1,
+        "kind": "amb-challenge-evaluation-policy",
+        "policy_id": "policy-readiness",
+        "agent_timeout_seconds": 10,
+        "checker_timeout_seconds": 10,
+        "adapter_call_budget": 8,
+        "model_id": "model-readiness",
+        "provider_id": "provider-readiness",
+        "temperature": 0,
+        "context_limit_tokens": 1024,
+        "infrastructure_retries": 0,
+    }
+    policy_path.write_text(json.dumps(policy), encoding="utf-8")
+    rules_path = tmp_path / "rules.json"
+    rules_path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "kind": "amb-challenge-rules",
+                "rules_id": "rules-readiness",
+                "status": "final",
+                "prize_total_usd": 200,
+                "winner_count": 1,
+                "appeal_window_days": 7,
+                "entry_deadline_utc": "2026-10-01T23:59:59Z",
+                "tie_breaker_task_ids": ["task-a"],
+                "independent_reviewer_count": 1,
+                "sponsor_entry_eligible": False,
+                "infrastructure_retry_count": 0,
+                "appeal_scope": "evaluator defect",
+                "publication": {"publish_score_manifest": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+    loaded_policy = load_policy(policy_path)
+    release_path = tmp_path / "release.json"
+    write_release_manifest(
+        release_path,
+        build_release_manifest(pack, loaded_policy, json.loads(rules_path.read_text())),
+    )
+    baseline_path = tmp_path / "baseline.json"
+    bad_path = tmp_path / "bad.json"
+    baseline_path.write_text(json.dumps({"score": 0.8}), encoding="utf-8")
+    bad_path.write_text(json.dumps({"score": 0.1}), encoding="utf-8")
+
+    result = readiness_result(
+        evaluate_readiness(
+            pack.root,
+            policy_path,
+            rules_path,
+            release_path=release_path,
+            baseline_path=baseline_path,
+            deliberately_bad_path=bad_path,
+        )
+    )
+    assert result["status"] == "pass"
