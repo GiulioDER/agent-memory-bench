@@ -91,6 +91,12 @@ class ChallengeAgentAdapter:
 
     _client: ChallengeAdapterClient
 
+    @property
+    def socket_path(self) -> Path:
+        """Return the socket path for the evaluator command runner."""
+
+        return self._client.socket_path
+
     def search(self, query: str, *, limit: int = 10) -> dict[str, Any]:
         return self._client.search(query, limit=limit)
 

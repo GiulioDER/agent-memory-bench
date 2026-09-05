@@ -179,6 +179,25 @@ the agent cannot reset state mid task. Provider credentials, model settings and 
 remain evaluator configuration and are never loaded from a submission descriptor. The adapter call
 budget is fixed before entries open and is identical for every submission.
 
+For a concrete evaluator owned command, the repository provides a bounded wrapper and an end to end
+CLI. The command receives `AMB_TASK_ID`, `AMB_TASK_FIXTURE`, `AMB_TASK_PROMPT`, `AMB_TASK_OUTPUT`,
+`AMB_ADAPTER_SOCKET`, `AMB_CHALLENGE_API` and `AMB_AGENT_PROTOCOL`. It is executed as an argument
+list without a shell, with the complete process tree killed at the fixed timeout:
+
+```bash
+python -m scripts.evaluate_challenge \
+  --pack /private/amb-challenge-pack \
+  --submission submission.json \
+  --output-root /private/amb-challenge-output \
+  --runtime-root /private/amb-challenge-runtime \
+  --public-manifest /private/amb-results/public.json \
+  --private-manifest /private/amb-results/private.json \
+  --agent-command "python /evaluator/fixed_agent.py"
+```
+
+The command and all timeout, model, seed, retry and budget values are evaluator configuration. They
+must be frozen and hashed before entries open. The submission descriptor cannot override them.
+
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these
 behaviours. The evaluator also runs a red team check for filesystem, environment, network and
