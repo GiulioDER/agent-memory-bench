@@ -12,7 +12,12 @@ from .challenge_pack import ChallengePackError, load_private_pack
 from .challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
 from .challenge_policy import ChallengePolicyError, load_policy
 from .challenge_release import build_release_manifest
-from .challenge_rules import ChallengeRulesError, load_rules, rules_digest
+from .challenge_rules import (
+    ChallengeRulesError,
+    load_rules,
+    rules_digest,
+    validate_rules_for_task_ids,
+)
 
 
 @dataclass(frozen=True)
@@ -62,19 +67,14 @@ def evaluate_readiness(
     else:
         gates.append(ChallengeReadinessGate("corpus_leakage", False, "private pack is unavailable"))
     try:
-        policy = load_policy(policy_path)
+        policy = load_policy(policy_path, require_frozen=True)
         gates.append(ChallengeReadinessGate("evaluation_policy", True, policy.digest()))
     except (ChallengePolicyError, OSError, ValueError) as error:
         gates.append(ChallengeReadinessGate("evaluation_policy", False, str(error)))
     try:
         rules = load_rules(rules_path, require_final=True)
         if pack is not None:
-            pack_task_ids = {task.task_id for task in pack.tasks}
-            unknown_tie_breakers = sorted(set(rules["tie_breaker_task_ids"]) - pack_task_ids)
-            if unknown_tie_breakers:
-                raise ChallengeRulesError(
-                    f"final rules name unknown tie breaker task(s): {unknown_tie_breakers}"
-                )
+            validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
             rules_match_pack = True
         gates.append(ChallengeReadinessGate("final_rules", True, rules_digest(rules)))
     except (ChallengeRulesError, OSError, ValueError) as error:

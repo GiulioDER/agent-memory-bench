@@ -11,11 +11,15 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.challenge_pack import ChallengePackError, load_private_pack  # noqa: E402
-from harness.challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus  # noqa: E402
-from harness.challenge_policy import ChallengePolicyError, load_policy  # noqa: E402
-from harness.challenge_release import build_release_manifest, write_release_manifest  # noqa: E402
-from harness.challenge_rules import ChallengeRulesError, load_rules  # noqa: E402
+from harness.challenge_pack import ChallengePackError, load_private_pack
+from harness.challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
+from harness.challenge_policy import ChallengePolicyError, load_policy
+from harness.challenge_release import build_release_manifest, write_release_manifest
+from harness.challenge_rules import (
+    ChallengeRulesError,
+    load_rules,
+    validate_rules_for_task_ids,
+)
 
 
 def main() -> int:
@@ -28,10 +32,9 @@ def main() -> int:
     try:
         pack = load_private_pack(args.pack)
         audit_pack_corpus(pack)
-        policy = load_policy(args.policy)
+        policy = load_policy(args.policy, require_frozen=True)
         rules = load_rules(args.rules, require_final=True)
-        if "TO_BE_" in policy.model_id or "TO_BE_" in policy.provider_id:
-            raise ChallengePolicyError("final release policy contains unresolved placeholders")
+        validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
         manifest = build_release_manifest(pack, policy, rules)
         write_release_manifest(args.output, manifest)
     except (

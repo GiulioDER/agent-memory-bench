@@ -54,3 +54,11 @@ def test_policy_loads_and_hashes_canonically(tmp_path: Path):
 def test_policy_rejects_invalid_limits(tmp_path: Path, overrides: dict):
     with pytest.raises(ChallengePolicyError):
         load_policy(_write_policy(tmp_path / "policy.json", **overrides))
+
+
+def test_policy_frozen_mode_rejects_placeholders(tmp_path: Path):
+    with pytest.raises(ChallengePolicyError, match="freeze placeholders"):
+        load_policy(
+            _write_policy(tmp_path / "policy.json", model_id="TO_BE_FROZEN"),
+            require_frozen=True,
+        )

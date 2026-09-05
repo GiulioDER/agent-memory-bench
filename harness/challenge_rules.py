@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -104,3 +105,12 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
 def rules_digest(rules: dict[str, Any]) -> str:
     canonical = json.dumps(rules, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
+
+
+def validate_rules_for_task_ids(rules: dict[str, Any], task_ids: Iterable[str]) -> None:
+    """Reject tie breaker rules that cannot refer to a private task."""
+
+    known_task_ids = set(task_ids)
+    unknown = sorted(set(rules["tie_breaker_task_ids"]) - known_task_ids)
+    if unknown:
+        raise ChallengeRulesError(f"final rules name unknown tie breaker task(s): {unknown}")

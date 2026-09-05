@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from harness.challenge_rules import ChallengeRulesError, load_rules, rules_digest
+from harness.challenge_rules import (
+    ChallengeRulesError,
+    load_rules,
+    rules_digest,
+    validate_rules_for_task_ids,
+)
 
 
 def _rules(path: Path, **overrides) -> Path:
@@ -80,3 +85,9 @@ def test_rules_reject_duplicate_tie_breakers(tmp_path: Path):
     path = _rules(tmp_path / "rules.json", tie_breaker_task_ids=["task-a", "task-a"])
     with pytest.raises(ChallengeRulesError, match="duplicates"):
         load_rules(path)
+
+
+def test_rules_reject_tie_breaker_outside_private_roster(tmp_path: Path):
+    rules = load_rules(_rules(tmp_path / "rules.json", tie_breaker_task_ids=["task-a", "task-b"]))
+    with pytest.raises(ChallengeRulesError, match="unknown tie breaker"):
+        validate_rules_for_task_ids(rules, ["task-a"])

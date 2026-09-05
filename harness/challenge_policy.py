@@ -66,7 +66,7 @@ class ChallengeEvaluationPolicy:
         return hashlib.sha256(canonical).hexdigest()
 
 
-def load_policy(path: str | Path) -> ChallengeEvaluationPolicy:
+def load_policy(path: str | Path, *, require_frozen: bool = False) -> ChallengeEvaluationPolicy:
     """Load one immutable policy file without following a symlink at its target."""
 
     raw_path = Path(path).expanduser()
@@ -81,7 +81,7 @@ def load_policy(path: str | Path) -> ChallengeEvaluationPolicy:
     if data.get("schema") != POLICY_SCHEMA or data.get("kind") != POLICY_KIND:
         raise ChallengePolicyError("unsupported challenge policy")
     try:
-        return ChallengeEvaluationPolicy(
+        policy = ChallengeEvaluationPolicy(
             policy_id=_string(data, "policy_id"),
             agent_timeout_seconds=_positive_float(data, "agent_timeout_seconds"),
             checker_timeout_seconds=_positive_float(data, "checker_timeout_seconds"),
@@ -92,6 +92,11 @@ def load_policy(path: str | Path) -> ChallengeEvaluationPolicy:
             context_limit_tokens=_positive_int(data, "context_limit_tokens"),
             infrastructure_retries=_nonnegative_int(data, "infrastructure_retries"),
         )
+        if require_frozen and any(
+            "TO_BE_" in value for value in (policy.policy_id, policy.model_id, policy.provider_id)
+        ):
+            raise ChallengePolicyError("policy contains unresolved freeze placeholders")
+        return policy
     except (KeyError, TypeError, ValueError) as error:
         if isinstance(error, ChallengePolicyError):
             raise
