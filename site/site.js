@@ -69,10 +69,10 @@
   arms.forEach(function (a, i) {
     var tr = document.createElement("tr");
 
-    /* A held arm is NOT ranked. Its numbers exist and are withheld while its vendor's review
-       window is open, so it must not carry a rank that implies it placed there. */
+    /* Held and pending arms are NOT ranked. A held arm's numbers are withheld, while a pending
+       arm has not been measured yet; neither should carry a rank that implies it placed there. */
     tr.appendChild(cell("num",
-      (official && !a.held) ? span("m", String(i + 1)) : span("m-dim", "·")));
+      (official && !a.held && !a.pending) ? span("m", String(i + 1)) : span("m-dim", "·")));
 
     var nameTd = cell(null, span("m", "", false));
     nameTd.firstChild.appendChild(span(null, a.name, true));
@@ -94,6 +94,7 @@
         nameTd.appendChild(hi);
       }
     }
+    if (a.pending) nameTd.appendChild(span("m-dim", " · pending"));
     tr.appendChild(nameTd);
 
     tr.appendChild(cell(null, span("dim", a.type)));

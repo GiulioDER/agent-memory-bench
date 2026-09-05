@@ -8,7 +8,8 @@ its regeneration, so a hand-edited number cannot survive review.
 Inputs, both committed:
 
 - ``site/data/leaderboard.config.json`` holds the pointer, never a number:
-  ``{"official_run": null | "<run_id>", "arm_runs": {}, "updated": "YYYY-MM-DD"}``.
+  ``{"official_run": null | "<run_id>", "pending_arms": [], "arm_runs": {},
+  "updated": "YYYY-MM-DD"}``.
 - When ``official_run`` is set, ``results/<run_id>/leaderboard_summary.json`` supplies the
   numbers. Its shape (fractions for rates, points as fractions, USD for cost)::
 
@@ -65,6 +66,15 @@ PRODUCT_ARMS = [
     ("bare", "no memory", "floor", "bare"),
 ]
 
+# Arms that are announced but not yet measured.  They are deliberately kept
+# out of PRODUCT_ARMS: the frozen base run must continue to validate against the exact roster it
+# actually measured.  A name in the config's pending_arms list publishes a row with no metrics;
+# it does not alter the official run or imply that the arm has been measured.
+PENDING_ARM_DEFINITIONS = {
+    # internal name: integration, role, public name
+    "cognee": ("MCP server", None, "cognee"),
+}
+
 # Arms that may be added by an independently validated submission.  They are deliberately kept
 # out of PRODUCT_ARMS: the frozen base run must continue to validate against the exact roster it
 # actually measured.  Adding a name here makes the adapter eligible for a later additive board
@@ -74,10 +84,10 @@ ADDITIVE_ARM_DEFINITIONS = {
     "cognee": ("MCP server", None, None),
 }
 
-# ⛔ This list is the arms that are MEASURED, not the arms that are hoped for. `mem0`,
-# `supermemory`, `zep` and `cognee` sat here for weeks with no adapter behind any of them, which
-# put four permanently null rows on a public leaderboard and read as "measured, scored nothing"
-# rather than "not built".
+# ⛔ PRODUCT_ARMS is the list of arms that are MEASURED, not the arms that are hoped for. `mem0`,
+# `supermemory` and `zep` sat here for weeks with no adapter behind any of them, which put three
+# permanently null rows on a public leaderboard and read as "measured, scored nothing" rather
+# than "not built". Pending arms are separate and explicitly labelled on the page.
 #
 # `mempalace` left for the same reason on 2026-08-31: preregistration 021's second amendment
 # defers it from `official-002` on a measured ingest cost, so it is built, not running, and a row
@@ -97,7 +107,7 @@ ADDITIVE_ARM_DEFINITIONS = {
 # disclosure tracks what has had its review window, and the two came apart the moment an arm was
 # deferred. Removing an arm from the board must not quietly remove it from this guard.
 # `tests/test_site_vendor_disclosure.py` reads this.
-UNDISCLOSED_PRODUCTS = ("mem0", "supermemory", "zep", "cognee", "cachly")
+UNDISCLOSED_PRODUCTS = ("mem0", "supermemory", "zep", "cachly")
 
 # What an undisclosed arm looks like on the page. The integration description is withheld
 # with the name, because "SaaS API" against a short field of candidates is most of an
@@ -235,15 +245,35 @@ def _load_analysis(repo_root: Path, run_id: str, relative_path: str) -> dict:
 
 
 def _active_product_arms(config: dict | None = None) -> list[tuple[str, str, str, str | None]]:
-    """Return the base roster plus explicitly accepted additive arm definitions."""
+    """Return measured arms plus explicitly configured pending and additive arms."""
 
     config = config or {}
+    pending_arms = config.get("pending_arms", [])
+    if not isinstance(pending_arms, list) or any(
+        not isinstance(internal, str) or not internal for internal in pending_arms
+    ):
+        raise SummaryInvalid("pending_arms must be a list of arm names")
+    if len(set(pending_arms)) != len(pending_arms):
+        raise SummaryInvalid("pending_arms must not contain duplicates")
+
     arm_runs = config.get("arm_runs", {})
     if not isinstance(arm_runs, dict):
         raise SummaryInvalid("arm_runs must be an object mapping arm names to submission runs")
 
     base_names = {name for name, *_ in PRODUCT_ARMS}
     active = list(PRODUCT_ARMS)
+    for internal in pending_arms:
+        if internal in base_names:
+            raise SummaryInvalid(f"pending_arms cannot replace base arm {internal!r}")
+        if internal in arm_runs:
+            raise SummaryInvalid(f"arm {internal!r} cannot be both pending and submitted")
+        definition = PENDING_ARM_DEFINITIONS.get(internal)
+        if definition is None:
+            raise SummaryInvalid(
+                f"pending_arms names unknown arm {internal!r}; add its reviewed definition first"
+            )
+        active.append((internal, *definition))
+
     for internal in arm_runs:
         if internal in base_names:
             raise SummaryInvalid(
@@ -415,6 +445,8 @@ def build(repo_root: str | Path) -> str:
         numbers = arm_numbers.get(internal, {})
         for field in ARM_FIELDS:
             entry[field] = numbers.get(field)
+        if internal in config.get("pending_arms", []):
+            entry["pending"] = True
         if role is None:
             for field in VENDOR_FIELDS:
                 entry[field] = numbers.get(field)

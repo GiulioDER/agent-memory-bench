@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; result numbers enter
    through the run summary and the generated analysis artifact. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-09-02",
+  "updated": "2026-09-05",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
@@ -144,6 +144,19 @@ window.AMB_LEADERBOARD = {
       "tokensPerTask": 18457,
       "costPerTask": 0.0014,
       "sourceRun": "official-003"
+    },
+    {
+      "name": "cognee",
+      "type": "MCP server",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null,
+      "pending": true,
+      "totalTokens": null,
+      "byCondition": null
     }
   ],
   "reference": [
