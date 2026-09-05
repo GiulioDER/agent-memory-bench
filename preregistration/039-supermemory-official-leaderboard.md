@@ -20,7 +20,8 @@ condition assembly seed is 1, and the session seed count is 5. All five conditio
 `absent`, `superseded`, `contradictory`, `adjacent`, and `present`.
 
 The current selection resolves to 73 task condition cells per session seed, 365 cells per arm,
-and 730 sessions across the two arms. The run uses the repository launcher on VPS2 with bounded
+and 730 sessions across the two arms. The run uses the repository launcher on the Linux benchmark
+host with bounded
 block concurrency 2. Prices are fixed at 0.0574 USD per million input tokens and 0.1148 USD per
 million output tokens, as of 2026-08-22.
 

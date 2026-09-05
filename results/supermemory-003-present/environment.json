@@ -257,7 +257,7 @@
     }
   },
   "namespace": "bench-supermemory-003-present-clean-r2-20260905",
-  "work_root": "/tmp/agent-memory-bench-work/supermemory-003-present-clean-r2-20260905",
+  "work_root": "/tmp/benchmark-work/supermemory-003-present-clean-r2-20260905",
   "sandbox_inside_repo": false,
   "adapters": {
     "bare": {
@@ -269,7 +269,7 @@
       "memory": "official Supermemory Claude Code plugin hooks",
       "plugin_version": "0.1.6",
       "plugin_commit": "e6227edc4f33b83317cfde2e7cd9790c794d22d1",
-      "plugin_root": "/home/sentiment/claude-supermemory-0.1.6/plugin",
+      "plugin_root": "/home/redacted/claude-supermemory-0.1.6/plugin",
       "base_url": "http://localhost:6767",
       "required_hooks": [
         "SessionStart",
