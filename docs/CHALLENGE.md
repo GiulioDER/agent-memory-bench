@@ -116,6 +116,12 @@ Execution uses no host network, a read only root, dropped capabilities, no new p
 resource limits and no evaluator mounts. A submission declaring `model-only` must use an
 evaluator managed model proxy socket. Direct outbound network access is never granted.
 
+This runner is currently a container smoke harness, not the final prize evaluator for the
+adapter track. The adapter API still has to specify how a fixed model runner calls the submitted
+memory layer, how task context is mediated, and how reset and usage events are recorded. Until
+that protocol is frozen, a one shot image must not be compared as an adapter only result because
+its prompt construction, model calls or agent loop could become an unrecorded advantage.
+
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these
 behaviours. The evaluator also runs a red team check for filesystem, environment, network and
