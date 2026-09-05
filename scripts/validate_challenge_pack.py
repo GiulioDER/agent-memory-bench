@@ -18,6 +18,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.challenge_pack import ChallengePackError, load_private_pack
+from harness.challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
 
 
 def main() -> int:
@@ -27,7 +28,8 @@ def main() -> int:
     args = parser.parse_args()
     try:
         pack = load_private_pack(args.pack)
-    except ChallengePackError as error:
+        leakage = audit_pack_corpus(pack)
+    except (ChallengePackError, ChallengePackLeakageError) as error:
         print(f"invalid private challenge pack: {error}", file=sys.stderr)
         return 1
 
@@ -38,6 +40,7 @@ def main() -> int:
                     "pack_id": pack.manifest["pack_id"],
                     "scoring_version": pack.manifest["scoring_version"],
                     "tasks": [task.task_id for task in pack.tasks],
+                    "corpus_audit": leakage.to_dict(),
                 },
                 indent=2,
             )
@@ -45,7 +48,8 @@ def main() -> int:
     else:
         print(
             f"valid private challenge pack {pack.manifest['pack_id']!r}: "
-            f"{len(pack.tasks)} task(s), scoring {pack.manifest['scoring_version']}"
+            f"{len(pack.tasks)} task(s), scoring {pack.manifest['scoring_version']}, "
+            f"corpus audit {leakage.to_dict()['status']}"
         )
     return 0
 
