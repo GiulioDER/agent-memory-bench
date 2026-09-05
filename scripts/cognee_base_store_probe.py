@@ -31,6 +31,7 @@ indistinguishable from a finding about the product.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -96,21 +97,39 @@ def _ingest(adapter: CogneeAdapter, namespace: str, paths: list[Path], root: Pat
 
 
 def _search(adapter: CogneeAdapter, namespace: str, query: str, top_k: int) -> list[str]:
-    """The store's own answer to one query, as an ordered list of source names.
+    """The store's own answer to one query, as an ordered list of stable content identities.
 
     Order is the payload: two stores holding the same documents but ranking them differently are
     not interchangeable, and a condition served by the reused store would differ from one served
-    by a monolithic build for a reason no artifact would record.
+    by a monolithic build for a reason no artifact would record. Cognee's result payload contains
+    generated raw-data filenames whose values depend on the feed directory, so comparing the
+    filename would reject an equivalent copy. Hash the returned raw content instead.
     """
 
     script = (
-        "import asyncio, json, sys\n"
+        "import asyncio, hashlib, json, sys\n"
+        "from pathlib import Path\n"
         "import cognee\n"
         "from cognee.modules.search.types import SearchType\n"
         "async def main():\n"
         "    hits = await cognee.search(query_text=sys.argv[1],\n"
         "        query_type=SearchType.CHUNKS, datasets=[sys.argv[2]], top_k=int(sys.argv[3]))\n"
-        "    print('PROBE_JSON ' + json.dumps([str(h) for h in (hits or [])]))\n"
+        "    names = []\n"
+        "    for hit in hits or []:\n"
+        "        if isinstance(hit, dict):\n"
+        "            source = hit.get('text') or hit.get('document_name') or ''\n"
+        "            source_path = Path(str(source))\n"
+        "            if source_path.is_file():\n"
+        "                names.append(hashlib.sha256(source_path.read_bytes()).hexdigest())\n"
+        "            else:\n"
+        "                names.append(Path(str(source)).name)\n"
+        "        else:\n"
+        "            source_path = Path(str(hit))\n"
+        "            if source_path.is_file():\n"
+        "                names.append(hashlib.sha256(source_path.read_bytes()).hexdigest())\n"
+        "            else:\n"
+        "                names.append(Path(str(hit)).name)\n"
+        "    print('PROBE_JSON ' + json.dumps(names))\n"
         "asyncio.run(main())\n"
     )
     result = subprocess.run(
@@ -167,6 +186,7 @@ def main() -> int:
     copied = adapter._store_dir("probe-copy")
     shutil.rmtree(copied, ignore_errors=True)
     shutil.copytree(base, copied)
+    adapter.relink_copied_store(base, copied)
     retained = CogneeAdapter.filed_document_count(copied)
     checks.append(report(
         retained == filed, f"the copy retains {retained} document(s)"

@@ -49,6 +49,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.abstention import cells_from_records, endpoints
+from harness.adapters.base import IngestReport
 from harness.costs import ModelPricing, summarize
 from harness.damage import CORPUS_CONDITIONS
 from harness.schema import SessionRecord
@@ -99,6 +100,54 @@ def _load_records(run_dir: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def _load_ingest_reports(run_dir: Path) -> list[IngestReport]:
+    """Rebuild the published ingest ledger from the run's environment manifest.
+
+    Session token usage is carried by ``records.final.jsonl``.  Self-ingesting adapters also
+    publish their hosted extraction usage in ``environment.json`` because ingest happens before
+    the first session and cannot be attached to one session without double-counting it.  Reading
+    that published report here makes the end-to-end total reproducible while keeping the verifier
+    credential-free and avoiding any change to recorded session evidence.
+    """
+
+    path = run_dir / "environment.json"
+    if not path.is_file():
+        return []
+    raw_reports = json.loads(path.read_text(encoding="utf-8")).get("ingest", [])
+    if not isinstance(raw_reports, list):
+        raise ValueError(f"{path} has a non-list ingest report")
+    reports: list[IngestReport] = []
+    for raw in raw_reports:
+        if not isinstance(raw, dict):
+            raise ValueError(f"{path} has a malformed ingest report")
+        reports.append(
+            IngestReport(
+                arm=str(raw["arm"]),
+                namespace=str(raw["namespace"]),
+                sessions_offered=int(raw["sessions_offered"]),
+                items_stored=(
+                    int(raw["items_stored"]) if raw.get("items_stored") is not None else None
+                ),
+                wall_time_ms=(
+                    float(raw["wall_time_ms"]) if raw.get("wall_time_ms") is not None else None
+                ),
+                llm_input_tokens=(
+                    int(raw["llm_input_tokens"])
+                    if raw.get("llm_input_tokens") is not None
+                    else None
+                ),
+                llm_output_tokens=(
+                    int(raw["llm_output_tokens"])
+                    if raw.get("llm_output_tokens") is not None
+                    else None
+                ),
+                local_model=(str(raw["local_model"]) if raw.get("local_model") else None),
+                notes=tuple(str(note) for note in raw.get("notes", [])),
+            )
+        )
+    return reports
 
 
 def _condition_of(run_dir: Path) -> str | None:
@@ -339,7 +388,10 @@ def verify(run_dir: Path) -> Findings:
                     )
                 }
         got = summarize(
-            [_record_from_dict(r) for r in records], pricing=pricing, model=model
+            [_record_from_dict(r) for r in records],
+            _load_ingest_reports(run_dir),
+            pricing=pricing,
+            model=model,
         )
         f.check(
             got.get("total_sessions") == want.get("total_sessions"),

@@ -43,6 +43,7 @@ import os
 import sqlite3
 import sys
 from pathlib import Path
+from uuid import NAMESPACE_OID, uuid5
 
 
 def _probe_text(files: list[Path]) -> str:
@@ -135,12 +136,196 @@ def _configured_data_per_batch() -> int:
     """Return the bounded Cognify item concurrency for this hosted ingest."""
 
     try:
-        data_per_batch = int(os.environ.get("AMB_COGNEE_DATA_PER_BATCH", "40"))
+        data_per_batch = int(os.environ.get("AMB_COGNEE_DATA_PER_BATCH", "20"))
     except ValueError as error:
         raise SystemExit("AMB_COGNEE_DATA_PER_BATCH must be an integer") from error
     if data_per_batch < 1:
         raise SystemExit("AMB_COGNEE_DATA_PER_BATCH must be >= 1")
     return data_per_batch
+
+
+def _configured_chunks_per_batch() -> int:
+    """Return the chunk batch size used by the optional bulk standard pipeline."""
+
+    try:
+        chunks_per_batch = int(os.environ.get("AMB_COGNEE_CHUNKS_PER_BATCH", "2000"))
+    except ValueError as error:
+        raise SystemExit("AMB_COGNEE_CHUNKS_PER_BATCH must be an integer") from error
+    if chunks_per_batch < 1:
+        raise SystemExit("AMB_COGNEE_CHUNKS_PER_BATCH must be >= 1")
+    return chunks_per_batch
+
+
+def _configured_documents_per_batch() -> int:
+    """Return the maximum number of source documents submitted to one task stream."""
+
+    try:
+        documents_per_batch = int(os.environ.get("AMB_COGNEE_DOCUMENTS_PER_BATCH", "128"))
+    except ValueError as error:
+        raise SystemExit("AMB_COGNEE_DOCUMENTS_PER_BATCH must be an integer") from error
+    if documents_per_batch < 1:
+        raise SystemExit("AMB_COGNEE_DOCUMENTS_PER_BATCH must be >= 1")
+    return documents_per_batch
+
+
+async def _run_bulk_standard_pipeline(
+    dataset_name: str,
+    chunks_per_batch: int,
+    documents_per_batch: int,
+    source_names: set[str],
+) -> int:
+    """Run Cognee's standard tasks over bounded windows of unfinished data.
+
+    The public ``cognify`` API intentionally schedules every data item independently. With a
+    local Ladybug/Kuzu backend that turns a 4,704-document corpus into thousands of tiny native
+    write transactions. The task implementations themselves accept lists, so this path keeps
+    the same classification, chunking, graph extraction, summarization, and storage tasks while
+    allowing their existing batch-size boundary to span documents. The outer window is bounded
+    too, so classification cannot materialize the whole corpus in memory before doing useful work.
+
+    ``ctx`` is intentionally omitted. The stock per-item runner uses it to stamp the first
+    document's content hash onto every DataPoint in a cross-document batch. Provenance tracking is
+    disabled for this arm, and omitting the context avoids manufacturing incorrect provenance.
+    """
+
+    from sqlalchemy import select
+
+    from cognee.api.v1.cognify.cognify import get_default_tasks
+    from cognee.modules.data.methods.get_dataset_ids import get_dataset_ids
+    from cognee.infrastructure.databases.relational import get_relational_engine
+    from cognee.modules.data.models import Data
+    from cognee.modules.pipelines.models.DataItemStatus import DataItemStatus
+    from cognee.modules.pipelines.operations.run_tasks_base import run_tasks_base
+    from cognee.modules.pipelines.utils import generate_pipeline_id
+    from cognee.modules.users.methods import get_default_user
+
+    user = await get_default_user()
+    dataset_ids = await get_dataset_ids([dataset_name], user)
+    if len(dataset_ids) != 1:
+        raise SystemExit(f"expected exactly one dataset named {dataset_name!r}")
+    dataset_id = dataset_ids[0]
+    from cognee.modules.data.methods.get_dataset import get_dataset
+
+    dataset = await get_dataset(user.id, dataset_id)
+    if dataset is None:
+        raise SystemExit(f"dataset {dataset_name!r} was not found for the default user")
+
+    pipeline_id = generate_pipeline_id(user.id, dataset.id, "cognify_pipeline")
+    pipeline_key = str(pipeline_id)
+    db_engine = get_relational_engine()
+    completed = 0
+    offset = 0
+    while True:
+        async with db_engine.get_async_session() as session:
+            result = await session.execute(
+                select(Data)
+                .where(Data.dataset_id == dataset.id, Data.name.in_(source_names))
+                .order_by(Data.id)
+                .offset(offset)
+                .limit(documents_per_batch)
+            )
+            page = result.scalars().all()
+        if not page:
+            break
+        offset += len(page)
+        batch = [
+            item
+            for item in page
+            if item.pipeline_status.get("cognify_pipeline", {}).get(pipeline_key)
+            != DataItemStatus.DATA_ITEM_PROCESSING_COMPLETED
+        ]
+        if not batch:
+            continue
+
+        tasks = await get_default_tasks(
+            user=user,
+            chunks_per_batch=chunks_per_batch,
+        )
+        async for _ in run_tasks_base(tasks, batch, user, None):
+            pass
+
+        async with db_engine.get_async_session() as session:
+            result = await session.execute(select(Data).where(Data.id.in_([item.id for item in batch])))
+            for item in result.scalars().all():
+                status = dict(item.pipeline_status or {})
+                cognify_status = dict(status.get("cognify_pipeline", {}))
+                cognify_status[pipeline_key] = DataItemStatus.DATA_ITEM_PROCESSING_COMPLETED
+                status["cognify_pipeline"] = cognify_status
+                item.pipeline_status = status
+                session.add(item)
+            await session.commit()
+        completed += len(batch)
+
+    return completed
+
+
+def _configure_local_backend_limits() -> dict[str, int]:
+    """Avoid oversubscribing the local graph and vector backends.
+
+    Cognee's local Kuzu default uses one thread per CPU.  The pipeline also runs many data-item
+    tasks concurrently, so leaving that default in place multiplies native worker threads and
+    makes the single local graph store the bottleneck.  These are safe defaults, while explicit
+    environment values remain authoritative for a deliberate tuning run.
+    """
+
+    try:
+        kuzu_threads = int(os.environ.get("KUZU_NUM_THREADS", "1"))
+        embedding_points = int(
+            os.environ.get("EMBEDDING_MAX_CONCURRENT_DATA_POINTS", "32")
+        )
+    except ValueError as error:
+        raise SystemExit(
+            "KUZU_NUM_THREADS and EMBEDDING_MAX_CONCURRENT_DATA_POINTS must be integers"
+        ) from error
+    if kuzu_threads < 1 or embedding_points < 1:
+        raise SystemExit(
+            "KUZU_NUM_THREADS and EMBEDDING_MAX_CONCURRENT_DATA_POINTS must be >= 1"
+        )
+    os.environ.setdefault("KUZU_NUM_THREADS", str(kuzu_threads))
+    os.environ.setdefault(
+        "EMBEDDING_MAX_CONCURRENT_DATA_POINTS", str(embedding_points)
+    )
+    for variable in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "ORT_INTRA_OP_NUM_THREADS",
+        "ORT_INTER_OP_NUM_THREADS",
+    ):
+        os.environ.setdefault(variable, "1")
+    return {
+        "kuzu_num_threads": kuzu_threads,
+        "embedding_max_concurrent_data_points": embedding_points,
+    }
+
+
+def _configure_fastembed_cache() -> str:
+    """Put FastEmbed's model cache in a writable namespace-owned directory."""
+
+    configured = os.environ.get("FASTEMBED_CACHE_PATH", "").strip()
+    if configured:
+        cache = Path(configured)
+    else:
+        data_root = os.environ.get("DATA_ROOT_DIRECTORY")
+        if not data_root:
+            raise SystemExit("DATA_ROOT_DIRECTORY is required to place the FastEmbed cache")
+        cache = Path(data_root).parent / "fastembed-cache"
+        os.environ["FASTEMBED_CACHE_PATH"] = str(cache)
+    try:
+        cache.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise SystemExit(f"cannot create FastEmbed cache directory {cache}: {error}") from error
+
+    cached_model = (
+        cache
+        / "models--qdrant--bge-small-en-v1.5-onnx-q"
+        / "snapshots"
+        / "52398278842ec682c6f32300af41344b1c0b0bb2"
+        / "model_optimized.onnx"
+    )
+    if cached_model.is_file() and cached_model.stat().st_size > 1_000_000:
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    return str(cache)
 
 
 def _configure_request_timeout() -> int:
@@ -170,15 +355,95 @@ def _configure_request_timeout() -> int:
     return int(llm_args["timeout"])
 
 
+def _configure_tolerant_summaries() -> dict[str, object]:
+    """Keep one malformed summary response from aborting the whole cognify run.
+
+    Cognee runs graph extraction and chunk summarization together.  A validation failure in the
+    optional summary branch currently propagates through ``asyncio.gather`` and fails every
+    remaining data item.  For this benchmark, retain the chunk as a deterministic fallback only
+    for JSON/schema validation errors, and count each fallback in the final report.  Transport,
+    quota, and provider errors remain fatal.
+    """
+
+    from json import JSONDecodeError
+
+    from pydantic import ValidationError
+
+    import importlib
+
+    graph_task_module = importlib.import_module(
+        "cognee.tasks.graph.extract_graph_and_summarize"
+    )
+    from cognee.infrastructure.llm.extraction import extract_summary
+    from cognee.modules.cognify.config import get_cognify_config
+    from cognee.tasks.summarization.models import TextSummary
+
+    fallback_count = 0
+    original_summarize_text = graph_task_module.summarize_text
+
+    async def summarize_text_tolerant(data_chunks, summarization_model=None):
+        nonlocal fallback_count
+        if summarization_model is None:
+            summarization_model = get_cognify_config().summarization_model
+
+        async def summarize_one(chunk):
+            nonlocal fallback_count
+            try:
+                result = await extract_summary(chunk.text, summarization_model)
+                summary_text = result.summary
+            except (ValidationError, JSONDecodeError) as error:
+                fallback_count += 1
+                print(
+                    "COGNEE_SUMMARY_FALLBACK "
+                    + json.dumps(
+                        {
+                            "chunk_id": str(chunk.id),
+                            "error": type(error).__name__,
+                        }
+                    ),
+                    flush=True,
+                )
+                summary_text = chunk.text
+
+            return TextSummary(
+                id=uuid5(chunk.id, "TextSummary"),
+                made_from=chunk,
+                source_chunk_id=str(chunk.id),
+                belongs_to_set=chunk.belongs_to_set,
+                text=summary_text,
+                importance_weight=chunk.importance_weight,
+            )
+
+        return await asyncio.gather(*(summarize_one(chunk) for chunk in data_chunks))
+
+    graph_task_module.summarize_text = summarize_text_tolerant
+    return {
+        "enabled": True,
+        "fallbacks": lambda: fallback_count,
+        "original": getattr(original_summarize_text, "__name__", "summarize_text"),
+    }
+
+
 async def _run(
     feed: Path, dataset: str, ceiling: float, token_ceiling: int, estimate_only: bool
 ) -> dict:
     request_timeout = _configure_request_timeout()
+    backend_limits = _configure_local_backend_limits()
+    fastembed_cache = _configure_fastembed_cache()
     import cognee
     from cognee.modules.search.types import SearchType
 
     retry_policy = _configure_bounded_retries()
     data_per_batch = _configured_data_per_batch()
+    chunks_per_batch = _configured_chunks_per_batch()
+    documents_per_batch = _configured_documents_per_batch()
+    summary_policy = _configure_tolerant_summaries()
+    bulk_pipeline = os.environ.get("AMB_COGNEE_BULK_PIPELINE", "true").lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
 
     files = sorted(feed.glob("*.md"))
     if not files:
@@ -196,8 +461,17 @@ async def _run(
         "estimate": estimate_dict,
         "retry_policy": retry_policy,
         "add_skipped": add_skipped,
+        "execution_mode": "bulk_standard_tasks" if bulk_pipeline else "cognee_cognify",
         "data_per_batch": data_per_batch,
+        "chunks_per_batch": chunks_per_batch,
+        "documents_per_batch": documents_per_batch,
+        **backend_limits,
+        "fastembed_cache": fastembed_cache,
         "request_timeout_seconds": request_timeout,
+        "summary_policy": {
+            "enabled": summary_policy["enabled"],
+            "fallbacks": 0,
+        },
     }
 
     cost = float(estimate_dict.get("estimated_cost_usd") or 0.0)
@@ -242,8 +516,17 @@ async def _run(
         print("COGNEE_JSON " + json.dumps(report))
         return report
 
-    await cognee.cognify(datasets=[dataset], data_per_batch=data_per_batch)
+    if bulk_pipeline:
+        report["bulk_items"] = await _run_bulk_standard_pipeline(
+            dataset_name=dataset,
+            chunks_per_batch=chunks_per_batch,
+            documents_per_batch=documents_per_batch,
+            source_names={path.stem for path in files},
+        )
+    else:
+        await cognee.cognify(datasets=[dataset], data_per_batch=data_per_batch)
     report["cognified"] = True
+    report["summary_policy"]["fallbacks"] = summary_policy["fallbacks"]()
 
     hits = await cognee.search(
         query_text=_probe_text(files),
