@@ -126,7 +126,12 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
     release_path = tmp_path / "release.json"
     write_release_manifest(
         release_path,
-        build_release_manifest(pack, loaded_policy, json.loads(rules_path.read_text())),
+        build_release_manifest(
+            pack,
+            loaded_policy,
+            json.loads(rules_path.read_text()),
+            evaluator_revision="a" * 40,
+        ),
     )
     baseline_path = tmp_path / "baseline.json"
     bad_path = tmp_path / "bad.json"
@@ -164,6 +169,21 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             release_path=release_path,
             baseline_path=baseline_path,
             deliberately_bad_path=bad_path,
+            evaluator_revision="a" * 40,
         )
     )
     assert result["status"] == "pass"
+
+    invalid_revision = readiness_result(
+        evaluate_readiness(
+            pack.root,
+            policy_path,
+            rules_path,
+            release_path=release_path,
+            baseline_path=baseline_path,
+            deliberately_bad_path=bad_path,
+            evaluator_revision="dirty",
+        )
+    )
+    release_gate = next(gate for gate in invalid_revision["gates"] if gate["name"] == "release_record")
+    assert release_gate["passed"] is False

@@ -45,6 +45,7 @@ def evaluate_readiness(
     release_path: str | Path | None = None,
     baseline_path: str | Path | None = None,
     deliberately_bad_path: str | Path | None = None,
+    evaluator_revision: str | None = None,
 ) -> tuple[ChallengeReadinessGate, ...]:
     """Return every gate result without hiding a missing external prerequisite."""
 
@@ -81,13 +82,28 @@ def evaluate_readiness(
         gates.append(ChallengeReadinessGate("final_rules", False, str(error)))
 
     if pack is not None and policy is not None and rules is not None and rules_match_pack:
-        expected = build_release_manifest(pack, policy, rules)
         if release_path is None:
             gates.append(ChallengeReadinessGate("release_record", False, "release record was not supplied"))
+        elif evaluator_revision is None:
+            gates.append(ChallengeReadinessGate("release_record", False, "evaluator revision was not supplied"))
         else:
             try:
+                expected = build_release_manifest(
+                    pack,
+                    policy,
+                    rules,
+                    evaluator_revision=evaluator_revision,
+                )
                 release = _read_json(Path(release_path))
-                fields = ("pack_id", "pack_digest", "policy_id", "policy_digest", "rules_id", "rules_digest")
+                fields = (
+                    "pack_id",
+                    "pack_digest",
+                    "policy_id",
+                    "policy_digest",
+                    "rules_id",
+                    "rules_digest",
+                    "evaluator_revision",
+                )
                 mismatches = [field for field in fields if release.get(field) != expected.get(field)]
                 gates.append(
                     ChallengeReadinessGate(
