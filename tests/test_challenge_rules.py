@@ -32,6 +32,12 @@ def test_final_rules_reject_placeholders(tmp_path: Path):
         load_rules(path, require_final=True)
 
 
+def test_rules_reject_malformed_deadline(tmp_path: Path):
+    path = _rules(tmp_path / "rules.json", entry_deadline_utc=0)
+    with pytest.raises(ChallengeRulesError, match="entry_deadline_utc"):
+        load_rules(path)
+
+
 def test_rules_digest_changes_with_rule_bytes(tmp_path: Path):
     first = load_rules(_rules(tmp_path / "first.json"))
     second = load_rules(_rules(tmp_path / "second.json", appeal_window_days=14))

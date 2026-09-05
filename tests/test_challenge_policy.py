@@ -47,6 +47,7 @@ def test_policy_loads_and_hashes_canonically(tmp_path: Path):
         {"agent_timeout_seconds": 0},
         {"temperature": 3},
         {"temperature": "nan"},
+        {"agent_timeout_seconds": "inf"},
         {"infrastructure_retries": -1},
     ],
 )

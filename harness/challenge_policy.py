@@ -32,7 +32,12 @@ class ChallengeEvaluationPolicy:
     def __post_init__(self) -> None:
         if not self.policy_id.strip() or not self.model_id.strip() or not self.provider_id.strip():
             raise ChallengePolicyError("policy identifiers must be non empty")
-        if self.agent_timeout_seconds <= 0 or self.checker_timeout_seconds <= 0:
+        if (
+            not math.isfinite(self.agent_timeout_seconds)
+            or not math.isfinite(self.checker_timeout_seconds)
+            or self.agent_timeout_seconds <= 0
+            or self.checker_timeout_seconds <= 0
+        ):
             raise ChallengePolicyError("policy timeouts must be positive")
         if self.adapter_call_budget <= 0 or self.context_limit_tokens <= 0:
             raise ChallengePolicyError("policy budgets must be positive")
@@ -109,7 +114,7 @@ def _number(data: dict[str, Any], field: str) -> float:
 
 def _positive_float(data: dict[str, Any], field: str) -> float:
     value = _number(data, field)
-    if value <= 0:
+    if not math.isfinite(value) or value <= 0:
         raise ChallengePolicyError(f"policy field {field!r} must be positive")
     return value
 

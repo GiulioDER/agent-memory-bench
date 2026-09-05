@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -48,10 +49,19 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         raise ChallengeRulesError("rules_id must be a non empty string")
     if data["status"] not in {"draft", "final"}:
         raise ChallengeRulesError("rules status must be draft or final")
+    if not isinstance(data["entry_deadline_utc"], str) or not data["entry_deadline_utc"].strip():
+        raise ChallengeRulesError("entry_deadline_utc must be a non empty string")
+    if not isinstance(data["appeal_scope"], str) or not data["appeal_scope"].strip():
+        raise ChallengeRulesError("appeal_scope must be a non empty string")
     numeric_positive = ("prize_total_usd", "winner_count", "appeal_window_days", "independent_reviewer_count")
     for field in numeric_positive:
         value = data[field]
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or value <= 0
+        ):
             raise ChallengeRulesError(f"rules field {field!r} must be positive")
     if not isinstance(data["infrastructure_retry_count"], int) or data["infrastructure_retry_count"] < 0:
         raise ChallengeRulesError("infrastructure_retry_count must be non negative")
@@ -63,6 +73,8 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         raise ChallengeRulesError("tie_breaker_task_ids must be a list of non empty strings")
     if not isinstance(data["publication"], dict):
         raise ChallengeRulesError("publication must be an object")
+    if any(not isinstance(value, bool) for value in data["publication"].values()):
+        raise ChallengeRulesError("publication values must be booleans")
     if require_final:
         if data["status"] != "final":
             raise ChallengeRulesError("final release requires status='final' rules")
