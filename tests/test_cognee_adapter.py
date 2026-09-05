@@ -279,7 +279,9 @@ def test_the_cost_ceiling_is_a_number_the_driver_can_enforce():
     assert float(CONFIG["ingest_cost_ceiling_usd"]) > 0
     driver = (REPO / "adapters" / "cognee" / "ingest_driver.py").read_text(encoding="utf-8")
     assert "dry_run=True" in driver
-    assert driver.index("dry_run=True") < driver.index("await cognee.cognify(datasets=[dataset])")
+    assert driver.index("dry_run=True") < driver.index(
+        "await cognee.cognify(datasets=[dataset], data_per_batch"
+    )
 
 
 def test_the_binding_ceiling_is_in_tokens_because_the_dollar_one_cannot_fire():

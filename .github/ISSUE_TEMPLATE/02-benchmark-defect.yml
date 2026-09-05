@@ -1,0 +1,42 @@
+name: Benchmark defect
+description: A published number cannot be regenerated, or the instrument does not do what it claims.
+title: "[defect] "
+labels: ["defect"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The project's own rule: if a published result cannot be regenerated from the pinned
+        versions, the frozen configs, the sha256-pinned corpus and the committed
+        preregistration, **that is a bug in the benchmark**. This is where it gets filed.
+
+        A failing test in `python -m pytest tests/ -q` on a clean clone is the highest-value
+        report this project can receive. It means the instrument is not what it says it is.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of defect?
+      options:
+        - A test fails on a clean clone
+        - A published number does not regenerate from its artifacts
+        - A task is solvable without the fact the corpus carries, or unsolvable with it
+        - A claim on the site or in the docs is contradicted by the repository
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you did, and what happened
+      description: Commands and output, verbatim. Include your OS and Python version.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the repository claims instead
+      description: >-
+        A file and line where you can. The gap between a documented claim and observed
+        behaviour is the finding; without the claim it is a support question.
+    validations:
+      required: false

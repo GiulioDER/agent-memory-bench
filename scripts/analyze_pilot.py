@@ -35,7 +35,6 @@ from harness.tasks import discover_tasks
 
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
-
 def _pilot_arms() -> tuple[str, ...]:
     """The runner's own roster, so this analyser cannot fall behind it.
 

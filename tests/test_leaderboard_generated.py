@@ -147,6 +147,96 @@ def test_official_summary_fills_the_page(tmp_path):
     assert recall["success"] == 0.5 and recall["costPerTask"] == 1.25
 
 
+def test_an_additive_arm_joins_the_frozen_base_without_a_full_roster(tmp_path):
+    """A contributor can publish one arm while the base run remains byte-for-byte frozen."""
+
+    summary = _summary()
+    root = _scaffold(tmp_path, summary=summary, official_run="run-x")
+    submission_dir = root / "results" / "cognee-x"
+    submission_dir.mkdir(parents=True)
+    submission = {
+        "schema": 1,
+        "generated_by": "scripts/build_arm_submission.py",
+        "run": {
+            "id": "cognee-x",
+            "date": "2026-09-02",
+            "cli": "2.1.230",
+            "model": "test-model",
+            "tasks": 24,
+            "sessionsPerCell": 3,
+            "prereg": "preregistration/027-cognee.md",
+        },
+        "arm": "cognee",
+        "base_run": "run-x",
+        "result": {
+            "success": 0.55,
+            "delta": 0.05,
+            "ci": [-0.1, 0.2],
+            "discarded": 2,
+            "tokensPerTask": 300,
+            "costPerTask": 1.75,
+        },
+        "join": {
+            "baseRun": "run-x",
+            "baseAdmittedCells": 10,
+            "joinedCells": 8,
+            "baseCellsLostToJoin": 2,
+        },
+    }
+    (submission_dir / "arm_summary.json").write_text(json.dumps(submission), encoding="utf-8")
+    _config(root, arm_runs={"cognee": "cognee-x"})
+
+    result = _run(root=root)
+    assert result.returncode == 0, result.stdout + result.stderr
+    data = _payload(root)
+    cognee = next(a for a in data["arms"] if a["name"] == "product_a")
+    assert cognee["success"] == 0.55
+    assert cognee["sourceRun"] == "cognee-x"
+    assert cognee["comparison"] == "joined to run-x"
+    assert data["provenance"]["baseRun"] == "run-x"
+    assert data["provenance"]["armRuns"]["product_a"] == "cognee-x"
+
+
+def test_an_additive_arm_cannot_replace_a_base_arm(tmp_path):
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    _config(root, arm_runs={"recall": "replacement"})
+    result = _run(root=root)
+    assert result.returncode != 0
+    assert "cannot replace base arm" in (result.stdout + result.stderr)
+
+
+def test_an_additive_arm_must_match_the_frozen_base(tmp_path):
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    submission_dir = root / "results" / "cognee-x"
+    submission_dir.mkdir(parents=True)
+    submission = {
+        "schema": 1,
+        "generated_by": "scripts/build_arm_submission.py",
+        "run": {**_summary()["run"], "id": "cognee-x", "model": "other-model"},
+        "arm": "cognee",
+        "base_run": "run-x",
+        "result": {
+            "success": 0.55,
+            "delta": 0.05,
+            "ci": [-0.1, 0.2],
+            "discarded": 2,
+            "tokensPerTask": 300,
+            "costPerTask": 1.75,
+        },
+        "join": {
+            "baseRun": "run-x",
+            "baseAdmittedCells": 10,
+            "joinedCells": 8,
+            "baseCellsLostToJoin": 2,
+        },
+    }
+    (submission_dir / "arm_summary.json").write_text(json.dumps(submission), encoding="utf-8")
+    _config(root, arm_runs={"cognee": "cognee-x"})
+    result = _run(root=root)
+    assert result.returncode != 0
+    assert "incompatible with base run on model" in (result.stdout + result.stderr)
+
+
 def test_a_summary_missing_an_arm_is_refused(tmp_path):
     summary = _summary()
     del summary["arms"]["bare"]

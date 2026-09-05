@@ -336,7 +336,7 @@ SEARCH_RATE_FLOOR = 0.50
 # change here, so the arm ran, produced records, and was silently exempted from the one check that
 # decides whether its numbers mean anything. `_classify_arms` below now refuses an arm that is in
 # neither set, so the next product cannot repeat it.
-MEMORY_ARMS = frozenset({"recall", "mempalace", "fs_grep", "cognee"})
+MEMORY_ARMS = frozenset({"recall", "mempalace", "fs_grep", "cognee", "cachly"})
 
 # Arms with no retrieval surface THE AGENT CAN REACH. A search rate for these is meaningless,
 # not missing, which is the distinction that decides membership rather than whether retrieval

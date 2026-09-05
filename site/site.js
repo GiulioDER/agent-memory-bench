@@ -74,6 +74,7 @@
     var nameTd = cell(null, span("m", "", false));
     nameTd.firstChild.appendChild(span(null, a.name, true));
     if (a.role) nameTd.appendChild(span("m-dim", " · " + a.role));
+    if (a.comparison) nameTd.appendChild(span("m-dim", " · " + a.comparison));
     /* Say WHY the row is blank. A blank row with no reason reads as "measured nothing", which is
        the opposite of what a hold means. */
     if (a.held) {
@@ -98,11 +99,60 @@
       a.delta === 0 ? span("m-dim", "baseline") : (pts(a.delta) && span("m", pts(a.delta)))));
     tr.appendChild(cell("num", ciTxt(a.ci) && span("m", ciTxt(a.ci))));
     tr.appendChild(cell("num", a.discarded == null ? null : span("m", String(a.discarded))));
-    tr.appendChild(cell("num",
-      a.costPerTask == null ? null : span("m", "$" + a.costPerTask.toFixed(2))));
+    /* Costs here are sub-cent per task: toFixed(2) rendered every arm as $0.00 and made the
+       column useless. Scale the precision to the magnitude so a real difference is visible. */
+    tr.appendChild(cell("num", a.costPerTask == null ? null : span("m", "$" + (
+      a.costPerTask >= 1 ? a.costPerTask.toFixed(2)
+      : a.costPerTask >= 0.01 ? a.costPerTask.toFixed(3)
+      : a.costPerTask.toFixed(4)))));
 
     board.appendChild(tr);
   });
+
+  /* Products, condition by condition. Columns are built from the data rather than the markup,
+     because which arms are products is decided by the generator and can change between runs. */
+  var condHead = document.getElementById("condition-head");
+  var condBody = document.getElementById("condition-body");
+  if (condHead && condBody) {
+    var products = D.arms.filter(function (a) { return "byCondition" in a; });
+    var conds = [];
+    products.forEach(function (a) {
+      if (a.byCondition) {
+        Object.keys(a.byCondition).forEach(function (c) {
+          if (conds.indexOf(c) === -1) conds.push(c);
+        });
+      }
+    });
+
+    if (products.length && conds.length) {
+      var hc = document.createElement("th");
+      hc.appendChild(document.createTextNode("condition"));
+      condHead.appendChild(hc);
+      products.forEach(function (a) {
+        var th = document.createElement("th");
+        th.className = "num";
+        th.appendChild(document.createTextNode(a.name));
+        condHead.appendChild(th);
+      });
+
+      conds.forEach(function (c) {
+        var tr = document.createElement("tr");
+        tr.appendChild(cell(null, span("m", c)));
+        products.forEach(function (a) {
+          if (!a.byCondition) {
+            tr.appendChild(cell("num", span("m-dim", "pending")));
+            return;
+          }
+          var v = a.byCondition[c];
+          if (!v || !v.cells) { tr.appendChild(cell("num", null)); return; }
+          var td = cell("num", span("m", v.solved + "/" + v.cells));
+          td.appendChild(span("m-dim", " " + Math.round((v.solved / v.cells) * 100) + "%"));
+          tr.appendChild(td);
+        });
+        condBody.appendChild(tr);
+      });
+    }
+  }
 
   var ref = document.getElementById("reference-body");
   if (ref) {

@@ -36,7 +36,9 @@ this, twice, and it is why every check here reads bytes in Python instead of she
 
 from __future__ import annotations
 
+import gzip
 import subprocess
+import zlib
 from pathlib import Path
 
 import pytest
@@ -108,6 +110,19 @@ KNOWN_RESULT_ARTIFACTS = frozenset(
     }
 )
 
+#: Published stream directories that already carry an absolute path, measured 2026-09-02 when
+#: `_scannable_bytes` started decompressing archives. These 304 files are NOT a new leak: they are
+#: the same run whose `records*.jsonl` have been ratcheted since 2026-08-30, and their streams
+#: were published at the same commit. They became VISIBLE, not public, and the count moved because
+#: the guard improved rather than because the tree got worse.
+#:
+#: A prefix rather than 304 literal paths, because a per-file list of one directory's streams
+#: would be unreadable and would hide the one fact that matters, which is that the whole directory
+#: predates the fix. Like the sets above it may shrink and must not grow: a NEW run's streams
+#: landing here means the harness is writing host paths again, and official-003 was redacted
+#: rather than added precisely so this stays true.
+KNOWN_RESULT_PREFIXES = ("results/diagnostic-010/streams/",)
+
 #: The corpus is synthetic transcripts about a fictional company; "sentiment" appears in prose
 #: there and means nothing. Only the PATH forms above are inventory, which is why this file never
 #: matches on the bare account name.
@@ -125,6 +140,36 @@ def _tracked_files() -> list[str]:
     return [p for p in out.stdout.split("\0") if p]
 
 
+def _scannable_bytes(path: Path) -> bytes | None:
+    """The bytes to search for inventory strings, decompressing a gzipped artifact first.
+
+    ⚠️ Added 2026-09-02, and the blind spot it closes was live for the whole life of this file.
+    Every run publishes its sessions as `streams/*.jsonl.gz`, and a compressed blob contains none
+    of the INVENTORY literals, so scanning raw bytes passed every stream unconditionally.
+    Measured while publishing official-003: the raw scan saw 18,922 occurrences of the home prefix
+    in the records and **none** of the 2,527 inside 279 stream files.
+
+    A guard with a blind spot on a file type every run publishes is worse than no guard, because
+    the green result gets read as evidence that the tree is clean.
+
+    Returns None only when the file cannot be read at all.
+    """
+
+    try:
+        blob = path.read_bytes()
+    except (OSError, ValueError):
+        return None
+    if path.suffix != ".gz":
+        return blob
+    try:
+        return gzip.decompress(blob)
+    except (OSError, EOFError, zlib.error):
+        # A stream that will not decompress is a different defect and not this file's to report.
+        # Scan the raw bytes rather than skipping, so a corrupt archive cannot become a hiding
+        # place.
+        return blob
+
+
 def _files_naming_a_host() -> dict[str, list[str]]:
     """Path -> the inventory strings it contains. Reads bytes; see the MSYS note above."""
 
@@ -132,10 +177,8 @@ def _files_naming_a_host() -> dict[str, list[str]]:
     for rel in _tracked_files():
         if rel.startswith(_EXEMPT_PREFIXES):
             continue
-        path = REPO / rel
-        try:
-            blob = path.read_bytes()
-        except (OSError, ValueError):
+        blob = _scannable_bytes(REPO / rel)
+        if blob is None:
             continue
         found = [s for s in INVENTORY if s.encode("utf-8") in blob]
         if found:
@@ -176,7 +219,11 @@ def test_no_tracked_config_or_script_names_a_host_or_a_remote_path() -> None:
 def test_no_new_published_artifact_records_an_absolute_host_path() -> None:
     """A ratchet on already-published runs: the set may shrink, never grow."""
 
-    current = {rel for rel in _files_naming_a_host() if rel.startswith("results/")}
+    current = {
+        rel
+        for rel in _files_naming_a_host()
+        if rel.startswith("results/") and not rel.startswith(KNOWN_RESULT_PREFIXES)
+    }
     added = current - KNOWN_RESULT_ARTIFACTS
     assert added == set(), (
         "a run has recorded absolute host paths into a published artifact:\n"
@@ -363,3 +410,37 @@ def test_no_new_frozen_record_names_a_host_path() -> None:
         "'under a home directory' rather than the path. If this one is already committed, "
         "add it here and say why."
     )
+
+
+def test_the_scan_looks_inside_a_gzipped_artifact(tmp_path):
+    """RED before 2026-09-02: a host path inside a .gz was invisible to every test here.
+
+    The positive control is the point. Asserting only that the real tree is clean cannot
+    distinguish a guard that reads streams from one that skips them, and it was the second of
+    those for the whole life of this file.
+    """
+    needle = INVENTORY[0].encode("utf-8")
+    payload = b'{"command": ["' + needle + b'/.npm-global/bin/claude"]}\n'
+
+    plain = tmp_path / "records.jsonl"
+    plain.write_bytes(payload)
+    assert needle in _scannable_bytes(plain), "an uncompressed artifact must still be scanned"
+
+    stream = tmp_path / "ts-thing.s0.bare.jsonl.gz"
+    stream.write_bytes(gzip.compress(payload))
+    assert needle not in stream.read_bytes(), (
+        "precondition: the raw bytes of the archive must NOT contain the literal, or this test "
+        "would pass against the very implementation it exists to reject"
+    )
+    assert needle in _scannable_bytes(stream), (
+        "a host path inside a published session stream must be found; every run publishes "
+        "streams/*.jsonl.gz and the raw-byte scan passed all of them"
+    )
+
+
+def test_a_corrupt_archive_is_scanned_rather_than_skipped(tmp_path):
+    """A file that will not decompress must not become a hiding place."""
+    needle = INVENTORY[0].encode("utf-8")
+    broken = tmp_path / "truncated.jsonl.gz"
+    broken.write_bytes(b"\x1f\x8b\x08\x00 not actually gzip " + needle)
+    assert needle in _scannable_bytes(broken)
