@@ -66,12 +66,15 @@ class SupermemoryAdapter(MemoryAdapter):
         self.plugin_dir = Path(configured) if configured else None
 
     @staticmethod
-    def shared_instruction(*, neutral: bool = False) -> str:
+    def shared_instruction(*, neutral: bool = False, variant: str = "protocol") -> str:
+        """Return the shared AMB protocol for the requested frozen variant."""
+
         return compose(
             "supermemory",
             "Supermemory provides persistent project context through its official Claude Code "
             "hooks; use that context before acting when relevant.",
             neutral=neutral,
+            variant=variant,
         )
 
     def _base_url(self) -> str:
