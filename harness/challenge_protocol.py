@@ -120,7 +120,9 @@ def _validate_result(method: Any, result: dict[str, Any]) -> None:
     hits = result["hits"]
     if not isinstance(hits, list) or len(hits) > MAX_HITS:
         raise ChallengeProtocolError("search result hits must be a list of at most 100 items")
-    for hit in hits:
+    if not isinstance(result["abstained"], bool):
+        raise ChallengeProtocolError("search abstained must be a boolean")
+    for index, hit in enumerate(hits, start=1):
         if not isinstance(hit, dict) or set(hit) != {"source_id", "text", "score", "rank"}:
             raise ChallengeProtocolError("search hit has the wrong field set")
         if not isinstance(hit["source_id"], str) or not hit["source_id"].strip():
@@ -133,8 +135,12 @@ def _validate_result(method: Any, result: dict[str, Any]) -> None:
             or not math.isfinite(hit["score"])
         ):
             raise ChallengeProtocolError("search hit score must be a finite number")
-        if isinstance(hit["rank"], bool) or not isinstance(hit["rank"], int) or hit["rank"] < 1:
-            raise ChallengeProtocolError("search hit rank must be a positive integer")
+        if (
+            isinstance(hit["rank"], bool)
+            or not isinstance(hit["rank"], int)
+            or hit["rank"] != index
+        ):
+            raise ChallengeProtocolError("search hit rank must be contiguous from 1")
     usage = result["usage"]
     if not isinstance(usage, dict) or set(usage) != {"input_tokens", "output_tokens"}:
         raise ChallengeProtocolError("search usage has the wrong field set")
