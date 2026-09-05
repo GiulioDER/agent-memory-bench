@@ -15,6 +15,7 @@ import shutil
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -35,12 +36,15 @@ _WRAPPER_PATH = Path(__file__).with_name("hook_wrapper.js")
 _REQUIRED_HOOKS = ("SessionStart", "UserPromptSubmit")
 _DIRECT_MEMORY_PATH = "/v4/memories"
 _DIRECT_MEMORY_MAX_CHARS = 9000
+_DIRECT_MEMORY_BATCH_SIZE = 5
+_DIRECT_MEMORY_BATCH_CONCURRENCY = 1
 _HOOK_FILES = {
     "SessionStart": "session-start.js",
     "UserPromptSubmit": "recall-directive.js",
     "PreToolUse": "recall-approve.js",
     "Stop": "capture.js",
 }
+_PROFILE_ITEMS_ENV = "SUPERMEMORY_BENCHMARK_MAX_PROFILE_ITEMS"
 
 
 class SupermemoryAdapter(MemoryAdapter):
@@ -62,13 +66,12 @@ class SupermemoryAdapter(MemoryAdapter):
         self.plugin_dir = Path(configured) if configured else None
 
     @staticmethod
-    def shared_instruction(*, neutral: bool = False, variant: str = "protocol") -> str:
+    def shared_instruction(*, neutral: bool = False) -> str:
         return compose(
             "supermemory",
             "Supermemory provides persistent project context through its official Claude Code "
             "hooks; use that context before acting when relevant.",
             neutral=neutral,
-            variant=variant,
         )
 
     def _base_url(self) -> str:
@@ -98,6 +101,19 @@ class SupermemoryAdapter(MemoryAdapter):
                 f"direct_static_memories, got {mode!r}"
             )
         return mode
+
+    @staticmethod
+    def _benchmark_profile_items() -> int | None:
+        raw = os.environ.get(_PROFILE_ITEMS_ENV)
+        if raw is None:
+            return None
+        try:
+            value = int(raw)
+        except ValueError as error:
+            raise RuntimeError(f"{_PROFILE_ITEMS_ENV} must be a non-negative integer") from error
+        if value < 0:
+            raise RuntimeError(f"{_PROFILE_ITEMS_ENV} must be a non-negative integer")
+        return value
 
     def _plugin_root(self) -> Path:
         if self.plugin_dir is None:
@@ -159,18 +175,68 @@ class SupermemoryAdapter(MemoryAdapter):
         results = search.get("results") if isinstance(search, dict) else None
         return len(results) if isinstance(results, list) else 0
 
+    def _profile_ready(self, namespace: str, query: str) -> bool:
+        deadline = time.monotonic() + min(60.0, float(self.config["ingest_timeout_s"]))
+        while time.monotonic() < deadline:
+            try:
+                self._request(
+                    str(self.config["search_path"]),
+                    {"containerTag": namespace, "q": query[:500]},
+                    timeout_s=3.0,
+                )
+                return True
+            except (RuntimeError, TimeoutError, urllib.error.URLError):
+                time.sleep(1.0)
+        return False
+
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
         staged = namespace_path(self.staging_root, namespace, "feed")
         if staged.exists():
             shutil.rmtree(staged)
-        render_corpus(
+        rendered = render_corpus(
             [corpus.root / rel for rel in corpus.sessions], staged, root=corpus.root
         )
         start = time.monotonic()
         accepted = 0
         first_query = "project memory"
         ingest_mode = self._benchmark_ingest_mode()
+        pending_memories: list[dict[str, Any]] = []
+        pending_names: list[str] = []
+
+        def flush_direct_memories() -> None:
+            nonlocal accepted
+            if not pending_memories:
+                return
+            batches = [
+                pending_memories[offset : offset + _DIRECT_MEMORY_BATCH_SIZE]
+                for offset in range(0, len(pending_memories), _DIRECT_MEMORY_BATCH_SIZE)
+            ]
+            names = [
+                pending_names[offset : offset + _DIRECT_MEMORY_BATCH_SIZE]
+                for offset in range(0, len(pending_names), _DIRECT_MEMORY_BATCH_SIZE)
+            ]
+
+            def write_batch(batch: list[dict[str, Any]]) -> Any:
+                return self._request(
+                    _DIRECT_MEMORY_PATH,
+                    {"containerTag": namespace, "memories": list(batch)},
+                    timeout_s=300.0,
+                )
+
+            with ThreadPoolExecutor(max_workers=_DIRECT_MEMORY_BATCH_CONCURRENCY) as pool:
+                results = list(pool.map(write_batch, batches))
+            for batch, batch_names, result in zip(batches, names, results, strict=True):
+                stored = result.get("memories") if isinstance(result, dict) else None
+                if not isinstance(stored, list) or len(stored) < len(batch):
+                    raise RuntimeError(
+                        f"Supermemory accepted {len(stored) if isinstance(stored, list) else 0} of "
+                        f"{len(batch)} direct memories ({batch_names[0]})"
+                    )
+                accepted += len(stored)
+            pending_memories.clear()
+            pending_names.clear()
+
         for path in sorted(staged.glob("*.md")):
             content = path.read_text(encoding="utf-8")
             if content and first_query == "project memory":
@@ -197,31 +263,22 @@ class SupermemoryAdapter(MemoryAdapter):
                     for offset in range(0, len(content), _DIRECT_MEMORY_MAX_CHARS)
                 ] or [""]
                 for part_index, part in enumerate(parts, start=1):
-                    result = self._request(
-                        _DIRECT_MEMORY_PATH,
+                    pending_memories.append(
                         {
-                            "containerTag": namespace,
-                            "memories": [
-                                {
-                                    "content": part,
-                                    "isStatic": True,
-                                    "metadata": {
-                                        "source": "agent-memory-bench",
-                                        "corpus_path": path.relative_to(staged).as_posix(),
-                                        "part": str(part_index),
-                                        "parts": str(len(parts)),
-                                    },
-                                }
-                            ],
-                        },
-                        timeout_s=60.0,
+                            "content": part,
+                            "isStatic": True,
+                            "metadata": {
+                                "source": "agent-memory-bench",
+                                "corpus_path": path.relative_to(staged).as_posix(),
+                                "part": str(part_index),
+                                "parts": str(len(parts)),
+                            },
+                        }
                     )
-                    stored = result.get("memories") if isinstance(result, dict) else None
-                    if not isinstance(stored, list) or not stored:
-                        raise RuntimeError(
-                            f"Supermemory accepted no direct memory for {path.name} part {part_index}: {result!r}"
-                        )
-                    accepted += len(stored)
+                    pending_names.append(f"{path.name} part {part_index}")
+                    if len(pending_memories) >= _DIRECT_MEMORY_BATCH_SIZE * _DIRECT_MEMORY_BATCH_CONCURRENCY:
+                        flush_direct_memories()
+        flush_direct_memories()
         verification_hits = 0
         deadline = time.monotonic() + min(60.0, float(self.config["ingest_timeout_s"]))
         while time.monotonic() < deadline and accepted:
@@ -235,8 +292,13 @@ class SupermemoryAdapter(MemoryAdapter):
                 f"Supermemory write path accepted {accepted} document(s), but search verification "
                 f"returned {verification_hits}; refusing to call ingestion successful"
             )
+        if not self._profile_ready(namespace, first_query):
+            raise RuntimeError(
+                "Supermemory write and search verification completed, but the profile endpoint "
+                "did not become ready within the bounded settle window"
+            )
         base_url = self._base_url().lower()
-        local = base_url.startswith(("http://localhost", "http://127.0.0.1"))
+        local = base_url.startswith("http://localhost") or base_url.startswith("http://127.0.0.1")
         return IngestReport(
             arm=self.name,
             namespace=namespace,
@@ -287,8 +349,18 @@ class SupermemoryAdapter(MemoryAdapter):
                 new_group["hooks"] = new_hooks
                 rewritten.append(new_group)
             hooks[event] = rewritten
+        profile_items = self._benchmark_profile_items()
+        settings = {"hooks": hooks}
+        if profile_items is not None:
+            settings_path = config_dir / "home" / ".supermemory-claude" / "settings.json"
+            settings_path.parent.mkdir(parents=True, exist_ok=True)
+            settings_path.write_text(
+                json.dumps({"maxProfileItems": profile_items}, indent=2) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
         (config_dir / "settings.json").write_text(
-            json.dumps({"hooks": hooks}, indent=2) + "\n", encoding="utf-8", newline="\n"
+            json.dumps(settings, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
 
     def build(self, session_dir: Path, namespace: str, *, prompt_path: Path | None = None) -> ArmSpec:
@@ -305,7 +377,7 @@ class SupermemoryAdapter(MemoryAdapter):
         self._write_hook_settings(config_dir, copied_plugin)
         ledger = config_dir / "hook-ledger.jsonl"
         home = config_dir / "home"
-        home.mkdir()
+        home.mkdir(exist_ok=True)
         prompt = prompt_path or session_dir / "prompt.md"
         prompt.parent.mkdir(parents=True, exist_ok=True)
         prompt.write_text(
@@ -377,5 +449,6 @@ class SupermemoryAdapter(MemoryAdapter):
             "base_url": self._base_url(),
             "required_hooks": list(_REQUIRED_HOOKS),
             "benchmark_ingest_mode": self._benchmark_ingest_mode(),
+            "benchmark_max_profile_items": self._benchmark_profile_items(),
             "cost_mode": "local by default; no Supermemory subscription required",
         }

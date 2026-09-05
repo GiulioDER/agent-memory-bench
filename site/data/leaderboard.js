@@ -28,7 +28,8 @@ window.AMB_LEADERBOARD = {
       "fs_grep": "official-003",
       "placebo": "official-003",
       "claude_md": "official-003",
-      "bare": "official-003"
+      "bare": "official-003",
+      "product_a": "additive arm"
     }
   },
   "arms": [
@@ -157,6 +158,44 @@ window.AMB_LEADERBOARD = {
       "pending": true,
       "totalTokens": null,
       "byCondition": null
+    },
+    {
+      "name": "product_a",
+      "type": "third-party product, not yet named",
+      "success": 0.2077,
+      "delta": -0.3706,
+      "ci": [
+        -0.3465,
+        -0.1149
+      ],
+      "discarded": 4,
+      "tokensPerTask": 79098,
+      "costPerTask": 0.0046,
+      "totalTokens": 28870777,
+      "sourceRun": "additive arm",
+      "comparison": "joined to official-003",
+      "byCondition": {
+        "present": {
+          "solved": 17,
+          "cells": 110
+        },
+        "absent": {
+          "solved": 29,
+          "cells": 52
+        },
+        "superseded": {
+          "solved": 3,
+          "cells": 46
+        },
+        "contradictory": {
+          "solved": 12,
+          "cells": 50
+        },
+        "adjacent": {
+          "solved": 4,
+          "cells": 55
+        }
+      }
     }
   ],
   "reference": [
@@ -420,6 +459,32 @@ window.AMB_LEADERBOARD = {
           "successes_per_million_tokens": 20.39,
           "successes_per_dollar": 328.87
         }
+      },
+      "product_a": {
+        "status": "published",
+        "success": 0.2077,
+        "delta_vs_baseline": -0.3706,
+        "ci95": [
+          -0.3465,
+          -0.1149
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0046,
+          "total_tokens": 28870777,
+          "tokens_per_observed_session": 79098,
+          "tokens_per_admitted_cell": 92239,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
       }
     }
   },

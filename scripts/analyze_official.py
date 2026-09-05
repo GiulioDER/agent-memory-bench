@@ -357,8 +357,9 @@ def _insights(
         data = arms[arm]
         if data.get("delta_vs_baseline", 0) > 0 and data.get("ci95") and data["ci95"][0] <= 0 <= data["ci95"][1]:
             insights.append(f"{arm} shows a positive point estimate, but its published 95% interval crosses zero.")
-        if data.get("cost", {}).get("relative_to_baseline", 0) > 0.5:
-            insights.append(f"{arm} costs {data['cost']['relative_to_baseline'] + 1:.1f} times the baseline per admitted cell, including retrieval context tokens.")
+        relative_cost = data.get("cost", {}).get("relative_to_baseline")
+        if isinstance(relative_cost, (int, float)) and relative_cost > 0.5:
+            insights.append(f"{arm} costs {relative_cost + 1:.1f} times the baseline per admitted cell, including retrieval context tokens.")
     if any(data.get("status") == "held" for data in arms.values()):
         insights.append("A vendor review hold suppresses one product's metrics from the public analysis until the hold is released.")
     return insights

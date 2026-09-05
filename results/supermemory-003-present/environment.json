@@ -1,0 +1,303 @@
+{
+  "run_id": "supermemory-003-present",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": [
+    "bare",
+    "supermemory"
+  ],
+  "memory_instruction": "protocol",
+  "condition": "present",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "bare": {
+      "bytes": 0,
+      "chars": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "supermemory": {
+      "bytes": 3931,
+      "chars": 3929,
+      "sha256": "d321471288d1d55ff3ebc00cb10b9e015d9c18d9be2e155d6743074d52917e40"
+    }
+  },
+  "instruction_excess_bytes": {
+    "bare": 0,
+    "supermemory": 459
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "fa-dedup-key": {
+      "match": true,
+      "reference_whitespace_tokens": 71,
+      "placebo_whitespace_tokens": 71,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-atomic-write": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-casefold-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-cli-exitcode": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-config-layer": {
+      "match": true,
+      "reference_whitespace_tokens": 33,
+      "placebo_whitespace_tokens": 33,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-crlf-export": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-empty-input": {
+      "match": true,
+      "reference_whitespace_tokens": 48,
+      "placebo_whitespace_tokens": 48,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-idempotent-run": {
+      "match": true,
+      "reference_whitespace_tokens": 70,
+      "placebo_whitespace_tokens": 70,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-json-sorted": {
+      "match": true,
+      "reference_whitespace_tokens": 52,
+      "placebo_whitespace_tokens": 52,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-log-mask": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-nfc-count": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-quote-shell": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-retry-cap": {
+      "match": true,
+      "reference_whitespace_tokens": 47,
+      "placebo_whitespace_tokens": 47,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-round-money": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-stable-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "bare": {},
+    "supermemory": {
+      "fa-dedup-key": "360948a2736e4afbe4d5269da85ff06e3a51d68bdeeeccf9c26bff171c9a42a1",
+      "ts-atomic-write": "25becedf6bbf505f0b0af4b81b539490587bf8464d723f312d8445f324173147",
+      "ts-base36-id": "553498fe099181c7233b86263eb81c2d00f43474c8b985aa373bbd0b3324dcd2",
+      "ts-bom-merge": "ae82a46b54917f6d1adde5cc995bcfddb7b505f74228148c60f8a9829c0861cb",
+      "ts-casefold-sort": "f0e5eff5c5539150ce0ffa532282ea9992d85969e6202926fa17e4c82e15f652",
+      "ts-cli-exitcode": "dabf9927fdc39ef1a34fc000a767af772a6ebdb0cadba4dff3932d2b577753c5",
+      "ts-config-layer": "11c43ed3f08350b5b772b392e45c76b356f3a5fafe34ee188069d8f7da5493d8",
+      "ts-crlf-export": "3d37c5772f545eb2448d06dfbe694501dd26918536e644eec59722e8f3120d73",
+      "ts-dedup-order": "aa95c8e39fc8b43bbbf06d3005ef821535466112173e47a38bb5395d83cd659a",
+      "ts-empty-input": "88e98b1fdae53fd6b716cc933eef176481fb7f341986cce62d3b01faa511fc92",
+      "ts-golden-regen": "599571f1c9588c813912de31322da47c6432419fc00f269e30e9d959b5e475ea",
+      "ts-idempotent-run": "706284f7b1860782023899b1e2c21d3c67ebad6dcf3d65e2e4fc1bd860c48d53",
+      "ts-ignore-gen": "076b1849ac68e171fc97fd5997184f8f87af1ba9e6a5cb9f5fcf0fd7c0048a38",
+      "ts-json-sorted": "68040eb263aeb6f8f1ecee0f94f12f24345c47f5e4fbf72fab600985feb80d6a",
+      "ts-legacy-hash": "d0f4320066c329105560a3a1c92de394cfdeebc5cec51434d71b10c15cc7ff2a",
+      "ts-log-mask": "d645a98d7f95092726fa27ab2a04e4bae499d0d38fbea9f16e9887236d7c3593",
+      "ts-manifest-rel": "697fc4db391fbd68d83fa2aef09a7114b32573a68829ed242feca4f32cd026da",
+      "ts-mig-name": "ebe3d9c33c0ad49862d1f4b0ff241fc60ea486834e10ca89616e29b2b9b16358",
+      "ts-natural-order": "5139f955a2ac2653e41fa4b7bb8e86d2e273f8ff29352272e328a7a46de502e1",
+      "ts-nfc-count": "12878bd85c3e5cc962863143076445b433f8fa29c3c9ac9da50722af30d2bb85",
+      "ts-quote-shell": "fe5da6a8adab031ce07b81d206d37da2020276461ae2a7b43720857c7c2b1ab8",
+      "ts-retry-cap": "4335fbe8eb2042f1f36f68458c7c8e7392ea810a6052269c17cc8549f4d69450",
+      "ts-round-money": "bad94fdfebad82d8bdbaef79ff6b4c34ce3b9de36cd5b5f0cfe546a7bdc4d3d0",
+      "ts-schema-additive": "4dcd477078fe78345658bb76ce5c58ba8204f4b5bd0a91ce1c1cb086f962cba2",
+      "ts-semver-pin": "0f53f34b0c8f45ebcb56fe6fa26bb3a9e20bb6afd8bb375374f091cb98f59415",
+      "ts-stable-sort": "79afcd0d1e15d0770ffbe5a47eb36527141fe05c31af77fc8dc07c721c5a0674",
+      "ts-tz-utc": "56c73f09468431e68f4c559abe63848c7492cbff4ba419d12007f82ad1ae7e4a"
+    }
+  },
+  "namespace": "bench-supermemory-003-present-clean-r2-20260905",
+  "work_root": "/tmp/agent-memory-bench-work/supermemory-003-present-clean-r2-20260905",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "bare": {
+      "arm": "bare",
+      "memory": "none"
+    },
+    "supermemory": {
+      "arm": "supermemory",
+      "memory": "official Supermemory Claude Code plugin hooks",
+      "plugin_version": "0.1.6",
+      "plugin_commit": "e6227edc4f33b83317cfde2e7cd9790c794d22d1",
+      "plugin_root": "/home/sentiment/claude-supermemory-0.1.6/plugin",
+      "base_url": "http://localhost:6767",
+      "required_hooks": [
+        "SessionStart",
+        "UserPromptSubmit"
+      ],
+      "benchmark_ingest_mode": "direct_static_memories",
+      "benchmark_max_profile_items": 0,
+      "cost_mode": "local by default; no Supermemory subscription required"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "supermemory",
+      "namespace": "bench-supermemory-003-present-clean-r2-20260905",
+      "sessions_offered": 4900,
+      "items_stored": 4906,
+      "wall_time_ms": 11292762.81739492,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": "Supermemory Local configured model",
+      "notes": [
+        "ingested rendered transcripts as explicit static memories through POST /v4/memories",
+        "4906 document(s) accepted; search verification returned 15 hit(s)",
+        "local Supermemory API selected; model compute is local and not represented as hosted tokens"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "not_required"
+  }
+}

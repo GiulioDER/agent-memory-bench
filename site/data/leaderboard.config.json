@@ -3,6 +3,9 @@
   "pending_arms": [
     "cognee"
   ],
+  "arm_runs": {
+    "supermemory": "supermemory-003"
+  },
   "analysis_report": "reports/official-003-analysis.json",
   "updated": "2026-09-05"
 }
