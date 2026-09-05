@@ -63,3 +63,13 @@ def test_fixed_agent_command_cannot_override_task_identity(tmp_path: Path):
             _context(tmp_path),
             extra_env={"AMB_TASK_ID": "other-task"},
         )
+
+
+@pytest.mark.parametrize("timeout_seconds", [True, "nan", float("nan"), float("inf")])
+def test_fixed_agent_command_rejects_invalid_timeout(tmp_path: Path, timeout_seconds):
+    with pytest.raises(ChallengeAgentError, match="finite and positive"):
+        run_fixed_agent_command(
+            ["python", "-c", "pass"],
+            _context(tmp_path),
+            timeout_seconds=timeout_seconds,
+        )

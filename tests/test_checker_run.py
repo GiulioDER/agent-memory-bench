@@ -41,3 +41,11 @@ print(result.timed_out)
 
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout.strip() == "True"
+
+
+@pytest.mark.parametrize("timeout_s", [True, "nan", float("nan"), float("inf"), 0, -1])
+def test_bounded_runner_rejects_non_finite_or_non_positive_timeout(tmp_path: Path, timeout_s) -> None:
+    from harness.checker_run import run_bounded
+
+    with pytest.raises(ValueError, match="finite and positive"):
+        run_bounded([sys.executable, "-c", "pass"], cwd=tmp_path, timeout_s=timeout_s)

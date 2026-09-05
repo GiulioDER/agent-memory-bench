@@ -26,6 +26,7 @@ of whatever it spawned.
 
 from __future__ import annotations
 
+import math
 import os
 import shutil
 import subprocess
@@ -129,6 +130,13 @@ def run_bounded(
     rather than only on what it printed.
     """
 
+    if (
+        isinstance(timeout_s, bool)
+        or not isinstance(timeout_s, (int, float))
+        or not math.isfinite(timeout_s)
+        or timeout_s <= 0
+    ):
+        raise ValueError("timeout_s must be finite and positive")
     # Allow-list, NOT a copy of the operator's environment. What runs here is the deliverable the
     # model just wrote plus the task's checker, and `scripts/launch_official.sh` sources a secrets
     # file into the environment they would inherit, so a wholesale copy hands model-authored code

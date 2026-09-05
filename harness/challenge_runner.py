@@ -7,6 +7,7 @@ container. The checker belongs to the evaluator process after the container exit
 
 from __future__ import annotations
 
+import math
 import subprocess
 import time
 import uuid
@@ -70,8 +71,13 @@ class ChallengeAdapterHandle:
     def wait_ready(self, *, timeout_seconds: float = 30.0) -> dict[str, Any]:
         """Poll the sidecar health endpoint until it is ready or exits."""
 
-        if timeout_seconds <= 0:
-            raise ChallengeRunnerError("timeout_seconds must be positive")
+        if (
+            isinstance(timeout_seconds, bool)
+            or not isinstance(timeout_seconds, (int, float))
+            or not math.isfinite(timeout_seconds)
+            or timeout_seconds <= 0
+        ):
+            raise ChallengeRunnerError("timeout_seconds must be finite and positive")
         deadline = time.monotonic() + timeout_seconds
         last_error: Exception | None = None
         while time.monotonic() < deadline:
@@ -433,8 +439,13 @@ def run_challenge_task(
 ) -> ChallengeRunResult:
     """Run one task with the fixed container policy and return its captured process result."""
 
-    if timeout_seconds <= 0:
-        raise ChallengeRunnerError("timeout_seconds must be positive")
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not math.isfinite(timeout_seconds)
+        or timeout_seconds <= 0
+    ):
+        raise ChallengeRunnerError("timeout_seconds must be finite and positive")
     plan = build_execution_plan(pack, submission, task_id)
     output_base = _reject_output_overlap(Path(output_root), pack)
     _prepare_task_output(output_base, submission.submission_id, task_id)

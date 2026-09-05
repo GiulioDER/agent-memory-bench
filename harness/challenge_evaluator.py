@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,7 +36,7 @@ class ChallengeTaskContext:
     fixture: Path
     prompt: Path
     output: Path
-    adapter: "ChallengeAgentAdapter"
+    adapter: ChallengeAgentAdapter
 
 
 AgentRunner = Callable[[ChallengeTaskContext], None]
@@ -51,8 +52,8 @@ class ChallengeAdapterClient:
     _sequence: int = 0
 
     def __post_init__(self) -> None:
-        if self.max_calls <= 0:
-            raise ChallengeEvaluatorError("adapter call budget must be positive")
+        if isinstance(self.max_calls, bool) or not isinstance(self.max_calls, int) or self.max_calls <= 0:
+            raise ChallengeEvaluatorError("adapter call budget must be a positive integer")
 
     def _request(self, method: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
         if self._sequence >= self.max_calls:
@@ -150,8 +151,19 @@ def evaluate_submission(
     and adapter socket. It must not receive the pack root, checker, oracle or reference paths.
     """
 
-    if adapter_call_budget <= 0:
-        raise ChallengeEvaluatorError("adapter call budget must be positive")
+    if (
+        isinstance(adapter_call_budget, bool)
+        or not isinstance(adapter_call_budget, int)
+        or adapter_call_budget <= 0
+    ):
+        raise ChallengeEvaluatorError("adapter call budget must be a positive integer")
+    if (
+        isinstance(checker_timeout_s, bool)
+        or not isinstance(checker_timeout_s, (int, float))
+        or not math.isfinite(checker_timeout_s)
+        or checker_timeout_s <= 0
+    ):
+        raise ChallengeEvaluatorError("checker timeout must be finite and positive")
     try:
         output_base = _reject_output_overlap(Path(output_root), pack)
         runtime_base = _reject_runtime_overlap(Path(runtime_root), pack)

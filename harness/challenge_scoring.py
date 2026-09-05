@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -69,8 +70,13 @@ def run_private_checker(
 ) -> ChallengeTaskScore:
     """Run a private checker in a bounded subprocess after the entrant container exits."""
 
-    if timeout_s <= 0:
-        raise ChallengeScoringError("checker timeout must be positive")
+    if (
+        isinstance(timeout_s, bool)
+        or not isinstance(timeout_s, (int, float))
+        or not math.isfinite(timeout_s)
+        or timeout_s <= 0
+    ):
+        raise ChallengeScoringError("checker timeout must be finite and positive")
     sandbox = Path(workdir).expanduser().resolve()
     if not sandbox.is_dir() or sandbox.is_symlink():
         raise ChallengeScoringError(f"checker workdir is not a regular directory: {sandbox}")

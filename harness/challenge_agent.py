@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -39,7 +40,7 @@ class ChallengeAgentRunResult:
     stderr: str
 
     @classmethod
-    def from_completed(cls, task_id: str, completed: Completed) -> "ChallengeAgentRunResult":
+    def from_completed(cls, task_id: str, completed: Completed) -> ChallengeAgentRunResult:
         return cls(
             task_id=task_id,
             returncode=completed.returncode,
@@ -90,8 +91,13 @@ def run_fixed_agent_command(
 
     if not command or any(not isinstance(part, str) or not part for part in command):
         raise ChallengeAgentError("fixed agent command must be a non empty argument list")
-    if timeout_seconds <= 0:
-        raise ChallengeAgentError("fixed agent timeout must be positive")
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not math.isfinite(timeout_seconds)
+        or timeout_seconds <= 0
+    ):
+        raise ChallengeAgentError("fixed agent timeout must be finite and positive")
     completed = run_bounded(
         list(command),
         cwd=context.output,
