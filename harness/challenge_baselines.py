@@ -18,7 +18,7 @@ def _score(manifest: dict[str, Any], label: str) -> float:
     return float(value)
 
 
-def _validate_manifest(manifest: dict[str, Any], label: str) -> tuple[str, ...]:
+def validate_public_score_manifest(manifest: dict[str, Any], label: str = "score") -> tuple[str, ...]:
     """Validate the deterministic public manifest fields used for calibration."""
 
     if not isinstance(manifest, dict):
@@ -88,8 +88,8 @@ def verify_baseline_ordering(
 
     if not math.isfinite(minimum_margin) or minimum_margin < 0:
         raise ChallengeBaselineError("minimum margin must be finite and non negative")
-    baseline_task_ids = _validate_manifest(baseline, "baseline")
-    bad_task_ids = _validate_manifest(deliberately_bad, "deliberately bad")
+    baseline_task_ids = validate_public_score_manifest(baseline, "baseline")
+    bad_task_ids = validate_public_score_manifest(deliberately_bad, "deliberately bad")
     comparable_fields = ("pack_id", "scoring_version", "policy_digest", "task_count")
     mismatches = [field for field in comparable_fields if baseline.get(field) != deliberately_bad.get(field)]
     if mismatches:

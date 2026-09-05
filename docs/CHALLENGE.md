@@ -265,6 +265,19 @@ python -m scripts.check_challenge_readiness \
 The command exits successfully only when every supplied release gate passes. It does not create
 private task material, approve rules, or treat a missing external prerequisite as a pass.
 
+After entries have been evaluated, ranking applies the frozen tie breaker task IDs in order. It
+validates every public manifest against the private pack and policy, and exits with a failure when
+the winner boundary remains tied rather than choosing by input order:
+
+```bash
+python -m scripts.rank_challenge_entries \
+  --pack /private/amb-challenge-pack \
+  --policy /private/amb-challenge-policy.json \
+  --rules /private/amb-challenge-rules.json \
+  --manifest /private/results/entry-a-public.json \
+  --manifest /private/results/entry-b-public.json
+```
+
 Before execution, the organizer can audit all rendered task commands without starting an image:
 
 ```bash
