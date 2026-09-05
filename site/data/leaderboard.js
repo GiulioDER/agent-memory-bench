@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; numbers enter
    only through results/<run_id>/leaderboard_summary.json. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-09-02",
+  "updated": "2026-09-05",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
@@ -28,7 +28,8 @@ window.AMB_LEADERBOARD = {
       "fs_grep": "official-003",
       "placebo": "official-003",
       "claude_md": "official-003",
-      "bare": "official-003"
+      "bare": "official-003",
+      "product_a": "cognee-001"
     }
   },
   "arms": [
@@ -44,6 +45,7 @@ window.AMB_LEADERBOARD = {
       "discarded": 28,
       "tokensPerTask": 66337,
       "costPerTask": 0.0044,
+      "searchRate": null,
       "sourceRun": "official-003",
       "byCondition": {
         "present": {
@@ -77,6 +79,7 @@ window.AMB_LEADERBOARD = {
       "discarded": null,
       "tokensPerTask": null,
       "costPerTask": null,
+      "searchRate": null,
       "sourceRun": "official-003",
       "byCondition": null,
       "held": "held for vendor review",
@@ -96,6 +99,7 @@ window.AMB_LEADERBOARD = {
       "discarded": 2,
       "tokensPerTask": 43766,
       "costPerTask": 0.0031,
+      "searchRate": null,
       "sourceRun": "official-003"
     },
     {
@@ -111,6 +115,7 @@ window.AMB_LEADERBOARD = {
       "discarded": 8,
       "tokensPerTask": 19189,
       "costPerTask": 0.0014,
+      "searchRate": null,
       "sourceRun": "official-003"
     },
     {
@@ -126,6 +131,7 @@ window.AMB_LEADERBOARD = {
       "discarded": 6,
       "tokensPerTask": 17954,
       "costPerTask": 0.0013,
+      "searchRate": null,
       "sourceRun": "official-003"
     },
     {
@@ -141,7 +147,51 @@ window.AMB_LEADERBOARD = {
       "discarded": 5,
       "tokensPerTask": 18457,
       "costPerTask": 0.0014,
+      "searchRate": null,
       "sourceRun": "official-003"
+    },
+    {
+      "name": "product_a",
+      "type": "third-party product, not yet named",
+      "success": 0.6124,
+      "delta": 0.0426,
+      "ci": [
+        -0.0129,
+        0.0601
+      ],
+      "discarded": 66,
+      "tokensPerTask": 282462,
+      "costPerTask": 0.0187,
+      "searchRate": 0.2907,
+      "sourceRun": "cognee-001",
+      "comparison": "joined to official-003",
+      "byCondition": {
+        "present": {
+          "solved": 41,
+          "cells": 91,
+          "searchRate": 0.3297
+        },
+        "absent": {
+          "solved": 26,
+          "cells": 45,
+          "searchRate": 0.2444
+        },
+        "superseded": {
+          "solved": 26,
+          "cells": 34,
+          "searchRate": 0.1765
+        },
+        "contradictory": {
+          "solved": 31,
+          "cells": 43,
+          "searchRate": 0.3256
+        },
+        "adjacent": {
+          "solved": 34,
+          "cells": 45,
+          "searchRate": 0.3111
+        }
+      }
     }
   ],
   "reference": [

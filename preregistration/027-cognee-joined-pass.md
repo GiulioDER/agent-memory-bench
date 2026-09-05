@@ -125,3 +125,19 @@ recall; P5 by a pooled search rate at or below 0.50; P7 by ingest tokens outside
    they have.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Post run publication amendment, 2026-09-05
+
+This amendment was requested after `cognee-001` completed. It does not rewrite the frozen
+prediction or pretend that the original search rate floor was absent before measurement.
+
+For publication of this joined arm, search rate is a reported diagnostic rather than an
+eligibility gate. A low rate remains visible in the leaderboard and in the condition breakdown,
+but it no longer voids the task success endpoints. The result is still computed only on the
+jointly admitted cells, with the join size, discarded cells, errors, ingestion tokens and wall
+time published beside it.
+
+The reason for this amendment is that choosing not to invoke a product's memory tool is itself
+observable product behaviour. It must be exposed to readers, not silently used to discard a run
+that has already consumed the declared resources. A vendor may challenge the adapter or request
+a replacement run, and any replacement will be published as a separate run with its own evidence.

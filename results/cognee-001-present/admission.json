@@ -1,0 +1,1406 @@
+{
+  "required_arms": [
+    "cognee"
+  ],
+  "admitted_cells": 111,
+  "discarded_cells": [
+    [
+      "ts-casefold-sort",
+      0
+    ],
+    [
+      "ts-casefold-sort",
+      1
+    ],
+    [
+      "ts-cli-exitcode",
+      4
+    ],
+    [
+      "ts-config-layer",
+      2
+    ],
+    [
+      "ts-crlf-export",
+      4
+    ],
+    [
+      "ts-dedup-order",
+      1
+    ],
+    [
+      "ts-empty-input",
+      0
+    ],
+    [
+      "ts-empty-input",
+      4
+    ],
+    [
+      "ts-golden-regen",
+      0
+    ],
+    [
+      "ts-golden-regen",
+      2
+    ],
+    [
+      "ts-golden-regen",
+      4
+    ],
+    [
+      "ts-idempotent-run",
+      0
+    ],
+    [
+      "ts-idempotent-run",
+      1
+    ],
+    [
+      "ts-idempotent-run",
+      2
+    ],
+    [
+      "ts-ignore-gen",
+      4
+    ],
+    [
+      "ts-mig-name",
+      2
+    ],
+    [
+      "ts-mig-name",
+      3
+    ],
+    [
+      "ts-nfc-count",
+      1
+    ],
+    [
+      "ts-quote-shell",
+      2
+    ],
+    [
+      "ts-quote-shell",
+      3
+    ],
+    [
+      "ts-schema-additive",
+      3
+    ],
+    [
+      "ts-semver-pin",
+      4
+    ],
+    [
+      "ts-stable-sort",
+      0
+    ],
+    [
+      "ts-stable-sort",
+      1
+    ]
+  ],
+  "discarded_by_arm": {
+    "cognee": 24
+  },
+  "verdicts": [
+    {
+      "task_id": "fa-dedup-key",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "fa-dedup-key",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "fa-dedup-key",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "fa-dedup-key",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "fa-dedup-key",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-config-layer",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-empty-input",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-log-mask",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-natural-order",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-round-money",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available; servers reported ['cognee=failed']",
+        "MCP server 'cognee' was 'failed', not connected"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": false,
+      "reasons": [
+        "arm 'cognee' had no tool matching 'mcp__cognee__' in its session tool list, so its memory layer was never available",
+        "system prompt hash None does not match the arm's frozen prompt '48bef25e654245e7645a5efdf3dceda4ae0d2ddb5826435723e1975d8cd95a29'",
+        "the session did not complete: ClaudeSessionTimeout: claude exceeded timeout_s=600.0 for task 'ts-stable-sort'"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 3,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 4,
+      "arm": "cognee",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    }
+  ]
+}

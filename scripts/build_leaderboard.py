@@ -15,7 +15,7 @@ Inputs, both committed:
       {
         "run": {"id", "date", "cli", "model", "tasks", "sessionsPerCell", "prereg"},
         "arms": {"<arm>": {"success", "delta", "ci", "discarded",
-                            "tokensPerTask", "costPerTask"}},
+                            "tokensPerTask", "costPerTask", "searchRate"}},
         "reference": {"oracle_memory": {"success", "delta"},
                       "recall_prefetch": {"success", "delta"}}
       }
@@ -156,6 +156,7 @@ VENDOR_REVIEW_HOLDS: dict[str, dict[str, str]] = {
 }
 
 ARM_FIELDS = ("success", "delta", "ci", "discarded", "tokensPerTask", "costPerTask")
+ADDITIVE_DISPLAY_FIELDS = ("searchRate",)
 RUN_FIELDS = ("id", "date", "cli", "model", "tasks", "sessionsPerCell", "prereg")
 
 HEADER = """\
@@ -309,7 +310,7 @@ def _load_arm_submission(
             )
 
     result = submission["result"]
-    missing_result = [key for key in ARM_FIELDS if key not in result]
+    missing_result = [key for key in (*ARM_FIELDS, *ADDITIVE_DISPLAY_FIELDS) if key not in result]
     if missing_result:
         raise SummaryInvalid(f"arm submission {path} result is missing {missing_result}")
     return submission
@@ -381,6 +382,8 @@ def build(repo_root: str | Path) -> str:
         numbers = arm_numbers.get(internal, {})
         for field in ARM_FIELDS:
             entry[field] = numbers.get(field)
+        for field in ADDITIVE_DISPLAY_FIELDS:
+            entry[field] = numbers.get(field)
         source_run = arm_sources.get(internal)
         if source_run:
             entry["sourceRun"] = source_run
@@ -398,7 +401,7 @@ def build(repo_root: str | Path) -> str:
             # Blank the numbers AFTER they were read, not by skipping the read: the summary must
             # still contain this arm, so a held arm cannot be used to smuggle a missing one past
             # `_load_summary`'s every-arm-present check.
-            for field in ARM_FIELDS:
+            for field in (*ARM_FIELDS, *ADDITIVE_DISPLAY_FIELDS):
                 entry[field] = None
             # The hold covers the per-condition detail too. Publishing a product's condition
             # breakdown while withholding its headline would defeat the point of the hold.

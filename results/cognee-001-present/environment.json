@@ -1,0 +1,280 @@
+{
+  "run_id": "cognee-001-present",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": [
+    "cognee"
+  ],
+  "memory_instruction": "protocol",
+  "neutral_protocol": false,
+  "instruction_manifest": {
+    "cognee": {
+      "bytes": 4553,
+      "chars": 4553,
+      "sha256": "4d30dea50e348d71c2478d1a4b604fa09e4bac4e855d65913d1eccefd125ee65"
+    }
+  },
+  "instruction_excess_bytes": {
+    "cognee": 1081
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "fa-dedup-key": {
+      "match": true,
+      "reference_whitespace_tokens": 71,
+      "placebo_whitespace_tokens": 71,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-atomic-write": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-casefold-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-cli-exitcode": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-config-layer": {
+      "match": true,
+      "reference_whitespace_tokens": 33,
+      "placebo_whitespace_tokens": 33,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-crlf-export": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-empty-input": {
+      "match": true,
+      "reference_whitespace_tokens": 48,
+      "placebo_whitespace_tokens": 48,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-idempotent-run": {
+      "match": true,
+      "reference_whitespace_tokens": 70,
+      "placebo_whitespace_tokens": 70,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-json-sorted": {
+      "match": true,
+      "reference_whitespace_tokens": 52,
+      "placebo_whitespace_tokens": 52,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-log-mask": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-nfc-count": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-quote-shell": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-retry-cap": {
+      "match": true,
+      "reference_whitespace_tokens": 47,
+      "placebo_whitespace_tokens": 47,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-round-money": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-stable-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "cognee": {
+      "fa-dedup-key": "286b9a58e486848c1b316a006ff3e982e775349a404ac440b5b07392ef12c7e0",
+      "ts-atomic-write": "5ea160e6efb578a0ac0342c1b354c744160a8c5e66182a36eaf95495a0be16dd",
+      "ts-base36-id": "7702f9ddaa45bb8694e780ca86ba8b75f5c80075fee1b687fbad792808470fae",
+      "ts-bom-merge": "dd74b36a7af526c5ce174f8247f5aa9a47a80e4222aa64a3bc420018d8082b03",
+      "ts-casefold-sort": "e074cddcb7aa939a709b4a6f8b1f74266f278051802ce137341920d48f9b250f",
+      "ts-cli-exitcode": "5076a0549d5747199d3686c24d4735bcbc883bc93a4ad3dd2f1bbccc9fd20d50",
+      "ts-config-layer": "abbed3735af46350640112bbe944f9df8500ca651f91448faf4e709e108e47c8",
+      "ts-crlf-export": "37a8e4ee7a07b5bc9982314c146af01822933a357b415d4062026f9e08dd656c",
+      "ts-dedup-order": "ee2f11ea4d2d60cea2492cf39a1d61131e64db559dfd7d02445904383a27d742",
+      "ts-empty-input": "e45ae5fc2e4062609ddd95fa573174b3a34d0c30670c6396b8a2724e9750acc6",
+      "ts-golden-regen": "2eb58513680f2061fe772d92885eb7fcffb99cd0c1da79286a5a57ba8e7e96d5",
+      "ts-idempotent-run": "1202f408dccf8ee0c5532d28998108046a32d1a419ea37a1b28d93ab79ad4022",
+      "ts-ignore-gen": "1a7e07fe9a57316d3854a7d11e9acf8309708252397ad86b881603d16b55409e",
+      "ts-json-sorted": "7df15148d1834370ddd17d91bbea1c148d2e9c62cbe63b2770b8c9b4776972a4",
+      "ts-legacy-hash": "3485330ac65350216c360a027da58ab563e5710b2eb28396a3f38b79f5025283",
+      "ts-log-mask": "7088d8b5403b015e8d9c314003f4eb7a6022bdb3a7db1f5626c7fd9b9428bb3e",
+      "ts-manifest-rel": "85aa4f76af945d71706dc769b2192b7d309a107c59e99bf604621074effece30",
+      "ts-mig-name": "6416478bed0ea5589cd2e14adfef8c954e3092097a9a2d586e6c12bc5d65406d",
+      "ts-natural-order": "860012b8f7429fcb82eccb24c187ab04542885e9bf81f0764c9233975f999f94",
+      "ts-nfc-count": "4d6db70b9c048931480b14e6a7d5f2af895fe321f730805cd957072091a01370",
+      "ts-quote-shell": "36e85f3756c42ee816b785e435965ee022541abd00b6cc01b803359119346a5e",
+      "ts-retry-cap": "cf0eda8979440f01931c56bdf46d817f920479cc0dd429dd49bb109d245e1846",
+      "ts-round-money": "7e244043bf7aeaeecc1afef735a6682111e82ce18779637c987f5e2500c5346a",
+      "ts-schema-additive": "b2206b4651eb3fd3e11858978094e642aa04ba377831fdcefc0938a4d9eafe72",
+      "ts-semver-pin": "d1b33a29fedb921dc6533ebc2230de17f902efb138aaaf0397f90ff006ffb232",
+      "ts-stable-sort": "48bef25e654245e7645a5efdf3dceda4ae0d2ddb5826435723e1975d8cd95a29",
+      "ts-tz-utc": "50b993cc2060f75f2c2efc1859102c3cb9a48216244f64a903c6e005f5c5fc6c"
+    }
+  },
+  "namespace": "cognee-001-present",
+  "work_root": "/tmp/agent-memory-bench-work/cognee-001-present-cache-retry",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "cognee": {
+      "arm": "cognee",
+      "memory": "static+retrieved",
+      "product": "cognee",
+      "package_pin": "cognee[fastembed]==1.5.3",
+      "mcp_package_pin": "cognee-mcp==0.5.5",
+      "extraction_model": "openai/deepseek/deepseek-v4-flash",
+      "embedding_model": "BAAI/bge-small-en-v1.5",
+      "ingest_cost_ceiling_usd": 5.0,
+      "ingest_token_ceiling": 20000000,
+      "tools_allowed": 1,
+      "config_sha256": "7d2b41a0f671f6d68af25c70d6069ae8aa2f7522c0408557f1c05629d4290ae6",
+      "driver_sha256": "31ef7d7adc33915958abba5871f4a11bf0bfaac49c7e33b5e80a2fd34a2b7139"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "cognee",
+      "namespace": "cognee-001-present",
+      "sessions_offered": 4900,
+      "items_stored": 4900,
+      "wall_time_ms": 384879.40459279343,
+      "llm_input_tokens": 14716488,
+      "llm_output_tokens": 3015569,
+      "local_model": "fastembed BAAI/bge-small-en-v1.5",
+      "notes": [
+        "rendered 196 corpus document(s) of 4900 offered and ingested them with `cognee.add` + `cognee.cognify` into dataset 'bench', one store per namespace; the other 4704 came from the base store at /home/sentiment/cgn/cognee-base-shared, so the shared haystack was extracted once rather than once per condition",
+        "\u26a0\ufe0f the token counts are cognee's own `cognify --dry-run` ESTIMATE, not provider-billed usage: they cover the two LLM-heavy stages, exclude embeddings, and are an upper bound on a re-run. Treat them as the bound the run was authorised against, not as measured spend",
+        "estimated 17,732,057 token(s) against the 20,000,000 ceiling in config.frozen.json, on model 'openai/deepseek/deepseek-v4-flash'; cognee's own cost figure was $0.0000, which is $0 for a model absent from its price table and is therefore not the binding check",
+        "embeddings are computed locally by fastembed and cost no tokens; that half of the ingest is paid in host compute and shows up in wall_time_ms"
+      ]
+    }
+  ]
+}

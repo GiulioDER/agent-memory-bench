@@ -1,4 +1,7 @@
 {
   "official_run": "official-003",
-  "updated": "2026-09-02"
+  "arm_runs": {
+    "cognee": "cognee-001"
+  },
+  "updated": "2026-09-05"
 }

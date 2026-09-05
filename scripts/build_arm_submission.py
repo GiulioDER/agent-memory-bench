@@ -88,6 +88,17 @@ def _mean_rate(rows: list[dict]) -> float:
     return sum(bool(row["success"]) for row in rows) / len(rows)
 
 
+def _search_rate(rows: list[dict]) -> float:
+    """Fraction of joined sessions that called the submitted memory surface."""
+
+    if not rows:
+        raise SystemExit("cannot calculate a search rate over zero joined cells")
+    return sum(
+        bool(row.get("memory_call_count", 0) > 0 or row.get("retrieved_contexts"))
+        for row in rows
+    ) / len(rows)
+
+
 def _result(
     *,
     results_root: Path,
@@ -158,6 +169,7 @@ def _result(
         condition: {
             "solved": sum(bool(row["success"]) for row in rows),
             "cells": len(rows),
+            "searchRate": round(_search_rate(rows), 4),
         }
         for condition, rows in joined_by_condition.items()
     }
@@ -171,6 +183,7 @@ def _result(
         "discarded": len(all_product_discarded),
         "tokensPerTask": round(total_tokens / total_sessions) if total_sessions else None,
         "costPerTask": round(total_usd / total_sessions, 4) if total_sessions else None,
+        "searchRate": round(_search_rate(joined_records), 4),
         "byCondition": by_condition,
     }
     join = {

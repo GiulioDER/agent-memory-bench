@@ -1,0 +1,160 @@
+{
+  "run_id": "cognee-001-absent",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": [
+    "cognee"
+  ],
+  "memory_instruction": "protocol",
+  "neutral_protocol": false,
+  "instruction_manifest": {
+    "cognee": {
+      "bytes": 4553,
+      "chars": 4553,
+      "sha256": "4d30dea50e348d71c2478d1a4b604fa09e4bac4e855d65913d1eccefd125ee65"
+    }
+  },
+  "instruction_excess_bytes": {
+    "cognee": 1081
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "cognee": {
+      "ts-base36-id": "7702f9ddaa45bb8694e780ca86ba8b75f5c80075fee1b687fbad792808470fae",
+      "ts-bom-merge": "dd74b36a7af526c5ce174f8247f5aa9a47a80e4222aa64a3bc420018d8082b03",
+      "ts-dedup-order": "ee2f11ea4d2d60cea2492cf39a1d61131e64db559dfd7d02445904383a27d742",
+      "ts-golden-regen": "2eb58513680f2061fe772d92885eb7fcffb99cd0c1da79286a5a57ba8e7e96d5",
+      "ts-ignore-gen": "1a7e07fe9a57316d3854a7d11e9acf8309708252397ad86b881603d16b55409e",
+      "ts-legacy-hash": "3485330ac65350216c360a027da58ab563e5710b2eb28396a3f38b79f5025283",
+      "ts-manifest-rel": "85aa4f76af945d71706dc769b2192b7d309a107c59e99bf604621074effece30",
+      "ts-mig-name": "6416478bed0ea5589cd2e14adfef8c954e3092097a9a2d586e6c12bc5d65406d",
+      "ts-natural-order": "860012b8f7429fcb82eccb24c187ab04542885e9bf81f0764c9233975f999f94",
+      "ts-schema-additive": "b2206b4651eb3fd3e11858978094e642aa04ba377831fdcefc0938a4d9eafe72",
+      "ts-semver-pin": "d1b33a29fedb921dc6533ebc2230de17f902efb138aaaf0397f90ff006ffb232",
+      "ts-tz-utc": "50b993cc2060f75f2c2efc1859102c3cb9a48216244f64a903c6e005f5c5fc6c"
+    }
+  },
+  "namespace": "cognee-001-absent",
+  "work_root": "/tmp/agent-memory-bench-work/cognee-001-absent",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "cognee": {
+      "arm": "cognee",
+      "memory": "static+retrieved",
+      "product": "cognee",
+      "package_pin": "cognee[fastembed]==1.5.3",
+      "mcp_package_pin": "cognee-mcp==0.5.5",
+      "extraction_model": "openai/deepseek/deepseek-v4-flash",
+      "embedding_model": "BAAI/bge-small-en-v1.5",
+      "ingest_cost_ceiling_usd": 5.0,
+      "ingest_token_ceiling": 20000000,
+      "tools_allowed": 1,
+      "config_sha256": "7d2b41a0f671f6d68af25c70d6069ae8aa2f7522c0408557f1c05629d4290ae6",
+      "driver_sha256": "ad762b05eef4b3b6f624263e58ea4937a44d6989541f01663fae6ef0abb617fb"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "cognee",
+      "namespace": "cognee-001-absent",
+      "sessions_offered": 4888,
+      "items_stored": 4888,
+      "wall_time_ms": 9899491.03589775,
+      "llm_input_tokens": 14702112,
+      "llm_output_tokens": 3010697,
+      "local_model": "fastembed BAAI/bge-small-en-v1.5",
+      "notes": [
+        "rendered 184 corpus document(s) of 4888 offered and ingested them with `cognee.add` + `cognee.cognify` into dataset 'bench', one store per namespace; the other 4704 came from the base store at /home/sentiment/cgn/cognee-base-shared, so the shared haystack was extracted once rather than once per condition",
+        "\u26a0\ufe0f the token counts are cognee's own `cognify --dry-run` ESTIMATE, not provider-billed usage: they cover the two LLM-heavy stages, exclude embeddings, and are an upper bound on a re-run. Treat them as the bound the run was authorised against, not as measured spend",
+        "estimated 17,712,809 token(s) against the 20,000,000 ceiling in config.frozen.json, on model 'openai/deepseek/deepseek-v4-flash'; cognee's own cost figure was $0.0000, which is $0 for a model absent from its price table and is therefore not the binding check",
+        "embeddings are computed locally by fastembed and cost no tokens; that half of the ingest is paid in host compute and shows up in wall_time_ms"
+      ]
+    }
+  ]
+}

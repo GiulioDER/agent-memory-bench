@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "generated_by": "scripts/build_arm_submission.py",
+  "run": {
+    "id": "cognee-001",
+    "date": "2026-09-05",
+    "cli": "claude-code",
+    "model": "deepseek/deepseek-v4-flash",
+    "tasks": 26,
+    "sessionsPerCell": 1,
+    "prereg": "preregistration/027-cognee-joined-pass.md"
+  },
+  "arm": "cognee",
+  "base_run": "official-003",
+  "result": {
+    "success": 0.6124,
+    "delta": 0.0426,
+    "ci": [
+      -0.0129,
+      0.0601
+    ],
+    "discarded": 66,
+    "tokensPerTask": 282462,
+    "costPerTask": 0.0187,
+    "searchRate": 0.2907,
+    "byCondition": {
+      "present": {
+        "solved": 41,
+        "cells": 91,
+        "searchRate": 0.3297
+      },
+      "absent": {
+        "solved": 26,
+        "cells": 45,
+        "searchRate": 0.2444
+      },
+      "superseded": {
+        "solved": 26,
+        "cells": 34,
+        "searchRate": 0.1765
+      },
+      "contradictory": {
+        "solved": 31,
+        "cells": 43,
+        "searchRate": 0.3256
+      },
+      "adjacent": {
+        "solved": 34,
+        "cells": 45,
+        "searchRate": 0.3111
+      }
+    }
+  },
+  "join": {
+    "baseRun": "official-003",
+    "baseAdmittedCells": 317,
+    "joinedCells": 258,
+    "baseCellsLostToJoin": 59,
+    "conditions": [
+      "present",
+      "absent",
+      "superseded",
+      "contradictory",
+      "adjacent"
+    ]
+  }
+}

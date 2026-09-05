@@ -1,4 +1,4 @@
-# Status of the benchmark, 2026-09-02
+# Status of the benchmark, 2026-09-05
 
 What has actually been measured, what has been built but not measured, and what is blocked.
 
@@ -9,17 +9,24 @@ re-derives it.
 
 ## Phase
 
-**A multi-product run is on the board, and it reports a null.** `official-003` published on
-2026-09-02: eight arms over one corpus, 2,920 sessions, 317 admitted cells, 26 tasks, five
-conditions, on `deepseek-v4-flash`. `site/data/leaderboard.config.json` carries
-`"official_run": "official-003"`, and a number still reaches the page only through
+**The frozen multi-product run and one additive vendor arm are on the board.** `official-003`
+published on 2026-09-02: eight arms over one corpus, 2,920 sessions, 317 admitted cells, 26
+tasks, five conditions, on `deepseek-v4-flash`. `site/data/leaderboard.config.json` carries
+`"official_run": "official-003"` and the additive `cognee-001` arm, and a number still reaches the page only through
 `results/<run_id>/leaderboard_summary.json`, generated and checked against its own regeneration by
 CI. Four of the eight arms the leaderboard reserves a row for still have a package docstring and
 no adapter.
 
-The Cognee adapter has since been preregistered for an additive joined pass. Its numbers remain
-unpublished until the vendor review window is complete, and the pass must be joined to the frozen
-`official-003` admission set rather than treated as a new base grid.
+The Cognee adapter has completed its additive joined pass. `cognee-001` is now included through
+`arm_runs`, joined to the frozen `official-003` admission set rather than treated as a new base
+grid. Its search rate is visible as a diagnostic column and no longer invalidates its accuracy
+result under the post run amendment appended to preregistration 027. The public row remains
+anonymous until the vendor outreach and disclosure decision are complete.
+
+**Update measured 2026-09-05.** Cognee passed `verify_run` on all five conditions, joined 258
+cells, scored 0.6124 success, and searched in 0.2907 of joined sessions. The additive summary is
+`results/cognee-001/arm_summary.json`; the five condition artifacts are under
+`results/cognee-001-<condition>/`.
 
 ⚠️ **Until 2026-09-02 this section said no multi-product run had happened and the leaderboard was
 empty by construction. Both were true when written on 2026-08-29 and were contradicted by the

@@ -95,6 +95,9 @@
 
     tr.appendChild(cell(null, span("dim", a.type)));
     tr.appendChild(cell("num", pct(a.success) && span("m", pct(a.success))));
+    tr.appendChild(cell("num", a.searchRate == null
+      ? span("m-dim", "n/a")
+      : span("m", pct(a.searchRate))));
     tr.appendChild(cell("num",
       a.delta === 0 ? span("m-dim", "baseline") : (pts(a.delta) && span("m", pts(a.delta)))));
     tr.appendChild(cell("num", ciTxt(a.ci) && span("m", ciTxt(a.ci))));

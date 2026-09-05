@@ -175,6 +175,7 @@ def test_an_additive_arm_joins_the_frozen_base_without_a_full_roster(tmp_path):
             "discarded": 2,
             "tokensPerTask": 300,
             "costPerTask": 1.75,
+            "searchRate": 0.25,
         },
         "join": {
             "baseRun": "run-x",
@@ -191,6 +192,7 @@ def test_an_additive_arm_joins_the_frozen_base_without_a_full_roster(tmp_path):
     data = _payload(root)
     cognee = next(a for a in data["arms"] if a["name"] == "product_a")
     assert cognee["success"] == 0.55
+    assert cognee["searchRate"] == 0.25
     assert cognee["sourceRun"] == "cognee-x"
     assert cognee["comparison"] == "joined to run-x"
     assert data["provenance"]["baseRun"] == "run-x"
@@ -222,6 +224,7 @@ def test_an_additive_arm_must_match_the_frozen_base(tmp_path):
             "discarded": 2,
             "tokensPerTask": 300,
             "costPerTask": 1.75,
+            "searchRate": 0.25,
         },
         "join": {
             "baseRun": "run-x",

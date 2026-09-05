@@ -1,13 +1,13 @@
 # Vendor review: cognee (`cognee`)
 
-Status: **adapter landed, awaiting the pre-review window.** Nothing has been run and no number
-exists. This file states every judgement call the adapter makes, so cognee's maintainers can
-dispute any of them before a run is preregistered rather than after a number is published.
+Status: **adapter landed, measurement completed, vendor review pending.** The pre-review text
+below records the judgement calls before measurement. The result is now published as an additive,
+joined arm with its search rate visible as a diagnostic.
 
 Wired against `cognee[fastembed]==1.5.3` and `cognee-mcp==0.5.5` (PyPI), read from the published
-wheels on 2026-09-01. **Nothing in this file has been executed yet**: the adapter, the driver and
-the preflight were written against the shipped source, and `scripts/cognee_preflight.py` exists to
-turn every claim below into a check on a real install before a grid spends anything.
+wheels on 2026-09-01. The adapter, driver and preflight were written against the shipped source,
+and `scripts/cognee_preflight.py` exists to turn every claim below into a check on a real install.
+The measurement update at the end of this file records what actually ran.
 
 ## How the arm is wired
 
@@ -170,6 +170,18 @@ has enough of those.
 The one-command Docker reproduction and the full per-session artifacts are public. We invite you to
 re-run your arm and publish what you find; confirmations and disputes are both engagement with the
 method, and the frozen configs and streams are the referee.
+
+## Measurement update, 2026-09-05
+
+`cognee-001` completed all five conditions and passed `verify_run` for each condition. It joined
+258 cells from the frozen `official-003` admission set. The joined task success was 61.24%, with
+the search rate reported separately at 29.07%. Search rate is now descriptive and does not void
+the task success result. The public leaderboard row remains anonymous until the vendor outreach
+has been reviewed and the disclosure decision is made.
+
+The run's total vendor token figure is 103,098,591, including Cognee's dry run ingestion estimate.
+The estimate is explicitly labelled as such because it is not provider billed usage and excludes
+local embedding computation. The full run and join artifacts identify the condition level values.
 
 ## Record
 

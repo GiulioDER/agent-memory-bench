@@ -47,6 +47,7 @@ The submission run contains `results/cognee-001/arm_summary.json`:
     "discarded": 0,
     "tokensPerTask": 0,
     "costPerTask": 0.0,
+    "searchRate": 0.0,
     "byCondition": {}
   },
   "join": {
@@ -67,7 +68,9 @@ mode, which regenerates the summary from the records and fails if anybody edits 
 
 ## What makes a submission acceptable
 
-1. The adapter and frozen config were reviewed before measurement.
+1. The adapter and frozen config were recorded and hashed before measurement. Vendor review is
+   requested after publication; it is a disclosure and challenge path, not a reason to discard a
+   completed anonymous arm.
 2. The preregistration was committed before the first session.
 3. The run used the base model, task roster, conditions, seeds, instruction and corpus manifest.
 4. Every condition has the ordinary records, streams, costs and admission artifacts.
@@ -75,8 +78,11 @@ mode, which regenerates the summary from the records and fails if anybody edits 
    admitted cells by `(task_id, seed, condition)`.
 6. The report states the joined cell count and the base cells lost to the join. It never presents a
    joined result as if it enlarged the frozen base grid.
-7. Search-rate floors, ingestion tokens and wall time are reported using the preregistered rules.
-8. The arm is not named publicly while its vendor review hold is active.
+7. Search rate is reported as a diagnostic column. It does not invalidate the accuracy result,
+   because a product's decision not to search is itself part of the measured behaviour. Ingestion
+   tokens and wall time remain reported separately.
+8. The arm is not named publicly while its vendor review hold is active. An otherwise accepted arm
+   may appear under an anonymous label during that window.
 
 The page carries the source run for every row. An additive row is labelled as joined to the base
 run, so a reader can distinguish a new arm measurement from a rerun of the official grid.
