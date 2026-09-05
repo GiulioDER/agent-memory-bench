@@ -248,6 +248,23 @@ python -m scripts.verify_challenge_ordering \
 The gate checks supplied manifests; it does not manufacture baseline evidence. Both manifests
 must come from independent runs under the frozen policy and private pack.
 
+The organizer can aggregate the machine checkable release gates into one blocked or passing
+report. Missing private material, draft rules, stale release hashes, corpus leakage or missing
+baseline evidence remains an explicit failure:
+
+```bash
+python -m scripts.check_challenge_readiness \
+  --pack /private/amb-challenge-pack \
+  --policy /private/amb-challenge-policy.json \
+  --rules /private/amb-challenge-rules.json \
+  --release /private/amb-release.json \
+  --baseline /private/results/baseline-public.json \
+  --deliberately-bad /private/results/empty-public.json
+```
+
+The command exits successfully only when every supplied release gate passes. It does not create
+private task material, approve rules, or treat a missing external prerequisite as a pass.
+
 Before execution, the organizer can audit all rendered task commands without starting an image:
 
 ```bash
