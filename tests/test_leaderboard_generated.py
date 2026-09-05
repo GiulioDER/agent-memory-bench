@@ -142,6 +142,20 @@ def test_official_summary_fills_the_page(tmp_path):
     assert "totalTokens" not in control
 
 
+def test_a_pending_arm_is_named_but_unranked_without_metrics(tmp_path):
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    _config(root, pending_arms=["cognee"])
+
+    result = _run(root=root)
+    assert result.returncode == 0, result.stdout + result.stderr
+    data = _payload(root)
+    cognee = next(a for a in data["arms"] if a["name"] == "cognee")
+    assert cognee["pending"] is True
+    assert cognee["success"] is None
+    assert cognee["delta"] is None
+    assert cognee["costPerTask"] is None
+
+
 def test_a_vendor_summary_must_publish_total_tokens(tmp_path):
     summary = _summary()
     del summary["arms"]["recall"]["totalTokens"]

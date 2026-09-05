@@ -1,5 +1,8 @@
 {
   "official_run": "official-003",
+  "pending_arms": [
+    "cognee"
+  ],
   "analysis_report": "reports/official-003-analysis.json",
-  "updated": "2026-09-02"
+  "updated": "2026-09-05"
 }
