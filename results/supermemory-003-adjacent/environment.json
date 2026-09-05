@@ -1,0 +1,183 @@
+{
+  "run_id": "supermemory-003-adjacent",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": [
+    "bare",
+    "supermemory"
+  ],
+  "memory_instruction": "protocol",
+  "condition": "adjacent",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "bare": {
+      "bytes": 0,
+      "chars": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "supermemory": {
+      "bytes": 3931,
+      "chars": 3929,
+      "sha256": "d321471288d1d55ff3ebc00cb10b9e015d9c18d9be2e155d6743074d52917e40"
+    }
+  },
+  "instruction_excess_bytes": {
+    "bare": 0,
+    "supermemory": 459
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "bare": {},
+    "supermemory": {
+      "ts-base36-id": "553498fe099181c7233b86263eb81c2d00f43474c8b985aa373bbd0b3324dcd2",
+      "ts-bom-merge": "ae82a46b54917f6d1adde5cc995bcfddb7b505f74228148c60f8a9829c0861cb",
+      "ts-dedup-order": "aa95c8e39fc8b43bbbf06d3005ef821535466112173e47a38bb5395d83cd659a",
+      "ts-golden-regen": "599571f1c9588c813912de31322da47c6432419fc00f269e30e9d959b5e475ea",
+      "ts-ignore-gen": "076b1849ac68e171fc97fd5997184f8f87af1ba9e6a5cb9f5fcf0fd7c0048a38",
+      "ts-legacy-hash": "d0f4320066c329105560a3a1c92de394cfdeebc5cec51434d71b10c15cc7ff2a",
+      "ts-manifest-rel": "697fc4db391fbd68d83fa2aef09a7114b32573a68829ed242feca4f32cd026da",
+      "ts-mig-name": "ebe3d9c33c0ad49862d1f4b0ff241fc60ea486834e10ca89616e29b2b9b16358",
+      "ts-natural-order": "5139f955a2ac2653e41fa4b7bb8e86d2e273f8ff29352272e328a7a46de502e1",
+      "ts-schema-additive": "4dcd477078fe78345658bb76ce5c58ba8204f4b5bd0a91ce1c1cb086f962cba2",
+      "ts-semver-pin": "0f53f34b0c8f45ebcb56fe6fa26bb3a9e20bb6afd8bb375374f091cb98f59415",
+      "ts-tz-utc": "56c73f09468431e68f4c559abe63848c7492cbff4ba419d12007f82ad1ae7e4a"
+    }
+  },
+  "namespace": "bench-supermemory-003-adjacent",
+  "work_root": "/tmp/benchmark-work/supermemory-003-adjacent",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "bare": {
+      "arm": "bare",
+      "memory": "none"
+    },
+    "supermemory": {
+      "arm": "supermemory",
+      "memory": "official Supermemory Claude Code plugin hooks",
+      "plugin_version": "0.1.6",
+      "plugin_commit": "e6227edc4f33b83317cfde2e7cd9790c794d22d1",
+      "plugin_root": "/home/redacted/claude-supermemory-0.1.6/plugin",
+      "base_url": "http://localhost:6767",
+      "required_hooks": [
+        "SessionStart",
+        "UserPromptSubmit"
+      ],
+      "benchmark_ingest_mode": "direct_static_memories",
+      "benchmark_max_profile_items": 0,
+      "cost_mode": "local by default; no Supermemory subscription required"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "supermemory",
+      "namespace": "bench-supermemory-003-adjacent",
+      "sessions_offered": 4900,
+      "items_stored": 4903,
+      "wall_time_ms": 11975256.439796183,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": "Xenova/bge-base-en-v1.5",
+      "notes": [
+        "ingested rendered transcripts as explicit static memories through POST /v4/memories",
+        "4903 document(s) accepted; search verification returned 15 hit(s)",
+        "local Supermemory API selected; model compute is local and not represented as hosted tokens"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "not_required"
+  }
+}

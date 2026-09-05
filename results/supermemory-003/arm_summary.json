@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "generated_by": "scripts/build_arm_submission.py",
+  "run": {
+    "id": "supermemory-003",
+    "date": "2026-09-05",
+    "cli": "claude-code",
+    "model": "deepseek/deepseek-v4-flash",
+    "tasks": 26,
+    "sessionsPerCell": 1,
+    "prereg": "preregistration/039-supermemory-official-leaderboard.md"
+  },
+  "arm": "supermemory",
+  "base_run": "official-003",
+  "result": {
+    "success": 0.2077,
+    "delta": -0.3706,
+    "ci": [
+      -0.3465,
+      -0.1149
+    ],
+    "discarded": 4,
+    "totalTokens": 28870777,
+    "tokensPerTask": 79098,
+    "costPerTask": 0.0046,
+    "byCondition": {
+      "present": {
+        "solved": 17,
+        "cells": 110
+      },
+      "absent": {
+        "solved": 29,
+        "cells": 52
+      },
+      "superseded": {
+        "solved": 3,
+        "cells": 46
+      },
+      "contradictory": {
+        "solved": 12,
+        "cells": 50
+      },
+      "adjacent": {
+        "solved": 4,
+        "cells": 55
+      }
+    }
+  },
+  "join": {
+    "baseRun": "official-003",
+    "baseAdmittedCells": 317,
+    "joinedCells": 313,
+    "baseCellsLostToJoin": 4,
+    "conditions": [
+      "present",
+      "absent",
+      "superseded",
+      "contradictory",
+      "adjacent"
+    ]
+  }
+}

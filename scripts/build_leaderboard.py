@@ -82,6 +82,7 @@ PENDING_ARM_DEFINITIONS = {
 ADDITIVE_ARM_DEFINITIONS = {
     # internal name: integration, role, public name
     "cognee": ("MCP server", None, None),
+    "supermemory": ("official Claude Code lifecycle hooks", None, None),
 }
 
 # ⛔ PRODUCT_ARMS is the list of arms that are MEASURED, not the arms that are hoped for. `mem0`,
@@ -312,6 +313,31 @@ def public_arms(
     return out
 
 
+def _public_analysis(value: object, labels: dict[str, str]) -> object:
+    """Remove internal vendor names from the browser-facing analysis payload."""
+
+    if isinstance(value, dict):
+        result: dict[str, object] = {}
+        for key, item in value.items():
+            public_key = labels.get(str(key), str(key)) if key == "arms" else str(key)
+            if key == "arms" and isinstance(item, dict):
+                result[public_key] = {
+                    labels.get(str(arm), str(arm)): _public_analysis(data, labels)
+                    for arm, data in item.items()
+                }
+            else:
+                result[public_key] = _public_analysis(item, labels)
+        return result
+    if isinstance(value, list):
+        return [_public_analysis(item, labels) for item in value]
+    if isinstance(value, str):
+        for internal, public in labels.items():
+            if internal != public:
+                value = value.replace(internal, public)
+        return value
+    return value
+
+
 def _load_arm_submission(
     results_dir: Path,
     run_id: str,
@@ -452,7 +478,13 @@ def build(repo_root: str | Path) -> str:
                 entry[field] = numbers.get(field)
         source_run = arm_sources.get(internal)
         if source_run:
-            entry["sourceRun"] = source_run
+            # An anonymous arm's internal run id can contain the vendor name. Keep the
+            # public page anonymous while retaining the exact run id in the repository artifact.
+            entry["sourceRun"] = (
+                "additive arm"
+                if public.startswith(UNDISCLOSED_PREFIX) and internal in UNDISCLOSED_PRODUCTS
+                else source_run
+            )
         if source_run and source_run != run_id:
             entry["comparison"] = f"joined to {run_id}"
         if internal == "claude_md" and entry["delta"] is None:
@@ -494,7 +526,11 @@ def build(repo_root: str | Path) -> str:
         )
 
     public_sources = {
-        public: arm_sources[internal]
+        public: (
+            "additive arm"
+            if public.startswith(UNDISCLOSED_PREFIX) and internal in UNDISCLOSED_PRODUCTS
+            else arm_sources[internal]
+        )
         for internal, public, _arm_type, _role in public_arms(definitions)
         if arm_sources.get(internal)
     }
@@ -513,7 +549,11 @@ def build(repo_root: str | Path) -> str:
         "reference": reference,
     }
     if analysis is not None:
-        data["analysis"] = analysis["leaderboard"]
+        labels = {
+            internal: public
+            for internal, public, _arm_type, _role in public_arms(definitions)
+        }
+        data["analysis"] = _public_analysis(analysis["leaderboard"], labels)
         data["analysisReport"] = str(config["analysis_report"]).replace("\\", "/")
     return f"{HEADER}window.AMB_LEADERBOARD = {json.dumps(data, indent=2)};\n"
 

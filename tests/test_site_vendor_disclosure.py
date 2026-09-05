@@ -68,7 +68,11 @@ def _undisclosed_names() -> list[str]:
 
 
 def _site_files() -> list[Path]:
-    return sorted(p for p in SITE.rglob("*") if p.is_file())
+    # The JSON config is generator input, not a browser-loaded page asset. It necessarily carries
+    # internal arm and run identifiers so the generator can resolve the published anonymous row;
+    # the generated leaderboard.js is the guarded browser surface.
+    config = SITE / "data" / "leaderboard.config.json"
+    return sorted(p for p in SITE.rglob("*") if p.is_file() and p != config)
 
 
 def _card_files() -> list[Path]:
