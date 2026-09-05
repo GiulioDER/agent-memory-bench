@@ -158,3 +158,60 @@ def test_evaluator_rejects_private_pack_output_before_creating_directories(tmp_p
             lambda _context: None,
         )
     assert not output_root.exists()
+
+
+def test_evaluator_records_agent_failure_and_still_builds_manifests(monkeypatch, tmp_path: Path):
+    task = SimpleNamespace(
+        task_id="task-a",
+        fixture=tmp_path / "fixture",
+        prompt=tmp_path / "prompt",
+        checker=tmp_path / "checker.py",
+        oracle=tmp_path / "oracle",
+        reference=tmp_path / "reference",
+    )
+    task.fixture.mkdir()
+    task.prompt.write_text("Answer", encoding="utf-8")
+    task.checker.write_text("", encoding="utf-8")
+    task.oracle.mkdir()
+    task.reference.mkdir()
+    pack = SimpleNamespace(tasks=(task,), root=tmp_path / "pack")
+    pack.root.mkdir()
+    submission = SimpleNamespace(submission_id="entry-a")
+    events: list[str] = []
+
+    class FakeHandle:
+        socket_path = tmp_path / "adapter.sock"
+
+        def wait_ready(self):
+            events.append("health")
+
+        def stop(self):
+            events.append("stop")
+
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.start_challenge_adapter",
+        lambda *_args, **_kwargs: events.append("start") or FakeHandle(),
+    )
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.ChallengeAdapterClient.reset",
+        lambda _client: events.append("reset") or {"reset": True},
+    )
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.build_score_manifest",
+        lambda _pack, _submission, scores, public: {
+            "passed": scores[0].passed,
+            "public": public,
+        },
+    )
+
+    public, private = evaluate_submission(
+        pack,
+        submission,
+        tmp_path / "output",
+        tmp_path / "runtime",
+        lambda _context: (_ for _ in ()).throw(RuntimeError("model timeout")),
+    )
+
+    assert events == ["start", "health", "reset", "stop"]
+    assert public == {"passed": False, "public": True}
+    assert private == {"passed": False, "public": False}

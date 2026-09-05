@@ -116,6 +116,17 @@ def _task_paths(
     return task.fixture, task.prompt, output
 
 
+def _failed_task_score(task: ChallengeTask, verdict: str) -> ChallengeTaskScore:
+    return ChallengeTaskScore(
+        task_id=task.task_id,
+        passed=False,
+        verdict=verdict,
+        checker_returncode=None,
+        checker_timed_out=False,
+        checker_wall_s=0.0,
+    )
+
+
 def evaluate_submission(
     pack: ChallengePack,
     submission: ChallengeSubmission,
@@ -146,6 +157,7 @@ def evaluate_submission(
         task_runtime = runtime_base / task.task_id
         fixture, prompt, output = _task_paths(task, output_base, submission.submission_id)
         handle: ChallengeAdapterHandle | None = None
+        task_failure: str | None = None
         try:
             handle = start_challenge_adapter(
                 pack,
@@ -169,12 +181,20 @@ def evaluate_submission(
                 output=output,
                 adapter=ChallengeAgentAdapter(client),
             )
-            agent_runner(context)
+            try:
+                agent_runner(context)
+            except Exception as error:  # noqa: BLE001 - a fixed agent failure is a failed task
+                task_failure = f"fixed agent failed: {type(error).__name__}: {error}"
+        except ChallengeEvaluatorError as error:
+            task_failure = str(error)
         except ChallengeRunnerError as error:
             raise ChallengeEvaluatorError(f"sidecar failed for {task.task_id!r}: {error}") from error
         finally:
             if handle is not None:
                 handle.stop()
+        if task_failure is not None:
+            scores.append(_failed_task_score(task, task_failure))
+            continue
         score = run_private_checker(task, output, timeout_s=checker_timeout_s)
         scores.append(score)
 

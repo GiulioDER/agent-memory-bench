@@ -169,7 +169,9 @@ The coordinator enforces this order independently for every task:
 3. Wait for `health`, then send `reset` before the fixed agent begins.
 4. Run the fixed agent with only the current fixture, prompt, output directory and adapter client.
 5. Stop and remove the sidecar before starting the private checker.
-6. Run the private checker and add exactly one task score to the aggregate manifest.
+6. Run the private checker and add exactly one task score to the aggregate manifest. A fixed agent
+   or adapter protocol failure becomes a failed task outcome. A Docker or host wiring failure is
+   handled by the preregistered infrastructure retry policy instead.
 
 The fixed agent callback receives a narrow task context and cannot access the pack object. It gets a
 search-only adapter view for memory operations. `health` and `reset` remain evaluator-only calls, so
