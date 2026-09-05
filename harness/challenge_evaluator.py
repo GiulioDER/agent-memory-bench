@@ -17,6 +17,8 @@ from .challenge_runner import (
 )
 from .challenge_scoring import ChallengeTaskScore, build_score_manifest, run_private_checker
 
+DEFAULT_ADAPTER_CALL_BUDGET = 128
+
 
 class ChallengeEvaluatorError(RuntimeError):
     """The fixed evaluator could not complete a task without changing its semantics."""
@@ -43,9 +45,16 @@ class ChallengeAdapterClient:
 
     socket_path: Path
     task_id: str
+    max_calls: int = DEFAULT_ADAPTER_CALL_BUDGET
     _sequence: int = 0
 
+    def __post_init__(self) -> None:
+        if self.max_calls <= 0:
+            raise ChallengeEvaluatorError("adapter call budget must be positive")
+
     def _request(self, method: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        if self._sequence >= self.max_calls:
+            raise ChallengeEvaluatorError("adapter call budget exceeded")
         self._sequence += 1
         try:
             response = request_unix_socket(
@@ -85,7 +94,13 @@ def _task_paths(
         if current.exists() and current.is_symlink():
             raise ChallengeEvaluatorError(f"task output path must not contain a symlink: {current}")
         current = current.parent
-    output.mkdir(parents=True, exist_ok=True)
+    if output.exists():
+        if not output.is_dir():
+            raise ChallengeEvaluatorError(f"task output path is not a directory: {output}")
+        if any(output.iterdir()):
+            raise ChallengeEvaluatorError(f"task output directory must start empty: {output}")
+    else:
+        output.mkdir(parents=True, exist_ok=True)
     return task.fixture, task.prompt, output
 
 
@@ -98,6 +113,7 @@ def evaluate_submission(
     *,
     checker_timeout_s: float = DEFAULT_TIMEOUT_SECONDS,
     model_proxy_socket: str | Path | None = None,
+    adapter_call_budget: int = DEFAULT_ADAPTER_CALL_BUDGET,
 ) -> tuple[dict[str, Any], list[ChallengeTaskScore]]:
     """Run every task with fixed sequencing and return public and private score manifests.
 
@@ -107,6 +123,8 @@ def evaluate_submission(
 
     raw_output_base = Path(output_root).expanduser()
     raw_runtime_base = Path(runtime_root).expanduser()
+    if adapter_call_budget <= 0:
+        raise ChallengeEvaluatorError("adapter call budget must be positive")
     for root_name, root in (("output", raw_output_base), ("runtime", raw_runtime_base)):
         if root.exists() and root.is_symlink():
             raise ChallengeEvaluatorError(f"{root_name} root must not be a symlink: {root}")
@@ -127,7 +145,11 @@ def evaluate_submission(
                 model_proxy_socket=model_proxy_socket,
             )
             handle.wait_ready()
-            client = ChallengeAdapterClient(handle.socket_path, task.task_id)
+            client = ChallengeAdapterClient(
+                handle.socket_path,
+                task.task_id,
+                max_calls=adapter_call_budget,
+            )
             client.reset()
             context = ChallengeTaskContext(
                 task_id=task.task_id,

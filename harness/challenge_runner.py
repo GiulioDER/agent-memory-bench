@@ -149,6 +149,32 @@ def _reject_runtime_overlap(path: Path, pack: ChallengePack) -> Path:
     return runtime_root
 
 
+def _reject_shared_root_overlap(output_root: Path, runtime_root: Path) -> None:
+    if (
+        output_root == runtime_root
+        or output_root in runtime_root.parents
+        or runtime_root in output_root.parents
+    ):
+        raise ChallengeRunnerError("output and runtime roots must not overlap")
+
+
+def _prepare_task_output(output_root: Path, submission_id: str, task_id: str) -> Path:
+    output = output_root / submission_id / task_id
+    current = output
+    while current != output_root:
+        if current.exists() and current.is_symlink():
+            raise ChallengeRunnerError(f"task output path uses a symlink: {current}")
+        current = current.parent
+    if output.exists():
+        if not output.is_dir():
+            raise ChallengeRunnerError(f"task output path is not a directory: {output}")
+        if any(output.iterdir()):
+            raise ChallengeRunnerError(f"task output directory must start empty: {output}")
+    else:
+        output.mkdir(parents=True, exist_ok=True)
+    return output
+
+
 def _mount_source(
     pack: ChallengePack,
     plan: ChallengeExecutionPlan,
@@ -283,6 +309,7 @@ def build_adapter_service_argv(
         raise ChallengeRunnerError(f"invalid container name: {container_name!r}")
     output_base = _reject_output_overlap(Path(output_root), pack)
     runtime_base = _reject_runtime_overlap(Path(runtime_root), pack)
+    _reject_shared_root_overlap(output_base, runtime_base)
     argv = [
         docker_binary,
         "run",
@@ -365,10 +392,7 @@ def start_challenge_adapter(
     if runtime_base.exists() and any(runtime_base.iterdir()):
         raise ChallengeRunnerError(f"runtime root must start empty: {runtime_base}")
     runtime_base.mkdir(parents=True, exist_ok=True)
-    task_output = output_base / submission.submission_id / task_id
-    if task_output.exists() and task_output.is_symlink():
-        raise ChallengeRunnerError(f"task output directory must not be a symlink: {task_output}")
-    task_output.mkdir(parents=True, exist_ok=True)
+    _prepare_task_output(output_base, submission.submission_id, task_id)
 
     container_name = f"amb-adapter-{uuid.uuid4().hex}"
     argv = build_adapter_service_argv(
@@ -413,10 +437,7 @@ def run_challenge_task(
         raise ChallengeRunnerError("timeout_seconds must be positive")
     plan = build_execution_plan(pack, submission, task_id)
     output_base = _reject_output_overlap(Path(output_root), pack)
-    task_output = output_base / submission.submission_id / task_id
-    if task_output.exists() and task_output.is_symlink():
-        raise ChallengeRunnerError(f"task output directory must not be a symlink: {task_output}")
-    task_output.mkdir(parents=True, exist_ok=True)
+    _prepare_task_output(output_base, submission.submission_id, task_id)
 
     container_name = f"amb-challenge-{uuid.uuid4().hex}"
     argv = build_docker_argv(

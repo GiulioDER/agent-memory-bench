@@ -174,6 +174,7 @@ The coordinator enforces this order independently for every task:
 The fixed agent callback receives a narrow task context and cannot access the pack object. It must
 use the supplied adapter client for memory operations. Provider credentials, model settings and
 the model proxy remain evaluator configuration and are never loaded from a submission descriptor.
+The adapter call budget is fixed before entries open and is identical for every submission.
 
 Task specific hardcoding, private answer maps, oracle access, evaluator path discovery and manual
 intervention are disallowed. The private task set is the primary technical defence against these

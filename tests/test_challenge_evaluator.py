@@ -48,6 +48,23 @@ def test_sidecar_client_turns_protocol_error_into_evaluator_error(monkeypatch, t
         ChallengeAdapterClient(tmp_path / "adapter.sock", "task-a").health()
 
 
+def test_sidecar_client_enforces_fixed_call_budget(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.request_unix_socket",
+        lambda _socket, request_id, _method, _params: {
+            "api": ADAPTER_API,
+            "id": request_id,
+            "ok": True,
+            "result": {"ready": True},
+        },
+    )
+    client = ChallengeAdapterClient(tmp_path / "adapter.sock", "task-a", max_calls=1)
+    assert client.health() == {"ready": True}
+    with pytest.raises(ChallengeEvaluatorError, match="call budget"):
+        client.health()
+    assert client._sequence == 1
+
+
 def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypatch, tmp_path: Path):
     fixture = tmp_path / "fixture.json"
     prompt = tmp_path / "prompt.md"

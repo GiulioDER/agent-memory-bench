@@ -138,3 +138,17 @@ def test_sidecar_command_mounts_no_task_prompt_or_fixture(tmp_path: Path):
     assert "oracles" not in command
     assert "references" not in command
     assert "AMB_ADAPTER_SOCKET=/challenge/runtime/adapter.sock" in command
+
+
+def test_sidecar_rejects_overlapping_output_and_runtime_roots(tmp_path: Path):
+    pack = _pack(tmp_path)
+    submission = _submission(tmp_path)
+    plan = build_execution_plan(pack, submission, "task-a")
+    with pytest.raises(ChallengeRunnerError, match="must not overlap"):
+        build_adapter_service_argv(
+            pack,
+            plan,
+            tmp_path / "shared",
+            tmp_path / "shared" / "runtime",
+            container_name="amb-sidecar-test",
+        )
