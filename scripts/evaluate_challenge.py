@@ -26,11 +26,11 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.challenge_agent import make_command_agent_runner  # noqa: E402
-from harness.challenge_evaluator import ChallengeEvaluatorError, evaluate_submission  # noqa: E402
-from harness.challenge_pack import ChallengePackError, load_private_pack, load_submission  # noqa: E402
-from harness.challenge_policy import ChallengePolicyError, load_policy  # noqa: E402
-from harness.challenge_scoring import ChallengeScoringError, write_score_manifest  # noqa: E402
+from harness.challenge_agent import make_command_agent_runner
+from harness.challenge_evaluator import ChallengeEvaluatorError, evaluate_submission
+from harness.challenge_pack import ChallengePackError, load_private_pack, load_submission
+from harness.challenge_policy import ChallengePolicyError, load_policy
+from harness.challenge_scoring import ChallengeScoringError, write_score_manifest
 
 
 def main() -> int:
@@ -50,7 +50,7 @@ def main() -> int:
         command = shlex.split(args.agent_command, posix=True)
         if not command:
             raise ChallengeEvaluatorError("agent command must not be empty")
-        policy = load_policy(args.policy)
+        policy = load_policy(args.policy, require_frozen=True)
         pack = load_private_pack(args.pack)
         submission = load_submission(args.submission)
         public, private = evaluate_submission(

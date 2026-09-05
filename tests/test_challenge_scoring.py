@@ -9,8 +9,8 @@ import pytest
 
 from harness.challenge_pack import load_private_pack, load_submission
 from harness.challenge_scoring import (
-    ChallengeTaskScore,
     ChallengeScoringError,
+    ChallengeTaskScore,
     build_score_manifest,
     run_private_checker,
     write_score_manifest,
@@ -120,6 +120,13 @@ def test_score_manifest_write_is_stable(tmp_path: Path):
     first = target.read_bytes()
     write_score_manifest(target, manifest)
     assert target.read_bytes() == first
+
+
+def test_score_manifest_write_rejects_replacement_data(tmp_path: Path):
+    target = tmp_path / "manifest.json"
+    write_score_manifest(target, {"score": 1.0})
+    with pytest.raises(ChallengeScoringError, match="different data"):
+        write_score_manifest(target, {"score": 0.0})
 
 
 def test_score_manifest_omits_run_specific_checker_timing(tmp_path: Path):

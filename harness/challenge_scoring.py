@@ -154,14 +154,25 @@ def build_score_manifest(
 
 
 def write_score_manifest(path: str | Path, manifest: dict[str, Any]) -> None:
-    """Write a stable JSON score manifest without exposing evaluator filesystem paths."""
+    """Create or repeat an identical score manifest without allowing replacement data."""
 
     target = Path(path).expanduser()
     if target.exists() and target.is_symlink():
         raise ChallengeScoringError(f"score manifest target must not be a symlink: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    content = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    if target.exists():
+        if not target.is_file():
+            raise ChallengeScoringError(f"score manifest target is not a regular file: {target}")
+        if target.read_text(encoding="utf-8") == content:
+            return
+        raise ChallengeScoringError(f"score manifest target already contains different data: {target}")
+    try:
+        with target.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+    except FileExistsError as error:
+        if target.is_symlink() or not target.is_file():
+            raise ChallengeScoringError(f"score manifest target is not a regular file: {target}") from error
+        if target.read_text(encoding="utf-8") == content:
+            return
+        raise ChallengeScoringError(f"score manifest target already contains different data: {target}") from error
