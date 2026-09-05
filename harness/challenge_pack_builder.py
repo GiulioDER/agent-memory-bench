@@ -14,7 +14,11 @@ class ChallengePackBuildError(ValueError):
 
 def _outside_public(path: Path, label: str) -> Path:
     resolved = path.expanduser().resolve()
-    if resolved == PUBLIC_REPO_ROOT or PUBLIC_REPO_ROOT in resolved.parents:
+    if (
+        resolved == PUBLIC_REPO_ROOT
+        or PUBLIC_REPO_ROOT in resolved.parents
+        or resolved in PUBLIC_REPO_ROOT.parents
+    ):
         raise ChallengePackBuildError(f"{label} must be outside the public repository: {resolved}")
     return resolved
 

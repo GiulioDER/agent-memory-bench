@@ -69,3 +69,11 @@ def test_materialize_private_pack_rejects_public_source():
 
     with pytest.raises(ChallengePackBuildError, match="outside the public repository"):
         materialize_private_pack(PUBLIC_REPO_ROOT, Path("/tmp/unused-private-pack"))
+
+
+def test_materialize_private_pack_rejects_source_containing_public_repository(tmp_path: Path):
+    from harness.challenge_pack import PUBLIC_REPO_ROOT
+
+    source_parent = PUBLIC_REPO_ROOT.parent
+    with pytest.raises(ChallengePackBuildError, match="outside the public repository"):
+        materialize_private_pack(source_parent, tmp_path / "destination")
