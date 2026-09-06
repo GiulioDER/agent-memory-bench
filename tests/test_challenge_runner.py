@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ from harness.challenge_pack import (
 )
 from harness.challenge_runner import (
     ChallengeRunnerError,
+    _best_effort_remove_container,
     build_adapter_service_argv,
     build_docker_argv,
 )
@@ -58,6 +60,15 @@ def _pack(tmp_path: Path):
         encoding="utf-8",
     )
     return load_private_pack(root)
+
+
+def test_container_cleanup_ignores_docker_timeout(monkeypatch: pytest.MonkeyPatch):
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+    monkeypatch.setattr("harness.challenge_runner.subprocess.run", raise_timeout)
+
+    _best_effort_remove_container("docker", "amb-task")
 
 
 def _submission(tmp_path: Path, network: str = "none"):

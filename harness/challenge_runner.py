@@ -38,6 +38,22 @@ class ChallengeRunnerError(RuntimeError):
     """The evaluator could not prepare or start an isolated task run."""
 
 
+def _best_effort_remove_container(docker_binary: str, container_name: str) -> None:
+    """Ask Docker to remove a container without masking the evaluator outcome."""
+
+    try:
+        subprocess.run(
+            [docker_binary, "rm", "-f", container_name],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
 @dataclass(frozen=True)
 class ChallengeRunResult:
     task_id: str
@@ -104,14 +120,7 @@ class ChallengeAdapterHandle:
     def stop(self) -> None:
         """Remove the container and terminate the Docker client if still attached."""
 
-        subprocess.run(
-            [self.docker_binary, "rm", "-f", self.container_name],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
-            timeout=30,
-        )
+        _best_effort_remove_container(self.docker_binary, self.container_name)
         if self.process.poll() is None:
             self.process.kill()
         self.process.communicate()
@@ -481,14 +490,7 @@ def run_challenge_task(
             process.wait(timeout=timeout_seconds)
         except subprocess.TimeoutExpired:
             timed_out = True
-            subprocess.run(
-                [docker_binary, "rm", "-f", container_name],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=False,
-                timeout=30,
-            )
+            _best_effort_remove_container(docker_binary, container_name)
             process.kill()
             process.wait()
             buffers["stderr"].append(
