@@ -109,6 +109,10 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
             raise ChallengeRulesError("final release requires status='final' rules")
         if "TO_BE_" in json.dumps(data, sort_keys=True):
             raise ChallengeRulesError("final rules contain unresolved approval placeholders")
+        if data["independent_reviewer_count"] != 1:
+            raise ChallengeRulesError(
+                "final release format supports exactly one independent roster reviewer"
+            )
         if not data["tie_breaker_task_ids"]:
             raise ChallengeRulesError("final rules need at least one tie breaker task")
         if not data["excluded_submission_ids"]:

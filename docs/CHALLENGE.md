@@ -303,7 +303,8 @@ IDs. The private pack must record a `prepared_by` identity, and the review must 
 identity as `pack_preparer_id` with a different `reviewer_id`. It must record passing evidence for
 capacity, leakage, overlap and findability. The readiness command rejects an absent report, a
 report for another pack, a report with an incomplete review, or a reviewer who is also the pack
-preparer.
+preparer. The current release format supports exactly one independent roster reviewer, so final
+rules must set `independent_reviewer_count` to `1`.
 Validate it independently before the aggregate readiness check with:
 
 ```bash

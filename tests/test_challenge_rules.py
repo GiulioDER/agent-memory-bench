@@ -83,6 +83,19 @@ def test_final_rules_require_integer_counts_and_utc_deadline(tmp_path: Path):
         load_rules(path, require_final=True)
 
 
+def test_final_rules_reject_unrepresentable_reviewer_count(tmp_path: Path):
+    path = _rules(
+        tmp_path / "rules.json",
+        status="final",
+        entry_deadline_utc="2026-10-01T23:59:59Z",
+        tie_breaker_task_ids=["task-a"],
+        excluded_submission_ids=["sponsor-reference"],
+        independent_reviewer_count=2,
+    )
+    with pytest.raises(ChallengeRulesError, match="exactly one independent roster reviewer"):
+        load_rules(path, require_final=True)
+
+
 def test_rules_reject_duplicate_tie_breakers(tmp_path: Path):
     path = _rules(tmp_path / "rules.json", tie_breaker_task_ids=["task-a", "task-a"])
     with pytest.raises(ChallengeRulesError, match="duplicates"):
