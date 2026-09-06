@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "manifest_id": "amb-temporal-v1",
+  "track": "temporal",
+  "basis": {
+    "task_id": "xs-evolve-lease",
+    "synthesis_shape": "evolve",
+    "description": "Point in time probes derived from AMB's existing supersession and cross session synthesis task."
+  },
+  "probes": [
+    {
+      "probe_id": "temporal-before-second-revision",
+      "query": "As of 2026-05-01, what renewal interval was settled for queue alpha?",
+      "reference_time": "2026-05-01",
+      "expected_precursor": "p01",
+      "expected_source_path": "sessions/xs-evolve-lease/p01.jsonl",
+      "expected_terms": ["renew every 90 seconds", "90 seconds sits comfortably inside the lease"],
+      "candidate_source_paths": [
+        "sessions/xs-evolve-lease/p01.jsonl",
+        "sessions/xs-evolve-lease/p02.jsonl",
+        "sessions/xs-evolve-lease/p03.jsonl"
+      ]
+    },
+    {
+      "probe_id": "temporal-between-revisions",
+      "query": "As of 2026-07-01, what renewal interval was in force for queue alpha?",
+      "reference_time": "2026-07-01",
+      "expected_precursor": "p02",
+      "expected_source_path": "sessions/xs-evolve-lease/p02.jsonl",
+      "expected_terms": ["renew every 45 seconds", "45 seconds after the second stall"],
+      "candidate_source_paths": [
+        "sessions/xs-evolve-lease/p01.jsonl",
+        "sessions/xs-evolve-lease/p02.jsonl",
+        "sessions/xs-evolve-lease/p03.jsonl"
+      ]
+    },
+    {
+      "probe_id": "temporal-current-revision",
+      "query": "As of 2026-08-01, what final renewal interval should the worker hold to?",
+      "reference_time": "2026-08-01",
+      "expected_precursor": "p03",
+      "expected_source_path": "sessions/xs-evolve-lease/p03.jsonl",
+      "expected_terms": ["renew every 20 seconds", "20 seconds is the final renewal interval"],
+      "candidate_source_paths": [
+        "sessions/xs-evolve-lease/p01.jsonl",
+        "sessions/xs-evolve-lease/p02.jsonl",
+        "sessions/xs-evolve-lease/p03.jsonl"
+      ]
+    }
+  ],
+  "manifest_digest": "72c583bfe9952df3895dbb50d6a86a2006f7356ba2cd1b78789ad10b5e071b65"
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "subset_id": "amb-temporal-standard-v1",
+  "track": "temporal",
+  "manifest_id": "amb-temporal-v1",
+  "probe_ids": [
+    "temporal-before-second-revision",
+    "temporal-between-revisions",
+    "temporal-current-revision"
+  ]
+}

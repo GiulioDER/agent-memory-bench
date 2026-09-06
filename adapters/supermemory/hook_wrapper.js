@@ -43,6 +43,27 @@ const stderr = result.stderr || '';
 if (stdout) process.stdout.write(stdout);
 if (stderr) process.stderr.write(stderr);
 
+let payload = null;
+try {
+  payload = JSON.parse(stdout.trim());
+} catch {
+  // The ledger still records the process result. A malformed hook response is surfaced below.
+}
+const hookSpecificOutput = payload && typeof payload === 'object'
+  ? payload.hookSpecificOutput
+  : null;
+const additionalContext = hookSpecificOutput && typeof hookSpecificOutput.additionalContext === 'string'
+  ? hookSpecificOutput.additionalContext
+  : '';
+const systemMessage = payload && typeof payload.systemMessage === 'string'
+  ? payload.systemMessage
+  : '';
+const combinedOutput = `${systemMessage}\n${additionalContext}`;
+const errorMatch = combinedOutput.match(
+  /<supermemory-status>[\s\S]*?(?:unreachable|failed|without memory|could not be loaded)[\s\S]*?<\/supermemory-status>/i,
+);
+const recallMatch = systemMessage.match(/\brecalled\s+(\d+)/i);
+
 const entry = {
   event,
   session_id: (() => {
@@ -51,6 +72,14 @@ const entry = {
   exit_code: result.error ? null : (typeof result.status === 'number' ? result.status : 1),
   output_sha256: crypto.createHash('sha256').update(stdout).digest('hex'),
   elapsed_ms: performance.now() - started,
+  hook_event_name: hookSpecificOutput && typeof hookSpecificOutput.hookEventName === 'string'
+    ? hookSpecificOutput.hookEventName
+    : null,
+  additional_context_bytes: Buffer.byteLength(additionalContext, 'utf8'),
+  additional_context_sha256: crypto.createHash('sha256').update(additionalContext).digest('hex'),
+  injection_status: errorMatch ? 'error' : (additionalContext ? 'context' : 'empty'),
+  hook_error: errorMatch ? errorMatch[0].slice(0, 500) : null,
+  recalled_count: recallMatch ? Number(recallMatch[1]) : null,
 };
 try {
   fs.mkdirSync(require('node:path').dirname(ledger), { recursive: true });

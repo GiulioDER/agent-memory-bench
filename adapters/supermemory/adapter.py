@@ -66,12 +66,15 @@ class SupermemoryAdapter(MemoryAdapter):
         self.plugin_dir = Path(configured) if configured else None
 
     @staticmethod
-    def shared_instruction(*, neutral: bool = False) -> str:
+    def shared_instruction(*, neutral: bool = False, variant: str = "protocol") -> str:
+        """Return the shared AMB protocol for the requested frozen variant."""
+
         return compose(
             "supermemory",
             "Supermemory provides persistent project context through its official Claude Code "
             "hooks; use that context before acting when relevant.",
             neutral=neutral,
+            variant=variant,
         )
 
     def _base_url(self) -> str:
@@ -104,9 +107,10 @@ class SupermemoryAdapter(MemoryAdapter):
 
     @staticmethod
     def _benchmark_profile_items() -> int | None:
-        raw = os.environ.get(_PROFILE_ITEMS_ENV)
-        if raw is None:
-            return None
+        # Freeze the vendor documented default in the benchmark adapter. An unset environment
+        # must not silently turn the profile surface off or make two runs depend on whatever
+        # settings happen to exist on the host.
+        raw = os.environ.get(_PROFILE_ITEMS_ENV, "5")
         try:
             value = int(raw)
         except ValueError as error:
@@ -191,6 +195,37 @@ class SupermemoryAdapter(MemoryAdapter):
 
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
+        reuse_existing = os.environ.get("SUPERMEMORY_BENCHMARK_REUSE_EXISTING", "").lower() == "true"
+        if reuse_existing:
+            start = time.monotonic()
+            query = os.environ.get("SUPERMEMORY_BENCHMARK_REUSE_QUERY", "project memory")
+            verification_hits = self._stored_verification(namespace, query)
+            if verification_hits == 0:
+                raise RuntimeError(
+                    "Supermemory reuse was requested, but the existing namespace returned no "
+                    "search hits; refusing to skip ingestion"
+                )
+            if not self._profile_ready(namespace, query):
+                raise RuntimeError(
+                    "Supermemory reuse was requested, but the existing namespace did not become "
+                    "profile-ready within the bounded settle window"
+                )
+            base_url = self._base_url().lower()
+            local = base_url.startswith(("http://localhost", "http://127.0.0.1"))
+            return IngestReport(
+                arm=self.name,
+                namespace=namespace,
+                sessions_offered=len(corpus.sessions),
+                items_stored=None,
+                wall_time_ms=(time.monotonic() - start) * 1000.0,
+                local_model=(os.environ.get("SUPERMEMORY_LOCAL_MODEL") or "Supermemory Local configured model")
+                if local
+                else None,
+                notes=(
+                    "reused an existing verified Supermemory namespace; no corpus writes were issued",
+                    f"search verification returned {verification_hits} hit(s)",
+                ),
+            )
         staged = namespace_path(self.staging_root, namespace, "feed")
         if staged.exists():
             shutil.rmtree(staged)
@@ -378,6 +413,10 @@ class SupermemoryAdapter(MemoryAdapter):
         ledger = config_dir / "hook-ledger.jsonl"
         home = config_dir / "home"
         home.mkdir(exist_ok=True)
+        # The vendor SessionStart hook installs its optional statusline under ~/.claude. Creating
+        # the directory keeps that optional side effect from producing a false error in every
+        # measured session, while leaving the vendor hook itself unchanged.
+        (home / ".claude").mkdir(exist_ok=True)
         prompt = prompt_path or session_dir / "prompt.md"
         prompt.parent.mkdir(parents=True, exist_ok=True)
         prompt.write_text(

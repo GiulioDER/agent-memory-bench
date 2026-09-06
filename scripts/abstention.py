@@ -44,6 +44,7 @@ import sys
 import tempfile
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
@@ -418,6 +419,24 @@ def search_rate_for(run_dir: Path, *, admitted_only: bool = True) -> dict[str, f
             report = json.loads(report_path.read_text(encoding="utf-8"))
             discarded = {(str(c[0]), int(c[1])) for c in report.get("discarded_cells", ())}
 
+    def searched(record: dict[str, Any]) -> bool:
+        arm = str(record["arm"])
+        if arm == "supermemory":
+            # Supermemory's official integration retrieves through lifecycle hooks rather than
+            # an MCP tool. The generic memory_call_count is therefore always zero for this arm.
+            # New wrapper ledgers record the structured UserPromptSubmit result; retain the
+            # legacy fallback so historical non-Supermemory records remain unchanged.
+            ledger = record.get("hook_ledger")
+            if isinstance(ledger, list):
+                return any(
+                    isinstance(entry, dict)
+                    and entry.get("event") == "UserPromptSubmit"
+                    and entry.get("injection_status") == "context"
+                    and int(entry.get("recalled_count") or 0) > 0
+                    for entry in ledger
+                )
+        return int(record.get("memory_call_count") or 0) > 0
+
     calls: dict[str, list[bool]] = {}
     for line in records_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -428,7 +447,7 @@ def search_rate_for(run_dir: Path, *, admitted_only: bool = True) -> dict[str, f
             continue
         if (str(record["task_id"]), int(record["seed"])) in discarded:
             continue
-        calls.setdefault(arm, []).append(int(record.get("memory_call_count") or 0) > 0)
+        calls.setdefault(arm, []).append(searched(record))
     # A memory arm that searched in NONE of its cells still gets a rate of 0.0, because that is
     # the number the reader needs. Dropping it would hide exactly the case this exists to catch.
     return {arm: sum(seen) / len(seen) for arm, seen in calls.items() if seen}
