@@ -13,14 +13,14 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.challenge_pack import (  # noqa: E402
+from harness.challenge_pack import (
     ChallengePack,
     ChallengeSubmission,
     build_execution_plan,
     load_private_pack,
 )
-from harness.challenge_redteam import audit_docker_argv, audit_plan  # noqa: E402
-from harness.challenge_runner import (  # noqa: E402
+from harness.challenge_redteam import audit_docker_argv, audit_plan
+from harness.challenge_runner import (
     ChallengeRunnerError,
     build_adapter_service_argv,
     build_docker_argv,
@@ -96,19 +96,22 @@ def _submission(image: str) -> ChallengeSubmission:
         entrypoint=(
             "/bin/sh",
             "-c",
-            "set -eu; "
-            "test -f /challenge/task/visible.txt; "
-            "test -f /challenge/prompt.txt; "
-            "test -f /challenge/corpus/public.txt; "
-            "test ! -e /challenge/checkers; "
-            "test ! -e /challenge/oracles; "
-            "test ! -e /challenge/references; "
-            "test ! -e /challenge/private; "
-            "test ! -e /challenge/hidden-answer; "
-            "test \"$(awk 'NR > 1 && NF { print; exit }' /proc/net/route)\" = \"\"; "
-            "env > /challenge/output/environment.txt; "
-            "! grep -Eq 'OPENAI_API_KEY|DATABASE_URL|DOCKER_HOST' /challenge/output/environment.txt; "
-            "printf 'pass\\n' > /challenge/output/red-team.txt",
+            (
+                "set -eu; "
+                "test -f /challenge/task/visible.txt; "
+                "test -f /challenge/prompt.txt; "
+                "test -f /challenge/corpus/public.txt; "
+                "test ! -e /challenge/checkers; "
+                "test ! -e /challenge/oracles; "
+                "test ! -e /challenge/references; "
+                "test ! -e /challenge/private; "
+                "test ! -e /challenge/hidden-answer; "
+                "test \"$(awk 'NR > 1 && NF { print; exit }' /proc/net/route)\" = \"\"; "
+                "env > /challenge/output/environment.txt; "
+                "! grep -Eq 'OPENAI_API_KEY|DATABASE_URL|DOCKER_HOST' "
+                "/challenge/output/environment.txt; "
+                "printf 'pass\\n' > /challenge/output/red-team.txt"
+            ),
         ),
     )
 

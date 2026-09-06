@@ -11,14 +11,18 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.challenge_pack import (  # noqa: E402
+from harness.challenge_pack import (
     ChallengePackError,
     build_execution_plan,
     load_private_pack,
     load_submission,
 )
-from harness.challenge_redteam import ChallengeRedTeamError, audit_docker_argv, audit_plan  # noqa: E402
-from harness.challenge_runner import (  # noqa: E402
+from harness.challenge_redteam import (
+    ChallengeRedTeamError,
+    audit_docker_argv,
+    audit_plan,
+)
+from harness.challenge_runner import (
     ChallengeRunnerError,
     build_adapter_service_argv,
     build_docker_argv,
