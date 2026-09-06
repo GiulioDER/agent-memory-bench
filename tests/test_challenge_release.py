@@ -80,6 +80,17 @@ def test_release_manifest_binds_evaluator_revision(tmp_path: Path):
         build_release_manifest(pack, policy, evaluator_revision="dirty")
 
 
+def test_final_release_requires_pack_preparer_identity(tmp_path: Path):
+    pack = _pack(tmp_path / "pack")
+    policy = load_policy(Path(__file__).parents[1] / "preregistration" / "challenge_policy.json")
+    with pytest.raises(ValueError, match="prepared_by"):
+        build_release_manifest(pack, policy, require_pack_preparer_id=True)
+
+    pack.manifest["prepared_by"] = "pack-author"
+    release = build_release_manifest(pack, policy, require_pack_preparer_id=True)
+    assert release["prepared_by"] == "pack-author"
+
+
 def test_release_manifest_cannot_be_overwritten(tmp_path: Path):
     target = tmp_path / "release.json"
     write_release_manifest(target, {"version": 1})

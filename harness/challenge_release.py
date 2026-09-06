@@ -52,9 +52,15 @@ def build_release_manifest(
     rules: dict[str, Any] | None = None,
     *,
     evaluator_revision: str | None = None,
+    require_pack_preparer_id: bool = False,
 ) -> dict[str, Any]:
     """Build the immutable release record held by the independent reviewer."""
 
+    prepared_by = pack.manifest.get("prepared_by")
+    if require_pack_preparer_id and (
+        not isinstance(prepared_by, str) or not prepared_by.strip()
+    ):
+        raise ValueError("private pack must declare a non empty prepared_by identity")
     manifest = {
         "schema": 1,
         "kind": "amb-challenge-release",
@@ -66,6 +72,8 @@ def build_release_manifest(
         "scoring_version": pack.manifest["scoring_version"],
         "task_count": len(pack.tasks),
     }
+    if isinstance(prepared_by, str) and prepared_by.strip():
+        manifest["prepared_by"] = prepared_by
     if evaluator_revision is not None:
         manifest["evaluator_revision"] = validate_evaluator_revision(evaluator_revision)
     if rules is not None:

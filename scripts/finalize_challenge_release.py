@@ -45,6 +45,7 @@ def main() -> int:
             policy,
             rules,
             evaluator_revision=args.evaluator_revision,
+            require_pack_preparer_id=True,
         )
         write_release_manifest(args.output, manifest)
     except (
