@@ -50,3 +50,27 @@ def test_roster_review_rejects_incomplete_findability_check():
             expected_pack_digest="a" * 64,
             expected_task_ids=("task-a",),
         )
+
+
+def test_roster_review_rejects_same_preparer_and_reviewer():
+    report = _review()
+    report["reviewer_id"] = "pack-author"
+    report["pack_preparer_id"] = "pack-author"
+    with pytest.raises(ChallengeRosterReviewError, match="different from the private pack preparer"):
+        validate_roster_review(
+            report,
+            expected_pack_digest="a" * 64,
+            expected_task_ids=("task-a",),
+            expected_pack_preparer_id="pack-author",
+        )
+
+
+def test_roster_review_requires_preparer_binding_when_pack_declares_one():
+    report = _review()
+    with pytest.raises(ChallengeRosterReviewError, match="does not identify the private pack preparer"):
+        validate_roster_review(
+            report,
+            expected_pack_digest="a" * 64,
+            expected_task_ids=("task-a",),
+            expected_pack_preparer_id="pack-author",
+        )

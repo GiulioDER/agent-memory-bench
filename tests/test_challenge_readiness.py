@@ -38,6 +38,7 @@ def _private_pack(root: Path):
                 "pack_id": "pack-readiness",
                 "source_public_commit": "commit-readiness",
                 "scoring_version": "score-readiness",
+                "prepared_by": "pack-author",
                 "corpus": "corpus",
                 "tasks": [
                     {
@@ -199,6 +200,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
                 "task_count": 1,
                 "task_ids": ["task-a"],
                 "reviewer_id": "independent-reviewer",
+                "pack_preparer_id": "pack-author",
                 "independent_review": True,
                 "reviewed_at_utc": "2026-09-06T12:00:00Z",
                 "checks": {

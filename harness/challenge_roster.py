@@ -21,6 +21,7 @@ def validate_roster_review(
     *,
     expected_pack_digest: str,
     expected_task_ids: Iterable[str],
+    expected_pack_preparer_id: str | None = None,
 ) -> dict[str, Any]:
     """Validate an independent pass report for the frozen private task roster."""
 
@@ -45,6 +46,22 @@ def validate_roster_review(
         raise ChallengeRosterReviewError("roster review has an invalid task count")
     if not isinstance(data.get("reviewer_id"), str) or not data["reviewer_id"].strip():
         raise ChallengeRosterReviewError("roster review needs a reviewer_id")
+    if expected_pack_preparer_id is not None:
+        if (
+            not isinstance(expected_pack_preparer_id, str)
+            or not expected_pack_preparer_id.strip()
+        ):
+            raise ChallengeRosterReviewError(
+                "private pack prepared_by must be a non empty string"
+            )
+        if data.get("pack_preparer_id") != expected_pack_preparer_id:
+            raise ChallengeRosterReviewError(
+                "roster review does not identify the private pack preparer"
+            )
+        if data["reviewer_id"] == expected_pack_preparer_id:
+            raise ChallengeRosterReviewError(
+                "roster reviewer must be different from the private pack preparer"
+            )
     if data.get("independent_review") is not True:
         raise ChallengeRosterReviewError("roster review must be independently reviewed")
     if not isinstance(data.get("reviewed_at_utc"), str) or not data["reviewed_at_utc"].strip():

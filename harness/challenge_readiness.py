@@ -118,6 +118,7 @@ def evaluate_readiness(
                 _read_json(Path(roster_review_path)),
                 expected_pack_digest=hash_private_pack(pack),
                 expected_task_ids=(task.task_id for task in pack.tasks),
+                expected_pack_preparer_id=pack.manifest.get("prepared_by"),
             )
             gates.append(ChallengeReadinessGate("task_roster_review", True, review["reviewer_id"]))
         except (ChallengeRosterReviewError, OSError, TypeError, ValueError) as error:

@@ -28,6 +28,7 @@ def main() -> int:
             data,
             expected_pack_digest=hash_private_pack(pack),
             expected_task_ids=(task.task_id for task in pack.tasks),
+            expected_pack_preparer_id=pack.manifest.get("prepared_by"),
         )
     except (
         ChallengePackError,
