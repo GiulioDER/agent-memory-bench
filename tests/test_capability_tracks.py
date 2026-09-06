@@ -12,7 +12,6 @@ from harness.capabilities import (
 )
 from scripts.capability_verify import main
 
-
 ROOT = Path(__file__).parents[1]
 
 
