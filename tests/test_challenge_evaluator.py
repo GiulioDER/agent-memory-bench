@@ -10,10 +10,23 @@ import pytest
 from harness.challenge_evaluator import (
     ChallengeAdapterClient,
     ChallengeEvaluatorError,
+    _cleanup_task_runtime,
     evaluate_submission,
 )
 from harness.challenge_protocol import ADAPTER_API
 from harness.challenge_runner import ChallengeRunnerError
+
+
+def test_runtime_cleanup_reports_filesystem_failure(monkeypatch, tmp_path: Path):
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.shutil.rmtree",
+        lambda _path: (_ for _ in ()).throw(OSError("permission denied")),
+    )
+
+    with pytest.raises(ChallengeEvaluatorError, match="could not clean task runtime"):
+        _cleanup_task_runtime(runtime)
 
 
 def test_sidecar_client_sends_fixed_task_scoped_requests(monkeypatch, tmp_path: Path):

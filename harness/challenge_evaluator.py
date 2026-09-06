@@ -135,6 +135,21 @@ def _failed_task_score(task: ChallengeTask, verdict: str) -> ChallengeTaskScore:
     )
 
 
+def _cleanup_task_runtime(path: Path) -> None:
+    """Remove one sidecar runtime directory without hiding cleanup failures."""
+
+    if path.is_symlink():
+        raise ChallengeEvaluatorError(f"task runtime became a symlink: {path}")
+    if not path.exists():
+        return
+    try:
+        shutil.rmtree(path)
+    except OSError as error:
+        raise ChallengeEvaluatorError(f"could not clean task runtime {path}: {error}") from error
+    if path.exists():
+        raise ChallengeEvaluatorError(f"task runtime cleanup incomplete: {path}")
+
+
 def evaluate_submission(
     pack: ChallengePack,
     submission: ChallengeSubmission,
@@ -223,12 +238,7 @@ def evaluate_submission(
             finally:
                 if handle is not None:
                     handle.stop()
-                if task_runtime.is_symlink():
-                    raise ChallengeEvaluatorError(
-                        f"task runtime became a symlink: {task_runtime}"
-                    )
-                if task_runtime.exists():
-                    shutil.rmtree(task_runtime)
+                _cleanup_task_runtime(task_runtime)
             if infrastructure_error is None:
                 break
             if attempt == infrastructure_retries:
