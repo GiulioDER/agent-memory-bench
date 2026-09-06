@@ -13,6 +13,7 @@ def _manifest(submission_id: str, score: float, passed: tuple[bool, bool]) -> di
         "kind": "amb-challenge-score-manifest",
         "pack_id": "pack-a",
         "scoring_version": "score-a",
+        "evaluator_revision": "a" * 40,
         "policy_digest": "policy-a",
         "submission_id": submission_id,
         "image": "registry.example/entry@sha256:" + "a" * 64,
@@ -69,6 +70,16 @@ def test_ranking_rejects_provenance_mismatch():
             [_manifest("entry-a", 0.5, (True, False)), bad],
             _rules(["task-a"]),
             expected_policy_digest="policy-a",
+        )
+
+
+def test_ranking_rejects_mixed_evaluator_revisions():
+    bad = _manifest("entry-b", 0.5, (False, True))
+    bad["evaluator_revision"] = "b" * 40
+    with pytest.raises(ChallengeRankingError, match="different evaluator revisions"):
+        rank_challenge_entries(
+            [_manifest("entry-a", 0.5, (True, False)), bad],
+            _rules(["task-a"]),
         )
 
 

@@ -125,6 +125,7 @@ def evaluate_readiness(
                 expected_pack_id=pack.manifest["pack_id"],
                 expected_policy_digest=policy.digest(),
                 expected_scoring_version=pack.manifest["scoring_version"],
+                expected_evaluator_revision=evaluator_revision,
                 expected_task_ids=(task.task_id for task in pack.tasks),
             )
             gates.append(ChallengeReadinessGate("baseline_ordering", True, json.dumps(result, sort_keys=True)))

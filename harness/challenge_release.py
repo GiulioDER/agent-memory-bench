@@ -15,6 +15,14 @@ from .challenge_rules import rules_digest
 EVALUATOR_REVISION = re.compile(r"^[0-9a-f]{40,64}$")
 
 
+def validate_evaluator_revision(value: str) -> str:
+    """Validate the immutable evaluator revision recorded in release artifacts."""
+
+    if not isinstance(value, str) or not EVALUATOR_REVISION.fullmatch(value):
+        raise ValueError("evaluator_revision must be a 40 to 64 character lowercase commit hash")
+    return value
+
+
 def hash_private_pack(pack: ChallengePack) -> str:
     """Hash every regular file and its portable relative path in a validated private pack."""
 
@@ -50,9 +58,7 @@ def build_release_manifest(
         "task_count": len(pack.tasks),
     }
     if evaluator_revision is not None:
-        if not EVALUATOR_REVISION.fullmatch(evaluator_revision):
-            raise ValueError("evaluator_revision must be a 40 to 64 character lowercase commit hash")
-        manifest["evaluator_revision"] = evaluator_revision
+        manifest["evaluator_revision"] = validate_evaluator_revision(evaluator_revision)
     if rules is not None:
         manifest["rules_id"] = rules["rules_id"]
         manifest["rules_digest"] = rules_digest(rules)

@@ -6,6 +6,8 @@ import math
 from collections.abc import Iterable
 from typing import Any
 
+from .challenge_release import validate_evaluator_revision
+
 
 class ChallengeBaselineError(ValueError):
     """Baseline calibration inputs do not prove the required ordering."""
@@ -25,9 +27,20 @@ def validate_public_score_manifest(manifest: dict[str, Any], label: str = "score
         raise ChallengeBaselineError(f"{label} manifest must be an object")
     if manifest.get("schema") != 1 or manifest.get("kind") != "amb-challenge-score-manifest":
         raise ChallengeBaselineError(f"{label} manifest has an unsupported schema")
-    for field in ("pack_id", "scoring_version", "policy_digest", "submission_id", "image"):
+    for field in (
+        "pack_id",
+        "scoring_version",
+        "evaluator_revision",
+        "policy_digest",
+        "submission_id",
+        "image",
+    ):
         if not isinstance(manifest.get(field), str) or not manifest[field].strip():
             raise ChallengeBaselineError(f"{label} manifest is missing {field}")
+    try:
+        validate_evaluator_revision(manifest["evaluator_revision"])
+    except ValueError as error:
+        raise ChallengeBaselineError(f"{label} manifest has an invalid evaluator_revision") from error
     if not isinstance(manifest.get("private_details_included"), bool) or manifest["private_details_included"]:
         raise ChallengeBaselineError(f"{label} manifest must be public")
     task_count = manifest.get("task_count")
@@ -82,6 +95,7 @@ def verify_baseline_ordering(
     expected_pack_id: str | None = None,
     expected_policy_digest: str | None = None,
     expected_scoring_version: str | None = None,
+    expected_evaluator_revision: str | None = None,
     expected_task_ids: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Require the fixed baseline to beat the deliberately bad adapter."""
@@ -90,7 +104,13 @@ def verify_baseline_ordering(
         raise ChallengeBaselineError("minimum margin must be finite and non negative")
     baseline_task_ids = validate_public_score_manifest(baseline, "baseline")
     bad_task_ids = validate_public_score_manifest(deliberately_bad, "deliberately bad")
-    comparable_fields = ("pack_id", "scoring_version", "policy_digest", "task_count")
+    comparable_fields = (
+        "pack_id",
+        "scoring_version",
+        "evaluator_revision",
+        "policy_digest",
+        "task_count",
+    )
     mismatches = [field for field in comparable_fields if baseline.get(field) != deliberately_bad.get(field)]
     if mismatches:
         raise ChallengeBaselineError(f"baseline manifests disagree on: {mismatches}")
@@ -100,6 +120,7 @@ def verify_baseline_ordering(
         "pack_id": expected_pack_id,
         "policy_digest": expected_policy_digest,
         "scoring_version": expected_scoring_version,
+        "evaluator_revision": expected_evaluator_revision,
     }
     for field, value in expected.items():
         if value is not None and baseline.get(field) != value:

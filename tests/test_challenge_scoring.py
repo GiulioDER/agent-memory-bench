@@ -94,7 +94,9 @@ def test_private_checker_runs_after_task_and_public_manifest_redacts_verdict(tmp
     score = run_private_checker(pack.tasks[0], workdir)
     assert score.passed is True
     assert score.verdict == "private oracle detail"
-    public = build_score_manifest(pack, submission, [score], public=True)
+    public = build_score_manifest(
+        pack, submission, [score], evaluator_revision="a" * 40, public=True
+    )
     assert public["score"] == 1.0
     assert "verdict" not in public["tasks"][0]
     assert str(pack.root) not in json.dumps(public)
@@ -104,7 +106,7 @@ def test_score_manifest_requires_exact_task_coverage(tmp_path: Path):
     pack = _pack(tmp_path)
     submission = _submission(tmp_path)
     with pytest.raises(ChallengeScoringError, match="exactly one result"):
-        build_score_manifest(pack, submission, [])
+        build_score_manifest(pack, submission, [], evaluator_revision="a" * 40)
 
 
 def test_score_manifest_write_is_stable(tmp_path: Path):
@@ -114,7 +116,9 @@ def test_score_manifest_write_is_stable(tmp_path: Path):
     workdir.mkdir()
     (workdir / "answer.txt").write_text("wrong", encoding="utf-8")
     score = run_private_checker(pack.tasks[0], workdir)
-    manifest = build_score_manifest(pack, submission, [score], public=True)
+    manifest = build_score_manifest(
+        pack, submission, [score], evaluator_revision="a" * 40, public=True
+    )
     target = tmp_path / "manifest.json"
     write_score_manifest(target, manifest)
     first = target.read_bytes()
@@ -148,6 +152,8 @@ def test_score_manifest_omits_run_specific_checker_timing(tmp_path: Path):
         checker_timed_out=False,
         checker_wall_s=9.9,
     )
-    assert build_score_manifest(pack, submission, [first], public=True) == build_score_manifest(
-        pack, submission, [second], public=True
+    assert build_score_manifest(
+        pack, submission, [first], evaluator_revision="a" * 40, public=True
+    ) == build_score_manifest(
+        pack, submission, [second], evaluator_revision="a" * 40, public=True
     )

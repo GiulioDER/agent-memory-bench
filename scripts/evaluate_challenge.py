@@ -43,6 +43,7 @@ def main() -> int:
     parser.add_argument("--private-manifest", required=True, type=Path)
     parser.add_argument("--agent-command", required=True)
     parser.add_argument("--policy", required=True, type=Path)
+    parser.add_argument("--evaluator-revision", required=True)
     parser.add_argument("--model-proxy-socket", type=Path)
     args = parser.parse_args()
 
@@ -76,6 +77,7 @@ def main() -> int:
                 },
             ),
             checker_timeout_s=policy.checker_timeout_seconds,
+            evaluator_revision=args.evaluator_revision,
             model_proxy_socket=args.model_proxy_socket,
             adapter_call_budget=policy.adapter_call_budget,
         )

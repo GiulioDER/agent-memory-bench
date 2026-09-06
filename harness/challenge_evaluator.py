@@ -142,6 +142,7 @@ def evaluate_submission(
     agent_runner: AgentRunner,
     *,
     checker_timeout_s: float = DEFAULT_TIMEOUT_SECONDS,
+    evaluator_revision: str,
     model_proxy_socket: str | Path | None = None,
     adapter_call_budget: int = DEFAULT_ADAPTER_CALL_BUDGET,
 ) -> tuple[dict[str, Any], list[ChallengeTaskScore]]:
@@ -216,6 +217,10 @@ def evaluate_submission(
         score = run_private_checker(task, output, timeout_s=checker_timeout_s)
         scores.append(score)
 
-    public = build_score_manifest(pack, submission, scores, public=True)
-    private = build_score_manifest(pack, submission, scores, public=False)
+    public = build_score_manifest(
+        pack, submission, scores, evaluator_revision=evaluator_revision, public=True
+    )
+    private = build_score_manifest(
+        pack, submission, scores, evaluator_revision=evaluator_revision, public=False
+    )
     return public, private

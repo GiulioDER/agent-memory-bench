@@ -143,6 +143,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             "kind": "amb-challenge-score-manifest",
             "pack_id": "pack-readiness",
             "scoring_version": "score-readiness",
+            "evaluator_revision": "a" * 40,
             "policy_digest": loaded_policy.digest(),
             "submission_id": submission_id,
             "image": "registry.example/entry@sha256:" + "a" * 64,

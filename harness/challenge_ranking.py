@@ -19,6 +19,7 @@ def rank_challenge_entries(
     expected_pack_id: str | None = None,
     expected_policy_digest: str | None = None,
     expected_scoring_version: str | None = None,
+    expected_evaluator_revision: str | None = None,
     expected_task_ids: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Return deterministic ranks without silently selecting an unresolved tie."""
@@ -43,6 +44,7 @@ def rank_challenge_entries(
     entries: list[dict[str, Any]] = []
     seen_submission_ids: set[str] = set()
     roster: tuple[str, ...] | None = None
+    evaluator_revision: str | None = None
     for manifest in manifests:
         try:
             task_ids = validate_public_score_manifest(manifest)
@@ -52,6 +54,10 @@ def rank_challenge_entries(
             roster = task_ids
         elif roster != task_ids:
             raise ChallengeRankingError("score manifests have different task rosters")
+        if evaluator_revision is None:
+            evaluator_revision = manifest["evaluator_revision"]
+        elif evaluator_revision != manifest["evaluator_revision"]:
+            raise ChallengeRankingError("score manifests use different evaluator revisions")
         submission_id = manifest["submission_id"]
         if submission_id in excluded_submission_ids:
             raise ChallengeRankingError(
@@ -66,6 +72,11 @@ def rank_challenge_entries(
             raise ChallengeRankingError("score manifest does not match expected policy_digest")
         if expected_scoring_version is not None and manifest["scoring_version"] != expected_scoring_version:
             raise ChallengeRankingError("score manifest does not match expected scoring_version")
+        if (
+            expected_evaluator_revision is not None
+            and manifest["evaluator_revision"] != expected_evaluator_revision
+        ):
+            raise ChallengeRankingError("score manifest does not match expected evaluator_revision")
         entries.append(manifest)
     assert roster is not None
     if expected_task_ids is not None and roster != expected_task_ids:

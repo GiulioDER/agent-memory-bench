@@ -13,6 +13,7 @@ def _manifest(score: float, passed_count: int) -> dict:
         "kind": "amb-challenge-score-manifest",
         "pack_id": "pack-a",
         "scoring_version": "score-a",
+        "evaluator_revision": "a" * 40,
         "policy_digest": "policy-a",
         "submission_id": "entry-a",
         "image": "registry.example/entry@sha256:" + "a" * 64,
@@ -60,6 +61,13 @@ def test_baseline_gate_rejects_non_finite_margin():
 def test_baseline_gate_rejects_mismatched_provenance():
     bad = _manifest(0.2, 1)
     bad["policy_digest"] = "different-policy"
+    with pytest.raises(ChallengeBaselineError, match="disagree"):
+        verify_baseline_ordering(_manifest(0.8, 4), bad)
+
+
+def test_baseline_gate_rejects_mismatched_evaluator_revision():
+    bad = _manifest(0.2, 1)
+    bad["evaluator_revision"] = "b" * 40
     with pytest.raises(ChallengeBaselineError, match="disagree"):
         verify_baseline_ordering(_manifest(0.8, 4), bad)
 

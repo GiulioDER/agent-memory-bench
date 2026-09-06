@@ -114,7 +114,9 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
     )
     monkeypatch.setattr(
         "harness.challenge_evaluator.build_score_manifest",
-        lambda _pack, _submission, _scores, public: {"public": public},
+        lambda _pack, _submission, _scores, *, evaluator_revision, public: {
+            "public": public,
+        },
     )
 
     def agent_runner(context):
@@ -135,6 +137,7 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
         tmp_path / "output",
         tmp_path / "runtime",
         agent_runner,
+        evaluator_revision="a" * 40,
     )
 
     assert events == ["start", "health", "reset", "agent", "stop", "check:task-a"]
@@ -156,6 +159,7 @@ def test_evaluator_rejects_private_pack_output_before_creating_directories(tmp_p
             output_root,
             tmp_path / "runtime",
             lambda _context: None,
+            evaluator_revision="a" * 40,
         )
     assert not output_root.exists()
 
@@ -198,7 +202,7 @@ def test_evaluator_records_agent_failure_and_still_builds_manifests(monkeypatch,
     )
     monkeypatch.setattr(
         "harness.challenge_evaluator.build_score_manifest",
-        lambda _pack, _submission, scores, public: {
+        lambda _pack, _submission, scores, *, evaluator_revision, public: {
             "passed": scores[0].passed,
             "public": public,
         },
@@ -210,6 +214,7 @@ def test_evaluator_records_agent_failure_and_still_builds_manifests(monkeypatch,
         tmp_path / "output",
         tmp_path / "runtime",
         lambda _context: (_ for _ in ()).throw(RuntimeError("model timeout")),
+        evaluator_revision="a" * 40,
     )
 
     assert events == ["start", "health", "reset", "stop"]

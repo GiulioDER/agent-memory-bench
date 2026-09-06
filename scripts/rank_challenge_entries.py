@@ -23,6 +23,7 @@ def main() -> int:
     parser.add_argument("--policy", required=True, type=Path)
     parser.add_argument("--rules", required=True, type=Path)
     parser.add_argument("--manifest", required=True, action="append", type=Path)
+    parser.add_argument("--evaluator-revision", required=True)
     args = parser.parse_args()
     try:
         pack = load_private_pack(args.pack)
@@ -35,6 +36,7 @@ def main() -> int:
             expected_pack_id=pack.manifest["pack_id"],
             expected_policy_digest=policy.digest(),
             expected_scoring_version=pack.manifest["scoring_version"],
+            expected_evaluator_revision=args.evaluator_revision,
             expected_task_ids=tuple(task.task_id for task in pack.tasks),
         )
     except (OSError, UnicodeError, json.JSONDecodeError, ChallengePackError, ChallengePolicyError, ChallengeRulesError, ChallengeRankingError) as error:

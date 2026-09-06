@@ -177,6 +177,8 @@ bounded host process. The checker receives the finished task directory and its p
 directory. It never runs in the entrant container. A public score manifest contains task ids and
 pass or fail outcomes, but not private checker messages, oracle paths or oracle explanations.
 The aggregate is deterministic and must contain exactly one result for every task.
+Both score manifests also record the frozen evaluator revision; baseline calibration and final
+ranking reject manifests produced by different evaluator revisions.
 
 The coordinator enforces this order independently for every task:
 
@@ -213,6 +215,7 @@ python -m scripts.evaluate_challenge \
   --public-manifest /private/amb-results/public.json \
   --private-manifest /private/amb-results/private.json \
   --policy /private/amb-challenge-policy.json \
+  --evaluator-revision <clean-evaluator-git-commit> \
   --agent-command "python /evaluator/fixed_agent.py"
 ```
 
@@ -277,6 +280,7 @@ python -m scripts.rank_challenge_entries \
   --pack /private/amb-challenge-pack \
   --policy /private/amb-challenge-policy.json \
   --rules /private/amb-challenge-rules.json \
+  --evaluator-revision <clean-evaluator-git-commit> \
   --manifest /private/results/entry-a-public.json \
   --manifest /private/results/entry-b-public.json
 ```
