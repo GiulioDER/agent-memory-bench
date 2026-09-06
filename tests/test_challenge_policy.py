@@ -50,6 +50,11 @@ def test_policy_loads_and_hashes_canonically(tmp_path: Path):
         {"temperature": "nan"},
         {"agent_timeout_seconds": "inf"},
         {"infrastructure_retries": -1},
+        {"agent_timeout_seconds": 3601},
+        {"checker_timeout_seconds": 3601},
+        {"adapter_call_budget": 10001},
+        {"context_limit_tokens": 131073},
+        {"infrastructure_retries": 4},
     ],
 )
 def test_policy_rejects_invalid_limits(tmp_path: Path, overrides: dict):

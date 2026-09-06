@@ -7,7 +7,7 @@ import pytest
 from harness.challenge_baselines import ChallengeBaselineError, verify_baseline_ordering
 
 
-def _manifest(score: float, passed_count: int) -> dict:
+def _manifest(score: float, passed_count: int, submission_id: str | None = None) -> dict:
     return {
         "schema": 1,
         "kind": "amb-challenge-score-manifest",
@@ -15,9 +15,10 @@ def _manifest(score: float, passed_count: int) -> dict:
         "scoring_version": "score-a",
         "pack_digest": "b" * 64,
         "rules_digest": "c" * 64,
+        "config_sha256": "d" * 64,
         "evaluator_revision": "a" * 40,
-        "policy_digest": "policy-a",
-        "submission_id": "entry-a",
+        "policy_digest": "e" * 64,
+        "submission_id": submission_id or ("entry-a" if score > 0.5 else "entry-b"),
         "image": "registry.example/entry@sha256:" + "a" * 64,
         "task_count": 5,
         "passed_count": passed_count,
@@ -43,7 +44,7 @@ def test_baseline_must_beat_deliberately_bad_adapter():
 
 def test_baseline_gate_rejects_missing_ordering():
     with pytest.raises(ChallengeBaselineError, match="ordering failed"):
-        verify_baseline_ordering(_manifest(0.4, 2), _manifest(0.4, 2))
+        verify_baseline_ordering(_manifest(0.4, 2), _manifest(0.4, 2), minimum_margin=0.1)
 
 
 @pytest.mark.parametrize(
@@ -62,7 +63,7 @@ def test_baseline_gate_rejects_non_finite_margin():
 
 def test_baseline_gate_rejects_mismatched_provenance():
     bad = _manifest(0.2, 1)
-    bad["policy_digest"] = "different-policy"
+    bad["policy_digest"] = "f" * 64
     with pytest.raises(ChallengeBaselineError, match="disagree"):
         verify_baseline_ordering(_manifest(0.8, 4), bad)
 
@@ -81,3 +82,17 @@ def test_baseline_gate_rejects_manifest_not_bound_to_expected_pack():
             _manifest(0.2, 1),
             expected_pack_id="different-pack",
         )
+
+
+def test_baseline_gate_accepts_margin_equal_to_minimum():
+    result = verify_baseline_ordering(
+        _manifest(0.8, 4), _manifest(0.4, 2), minimum_margin=0.4
+    )
+    assert result["margin"] == 0.4
+
+
+def test_baseline_gate_rejects_mutable_image():
+    baseline = _manifest(0.8, 4)
+    baseline["image"] = "registry.example/entry:latest"
+    with pytest.raises(ChallengeBaselineError, match="immutable digest"):
+        verify_baseline_ordering(baseline, _manifest(0.2, 1))

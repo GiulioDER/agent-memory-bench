@@ -98,7 +98,7 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
     )
     pack = SimpleNamespace(tasks=(task,), root=tmp_path / "pack")
     pack.root.mkdir()
-    submission = SimpleNamespace(submission_id="entry-a")
+    submission = SimpleNamespace(submission_id="entry-a", config_sha256="d" * 64)
     events: list[str] = []
 
     class FakeHandle:
@@ -128,7 +128,7 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
     )
     monkeypatch.setattr(
         "harness.challenge_evaluator.build_score_manifest",
-        lambda _pack, _submission, _scores, *, pack_digest, rules_digest, evaluator_revision, public: {
+        lambda _pack, _submission, _scores, *, pack_digest, rules_digest, policy_digest, config_sha256, evaluator_revision, public: {
             "public": public,
         },
     )
@@ -153,6 +153,7 @@ def test_evaluator_hides_private_task_metadata_and_checks_after_sidecar(monkeypa
         agent_runner,
         pack_digest="b" * 64,
         rules_digest="c" * 64,
+        policy_digest="d" * 64,
         evaluator_revision="a" * 40,
     )
 
@@ -177,6 +178,7 @@ def test_evaluator_rejects_private_pack_output_before_creating_directories(tmp_p
             lambda _context: None,
             pack_digest="b" * 64,
             rules_digest="c" * 64,
+            policy_digest="d" * 64,
             evaluator_revision="a" * 40,
         )
     assert not output_root.exists()
@@ -198,7 +200,7 @@ def test_evaluator_records_agent_failure_and_still_builds_manifests(monkeypatch,
     task.reference.mkdir()
     pack = SimpleNamespace(tasks=(task,), root=tmp_path / "pack")
     pack.root.mkdir()
-    submission = SimpleNamespace(submission_id="entry-a")
+    submission = SimpleNamespace(submission_id="entry-a", config_sha256="d" * 64)
     events: list[str] = []
 
     class FakeHandle:
@@ -220,7 +222,7 @@ def test_evaluator_records_agent_failure_and_still_builds_manifests(monkeypatch,
     )
     monkeypatch.setattr(
         "harness.challenge_evaluator.build_score_manifest",
-        lambda _pack, _submission, scores, *, pack_digest, rules_digest, evaluator_revision, public: {
+        lambda _pack, _submission, scores, *, pack_digest, rules_digest, policy_digest, config_sha256, evaluator_revision, public: {
             "passed": scores[0].passed,
             "public": public,
         },
@@ -234,6 +236,7 @@ def test_evaluator_records_agent_failure_and_still_builds_manifests(monkeypatch,
         lambda _context: (_ for _ in ()).throw(RuntimeError("model timeout")),
         pack_digest="b" * 64,
         rules_digest="c" * 64,
+        policy_digest="d" * 64,
         evaluator_revision="a" * 40,
     )
 
@@ -258,7 +261,7 @@ def test_evaluator_retries_only_infrastructure_failures(monkeypatch, tmp_path: P
     task.reference.mkdir()
     pack = SimpleNamespace(tasks=(task,), root=tmp_path / "pack")
     pack.root.mkdir()
-    submission = SimpleNamespace(submission_id="entry-a")
+    submission = SimpleNamespace(submission_id="entry-a", config_sha256="d" * 64)
     events: list[str] = []
     starts = 0
 
@@ -302,6 +305,7 @@ def test_evaluator_retries_only_infrastructure_failures(monkeypatch, tmp_path: P
         lambda _context: events.append("agent"),
         pack_digest="b" * 64,
         rules_digest="c" * 64,
+        policy_digest="d" * 64,
         evaluator_revision="a" * 40,
         infrastructure_retries=1,
     )

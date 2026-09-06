@@ -131,3 +131,15 @@ def test_rules_reject_invalid_baseline_margin(tmp_path: Path, margin):
     path = _rules(tmp_path / "rules.json", baseline_minimum_margin=margin)
     with pytest.raises(ChallengeRulesError, match="baseline_minimum_margin"):
         load_rules(path)
+
+
+def test_rules_reject_boolean_retry_count(tmp_path: Path):
+    path = _rules(tmp_path / "rules.json", infrastructure_retry_count=True)
+    with pytest.raises(ChallengeRulesError, match="non negative"):
+        load_rules(path)
+
+
+def test_rules_require_exact_publication_controls(tmp_path: Path):
+    path = _rules(tmp_path / "rules.json", publication={})
+    with pytest.raises(ChallengeRulesError, match="exactly"):
+        load_rules(path)

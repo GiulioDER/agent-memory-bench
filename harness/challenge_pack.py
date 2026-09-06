@@ -149,7 +149,7 @@ def _resolve_pack_path(root: Path, value: Any, field: str, *, directory: bool) -
 def _validate_manifest(root: Path, data: Any) -> ChallengePack:
     if not isinstance(data, dict):
         raise ChallengePackError("pack.json must contain an object")
-    if data.get("schema") != PACK_SCHEMA:
+    if type(data.get("schema")) is not int or data["schema"] != PACK_SCHEMA:
         raise ChallengePackError(f"unsupported pack schema: {data.get('schema')!r}")
     if data.get("kind") != PACK_KIND:
         raise ChallengePackError(f"pack.json kind must be {PACK_KIND!r}")
@@ -260,7 +260,7 @@ def load_submission(path: str | Path) -> ChallengeSubmission:
         raise ChallengePackError(f"cannot read submission descriptor: {descriptor}") from error
     if not isinstance(data, dict):
         raise ChallengePackError("submission descriptor must contain an object")
-    if data.get("schema") != PACK_SCHEMA:
+    if type(data.get("schema")) is not int or data["schema"] != PACK_SCHEMA:
         raise ChallengePackError(f"unsupported submission schema: {data.get('schema')!r}")
     if data.get("kind") != "amb-challenge-submission":
         raise ChallengePackError("submission kind must be 'amb-challenge-submission'")

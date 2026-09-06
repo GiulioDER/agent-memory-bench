@@ -51,6 +51,17 @@ def test_fixed_agent_command_receives_only_explicit_task_environment(tmp_path: P
     assert (context.output / "answer.txt").read_text() == "ok"
 
 
+def test_fixed_agent_does_not_receive_ambient_credentials(tmp_path: Path, monkeypatch):
+    context = _context(tmp_path)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    result = run_fixed_agent_command(
+        ["python", "-c", "import os; assert 'OPENAI_API_KEY' not in os.environ"],
+        context,
+        timeout_seconds=10,
+    )
+    assert result.ok
+
+
 def test_fixed_agent_command_rejects_empty_command(tmp_path: Path):
     with pytest.raises(ChallengeAgentError, match="non empty"):
         run_fixed_agent_command([], _context(tmp_path))

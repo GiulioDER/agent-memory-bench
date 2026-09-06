@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .challenge_pack import ChallengePack, ChallengeSubmission, ChallengeTask
+from .challenge_pack import IMAGE_DIGEST, ChallengePack, ChallengeSubmission, ChallengeTask
 from .challenge_release import validate_evaluator_revision, validate_sha256_digest
 from .checker_run import DEFAULT_TIMEOUT_S, run_bounded
 
@@ -125,6 +125,8 @@ def build_score_manifest(
     *,
     pack_digest: str,
     rules_digest: str,
+    policy_digest: str,
+    config_sha256: str,
     evaluator_revision: str,
     public: bool = False,
 ) -> dict[str, Any]:
@@ -133,9 +135,13 @@ def build_score_manifest(
     try:
         pack_digest = validate_sha256_digest(pack_digest, "pack_digest")
         rules_digest = validate_sha256_digest(rules_digest, "rules_digest")
+        policy_digest = validate_sha256_digest(policy_digest, "policy_digest")
+        config_sha256 = validate_sha256_digest(config_sha256, "config_sha256")
         evaluator_revision = validate_evaluator_revision(evaluator_revision)
     except ValueError as error:
         raise ChallengeScoringError(str(error)) from error
+    if not IMAGE_DIGEST.fullmatch(submission.image):
+        raise ChallengeScoringError("submission image must use an immutable digest")
     by_task = {score.task_id: score for score in scores}
     expected = {task.task_id for task in pack.tasks}
     if set(by_task) != expected or len(by_task) != len(scores):
@@ -154,6 +160,8 @@ def build_score_manifest(
         "scoring_version": pack.manifest["scoring_version"],
         "pack_digest": pack_digest,
         "rules_digest": rules_digest,
+        "policy_digest": policy_digest,
+        "config_sha256": config_sha256,
         "evaluator_revision": evaluator_revision,
         "submission_id": submission.submission_id,
         "image": submission.image,

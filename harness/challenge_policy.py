@@ -15,6 +15,12 @@ POLICY_SCHEMA = 1
 POLICY_KIND = "amb-challenge-evaluation-policy"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
+MAX_AGENT_TIMEOUT_SECONDS = 3600.0
+MAX_CHECKER_TIMEOUT_SECONDS = 3600.0
+MAX_ADAPTER_CALL_BUDGET = 10_000
+MAX_CONTEXT_LIMIT_TOKENS = 131_072
+MAX_INFRASTRUCTURE_RETRIES = 3
+
 
 class ChallengePolicyError(ValueError):
     """The evaluator policy is missing, malformed or unsafe to use."""
@@ -45,14 +51,35 @@ class ChallengeEvaluationPolicy:
             or not math.isfinite(self.checker_timeout_seconds)
             or self.agent_timeout_seconds <= 0
             or self.checker_timeout_seconds <= 0
+            or self.agent_timeout_seconds > MAX_AGENT_TIMEOUT_SECONDS
+            or self.checker_timeout_seconds > MAX_CHECKER_TIMEOUT_SECONDS
         ):
-            raise ChallengePolicyError("policy timeouts must be positive")
-        if self.adapter_call_budget <= 0 or self.context_limit_tokens <= 0:
-            raise ChallengePolicyError("policy budgets must be positive")
+            raise ChallengePolicyError(
+                "policy timeouts must be positive and at most one hour"
+            )
+        if (
+            isinstance(self.adapter_call_budget, bool)
+            or not isinstance(self.adapter_call_budget, int)
+            or isinstance(self.context_limit_tokens, bool)
+            or not isinstance(self.context_limit_tokens, int)
+        ):
+            raise ChallengePolicyError("policy budgets must be integers")
+        if (
+            self.adapter_call_budget <= 0
+            or self.adapter_call_budget > MAX_ADAPTER_CALL_BUDGET
+            or self.context_limit_tokens <= 0
+            or self.context_limit_tokens > MAX_CONTEXT_LIMIT_TOKENS
+        ):
+            raise ChallengePolicyError("policy budgets exceed the evaluator limits")
         if not math.isfinite(self.temperature) or not 0 <= self.temperature <= 2:
             raise ChallengePolicyError("policy temperature must be between 0 and 2")
-        if self.infrastructure_retries < 0:
-            raise ChallengePolicyError("infrastructure retries cannot be negative")
+        if (
+            isinstance(self.infrastructure_retries, bool)
+            or not isinstance(self.infrastructure_retries, int)
+            or self.infrastructure_retries < 0
+            or self.infrastructure_retries > MAX_INFRASTRUCTURE_RETRIES
+        ):
+            raise ChallengePolicyError("infrastructure retries must be between 0 and 3")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -96,7 +123,11 @@ def load_policy(path: str | Path, *, require_frozen: bool = False) -> ChallengeE
         raise ChallengePolicyError(f"cannot read policy: {raw_path}") from error
     if not isinstance(data, dict):
         raise ChallengePolicyError("policy must contain an object")
-    if data.get("schema") != POLICY_SCHEMA or data.get("kind") != POLICY_KIND:
+    if (
+        type(data.get("schema")) is not int
+        or data["schema"] != POLICY_SCHEMA
+        or data.get("kind") != POLICY_KIND
+    ):
         raise ChallengePolicyError("unsupported challenge policy")
     try:
         policy = ChallengeEvaluationPolicy(

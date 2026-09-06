@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from typing import Any
 
@@ -17,6 +18,7 @@ REQUIRED_COMMANDS = (
     "diagnostic_dry_run",
     "pilot_dry_run",
 )
+PYTHON_VERSION = re.compile(r"^3\.12(?:\.\d+)?$")
 
 
 class ChallengeSmokeError(ValueError):
@@ -32,7 +34,11 @@ def validate_public_smoke_report(
 
     if not isinstance(data, dict):
         raise ChallengeSmokeError("public smoke report must contain an object")
-    if data.get("schema") != SMOKE_SCHEMA or data.get("kind") != SMOKE_KIND:
+    if (
+        type(data.get("schema")) is not int
+        or data["schema"] != SMOKE_SCHEMA
+        or data.get("kind") != SMOKE_KIND
+    ):
         raise ChallengeSmokeError("unsupported public smoke report")
     if data.get("status") != "pass":
         raise ChallengeSmokeError("public smoke report does not record a pass")
@@ -51,8 +57,11 @@ def validate_public_smoke_report(
         and repository_revision != expected_repository_revision
     ):
         raise ChallengeSmokeError("public smoke report does not match the evaluator revision")
-    if not isinstance(data.get("python_version"), str) or not data["python_version"].strip():
-        raise ChallengeSmokeError("public smoke report needs python_version")
+    if (
+        not isinstance(data.get("python_version"), str)
+        or not PYTHON_VERSION.fullmatch(data["python_version"])
+    ):
+        raise ChallengeSmokeError("public smoke report requires Python 3.12")
     if data.get("credentials_required") is not False:
         raise ChallengeSmokeError("public smoke must declare credentials_required=false")
     if data.get("database_required") is not False:

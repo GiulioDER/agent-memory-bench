@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,7 @@ from .challenge_rules import rules_digest
 
 EVALUATOR_REVISION = re.compile(r"^[0-9a-f]{40,64}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+HASH_CHUNK_SIZE = 1024 * 1024
 
 
 def validate_sha256_digest(value: str, label: str) -> str:
@@ -32,17 +35,63 @@ def validate_evaluator_revision(value: str) -> str:
     return value
 
 
+def current_evaluator_revision(repository: str | Path) -> str:
+    """Resolve the commit actually checked out by the evaluator source tree."""
+
+    root = Path(repository).expanduser().resolve()
+    env = {
+        name: value
+        for name, value in os.environ.items()
+        if not name.upper().startswith("GIT_")
+    }
+    env.update(
+        {
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+        }
+    )
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD"],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        raise ValueError(f"could not resolve evaluator revision: {result.stderr.strip()}")
+    revision = validate_evaluator_revision(result.stdout.strip())
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    if status.returncode != 0:
+        raise ValueError(f"could not inspect evaluator source: {status.stderr.strip()}")
+    if status.stdout.strip():
+        raise ValueError("evaluator source tree must be clean")
+    return revision
+
+
 def hash_private_pack(pack: ChallengePack) -> str:
     """Hash every regular file and its portable relative path in a validated private pack."""
 
     digest = hashlib.sha256()
     for path in sorted(candidate for candidate in pack.root.rglob("*") if candidate.is_file()):
         relative = path.relative_to(pack.root).as_posix().encode("utf-8")
-        content = path.read_bytes()
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
-        digest.update(len(content).to_bytes(8, "big"))
-        digest.update(content)
+        size = path.stat().st_size
+        digest.update(size.to_bytes(8, "big"))
+        with path.open("rb") as handle:
+            while chunk := handle.read(HASH_CHUNK_SIZE):
+                digest.update(chunk)
     return digest.hexdigest()
 
 

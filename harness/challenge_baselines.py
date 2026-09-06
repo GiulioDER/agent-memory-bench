@@ -6,6 +6,7 @@ import math
 from collections.abc import Iterable
 from typing import Any
 
+from .challenge_pack import IMAGE_DIGEST
 from .challenge_release import validate_evaluator_revision, validate_sha256_digest
 
 
@@ -25,13 +26,18 @@ def validate_public_score_manifest(manifest: dict[str, Any], label: str = "score
 
     if not isinstance(manifest, dict):
         raise ChallengeBaselineError(f"{label} manifest must be an object")
-    if manifest.get("schema") != 1 or manifest.get("kind") != "amb-challenge-score-manifest":
+    if (
+        type(manifest.get("schema")) is not int
+        or manifest["schema"] != 1
+        or manifest.get("kind") != "amb-challenge-score-manifest"
+    ):
         raise ChallengeBaselineError(f"{label} manifest has an unsupported schema")
     for field in (
         "pack_id",
         "scoring_version",
         "pack_digest",
         "rules_digest",
+        "config_sha256",
         "evaluator_revision",
         "policy_digest",
         "submission_id",
@@ -42,9 +48,13 @@ def validate_public_score_manifest(manifest: dict[str, Any], label: str = "score
     try:
         validate_sha256_digest(manifest["pack_digest"], f"{label} pack_digest")
         validate_sha256_digest(manifest["rules_digest"], f"{label} rules_digest")
+        validate_sha256_digest(manifest["policy_digest"], f"{label} policy_digest")
+        validate_sha256_digest(manifest["config_sha256"], f"{label} config_sha256")
         validate_evaluator_revision(manifest["evaluator_revision"])
     except ValueError as error:
-        raise ChallengeBaselineError(f"{label} manifest has an invalid evaluator_revision") from error
+        raise ChallengeBaselineError(f"{label} manifest has invalid provenance") from error
+    if not IMAGE_DIGEST.fullmatch(manifest["image"]):
+        raise ChallengeBaselineError(f"{label} manifest image must use an immutable digest")
     if not isinstance(manifest.get("private_details_included"), bool) or manifest["private_details_included"]:
         raise ChallengeBaselineError(f"{label} manifest must be public")
     task_count = manifest.get("task_count")
@@ -117,6 +127,7 @@ def verify_baseline_ordering(
         "rules_digest",
         "evaluator_revision",
         "policy_digest",
+        "config_sha256",
         "task_count",
     )
     mismatches = [field for field in comparable_fields if baseline.get(field) != deliberately_bad.get(field)]
@@ -140,10 +151,14 @@ def verify_baseline_ordering(
     baseline_score = _score(baseline, "baseline")
     bad_score = _score(deliberately_bad, "deliberately bad")
     margin = baseline_score - bad_score
-    if margin <= minimum_margin:
+    if margin < minimum_margin:
         raise ChallengeBaselineError(
             f"baseline ordering failed: baseline={baseline_score}, bad={bad_score}, "
             f"margin={margin}, required={minimum_margin}"
+        )
+    if baseline["submission_id"] == deliberately_bad["submission_id"]:
+        raise ChallengeBaselineError(
+            "baseline and deliberately bad manifests must identify independent submissions"
         )
     return {
         "status": "pass",

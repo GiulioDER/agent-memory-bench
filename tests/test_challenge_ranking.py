@@ -15,8 +15,9 @@ def _manifest(submission_id: str, score: float, passed: tuple[bool, bool]) -> di
         "scoring_version": "score-a",
         "pack_digest": "b" * 64,
         "rules_digest": "c" * 64,
+        "config_sha256": "d" * 64,
         "evaluator_revision": "a" * 40,
-        "policy_digest": "policy-a",
+        "policy_digest": "e" * 64,
         "submission_id": submission_id,
         "image": "registry.example/entry@sha256:" + "a" * 64,
         "task_count": 2,
@@ -66,12 +67,12 @@ def test_ranking_does_not_silently_break_an_unresolved_tie():
 
 def test_ranking_rejects_provenance_mismatch():
     bad = _manifest("entry-b", 0.5, (False, True))
-    bad["policy_digest"] = "other-policy"
+    bad["policy_digest"] = "f" * 64
     with pytest.raises(ChallengeRankingError, match="policy_digest"):
         rank_challenge_entries(
             [_manifest("entry-a", 0.5, (True, False)), bad],
             _rules(["task-a"]),
-            expected_policy_digest="policy-a",
+            expected_policy_digest="e" * 64,
         )
 
 

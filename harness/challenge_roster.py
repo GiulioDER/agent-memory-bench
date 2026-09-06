@@ -28,7 +28,11 @@ def validate_roster_review(
 
     if not isinstance(data, dict):
         raise ChallengeRosterReviewError("roster review must contain an object")
-    if data.get("schema") != REVIEW_SCHEMA or data.get("kind") != REVIEW_KIND:
+    if (
+        type(data.get("schema")) is not int
+        or data["schema"] != REVIEW_SCHEMA
+        or data.get("kind") != REVIEW_KIND
+    ):
         raise ChallengeRosterReviewError("unsupported roster review")
     if data.get("status") != "pass":
         raise ChallengeRosterReviewError("roster review does not record a pass")

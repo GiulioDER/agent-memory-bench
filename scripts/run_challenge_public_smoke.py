@@ -17,6 +17,7 @@ if str(REPO) not in sys.path:
 
 from harness.challenge_release import validate_evaluator_revision
 from harness.challenge_smoke import validate_public_smoke_report
+from harness.checker_run import run_bounded
 
 _PYTEST_COUNT = re.compile(r"(?P<count>\d+)\s+(?P<kind>passed|skipped|failed|error[s]?)")
 _SMOKE_ENV_ALLOWLIST = {
@@ -56,7 +57,7 @@ def _repository_revision(repo: Path, env: dict[str, str]) -> str:
     if result.returncode != 0 or not result.stdout.strip():
         raise PublicSmokeError(f"could not resolve repository revision: {result.stderr.strip()}")
     status = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=no"],
+        ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=repo,
         env=env,
         capture_output=True,
@@ -72,7 +73,7 @@ def _repository_revision(repo: Path, env: dict[str, str]) -> str:
 
 def _assert_clean_repository(repo: Path, env: dict[str, str]) -> None:
     status = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=no"],
+        ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=repo,
         env=env,
         capture_output=True,
@@ -86,16 +87,16 @@ def _assert_clean_repository(repo: Path, env: dict[str, str]) -> None:
 
 
 def _run(command: tuple[str, ...], repo: Path, env: dict[str, str], timeout: float) -> str:
-    result = subprocess.run(
-        list(command),
+    result = run_bounded(
+        command,
         cwd=repo,
         env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=timeout,
+        timeout_s=timeout,
+        inherit_host_environment=False,
     )
     output = result.stdout + result.stderr
+    if result.timed_out:
+        raise PublicSmokeError(f"command timed out: {' '.join(command)}\n{output[-4000:]}")
     if result.returncode != 0:
         raise PublicSmokeError(
             f"command failed ({result.returncode}): {' '.join(command)}\n{output[-4000:]}"
@@ -139,14 +140,16 @@ def run_smoke(
     if not repo.is_dir():
         raise PublicSmokeError(f"repository is not a directory: {repo}")
     env = _clean_environment()
-    if repository_revision is None:
-        revision = _repository_revision(repo, env)
-    else:
+    revision = _repository_revision(repo, env)
+    if repository_revision is not None:
         try:
-            revision = validate_evaluator_revision(repository_revision)
+            expected_revision = validate_evaluator_revision(repository_revision)
         except ValueError as error:
             raise PublicSmokeError(str(error)) from error
-        _assert_clean_repository(repo, env)
+        if revision != expected_revision:
+            raise PublicSmokeError(
+                "supplied repository revision does not match the repository HEAD"
+            )
     commands: list[dict[str, str]] = []
     tests_passed = 0
     tests_skipped = 0

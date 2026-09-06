@@ -79,6 +79,7 @@ The manifest shape is intentionally small and explicit:
   "pack_id": "challenge-001",
   "source_public_commit": "public-commit-sha",
   "scoring_version": "score-1",
+  "prepared_by": "organizer-identity",
   "corpus": "corpus",
   "tasks": [
     {
@@ -106,6 +107,23 @@ python -m scripts.validate_challenge_submission \
   --pack /private/amb-challenge-pack \
   --submission submission.json \
   --json
+```
+
+The descriptor has this normative shape. The listed fields are mandatory and `config_sha256`
+binds the evaluated adapter configuration:
+
+```json
+{
+  "schema": 1,
+  "kind": "amb-challenge-submission",
+  "submission_id": "entry-001",
+  "image": "registry.example/entry@sha256:<64 lowercase hex characters>",
+  "source_revision": "source-commit-sha",
+  "adapter_api": "amb-challenge-adapter-v1",
+  "config_sha256": "<64 lowercase hex characters>",
+  "network": "none",
+  "entrypoint": ["/usr/local/bin/entry", "serve"]
+}
 ```
 
 The plan is not an executor. The eventual evaluator must enforce its read only root, dropped
@@ -160,6 +178,11 @@ session. The evaluator validates every response,
 applies the fixed timeout and records protocol errors as run outcomes. An `ingest` method is not
 exposed to the agent protocol because corpus ingestion belongs to sidecar startup.
 
+Each request and response is at most 1 MiB, must be one complete newline terminated JSON object,
+and must use a non empty string request id. A response must preserve that id and the API value.
+`health` and `reset` are evaluator only. Protocol errors, malformed JSON, missing fields and
+timeouts are recorded as failed task outcomes.
+
 A successful `search` response has this result shape:
 
 ```json
@@ -179,9 +202,14 @@ After the sidecar and fixed agent finish, the evaluator runs the private checker
 bounded host process. The checker receives the finished task directory and its private oracle
 directory. It never runs in the entrant container. A public score manifest contains task ids and
 pass or fail outcomes, but not private checker messages, oracle paths or oracle explanations.
+The checker entrypoint must expose `check(workdir, oracle_dir)` and return exactly
+`(bool, str)`. An exception becomes a failed checker outcome, malformed return data aborts the
+evaluation, and the checker process runs under the evaluator's documented Python environment.
 The aggregate is deterministic and must contain exactly one result for every task.
 Both score manifests also record the frozen evaluator revision; baseline calibration and final
 ranking reject manifests produced by different evaluator revisions.
+They also record the policy digest and submitted configuration digest. Public manifests must use
+an immutable image digest and must not include private checker verdicts or paths.
 
 The coordinator enforces this order independently for every task:
 
@@ -223,7 +251,7 @@ python -m scripts.evaluate_challenge \
   --agent-command "python /evaluator/fixed_agent.py"
 ```
 
-The command and all timeout, model, seed, retry and budget values are evaluator configuration. They
+The command and all timeout, model, retry and budget values are evaluator configuration. They
 must be frozen and hashed before entries open. The frozen policy also contains the canonical digest
 of the fixed agent command, and the evaluator rejects a command that does not match it. The policy
 digest is recorded in both score manifests. The submission descriptor cannot override them. The checked in
@@ -260,11 +288,17 @@ frozen private pack, the ordering gate is run with:
 python -m scripts.verify_challenge_ordering \
   --baseline /private/results/baseline-public.json \
   --deliberately-bad /private/results/empty-public.json \
+  --pack /private/amb-challenge-pack \
+  --policy /private/amb-challenge-policy.json \
+  --rules /private/amb-challenge-rules.json \
+  --evaluator-revision <clean-evaluator-git-commit> \
   --minimum-margin 0.10
 ```
 
-The gate checks supplied manifests; it does not manufacture baseline evidence. Both manifests
-must come from independent runs under the frozen policy and private pack.
+The gate checks supplied manifests against the private pack, frozen policy, final rules and
+evaluator revision. It does not accept caller supplied provenance as authoritative or manufacture
+baseline evidence. Both manifests must come from independent runs under the frozen policy and
+private pack.
 
 The organizer can aggregate the machine checkable release gates into one blocked or passing
 report. Missing private material, draft rules, stale release hashes, corpus leakage, container
@@ -284,10 +318,16 @@ python -m scripts.check_challenge_readiness \
   --roster-review /private/results/roster-review.json
 ```
 
-The public smoke report must be produced on a clean machine and record passing Ruff, the complete
+The public smoke report must be produced on a clean machine running Python 3.12 and record passing Ruff, the complete
 pytest suite, corpus and plant audits, and both dry-run runners. It must explicitly declare that no
 credentials or database were required and must be bound to the evaluator revision. Produce it from
-a clean checkout with Python 3.12 and Git using:
+a clean checkout with Python 3.12, Git and the locked development dependencies. Install them with:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+Then use:
 
 ```bash
 python -m scripts.run_challenge_public_smoke \

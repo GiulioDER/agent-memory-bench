@@ -28,7 +28,11 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         raise ChallengeRulesError(f"cannot read rules: {raw_path}") from error
     if not isinstance(data, dict):
         raise ChallengeRulesError("rules must contain an object")
-    if data.get("schema") != RULES_SCHEMA or data.get("kind") != RULES_KIND:
+    if (
+        type(data.get("schema")) is not int
+        or data["schema"] != RULES_SCHEMA
+        or data.get("kind") != RULES_KIND
+    ):
         raise ChallengeRulesError("unsupported challenge rules")
     required = (
         "rules_id",
@@ -73,7 +77,11 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
             or value <= 0
         ):
             raise ChallengeRulesError(f"rules field {field!r} must be a positive integer")
-    if not isinstance(data["infrastructure_retry_count"], int) or data["infrastructure_retry_count"] < 0:
+    if (
+        isinstance(data["infrastructure_retry_count"], bool)
+        or not isinstance(data["infrastructure_retry_count"], int)
+        or data["infrastructure_retry_count"] < 0
+    ):
         raise ChallengeRulesError("infrastructure_retry_count must be non negative")
     baseline_minimum_margin = data["baseline_minimum_margin"]
     if (
@@ -102,8 +110,17 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         raise ChallengeRulesError("excluded_submission_ids must not contain duplicates")
     if not isinstance(data["publication"], dict):
         raise ChallengeRulesError("publication must be an object")
+    expected_publication = {
+        "publish_failed_entries",
+        "publish_score_manifest",
+        "publish_submission_image_digest",
+    }
+    if set(data["publication"]) != expected_publication:
+        raise ChallengeRulesError("publication must contain exactly the approved publication controls")
     if any(not isinstance(value, bool) for value in data["publication"].values()):
         raise ChallengeRulesError("publication values must be booleans")
+    if not all(data["publication"].values()):
+        raise ChallengeRulesError("all approved publication controls must be true")
     if require_final:
         if data["status"] != "final":
             raise ChallengeRulesError("final release requires status='final' rules")

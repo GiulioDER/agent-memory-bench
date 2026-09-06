@@ -178,6 +178,7 @@ def request_unix_socket(
             channel.settimeout(timeout_seconds)
             channel.connect(socket_path)
             channel.sendall(request)
+            channel.shutdown(socket.SHUT_WR)
             response = bytearray()
             while len(response) <= MAX_MESSAGE_BYTES:
                 chunk = channel.recv(min(65_536, MAX_MESSAGE_BYTES + 1 - len(response)))

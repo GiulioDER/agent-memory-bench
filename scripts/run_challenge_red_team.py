@@ -23,6 +23,7 @@ from harness.challenge_pack import (
 from harness.challenge_redteam import audit_docker_argv, audit_plan, write_red_team_report
 from harness.challenge_runner import (
     ChallengeRunnerError,
+    _docker_environment,
     build_adapter_service_argv,
     build_docker_argv,
     run_challenge_task,
@@ -40,6 +41,7 @@ def _image_digest(image: str, docker_binary: str) -> str:
         text=True,
         check=False,
         timeout=30,
+        env=_docker_environment(),
     )
     digest = completed.stdout.strip()
     if completed.returncode != 0 or not IMAGE_DIGEST.fullmatch(digest):
@@ -144,7 +146,14 @@ def _run_sidecar_probe(pack: ChallengePack, submission: ChallengeSubmission, doc
         "touch /challenge/runtime/sidecar-probe.txt"
     )
     argv[-1] = script
-    completed = subprocess.run(argv, capture_output=True, text=True, check=False, timeout=30)
+    completed = subprocess.run(
+        argv,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+        env=_docker_environment(),
+    )
     if completed.returncode != 0:
         raise ChallengeRunnerError(f"sidecar red team probe failed: {completed.stderr[-500:]}")
     if any(output_root.rglob("*")):

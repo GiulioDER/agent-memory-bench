@@ -19,7 +19,11 @@ def validate_red_team_report(data: Any) -> str:
 
     if not isinstance(data, dict):
         raise ChallengeRedTeamError("red team report must contain an object")
-    if data.get("schema") != 1 or data.get("kind") != "amb-challenge-red-team-report":
+    if (
+        type(data.get("schema")) is not int
+        or data["schema"] != 1
+        or data.get("kind") != "amb-challenge-red-team-report"
+    ):
         raise ChallengeRedTeamError("unsupported red team report")
     if data.get("status") != "pass":
         raise ChallengeRedTeamError("red team report does not record a pass")

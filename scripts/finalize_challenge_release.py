@@ -14,7 +14,11 @@ if str(REPO) not in sys.path:
 from harness.challenge_pack import ChallengePackError, load_private_pack
 from harness.challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
 from harness.challenge_policy import ChallengePolicyError, load_policy
-from harness.challenge_release import build_release_manifest, write_release_manifest
+from harness.challenge_release import (
+    build_release_manifest,
+    current_evaluator_revision,
+    write_release_manifest,
+)
 from harness.challenge_rules import (
     ChallengeRulesError,
     load_rules,
@@ -32,6 +36,10 @@ def main() -> int:
     args = parser.parse_args()
     try:
         pack = load_private_pack(args.pack)
+        if current_evaluator_revision(REPO) != args.evaluator_revision:
+            raise ValueError(
+                "evaluator revision does not match the checked out evaluator source"
+            )
         audit_pack_corpus(pack)
         policy = load_policy(args.policy, require_frozen=True)
         rules = load_rules(args.rules, require_final=True)

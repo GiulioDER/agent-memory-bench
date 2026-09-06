@@ -160,6 +160,7 @@ def evaluate_submission(
     checker_timeout_s: float = DEFAULT_TIMEOUT_SECONDS,
     pack_digest: str,
     rules_digest: str,
+    policy_digest: str,
     evaluator_revision: str,
     model_proxy_socket: str | Path | None = None,
     adapter_call_budget: int = DEFAULT_ADAPTER_CALL_BUDGET,
@@ -258,6 +259,8 @@ def evaluate_submission(
         scores,
         pack_digest=pack_digest,
         rules_digest=rules_digest,
+        policy_digest=policy_digest,
+        config_sha256=submission.config_sha256,
         evaluator_revision=evaluator_revision,
         public=True,
     )
@@ -267,6 +270,8 @@ def evaluate_submission(
         scores,
         pack_digest=pack_digest,
         rules_digest=rules_digest,
+        policy_digest=policy_digest,
+        config_sha256=submission.config_sha256,
         evaluator_revision=evaluator_revision,
         public=False,
     )
