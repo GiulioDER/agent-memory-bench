@@ -29,6 +29,7 @@ if str(REPO) not in sys.path:
 from harness.challenge_agent import make_command_agent_runner
 from harness.challenge_evaluator import ChallengeEvaluatorError, evaluate_submission
 from harness.challenge_pack import ChallengePackError, load_private_pack, load_submission
+from harness.challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
 from harness.challenge_policy import ChallengePolicyError, agent_command_digest, load_policy
 from harness.challenge_release import hash_private_pack
 from harness.challenge_rules import (
@@ -63,6 +64,7 @@ def main() -> int:
         if agent_command_digest(command) != policy.agent_command_sha256:
             raise ChallengePolicyError("agent command does not match the frozen policy digest")
         pack = load_private_pack(args.pack)
+        audit_pack_corpus(pack)
         rules = load_rules(args.rules, require_final=True)
         validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
         if policy.infrastructure_retries != rules["infrastructure_retry_count"]:
@@ -104,6 +106,7 @@ def main() -> int:
         write_score_manifest(args.private_manifest, private)
     except (
         ChallengePackError,
+        ChallengePackLeakageError,
         ChallengePolicyError,
         ChallengeRulesError,
         ChallengeEvaluatorError,

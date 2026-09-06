@@ -185,6 +185,17 @@ def _validate_manifest(root: Path, data: Any) -> ChallengePack:
             for field in TASK_PATHS
         }
         tasks.append(ChallengeTask(task_id=task_id, **paths))
+    for task in tasks:
+        for field in TASK_PATHS:
+            private_path = getattr(task, field)
+            if (
+                corpus == private_path
+                or corpus in private_path.parents
+                or private_path in corpus.parents
+            ):
+                raise ChallengePackError(
+                    f"corpus overlaps private task path {task.task_id!r}/{field}"
+                )
     for index, task in enumerate(tasks):
         for other in tasks[index + 1 :]:
             for field in TASK_ISOLATED_PATHS:

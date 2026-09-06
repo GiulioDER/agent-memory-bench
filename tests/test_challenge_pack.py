@@ -102,3 +102,10 @@ def test_task_private_inputs_must_not_be_reused_between_tasks(tmp_path: Path):
     (pack / "pack.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ChallengePackError, match="paths overlap"):
         load_private_pack(pack)
+
+
+def test_corpus_must_not_overlap_private_task_paths(tmp_path: Path):
+    pack = _write_pack(tmp_path / "pack", corpus="fixtures")
+
+    with pytest.raises(ChallengePackError, match="corpus overlaps private task path"):
+        load_private_pack(pack)
