@@ -3,8 +3,6 @@ from pathlib import Path
 
 import pytest
 
-from scripts.capability_verify import main
-
 from harness.capabilities import (
     MAX_ARTIFACT_BYTES,
     load_artifact,
@@ -12,6 +10,7 @@ from harness.capabilities import (
     qualification_subset,
     score_artifact,
 )
+from scripts.capability_verify import main
 
 
 ROOT = Path(__file__).parents[1]
