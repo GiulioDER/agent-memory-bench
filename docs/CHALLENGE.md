@@ -273,10 +273,22 @@ python -m scripts.check_challenge_readiness \
   --rules /private/amb-challenge-rules.json \
   --evaluator-revision <clean-evaluator-git-commit> \
   --release /private/amb-release.json \
+  --public-smoke-report /private/results/public-smoke.json \
   --baseline /private/results/baseline-public.json \
   --deliberately-bad /private/results/empty-public.json \
   --red-team-report /private/results/red-team.json \
   --roster-review /private/results/roster-review.json
+```
+
+The public smoke report must be produced on a clean machine and record passing Ruff, the complete
+pytest suite, corpus and plant audits, and both dry-run runners. It must explicitly declare that no
+credentials or database were required and must be bound to the evaluator revision. Validate it
+independently with:
+
+```bash
+python -m scripts.validate_challenge_smoke \
+  --report /private/results/public-smoke.json \
+  --repository-revision <clean-evaluator-git-commit>
 ```
 
 The command exits successfully only when every supplied release gate passes. It does not create

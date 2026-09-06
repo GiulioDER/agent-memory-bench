@@ -20,6 +20,7 @@ from .challenge_rules import (
     rules_digest,
     validate_rules_for_task_ids,
 )
+from .challenge_smoke import ChallengeSmokeError, validate_public_smoke_report
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ def evaluate_readiness(
     deliberately_bad_path: str | Path | None = None,
     red_team_report_path: str | Path | None = None,
     roster_review_path: str | Path | None = None,
+    public_smoke_report_path: str | Path | None = None,
     evaluator_revision: str | None = None,
 ) -> tuple[ChallengeReadinessGate, ...]:
     """Return every gate result without hiding a missing external prerequisite."""
@@ -63,6 +65,29 @@ def evaluate_readiness(
         gates.append(ChallengeReadinessGate("private_pack", True, f"{len(pack.tasks)} task(s)"))
     except (ChallengePackError, OSError, ValueError) as error:
         gates.append(ChallengeReadinessGate("private_pack", False, str(error)))
+    if public_smoke_report_path is None:
+        gates.append(
+            ChallengeReadinessGate("public_smoke", False, "public smoke report was not supplied")
+        )
+    elif evaluator_revision is None:
+        gates.append(
+            ChallengeReadinessGate("public_smoke", False, "evaluator revision was not supplied")
+        )
+    else:
+        try:
+            report = validate_public_smoke_report(
+                _read_json(Path(public_smoke_report_path)),
+                expected_repository_revision=evaluator_revision,
+            )
+            gates.append(
+                ChallengeReadinessGate(
+                    "public_smoke",
+                    True,
+                    f"{report['tests_passed']} passed, {report['tests_skipped']} skipped",
+                )
+            )
+        except (ChallengeSmokeError, OSError, TypeError, ValueError) as error:
+            gates.append(ChallengeReadinessGate("public_smoke", False, str(error)))
     if pack is not None:
         try:
             report = audit_pack_corpus(pack)

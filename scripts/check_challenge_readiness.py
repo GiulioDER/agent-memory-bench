@@ -24,6 +24,7 @@ def main() -> int:
     parser.add_argument("--deliberately-bad", type=Path)
     parser.add_argument("--red-team-report", type=Path)
     parser.add_argument("--roster-review", type=Path)
+    parser.add_argument("--public-smoke-report", type=Path)
     parser.add_argument("--evaluator-revision")
     args = parser.parse_args()
     result = readiness_result(
@@ -36,6 +37,7 @@ def main() -> int:
             deliberately_bad_path=args.deliberately_bad,
             red_team_report_path=args.red_team_report,
             roster_review_path=args.roster_review,
+            public_smoke_report_path=args.public_smoke_report,
             evaluator_revision=args.evaluator_revision,
         )
     )

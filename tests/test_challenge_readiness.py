@@ -67,6 +67,7 @@ def test_readiness_reports_missing_external_gates(tmp_path: Path):
     assert result["status"] == "blocked"
     assert {gate["name"] for gate in result["gates"]} == {
         "private_pack",
+        "public_smoke",
         "corpus_leakage",
         "container_isolation",
         "task_roster_review",
@@ -208,6 +209,34 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
         ),
         encoding="utf-8",
     )
+    smoke_path = tmp_path / "public-smoke.json"
+    smoke_path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "kind": "amb-challenge-public-smoke-report",
+                "status": "pass",
+                "repository_revision": "a" * 40,
+                "python_version": "3.12.11",
+                "credentials_required": False,
+                "database_required": False,
+                "commands": [
+                    {"name": name, "status": "pass"}
+                    for name in (
+                        "ruff",
+                        "pytest",
+                        "audit_corpus",
+                        "audit_plants",
+                        "diagnostic_dry_run",
+                        "pilot_dry_run",
+                    )
+                ],
+                "tests_passed": 1120,
+                "tests_skipped": 17,
+            }
+        ),
+        encoding="utf-8",
+    )
 
     result = readiness_result(
         evaluate_readiness(
@@ -219,6 +248,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             deliberately_bad_path=bad_path,
             red_team_report_path=red_team_path,
             roster_review_path=roster_review_path,
+            public_smoke_report_path=smoke_path,
             evaluator_revision="a" * 40,
         )
     )
@@ -234,6 +264,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             deliberately_bad_path=bad_path,
             red_team_report_path=red_team_path,
             roster_review_path=roster_review_path,
+            public_smoke_report_path=smoke_path,
             evaluator_revision="dirty",
         )
     )
@@ -253,6 +284,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             deliberately_bad_path=bad_path,
             red_team_report_path=red_team_path,
             roster_review_path=roster_review_path,
+            public_smoke_report_path=smoke_path,
             evaluator_revision="a" * 40,
         )
     )
