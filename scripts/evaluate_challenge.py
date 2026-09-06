@@ -29,7 +29,7 @@ if str(REPO) not in sys.path:
 from harness.challenge_agent import make_command_agent_runner
 from harness.challenge_evaluator import ChallengeEvaluatorError, evaluate_submission
 from harness.challenge_pack import ChallengePackError, load_private_pack, load_submission
-from harness.challenge_policy import ChallengePolicyError, load_policy
+from harness.challenge_policy import ChallengePolicyError, agent_command_digest, load_policy
 from harness.challenge_scoring import ChallengeScoringError, write_score_manifest
 
 
@@ -51,6 +51,8 @@ def main() -> int:
         if not command:
             raise ChallengeEvaluatorError("agent command must not be empty")
         policy = load_policy(args.policy, require_frozen=True)
+        if agent_command_digest(command) != policy.agent_command_sha256:
+            raise ChallengePolicyError("agent command does not match the frozen policy digest")
         pack = load_private_pack(args.pack)
         submission = load_submission(args.submission)
         public, private = evaluate_submission(

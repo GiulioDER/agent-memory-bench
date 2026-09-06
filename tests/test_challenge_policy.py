@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.challenge_policy import ChallengePolicyError, load_policy
+from harness.challenge_policy import ChallengePolicyError, agent_command_digest, load_policy
 
 
 def _write_policy(path: Path, **overrides) -> Path:
@@ -15,6 +15,7 @@ def _write_policy(path: Path, **overrides) -> Path:
         "schema": 1,
         "kind": "amb-challenge-evaluation-policy",
         "policy_id": "policy-a",
+        "agent_command_sha256": "a" * 64,
         "agent_timeout_seconds": 900,
         "checker_timeout_seconds": 900,
         "adapter_call_budget": 128,
@@ -62,3 +63,13 @@ def test_policy_frozen_mode_rejects_placeholders(tmp_path: Path):
             _write_policy(tmp_path / "policy.json", model_id="TO_BE_FROZEN"),
             require_frozen=True,
         )
+
+
+def test_policy_rejects_invalid_agent_command_digest(tmp_path: Path):
+    with pytest.raises(ChallengePolicyError, match="agent_command_sha256"):
+        load_policy(_write_policy(tmp_path / "policy.json", agent_command_sha256="not-a-digest"))
+
+
+def test_agent_command_digest_rejects_empty_commands():
+    with pytest.raises(ChallengePolicyError, match="non empty"):
+        agent_command_digest([])

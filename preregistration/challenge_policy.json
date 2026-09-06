@@ -2,6 +2,7 @@
   "schema": 1,
   "kind": "amb-challenge-evaluation-policy",
   "policy_id": "challenge-draft-001",
+  "agent_command_sha256": "TO_BE_FROZEN",
   "agent_timeout_seconds": 900,
   "checker_timeout_seconds": 900,
   "adapter_call_budget": 128,

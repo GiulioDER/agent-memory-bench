@@ -90,6 +90,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
         "schema": 1,
         "kind": "amb-challenge-evaluation-policy",
         "policy_id": "policy-readiness",
+        "agent_command_sha256": "a" * 64,
         "agent_timeout_seconds": 10,
         "checker_timeout_seconds": 10,
         "adapter_call_budget": 8,

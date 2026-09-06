@@ -217,8 +217,9 @@ python -m scripts.evaluate_challenge \
 ```
 
 The command and all timeout, model, seed, retry and budget values are evaluator configuration. They
-must be frozen and hashed before entries open. The policy digest is recorded in both score
-manifests. The submission descriptor cannot override them. The checked in
+must be frozen and hashed before entries open. The frozen policy also contains the canonical digest
+of the fixed agent command, and the evaluator rejects a command that does not match it. The policy
+digest is recorded in both score manifests. The submission descriptor cannot override them. The checked in
 `preregistration/challenge_policy.json` is a draft template and cannot be used for a prize run
 until its model and provider identifiers are replaced and independently approved.
 
