@@ -247,6 +247,10 @@ python -m scripts.finalize_challenge_release \
   --output /private/amb-release.json
 ```
 
+Finalization refuses to write the release record unless the private pack declares a non empty
+`prepared_by` identity. The generated record carries that identity so the independent roster
+review can be checked against the exact release provenance.
+
 The repository also includes a dependency free reference adapter in
 `examples/challenge_adapter.py`. Its normal mode is a deterministic lexical baseline and its
 `--empty` mode is the deliberately bad adapter. After both have been evaluated against the same
