@@ -38,6 +38,8 @@ from pathlib import Path
 
 from harness.claude_exec import _ENV_PASSTHROUGH
 
+from .process_capture import finish_output_drainers, start_output_drainers
+
 #: Nothing a checker runs is allowed to take longer than this, whatever it spawns.
 DEFAULT_TIMEOUT_S = 120.0
 
@@ -176,19 +178,14 @@ def run_bounded(
         creationflags=creation_flags,
         start_new_session=sys.platform != "win32",
     )
+    drainers, buffers, truncated = start_output_drainers(process.stdout, process.stderr)
     timed_out = False
     try:
-        stdout, stderr = process.communicate(timeout=timeout_s)
+        process.wait(timeout=timeout_s)
     except subprocess.TimeoutExpired:
         timed_out = True
         kill_tree(process)
-        # After the tree is gone the pipes close, so this second read cannot block for long. It
-        # is still bounded, because a checker that hangs here would be the same defect one level
-        # up.
-        try:
-            stdout, stderr = process.communicate(timeout=10)
-        except subprocess.TimeoutExpired:  # pragma: no cover - tree is already dead
-            stdout, stderr = "", ""
+    stdout, stderr = finish_output_drainers(drainers, buffers, truncated)
     wall = time.monotonic() - start
     return Completed(
         returncode=None if timed_out else process.returncode,

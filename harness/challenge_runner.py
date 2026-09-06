@@ -24,6 +24,7 @@ from .challenge_pack import (
     build_execution_plan,
 )
 from .challenge_protocol import ADAPTER_API, ChallengeProtocolError, request_unix_socket
+from .process_capture import finish_output_drainers, start_output_drainers
 
 DEFAULT_TIMEOUT_SECONDS = 15 * 60
 MEMORY_LIMIT = "2g"
@@ -473,11 +474,12 @@ def run_challenge_task(
     except OSError as error:
         raise ChallengeRunnerError(f"could not start Docker: {error}") from error
 
+    drainers, buffers, truncated = start_output_drainers(process.stdout, process.stderr)
     timed_out = False
     try:
         try:
-            stdout, stderr = process.communicate(timeout=timeout_seconds)
-        except subprocess.TimeoutExpired as error:
+            process.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
             timed_out = True
             subprocess.run(
                 [docker_binary, "rm", "-f", container_name],
@@ -488,14 +490,15 @@ def run_challenge_task(
                 timeout=30,
             )
             process.kill()
-            stdout, stderr = process.communicate()
-            stderr = f"{stderr}\nchallenge runner timeout after {timeout_seconds}s"
-            if not stdout and error.stdout:
-                stdout = error.stdout
+            process.wait()
+            buffers["stderr"].append(
+                f"\nchallenge runner timeout after {timeout_seconds}s"
+            )
     finally:
         if process.poll() is None:
             process.kill()
-            process.communicate()
+            process.wait()
+    stdout, stderr = finish_output_drainers(drainers, buffers, truncated)
 
     return ChallengeRunResult(
         task_id=task_id,
