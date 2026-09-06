@@ -76,7 +76,7 @@ def load_manifest(path: str | Path, *, repo_root: str | Path | None = None) -> C
     manifest_path = Path(path)
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise ValueError(f"{manifest_path}: manifest root must be a JSON object")
+        raise TypeError(f"{manifest_path}: manifest root must be a JSON object")
     if data.get("schema_version") != SCHEMA_VERSION:
         raise ValueError(f"{manifest_path}: unsupported schema_version {data.get('schema_version')!r}")
     if not isinstance(data.get("manifest_id"), str) or not data["manifest_id"].strip():
@@ -123,7 +123,7 @@ def _validate_temporal(manifest: CapabilityManifest, repo_root: Path) -> None:
     }
     corpus_manifest = repo_root / "corpus" / "manifest.json"
     corpus_sessions = json.loads(corpus_manifest.read_text(encoding="utf-8"))["sessions"]
-    for precursor, source_path in source_paths.items():
+    for source_path in source_paths.values():
         if source_path not in corpus_sessions:
             raise ValueError(f"temporal source {source_path} is absent from corpus/manifest.json")
 
@@ -195,7 +195,7 @@ def load_artifact(path: str | Path, manifest: CapabilityManifest) -> tuple[dict[
             raise ValueError(f"{artifact_path}: artifact needs a header and result rows")
         header = json.loads(header_line)
         if not isinstance(header, dict):
-            raise ValueError(f"{artifact_path}: artifact header must be a JSON object")
+            raise TypeError(f"{artifact_path}: artifact header must be a JSON object")
         rows = []
         seen: set[str] = set()
         for line_number, line in enumerate(stream, start=2):
@@ -203,7 +203,7 @@ def load_artifact(path: str | Path, manifest: CapabilityManifest) -> tuple[dict[
                 continue
             row = json.loads(line)
             if not isinstance(row, dict):
-                raise ValueError(f"{artifact_path}:{line_number}: result row must be a JSON object")
+                raise TypeError(f"{artifact_path}:{line_number}: result row must be a JSON object")
             probe_id = row.get("probe_id")
             if not isinstance(probe_id, str) or not probe_id:
                 raise ValueError(f"{artifact_path}:{line_number}: probe_id must be a non-empty string")
@@ -311,7 +311,7 @@ def _score_isolation(
 def qualification_subset(manifest: CapabilityManifest, subset_path: str | Path) -> CapabilityManifest:
     subset = json.loads(Path(subset_path).read_text(encoding="utf-8"))
     if not isinstance(subset, dict):
-        raise ValueError("standard subset root must be a JSON object")
+        raise TypeError("standard subset root must be a JSON object")
     if subset.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("unsupported standard subset schema_version")
     if subset.get("track") != manifest.track:

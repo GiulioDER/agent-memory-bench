@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from scripts.capability_verify import main
+
 from harness.capabilities import (
     MAX_ARTIFACT_BYTES,
     load_artifact,
@@ -10,7 +12,6 @@ from harness.capabilities import (
     qualification_subset,
     score_artifact,
 )
-from scripts.capability_verify import main
 
 
 ROOT = Path(__file__).parents[1]
@@ -162,7 +163,7 @@ def test_manifest_digest_rejects_tampering(tmp_path):
 
 
 def test_malformed_json_shapes_are_rejected(tmp_path):
-    with pytest.raises(ValueError, match="root must be a JSON object"):
+    with pytest.raises(TypeError, match="root must be a JSON object"):
         malformed = tmp_path / "manifest.json"
         malformed.write_text("[]", encoding="utf-8")
         load_manifest(malformed)
@@ -170,7 +171,7 @@ def test_malformed_json_shapes_are_rejected(tmp_path):
     manifest = load_manifest(ROOT / "capabilities" / "temporal.json")
     artifact = tmp_path / "artifact.jsonl"
     artifact.write_text("[]\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="header must be a JSON object"):
+    with pytest.raises(TypeError, match="header must be a JSON object"):
         load_artifact(artifact, manifest)
     assert (
         main(

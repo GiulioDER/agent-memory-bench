@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
             manifest = qualification_subset(manifest, args.standard_subset)
         _, rows = load_artifact(args.artifact, manifest)
         report = score_artifact(manifest, rows)
-    except (OSError, ValueError, KeyError, json.JSONDecodeError) as error:
+    except (OSError, TypeError, ValueError, KeyError, json.JSONDecodeError) as error:
         print(f"capability verification failed: {error}", file=sys.stderr)
         return 2
 
