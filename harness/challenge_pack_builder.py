@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from .challenge_pack import PUBLIC_REPO_ROOT, ChallengePack, load_private_pack
+from .challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
 
 
 class ChallengePackBuildError(ValueError):
@@ -41,4 +42,9 @@ def materialize_private_pack(source_root: str | Path, destination: str | Path) -
         shutil.copytree(source, target, symlinks=True, dirs_exist_ok=True)
     except OSError as error:
         raise ChallengePackBuildError(f"could not materialize private pack: {error}") from error
-    return load_private_pack(target)
+    try:
+        pack = load_private_pack(target)
+        audit_pack_corpus(pack)
+    except ChallengePackLeakageError as error:
+        raise ChallengePackBuildError(f"pack corpus audit failed: {error}") from error
+    return pack

@@ -77,3 +77,11 @@ def test_materialize_private_pack_rejects_source_containing_public_repository(tm
     source_parent = PUBLIC_REPO_ROOT.parent
     with pytest.raises(ChallengePackBuildError, match="outside the public repository"):
         materialize_private_pack(source_parent, tmp_path / "destination")
+
+
+def test_materialize_private_pack_rejects_corpus_leakage(tmp_path: Path):
+    source = _source(tmp_path / "source")
+    (source / "corpus/session.txt").write_text("prompts/task-a.txt", encoding="utf-8")
+
+    with pytest.raises(ChallengePackBuildError, match="corpus audit failed"):
+        materialize_private_pack(source, tmp_path / "destination")
