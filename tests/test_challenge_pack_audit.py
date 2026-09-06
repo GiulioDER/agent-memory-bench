@@ -62,3 +62,11 @@ def test_corpus_audit_rejects_exact_oracle_overlap(tmp_path: Path):
     (pack.root / "corpus/session.txt").write_text("secret oracle", encoding="utf-8")
     with pytest.raises(ChallengePackLeakageError, match="exactly duplicates"):
         audit_pack_corpus(load_private_pack(pack.root))
+
+
+@pytest.mark.parametrize("leaked_value", ["prompt", "fixture"])
+def test_corpus_audit_rejects_exact_task_input_overlap(tmp_path: Path, leaked_value: str):
+    pack = _pack(tmp_path / "pack")
+    (pack.root / "corpus/session.txt").write_text(leaked_value, encoding="utf-8")
+    with pytest.raises(ChallengePackLeakageError, match="exactly duplicates"):
+        audit_pack_corpus(load_private_pack(pack.root))

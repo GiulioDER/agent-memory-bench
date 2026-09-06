@@ -10,7 +10,7 @@ from .challenge_pack import ChallengePack
 
 
 class ChallengePackLeakageError(ValueError):
-    """The public memory corpus contains an exact private scoring file."""
+    """The public memory corpus contains an exact private task or scoring file."""
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,13 @@ def audit_pack_corpus(pack: ChallengePack) -> ChallengePackLeakageReport:
     sensitive_roots = [
         path
         for task in pack.tasks
-        for path in (task.checker, task.oracle, task.reference)
+        for path in (
+            task.fixture,
+            task.prompt,
+            task.checker,
+            task.oracle,
+            task.reference,
+        )
     ]
     sensitive_files = [
         path for root in sensitive_roots for path in _regular_files(root) if path.is_file()

@@ -93,3 +93,12 @@ def test_missing_corpus_is_rejected(tmp_path: Path):
     (pack / "pack.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ChallengePackError, match="task 'corpus'"):
         load_private_pack(pack)
+
+
+def test_task_private_inputs_must_not_be_reused_between_tasks(tmp_path: Path):
+    pack = _write_pack(tmp_path / "pack")
+    manifest = json.loads((pack / "pack.json").read_text(encoding="utf-8"))
+    manifest["tasks"].append(dict(manifest["tasks"][0], task_id="task-b"))
+    (pack / "pack.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ChallengePackError, match="paths overlap"):
+        load_private_pack(pack)

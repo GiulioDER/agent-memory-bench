@@ -23,6 +23,7 @@ TASK_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 IMAGE_DIGEST = re.compile(r"^[A-Za-z0-9][A-Za-z0-9./:_-]*@sha256:[0-9a-f]{64}$")
 TASK_PATHS = ("fixture", "prompt", "checker", "oracle", "reference")
+TASK_ISOLATED_PATHS = ("fixture", "prompt", "oracle", "reference")
 SUBMISSION_API = "amb-challenge-adapter-v1"
 
 
@@ -184,6 +185,21 @@ def _validate_manifest(root: Path, data: Any) -> ChallengePack:
             for field in TASK_PATHS
         }
         tasks.append(ChallengeTask(task_id=task_id, **paths))
+    for index, task in enumerate(tasks):
+        for other in tasks[index + 1 :]:
+            for field in TASK_ISOLATED_PATHS:
+                current = getattr(task, field)
+                for other_field in TASK_ISOLATED_PATHS:
+                    candidate = getattr(other, other_field)
+                    if (
+                        current == candidate
+                        or current in candidate.parents
+                        or candidate in current.parents
+                    ):
+                        raise ChallengePackError(
+                            "task paths overlap between "
+                            f"{task.task_id!r}/{field} and {other.task_id!r}/{other_field}"
+                        )
     return ChallengePack(root=root, manifest=data, corpus=corpus, tasks=tuple(tasks))
 
 
