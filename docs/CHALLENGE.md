@@ -354,6 +354,7 @@ The minimum admitted cell coverage and the tie breaker are preregistered before 
 candidate with insufficient coverage is ineligible rather than ranked with a favourable subset.
 Infrastructure retries are allowed only for a preregistered wiring failure predicate. Timeouts,
 checker failures and incorrect artifacts remain outcomes.
+The retry count in the frozen policy must equal the retry count in the final contest rules.
 
 The winner is the highest eligible primary score on the private set. If scores tie, the frozen tie
 breaker tasks decide. If the evaluator changes after a submission is run, every affected entry is

@@ -35,6 +35,10 @@ def main() -> int:
         audit_pack_corpus(pack)
         policy = load_policy(args.policy, require_frozen=True)
         rules = load_rules(args.rules, require_final=True)
+        if policy.infrastructure_retries != rules["infrastructure_retry_count"]:
+            raise ChallengeRulesError(
+                "policy and rules infrastructure retry counts must match"
+            )
         validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
         manifest = build_release_manifest(
             pack,

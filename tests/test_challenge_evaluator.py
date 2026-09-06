@@ -13,6 +13,7 @@ from harness.challenge_evaluator import (
     evaluate_submission,
 )
 from harness.challenge_protocol import ADAPTER_API
+from harness.challenge_runner import ChallengeRunnerError
 
 
 def test_sidecar_client_sends_fixed_task_scoped_requests(monkeypatch, tmp_path: Path):
@@ -226,3 +227,72 @@ def test_evaluator_records_agent_failure_and_still_builds_manifests(monkeypatch,
     assert events == ["start", "health", "reset", "stop"]
     assert public == {"passed": False, "public": True}
     assert private == {"passed": False, "public": False}
+
+
+def test_evaluator_retries_only_infrastructure_failures(monkeypatch, tmp_path: Path):
+    task = SimpleNamespace(
+        task_id="task-a",
+        fixture=tmp_path / "fixture",
+        prompt=tmp_path / "prompt",
+        checker=tmp_path / "checker.py",
+        oracle=tmp_path / "oracle",
+        reference=tmp_path / "reference",
+    )
+    task.fixture.mkdir()
+    task.prompt.write_text("Answer", encoding="utf-8")
+    task.checker.write_text("", encoding="utf-8")
+    task.oracle.mkdir()
+    task.reference.mkdir()
+    pack = SimpleNamespace(tasks=(task,), root=tmp_path / "pack")
+    pack.root.mkdir()
+    submission = SimpleNamespace(submission_id="entry-a")
+    events: list[str] = []
+    starts = 0
+
+    class FakeHandle:
+        socket_path = tmp_path / "adapter.sock"
+
+        def wait_ready(self):
+            events.append("health")
+
+        def stop(self):
+            events.append("stop")
+
+    def fake_start(*_args, **_kwargs):
+        nonlocal starts
+        starts += 1
+        events.append(f"start-{starts}")
+        if starts == 1:
+            raise ChallengeRunnerError("temporary Docker wiring failure")
+        return FakeHandle()
+
+    monkeypatch.setattr("harness.challenge_evaluator.start_challenge_adapter", fake_start)
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.ChallengeAdapterClient.reset",
+        lambda _client: events.append("reset") or {"reset": True},
+    )
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.run_private_checker",
+        lambda _task, output, timeout_s: events.append(f"check:{output.name}")
+        or SimpleNamespace(task_id="task-a", passed=True),
+    )
+    monkeypatch.setattr(
+        "harness.challenge_evaluator.build_score_manifest",
+        lambda _pack, _submission, _scores, **kwargs: {"public": kwargs["public"]},
+    )
+
+    public, private = evaluate_submission(
+        pack,
+        submission,
+        tmp_path / "output",
+        tmp_path / "runtime",
+        lambda _context: events.append("agent"),
+        pack_digest="b" * 64,
+        rules_digest="c" * 64,
+        evaluator_revision="a" * 40,
+        infrastructure_retries=1,
+    )
+
+    assert events == ["start-1", "start-2", "health", "reset", "agent", "stop", "check:task-a"]
+    assert public == {"public": True}
+    assert private == {"public": False}

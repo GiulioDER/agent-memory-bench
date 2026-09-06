@@ -65,6 +65,10 @@ def main() -> int:
         pack = load_private_pack(args.pack)
         rules = load_rules(args.rules, require_final=True)
         validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
+        if policy.infrastructure_retries != rules["infrastructure_retry_count"]:
+            raise ChallengeRulesError(
+                "policy and rules infrastructure retry counts must match"
+            )
         submission = load_submission(args.submission)
         public, private = evaluate_submission(
             pack,
@@ -92,6 +96,7 @@ def main() -> int:
             evaluator_revision=args.evaluator_revision,
             model_proxy_socket=args.model_proxy_socket,
             adapter_call_budget=policy.adapter_call_budget,
+            infrastructure_retries=policy.infrastructure_retries,
         )
         public["policy_digest"] = policy.digest()
         private["policy_digest"] = policy.digest()

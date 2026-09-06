@@ -76,6 +76,11 @@ def evaluate_readiness(
         rules = load_rules(rules_path, require_final=True)
         if pack is not None:
             validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
+        if policy is not None and policy.infrastructure_retries != rules["infrastructure_retry_count"]:
+            raise ChallengeRulesError(
+                "policy and rules infrastructure retry counts must match"
+            )
+        if pack is not None:
             rules_match_pack = True
         gates.append(ChallengeReadinessGate("final_rules", True, rules_digest(rules)))
     except (ChallengeRulesError, OSError, ValueError) as error:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import shutil
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -147,6 +148,7 @@ def evaluate_submission(
     evaluator_revision: str,
     model_proxy_socket: str | Path | None = None,
     adapter_call_budget: int = DEFAULT_ADAPTER_CALL_BUDGET,
+    infrastructure_retries: int = 0,
 ) -> tuple[dict[str, Any], list[ChallengeTaskScore]]:
     """Run every task with fixed sequencing and return public and private score manifests.
 
@@ -167,6 +169,12 @@ def evaluate_submission(
         or checker_timeout_s <= 0
     ):
         raise ChallengeEvaluatorError("checker timeout must be finite and positive")
+    if (
+        isinstance(infrastructure_retries, bool)
+        or not isinstance(infrastructure_retries, int)
+        or infrastructure_retries < 0
+    ):
+        raise ChallengeEvaluatorError("infrastructure retries must be a non negative integer")
     try:
         output_base = _reject_output_overlap(Path(output_root), pack)
         runtime_base = _reject_runtime_overlap(Path(runtime_root), pack)
@@ -175,44 +183,59 @@ def evaluate_submission(
         raise ChallengeEvaluatorError(f"invalid evaluator roots: {error}") from error
     scores: list[ChallengeTaskScore] = []
     for task in pack.tasks:
-        task_runtime = runtime_base / task.task_id
         fixture, prompt, output = _task_paths(task, output_base, submission.submission_id)
-        handle: ChallengeAdapterHandle | None = None
         task_failure: str | None = None
-        try:
-            handle = start_challenge_adapter(
-                pack,
-                submission,
-                task.task_id,
-                output_base,
-                task_runtime,
-                model_proxy_socket=model_proxy_socket,
-            )
-            handle.wait_ready()
-            client = ChallengeAdapterClient(
-                handle.socket_path,
-                task.task_id,
-                max_calls=adapter_call_budget,
-            )
-            client.reset()
-            context = ChallengeTaskContext(
-                task_id=task.task_id,
-                fixture=fixture,
-                prompt=prompt,
-                output=output,
-                adapter=ChallengeAgentAdapter(client),
-            )
+        for attempt in range(infrastructure_retries + 1):
+            task_runtime = runtime_base / task.task_id / f"attempt-{attempt}"
+            handle: ChallengeAdapterHandle | None = None
+            infrastructure_error: ChallengeRunnerError | None = None
             try:
-                agent_runner(context)
-            except Exception as error:  # noqa: BLE001 - a fixed agent failure is a failed task
-                task_failure = f"fixed agent failed: {type(error).__name__}: {error}"
-        except ChallengeEvaluatorError as error:
-            task_failure = str(error)
-        except ChallengeRunnerError as error:
-            raise ChallengeEvaluatorError(f"sidecar failed for {task.task_id!r}: {error}") from error
-        finally:
-            if handle is not None:
-                handle.stop()
+                handle = start_challenge_adapter(
+                    pack,
+                    submission,
+                    task.task_id,
+                    output_base,
+                    task_runtime,
+                    model_proxy_socket=model_proxy_socket,
+                )
+                handle.wait_ready()
+                client = ChallengeAdapterClient(
+                    handle.socket_path,
+                    task.task_id,
+                    max_calls=adapter_call_budget,
+                )
+                client.reset()
+                context = ChallengeTaskContext(
+                    task_id=task.task_id,
+                    fixture=fixture,
+                    prompt=prompt,
+                    output=output,
+                    adapter=ChallengeAgentAdapter(client),
+                )
+                try:
+                    agent_runner(context)
+                except Exception as error:  # noqa: BLE001 - a fixed agent failure is a failed task
+                    task_failure = f"fixed agent failed: {type(error).__name__}: {error}"
+            except ChallengeEvaluatorError as error:
+                task_failure = str(error)
+            except ChallengeRunnerError as error:
+                infrastructure_error = error
+            finally:
+                if handle is not None:
+                    handle.stop()
+                if task_runtime.is_symlink():
+                    raise ChallengeEvaluatorError(
+                        f"task runtime became a symlink: {task_runtime}"
+                    )
+                if task_runtime.exists():
+                    shutil.rmtree(task_runtime)
+            if infrastructure_error is None:
+                break
+            if attempt == infrastructure_retries:
+                raise ChallengeEvaluatorError(
+                    f"sidecar failed for {task.task_id!r} after {attempt + 1} attempt(s): "
+                    f"{infrastructure_error}"
+                ) from infrastructure_error
         if task_failure is not None:
             scores.append(_failed_task_score(task, task_failure))
             continue
