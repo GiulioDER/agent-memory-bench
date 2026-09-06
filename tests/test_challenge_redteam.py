@@ -6,7 +6,6 @@ import json
 
 import pytest
 
-from scripts.run_challenge_red_team import _image_digest
 from harness.challenge_redteam import (
     ChallengeRedTeamError,
     audit_docker_argv,
@@ -14,6 +13,7 @@ from harness.challenge_redteam import (
     write_red_team_report,
 )
 from harness.challenge_runner import ChallengeRunnerError
+from scripts.run_challenge_red_team import _image_digest
 
 
 def test_red_team_requires_isolation_tokens():

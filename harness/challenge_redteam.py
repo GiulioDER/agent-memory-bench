@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from .challenge_pack import ChallengeExecutionPlan, IMAGE_DIGEST
+from .challenge_pack import IMAGE_DIGEST, ChallengeExecutionPlan
 
 
 class ChallengeRedTeamError(ValueError):
