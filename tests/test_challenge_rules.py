@@ -111,3 +111,10 @@ def test_rules_reject_tie_breaker_outside_private_roster(tmp_path: Path):
     rules = load_rules(_rules(tmp_path / "rules.json", tie_breaker_task_ids=["task-a", "task-b"]))
     with pytest.raises(ChallengeRulesError, match="unknown tie breaker"):
         validate_rules_for_task_ids(rules, ["task-a"])
+
+
+@pytest.mark.parametrize("margin", [0, -0.1, 1.1, float("nan"), True])
+def test_rules_reject_invalid_baseline_margin(tmp_path: Path, margin):
+    path = _rules(tmp_path / "rules.json", baseline_minimum_margin=margin)
+    with pytest.raises(ChallengeRulesError, match="baseline_minimum_margin"):
+        load_rules(path)

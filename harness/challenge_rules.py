@@ -42,6 +42,7 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         "independent_reviewer_count",
         "sponsor_entry_eligible",
         "infrastructure_retry_count",
+        "baseline_minimum_margin",
         "appeal_scope",
         "publication",
     )
@@ -74,6 +75,16 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
             raise ChallengeRulesError(f"rules field {field!r} must be a positive integer")
     if not isinstance(data["infrastructure_retry_count"], int) or data["infrastructure_retry_count"] < 0:
         raise ChallengeRulesError("infrastructure_retry_count must be non negative")
+    baseline_minimum_margin = data["baseline_minimum_margin"]
+    if (
+        isinstance(baseline_minimum_margin, bool)
+        or not isinstance(baseline_minimum_margin, (int, float))
+        or not math.isfinite(baseline_minimum_margin)
+        or not 0 < baseline_minimum_margin <= 1
+    ):
+        raise ChallengeRulesError(
+            "baseline_minimum_margin must be a positive finite number at most 1"
+        )
     if data["sponsor_entry_eligible"] is not False:
         raise ChallengeRulesError("sponsor_entry_eligible must be false")
     if not isinstance(data["tie_breaker_task_ids"], list) or not all(

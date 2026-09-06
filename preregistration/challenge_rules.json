@@ -16,6 +16,7 @@
   "independent_reviewer_count": 1,
   "sponsor_entry_eligible": false,
   "infrastructure_retry_count": 1,
+  "baseline_minimum_margin": 0.1,
   "appeal_scope": "reproducible evaluator defect or scoring application error",
   "publication": {
     "publish_failed_entries": true,

@@ -156,7 +156,7 @@ def evaluate_readiness(
             result = verify_baseline_ordering(
                 _read_json(Path(baseline_path)),
                 _read_json(Path(deliberately_bad_path)),
-                minimum_margin=0.0,
+                minimum_margin=rules["baseline_minimum_margin"],
                 expected_pack_id=pack.manifest["pack_id"],
                 expected_pack_digest=hash_private_pack(pack),
                 expected_rules_digest=rules_digest(rules),

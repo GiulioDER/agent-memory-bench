@@ -400,6 +400,7 @@ final score manifest.
 
 The machine readable draft rules are in `preregistration/challenge_rules.json`. They record the
 200 USD total prize, one winner, seven day appeal window, sponsor exclusion and publication policy.
+They also freeze the minimum baseline margin required over the deliberately bad adapter.
 The deadline and tie breaker task IDs intentionally remain approval placeholders. The challenge
 cannot move from draft to open until those values and the independent reviewer are recorded.
 

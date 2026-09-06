@@ -125,6 +125,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
                 "independent_reviewer_count": 1,
                 "sponsor_entry_eligible": False,
                 "infrastructure_retry_count": 0,
+                "baseline_minimum_margin": 0.1,
                 "appeal_scope": "evaluator defect",
                 "publication": {"publish_score_manifest": True},
             }
