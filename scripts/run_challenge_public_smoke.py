@@ -15,6 +15,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
+from harness.challenge_release import validate_evaluator_revision
 from harness.challenge_smoke import validate_public_smoke_report
 
 _PYTEST_COUNT = re.compile(r"(?P<count>\d+)\s+(?P<kind>passed|skipped|failed|error[s]?)")
@@ -64,6 +65,21 @@ def _repository_revision(repo: Path, env: dict[str, str]) -> str:
     return result.stdout.strip()
 
 
+def _assert_clean_repository(repo: Path, env: dict[str, str]) -> None:
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if status.returncode != 0:
+        raise PublicSmokeError(f"could not inspect repository status: {status.stderr.strip()}")
+    if status.stdout.strip():
+        raise PublicSmokeError("public smoke requires a clean repository")
+
+
 def _run(command: tuple[str, ...], repo: Path, env: dict[str, str], timeout: float) -> str:
     result = subprocess.run(
         list(command),
@@ -108,12 +124,24 @@ def _write_immutable(path: Path, data: dict[str, object]) -> None:
         raise PublicSmokeError(f"smoke report target appeared during write: {path}") from error
 
 
-def run_smoke(repo: Path, output: Path) -> dict[str, object]:
+def run_smoke(
+    repo: Path,
+    output: Path,
+    *,
+    repository_revision: str | None = None,
+) -> dict[str, object]:
     repo = repo.expanduser().resolve()
     if not repo.is_dir():
         raise PublicSmokeError(f"repository is not a directory: {repo}")
     env = _clean_environment()
-    revision = _repository_revision(repo, env)
+    if repository_revision is None:
+        revision = _repository_revision(repo, env)
+    else:
+        try:
+            revision = validate_evaluator_revision(repository_revision)
+        except ValueError as error:
+            raise PublicSmokeError(str(error)) from error
+        _assert_clean_repository(repo, env)
     commands: list[dict[str, str]] = []
     tests_passed = 0
     tests_skipped = 0
@@ -161,9 +189,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=REPO)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--repository-revision")
     args = parser.parse_args()
     try:
-        report = run_smoke(args.repo, args.output)
+        report = run_smoke(
+            args.repo,
+            args.output,
+            repository_revision=args.repository_revision,
+        )
     except (OSError, PublicSmokeError, subprocess.TimeoutExpired, ValueError) as error:
         print(f"public smoke failed: {error}", file=sys.stderr)
         return 1
