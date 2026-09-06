@@ -160,8 +160,13 @@ def request_unix_socket(
 ) -> dict[str, Any]:
     """Send one request over one Unix socket connection and parse its response."""
 
-    if timeout_seconds <= 0:
-        raise ChallengeProtocolError("timeout_seconds must be positive")
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not math.isfinite(timeout_seconds)
+        or timeout_seconds <= 0
+    ):
+        raise ChallengeProtocolError("timeout_seconds must be finite and positive")
     if not hasattr(socket, "AF_UNIX"):
         raise ChallengeProtocolError("Unix sockets are unavailable on this host")
     request = make_request(request_id, method, params)

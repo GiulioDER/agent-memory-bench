@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import socket
 
 import pytest
@@ -102,6 +103,12 @@ def test_socket_request_rejects_a_regular_file_at_the_adapter_path(tmp_path):
     socket_path.write_text("not a socket", encoding="utf-8")
     with pytest.raises(ChallengeProtocolError, match="not a Unix socket"):
         request_unix_socket(str(socket_path), "req-1", "health")
+
+
+@pytest.mark.parametrize("timeout_seconds", [True, 0, -1, math.nan, math.inf, "1"])
+def test_socket_request_rejects_invalid_timeouts(timeout_seconds):
+    with pytest.raises(ChallengeProtocolError, match="finite and positive"):
+        request_unix_socket("unused.sock", "req-1", "health", timeout_seconds=timeout_seconds)
 
 
 @pytest.mark.parametrize(
