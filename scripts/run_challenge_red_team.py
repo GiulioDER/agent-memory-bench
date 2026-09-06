@@ -16,6 +16,7 @@ if str(REPO) not in sys.path:
 from harness.challenge_pack import (
     ChallengePack,
     ChallengeSubmission,
+    IMAGE_DIGEST,
     build_execution_plan,
     load_private_pack,
 )
@@ -30,6 +31,8 @@ from harness.challenge_runner import (
 
 def _image_digest(image: str, docker_binary: str) -> str:
     if "@sha256:" in image:
+        if not IMAGE_DIGEST.fullmatch(image):
+            raise ChallengeRunnerError(f"image must use a valid immutable digest: {image!r}")
         return image
     completed = subprocess.run(
         [docker_binary, "image", "inspect", image, "--format", "{{index .RepoDigests 0}}"],
@@ -39,7 +42,7 @@ def _image_digest(image: str, docker_binary: str) -> str:
         timeout=30,
     )
     digest = completed.stdout.strip()
-    if completed.returncode != 0 or "@sha256:" not in digest:
+    if completed.returncode != 0 or not IMAGE_DIGEST.fullmatch(digest):
         raise ChallengeRunnerError(
             f"image must be available locally with a repository digest: {image!r}"
         )

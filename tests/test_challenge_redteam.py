@@ -6,12 +6,14 @@ import json
 
 import pytest
 
+from scripts.run_challenge_red_team import _image_digest
 from harness.challenge_redteam import (
     ChallengeRedTeamError,
     audit_docker_argv,
     validate_red_team_report,
     write_red_team_report,
 )
+from harness.challenge_runner import ChallengeRunnerError
 
 
 def test_red_team_requires_isolation_tokens():
@@ -73,3 +75,8 @@ def test_red_team_report_is_immutable_and_requires_an_image_digest(tmp_path):
         validate_red_team_report(
             {"schema": 1, "kind": "amb-challenge-red-team-report", "status": "pass", "image": "ubuntu:24.04"}
         )
+
+
+def test_red_team_rejects_malformed_pinned_image_before_docker():
+    with pytest.raises(ChallengeRunnerError, match="valid immutable digest"):
+        _image_digest("ubuntu@sha256:too-short", "docker")
