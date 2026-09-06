@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 
 from harness.challenge_smoke import ChallengeSmokeError, validate_public_smoke_report
-from scripts.run_challenge_public_smoke import PublicSmokeError, _pytest_counts, _write_immutable
+from scripts.run_challenge_public_smoke import (
+    PublicSmokeError,
+    _clean_environment,
+    _pytest_counts,
+    _write_immutable,
+)
 
 
 def _report() -> dict:
@@ -60,3 +65,10 @@ def test_smoke_producer_does_not_overwrite_different_evidence(tmp_path):
     _write_immutable(target, {"status": "pass"})
     with pytest.raises(PublicSmokeError, match="already contains different data"):
         _write_immutable(target, {"status": "different"})
+
+
+def test_smoke_producer_uses_an_environment_allowlist(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setenv("DATABASE_URL", "postgres://secret")
+    assert "OPENAI_API_KEY" not in _clean_environment()
+    assert "DATABASE_URL" not in _clean_environment()

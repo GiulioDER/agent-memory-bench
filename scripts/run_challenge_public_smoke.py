@@ -19,11 +19,16 @@ from harness.challenge_release import validate_evaluator_revision
 from harness.challenge_smoke import validate_public_smoke_report
 
 _PYTEST_COUNT = re.compile(r"(?P<count>\d+)\s+(?P<kind>passed|skipped|failed|error[s]?)")
-_SMOKE_ENV_BLOCKLIST = {
-    "DATABASE_URL",
-    "DB_URL",
-    "OPENROUTER_API_KEY",
-    "RECALL_DSN",
+_SMOKE_ENV_ALLOWLIST = {
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "PATH",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+    "TZ",
 }
 
 
@@ -35,7 +40,7 @@ def _clean_environment() -> dict[str, str]:
     return {
         key: value
         for key, value in os.environ.items()
-        if key not in _SMOKE_ENV_BLOCKLIST
+        if key in _SMOKE_ENV_ALLOWLIST
     }
 
 
