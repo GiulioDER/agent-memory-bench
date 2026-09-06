@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
-from harness.challenge_redteam import ChallengeRedTeamError, audit_docker_argv
+from harness.challenge_redteam import (
+    ChallengeRedTeamError,
+    audit_docker_argv,
+    validate_red_team_report,
+    write_red_team_report,
+)
 
 
 def test_red_team_requires_isolation_tokens():
@@ -53,4 +60,16 @@ def test_red_team_rejects_private_sidecar_targets():
                 "/challenge/output",
             ],
             sidecar=True,
+        )
+
+
+def test_red_team_report_is_immutable_and_requires_an_image_digest(tmp_path):
+    image = "registry.example/probe@sha256:" + "a" * 64
+    report_path = tmp_path / "red-team.json"
+    write_red_team_report(report_path, image)
+    assert validate_red_team_report(json.loads(report_path.read_text())) == image
+    write_red_team_report(report_path, image)
+    with pytest.raises(ChallengeRedTeamError, match="immutable digest"):
+        validate_red_team_report(
+            {"schema": 1, "kind": "amb-challenge-red-team-report", "status": "pass", "image": "ubuntu:24.04"}
         )

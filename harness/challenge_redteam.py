@@ -2,13 +2,57 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
 
-from .challenge_pack import ChallengeExecutionPlan
+from .challenge_pack import ChallengeExecutionPlan, IMAGE_DIGEST
 
 
 class ChallengeRedTeamError(ValueError):
     """A challenge command violates the minimum isolation policy."""
+
+
+def validate_red_team_report(data: Any) -> str:
+    """Validate a successful dynamic red team report and return its image digest."""
+
+    if not isinstance(data, dict):
+        raise ChallengeRedTeamError("red team report must contain an object")
+    if data.get("schema") != 1 or data.get("kind") != "amb-challenge-red-team-report":
+        raise ChallengeRedTeamError("unsupported red team report")
+    if data.get("status") != "pass":
+        raise ChallengeRedTeamError("red team report does not record a pass")
+    image = data.get("image")
+    if not isinstance(image, str) or not IMAGE_DIGEST.fullmatch(image):
+        raise ChallengeRedTeamError("red team report image must use an immutable digest")
+    return image
+
+
+def write_red_team_report(path: str | Path, image: str) -> None:
+    """Write one immutable successful red team report."""
+
+    validate_red_team_report(
+        {"schema": 1, "kind": "amb-challenge-red-team-report", "status": "pass", "image": image}
+    )
+    target = Path(path).expanduser()
+    if target.exists() and target.is_symlink():
+        raise ChallengeRedTeamError(f"red team report target must not be a symlink: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    content = json.dumps(
+        {"schema": 1, "kind": "amb-challenge-red-team-report", "status": "pass", "image": image},
+        indent=2,
+        sort_keys=True,
+    ) + "\n"
+    if target.exists():
+        if not target.is_file() or target.read_text(encoding="utf-8") != content:
+            raise ChallengeRedTeamError(f"red team report target already contains different data: {target}")
+        return
+    try:
+        with target.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+    except FileExistsError as error:
+        raise ChallengeRedTeamError(f"red team report target already exists: {target}") from error
 
 
 FORBIDDEN_TOKENS = (

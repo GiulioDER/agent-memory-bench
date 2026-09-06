@@ -263,8 +263,8 @@ The gate checks supplied manifests; it does not manufacture baseline evidence. B
 must come from independent runs under the frozen policy and private pack.
 
 The organizer can aggregate the machine checkable release gates into one blocked or passing
-report. Missing private material, draft rules, stale release hashes, corpus leakage or missing
-baseline evidence remains an explicit failure:
+report. Missing private material, draft rules, stale release hashes, corpus leakage, container
+isolation evidence or baseline evidence remains an explicit failure:
 
 ```bash
 python -m scripts.check_challenge_readiness \
@@ -274,7 +274,8 @@ python -m scripts.check_challenge_readiness \
   --evaluator-revision <clean-evaluator-git-commit> \
   --release /private/amb-release.json \
   --baseline /private/results/baseline-public.json \
-  --deliberately-bad /private/results/empty-public.json
+  --deliberately-bad /private/results/empty-public.json \
+  --red-team-report /private/results/red-team.json
 ```
 
 The command exits successfully only when every supplied release gate passes. It does not create
@@ -310,7 +311,9 @@ Docker red team run against the frozen image and host configuration.
 The synthetic Docker probe exercises that boundary without using heldout data:
 
 ```bash
-python -m scripts.run_challenge_red_team --image ubuntu:24.04
+python -m scripts.run_challenge_red_team \
+  --image ubuntu:24.04 \
+  --report /private/results/red-team.json
 ```
 
 It resolves the local image to a digest, launches hostile one shot and sidecar commands, and fails

@@ -19,7 +19,7 @@ from harness.challenge_pack import (
     build_execution_plan,
     load_private_pack,
 )
-from harness.challenge_redteam import audit_docker_argv, audit_plan
+from harness.challenge_redteam import audit_docker_argv, audit_plan, write_red_team_report
 from harness.challenge_runner import (
     ChallengeRunnerError,
     build_adapter_service_argv,
@@ -152,6 +152,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="ubuntu:24.04")
     parser.add_argument("--docker-binary", default="docker")
+    parser.add_argument("--report", type=Path)
     args = parser.parse_args()
     try:
         image = _image_digest(args.image, args.docker_binary)
@@ -184,7 +185,10 @@ def main() -> int:
     except (ChallengeRunnerError, OSError, subprocess.SubprocessError) as error:
         print(f"challenge Docker red team failed: {error}", file=sys.stderr)
         return 1
-    print(json.dumps({"status": "pass", "image": image}, indent=2))
+    report = {"schema": 1, "kind": "amb-challenge-red-team-report", "status": "pass", "image": image}
+    if args.report is not None:
+        write_red_team_report(args.report, image)
+    print(json.dumps(report, indent=2, sort_keys=True))
     return 0
 
 

@@ -18,6 +18,7 @@ from .challenge_rules import (
     rules_digest,
     validate_rules_for_task_ids,
 )
+from .challenge_redteam import ChallengeRedTeamError, validate_red_team_report
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ def evaluate_readiness(
     release_path: str | Path | None = None,
     baseline_path: str | Path | None = None,
     deliberately_bad_path: str | Path | None = None,
+    red_team_report_path: str | Path | None = None,
     evaluator_revision: str | None = None,
 ) -> tuple[ChallengeReadinessGate, ...]:
     """Return every gate result without hiding a missing external prerequisite."""
@@ -67,6 +69,14 @@ def evaluate_readiness(
             gates.append(ChallengeReadinessGate("corpus_leakage", False, str(error)))
     else:
         gates.append(ChallengeReadinessGate("corpus_leakage", False, "private pack is unavailable"))
+    if red_team_report_path is None:
+        gates.append(ChallengeReadinessGate("container_isolation", False, "red team report was not supplied"))
+    else:
+        try:
+            image = validate_red_team_report(_read_json(Path(red_team_report_path)))
+            gates.append(ChallengeReadinessGate("container_isolation", True, image))
+        except (ChallengeRedTeamError, OSError, TypeError, ValueError) as error:
+            gates.append(ChallengeReadinessGate("container_isolation", False, str(error)))
     try:
         policy = load_policy(policy_path, require_frozen=True)
         gates.append(ChallengeReadinessGate("evaluation_policy", True, policy.digest()))

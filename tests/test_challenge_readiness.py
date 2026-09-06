@@ -68,6 +68,7 @@ def test_readiness_reports_missing_external_gates(tmp_path: Path):
     assert {gate["name"] for gate in result["gates"]} == {
         "private_pack",
         "corpus_leakage",
+        "container_isolation",
         "evaluation_policy",
         "final_rules",
         "release_record",
@@ -172,6 +173,18 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
 
     baseline_path.write_text(json.dumps(manifest(1.0, 1, "baseline")), encoding="utf-8")
     bad_path.write_text(json.dumps(manifest(0.0, 0, "bad")), encoding="utf-8")
+    red_team_path = tmp_path / "red-team.json"
+    red_team_path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "kind": "amb-challenge-red-team-report",
+                "status": "pass",
+                "image": "registry.example/probe@sha256:" + "a" * 64,
+            }
+        ),
+        encoding="utf-8",
+    )
 
     result = readiness_result(
         evaluate_readiness(
@@ -181,6 +194,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             release_path=release_path,
             baseline_path=baseline_path,
             deliberately_bad_path=bad_path,
+            red_team_report_path=red_team_path,
             evaluator_revision="a" * 40,
         )
     )
@@ -194,6 +208,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             release_path=release_path,
             baseline_path=baseline_path,
             deliberately_bad_path=bad_path,
+            red_team_report_path=red_team_path,
             evaluator_revision="dirty",
         )
     )
@@ -211,6 +226,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             release_path=release_path,
             baseline_path=baseline_path,
             deliberately_bad_path=bad_path,
+            red_team_report_path=red_team_path,
             evaluator_revision="a" * 40,
         )
     )
