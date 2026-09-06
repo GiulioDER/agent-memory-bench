@@ -124,6 +124,7 @@ def run_bounded(
     cwd: Path,
     timeout_s: float = DEFAULT_TIMEOUT_S,
     env: Mapping[str, str] | None = None,
+    inherit_host_environment: bool = True,
 ) -> Completed:
     """Run `command`, and return within `timeout_s` whatever it spawned.
 
@@ -147,11 +148,15 @@ def run_bounded(
     # `harness/claude_exec.py::_ENV_PASSTHROUGH` is the same decision already made for the SESSION
     # subprocess, with its reasoning written out there. Shared rather than restated: two
     # allow-lists drift, and the drift is invisible until something leaks.
-    merged = {
-        name: os.environ[name]
-        for name in _ENV_PASSTHROUGH
-        if os.environ.get(name) is not None
-    }
+    merged = (
+        {
+            name: os.environ[name]
+            for name in _ENV_PASSTHROUGH
+            if os.environ.get(name) is not None
+        }
+        if inherit_host_environment
+        else {}
+    )
     if env:
         merged.update(env)
     # A statement, not the ternary this used to be, and the difference is the whole fix. mypy

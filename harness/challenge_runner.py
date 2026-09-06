@@ -8,6 +8,8 @@ container. The checker belongs to the evaluator process after the container exit
 from __future__ import annotations
 
 import math
+import os
+import stat
 import subprocess
 import time
 import uuid
@@ -32,26 +34,63 @@ CPU_LIMIT = "2"
 PIDS_LIMIT = "256"
 NOFILE_LIMIT = "1024:1024"
 TMPFS_SPEC = "/tmp:rw,noexec,nosuid,nodev,size=64m"
+_DOCKER_ENV_ALLOWLIST = (
+    "PATH",
+    "HOME",
+    "TEMP",
+    "TMP",
+    "SystemRoot",
+    "SystemDrive",
+    "windir",
+    "USERPROFILE",
+)
 
 
 class ChallengeRunnerError(RuntimeError):
     """The evaluator could not prepare or start an isolated task run."""
 
 
-def _best_effort_remove_container(docker_binary: str, container_name: str) -> None:
-    """Ask Docker to remove a container without masking the evaluator outcome."""
+def _docker_environment() -> dict[str, str]:
+    return {
+        name: os.environ[name]
+        for name in _DOCKER_ENV_ALLOWLIST
+        if os.environ.get(name) is not None
+    }
+
+
+def _proxy_socket(path: str | Path) -> Path:
+    raw_proxy = Path(path).expanduser()
+    if raw_proxy.is_symlink():
+        raise ChallengeRunnerError(f"model proxy socket must not be a symlink: {raw_proxy}")
+    proxy = raw_proxy.resolve()
+    try:
+        is_socket = stat.S_ISSOCK(proxy.stat().st_mode)
+    except OSError as error:
+        raise ChallengeRunnerError(f"model proxy socket is not a socket: {proxy}") from error
+    if not is_socket:
+        raise ChallengeRunnerError(f"model proxy socket is not a socket: {proxy}")
+    return proxy
+
+
+def _best_effort_remove_container(docker_binary: str, container_name: str) -> bool:
+    """Ask Docker to remove a container and report cleanup failures to the evaluator."""
 
     try:
-        subprocess.run(
+        result = subprocess.run(
             [docker_binary, "rm", "-f", container_name],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             check=False,
             timeout=30,
+            env=_docker_environment(),
         )
+        if result.returncode == 0:
+            return True
+        detail = (result.stderr or b"").decode(errors="replace").lower()
+        return "no such container" in detail
     except (OSError, subprocess.TimeoutExpired):
-        pass
+        return False
 
 
 @dataclass(frozen=True)
@@ -120,10 +159,14 @@ class ChallengeAdapterHandle:
     def stop(self) -> None:
         """Remove the container and terminate the Docker client if still attached."""
 
-        _best_effort_remove_container(self.docker_binary, self.container_name)
+        removed = _best_effort_remove_container(self.docker_binary, self.container_name)
         if self.process.poll() is None:
             self.process.kill()
         self.process.communicate()
+        if not removed:
+            raise ChallengeRunnerError(
+                f"could not confirm removal of adapter container {self.container_name!r}"
+            )
 
     def __enter__(self) -> Self:
         return self
@@ -271,12 +314,7 @@ def build_docker_argv(
             raise ChallengeRunnerError(
                 "model-only submissions require an evaluator-managed model proxy socket"
             )
-        raw_proxy = Path(model_proxy_socket).expanduser()
-        if raw_proxy.is_symlink():
-            raise ChallengeRunnerError(f"model proxy socket must not be a symlink: {raw_proxy}")
-        proxy = raw_proxy.resolve()
-        if not proxy.exists():
-            raise ChallengeRunnerError(f"model proxy socket is not a regular path: {proxy}")
+        proxy = _proxy_socket(model_proxy_socket)
         argv.extend(
             [
                 "--mount",
@@ -357,12 +395,7 @@ def build_adapter_service_argv(
             raise ChallengeRunnerError(
                 "model-only submissions require an evaluator-managed model proxy socket"
             )
-        raw_proxy = Path(model_proxy_socket).expanduser()
-        if raw_proxy.is_symlink():
-            raise ChallengeRunnerError(f"model proxy socket must not be a symlink: {raw_proxy}")
-        proxy = raw_proxy.resolve()
-        if not proxy.exists():
-            raise ChallengeRunnerError(f"model proxy socket is not a regular path: {proxy}")
+        proxy = _proxy_socket(model_proxy_socket)
         argv.extend(
             [
                 "--mount",
@@ -426,6 +459,7 @@ def start_challenge_adapter(
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            env=_docker_environment(),
         )
     except OSError as error:
         raise ChallengeRunnerError(f"could not start Docker: {error}") from error
@@ -479,20 +513,26 @@ def run_challenge_task(
             text=True,
             encoding="utf-8",
             errors="replace",
+            env=_docker_environment(),
         )
     except OSError as error:
         raise ChallengeRunnerError(f"could not start Docker: {error}") from error
 
     drainers, buffers, truncated = start_output_drainers(process.stdout, process.stderr)
     timed_out = False
+    cleanup_error: ChallengeRunnerError | None = None
     try:
         try:
             process.wait(timeout=timeout_seconds)
         except subprocess.TimeoutExpired:
             timed_out = True
-            _best_effort_remove_container(docker_binary, container_name)
-            process.kill()
-            process.wait()
+            if not _best_effort_remove_container(docker_binary, container_name):
+                cleanup_error = ChallengeRunnerError(
+                    f"could not confirm removal of challenge container {container_name!r}"
+                )
+            if process.poll() is None:
+                process.kill()
+                process.wait()
             buffers["stderr"].append(
                 f"\nchallenge runner timeout after {timeout_seconds}s"
             )
@@ -501,6 +541,8 @@ def run_challenge_task(
             process.kill()
             process.wait()
     stdout, stderr = finish_output_drainers(drainers, buffers, truncated)
+    if cleanup_error is not None:
+        raise cleanup_error
 
     return ChallengeRunResult(
         task_id=task_id,

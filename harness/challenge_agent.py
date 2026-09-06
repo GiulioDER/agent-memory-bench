@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -21,6 +22,21 @@ RESERVED_AGENT_ENV = frozenset(
         "AMB_TASK_OUTPUT",
         "AMB_ADAPTER_SOCKET",
     }
+)
+_AGENT_RUNTIME_ENV = (
+    "SystemRoot",
+    "SystemDrive",
+    "windir",
+    "COMSPEC",
+    "PATHEXT",
+    "PROGRAMFILES",
+    "PROGRAMFILES(X86)",
+    "PROGRAMDATA",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "HOMEDRIVE",
+    "HOMEPATH",
 )
 
 
@@ -62,6 +78,7 @@ def _command_env(
     """Build the only task and adapter values injected into the fixed agent process."""
 
     env = {
+        "PATH": os.environ.get("PATH", ""),
         "AMB_CHALLENGE_API": ADAPTER_API,
         "AMB_AGENT_PROTOCOL": "search-only-adapter",
         "AMB_TASK_ID": context.task_id,
@@ -70,6 +87,13 @@ def _command_env(
         "AMB_TASK_OUTPUT": str(context.output),
         "AMB_ADAPTER_SOCKET": str(context.adapter.socket_path),
     }
+    env.update(
+        {
+            name: os.environ[name]
+            for name in _AGENT_RUNTIME_ENV
+            if os.environ.get(name) is not None
+        }
+    )
     if extra_env:
         reserved = RESERVED_AGENT_ENV.intersection(extra_env)
         if reserved:
@@ -103,6 +127,7 @@ def run_fixed_agent_command(
         cwd=context.output,
         timeout_s=timeout_seconds,
         env=_command_env(context, extra_env),
+        inherit_host_environment=False,
     )
     return ChallengeAgentRunResult.from_completed(context.task_id, completed)
 

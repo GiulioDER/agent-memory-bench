@@ -41,6 +41,13 @@ def test_public_smoke_report_accepts_complete_fresh_machine_evidence():
     assert report["tests_passed"] == 1120
 
 
+def test_public_smoke_requires_python_312():
+    report = _report()
+    report["python_version"] = "3.11.9"
+    with pytest.raises(ChallengeSmokeError, match="Python 3.12"):
+        validate_public_smoke_report(report)
+
+
 @pytest.mark.parametrize(
     "mutation",
     (

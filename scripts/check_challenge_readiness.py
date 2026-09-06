@@ -12,6 +12,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.challenge_readiness import evaluate_readiness, readiness_result
+from harness.challenge_release import current_evaluator_revision
 
 
 def main() -> int:
@@ -27,6 +28,22 @@ def main() -> int:
     parser.add_argument("--public-smoke-report", type=Path)
     parser.add_argument("--evaluator-revision")
     args = parser.parse_args()
+    try:
+        actual_revision = current_evaluator_revision(REPO)
+    except (OSError, ValueError) as error:
+        print(json.dumps({"status": "blocked", "error": str(error)}, sort_keys=True))
+        return 1
+    if args.evaluator_revision != actual_revision:
+        print(
+            json.dumps(
+                {
+                    "status": "blocked",
+                    "error": "evaluator revision does not match the checked out evaluator source",
+                },
+                sort_keys=True,
+            )
+        )
+        return 1
     result = readiness_result(
         evaluate_readiness(
             args.pack,

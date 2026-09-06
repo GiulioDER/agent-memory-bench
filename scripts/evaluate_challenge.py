@@ -31,7 +31,7 @@ from harness.challenge_evaluator import ChallengeEvaluatorError, evaluate_submis
 from harness.challenge_pack import ChallengePackError, load_private_pack, load_submission
 from harness.challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
 from harness.challenge_policy import ChallengePolicyError, agent_command_digest, load_policy
-from harness.challenge_release import hash_private_pack
+from harness.challenge_release import current_evaluator_revision, hash_private_pack
 from harness.challenge_rules import (
     ChallengeRulesError,
     load_rules,
@@ -61,6 +61,10 @@ def main() -> int:
         if not command:
             raise ChallengeEvaluatorError("agent command must not be empty")
         policy = load_policy(args.policy, require_frozen=True)
+        if current_evaluator_revision(REPO) != args.evaluator_revision:
+            raise ChallengeEvaluatorError(
+                "evaluator revision does not match the checked out evaluator source"
+            )
         if agent_command_digest(command) != policy.agent_command_sha256:
             raise ChallengePolicyError("agent command does not match the frozen policy digest")
         pack = load_private_pack(args.pack)
@@ -95,13 +99,12 @@ def main() -> int:
             checker_timeout_s=policy.checker_timeout_seconds,
             pack_digest=hash_private_pack(pack),
             rules_digest=rules_digest(rules),
+            policy_digest=policy.digest(),
             evaluator_revision=args.evaluator_revision,
             model_proxy_socket=args.model_proxy_socket,
             adapter_call_budget=policy.adapter_call_budget,
             infrastructure_retries=policy.infrastructure_retries,
         )
-        public["policy_digest"] = policy.digest()
-        private["policy_digest"] = policy.digest()
         write_score_manifest(args.public_manifest, public)
         write_score_manifest(args.private_manifest, private)
     except (

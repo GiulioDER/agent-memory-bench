@@ -100,6 +100,8 @@ def test_private_checker_runs_after_task_and_public_manifest_redacts_verdict(tmp
         [score],
         pack_digest="b" * 64,
         rules_digest="c" * 64,
+        policy_digest="d" * 64,
+        config_sha256=submission.config_sha256,
         evaluator_revision="a" * 40,
         public=True,
     )
@@ -118,6 +120,8 @@ def test_score_manifest_requires_exact_task_coverage(tmp_path: Path):
             [],
             pack_digest="b" * 64,
             rules_digest="c" * 64,
+            policy_digest="d" * 64,
+            config_sha256=submission.config_sha256,
             evaluator_revision="a" * 40,
         )
 
@@ -135,6 +139,8 @@ def test_score_manifest_write_is_stable(tmp_path: Path):
         [score],
         pack_digest="b" * 64,
         rules_digest="c" * 64,
+        policy_digest="d" * 64,
+        config_sha256=submission.config_sha256,
         evaluator_revision="a" * 40,
         public=True,
     )
@@ -177,6 +183,8 @@ def test_score_manifest_omits_run_specific_checker_timing(tmp_path: Path):
         [first],
         pack_digest="b" * 64,
         rules_digest="c" * 64,
+        policy_digest="d" * 64,
+        config_sha256=submission.config_sha256,
         evaluator_revision="a" * 40,
         public=True,
     ) == build_score_manifest(
@@ -185,6 +193,8 @@ def test_score_manifest_omits_run_specific_checker_timing(tmp_path: Path):
         [second],
         pack_digest="b" * 64,
         rules_digest="c" * 64,
+        policy_digest="d" * 64,
+        config_sha256=submission.config_sha256,
         evaluator_revision="a" * 40,
         public=True,
     )

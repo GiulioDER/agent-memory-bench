@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import uuid
 from pathlib import Path
 
 from .challenge_pack import PUBLIC_REPO_ROOT, ChallengePack, load_private_pack
@@ -38,13 +39,19 @@ def materialize_private_pack(source_root: str | Path, destination: str | Path) -
             raise ChallengePackBuildError(f"pack destination must start empty: {target}")
     else:
         target.parent.mkdir(parents=True, exist_ok=True)
+    staging = target.parent / f".{target.name}.staging-{uuid.uuid4().hex}"
     try:
-        shutil.copytree(source, target, symlinks=True, dirs_exist_ok=True)
+        shutil.copytree(source, staging, symlinks=True)
+        pack = load_private_pack(staging)
+        audit_pack_corpus(pack)
+        if target.exists():
+            target.rmdir()
+        staging.replace(target)
+        return load_private_pack(target)
     except OSError as error:
         raise ChallengePackBuildError(f"could not materialize private pack: {error}") from error
-    try:
-        pack = load_private_pack(target)
-        audit_pack_corpus(pack)
     except ChallengePackLeakageError as error:
         raise ChallengePackBuildError(f"pack corpus audit failed: {error}") from error
-    return pack
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging, ignore_errors=True)

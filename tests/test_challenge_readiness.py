@@ -129,7 +129,11 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
                 "infrastructure_retry_count": 0,
                 "baseline_minimum_margin": 0.1,
                 "appeal_scope": "evaluator defect",
-                "publication": {"publish_score_manifest": True},
+                "publication": {
+                    "publish_failed_entries": True,
+                    "publish_score_manifest": True,
+                    "publish_submission_image_digest": True,
+                },
             }
         ),
         encoding="utf-8",
@@ -158,7 +162,8 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             "pack_digest": pack_digest,
             "rules_digest": frozen_rules_digest,
             "evaluator_revision": "a" * 40,
-            "policy_digest": loaded_policy.digest(),
+                "policy_digest": loaded_policy.digest(),
+                "config_sha256": "d" * 64,
             "submission_id": submission_id,
             "image": "registry.example/entry@sha256:" + "a" * 64,
             "task_count": 1,

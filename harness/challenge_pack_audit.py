@@ -7,10 +7,19 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .challenge_pack import ChallengePack
+from .challenge_release import HASH_CHUNK_SIZE
 
 
 class ChallengePackLeakageError(ValueError):
     """The public memory corpus contains an exact private task or scoring file."""
+
+
+def _file_digest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(HASH_CHUNK_SIZE):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True)
@@ -56,11 +65,11 @@ def audit_pack_corpus(pack: ChallengePack) -> ChallengePackLeakageReport:
     ]
     sensitive_by_digest: dict[str, list[Path]] = {}
     for path in sensitive_files:
-        sensitive_by_digest.setdefault(hashlib.sha256(path.read_bytes()).hexdigest(), []).append(path)
+        sensitive_by_digest.setdefault(_file_digest(path), []).append(path)
 
     duplicates: list[tuple[str, str]] = []
     for corpus_file in corpus_files:
-        digest = hashlib.sha256(corpus_file.read_bytes()).hexdigest()
+        digest = _file_digest(corpus_file)
         for sensitive_file in sensitive_by_digest.get(digest, []):
             duplicates.append(
                 (

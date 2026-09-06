@@ -57,11 +57,13 @@ def evaluate_readiness(
 
     gates: list[ChallengeReadinessGate] = []
     pack = None
+    pack_digest: str | None = None
     policy = None
     rules = None
     rules_match_pack = False
     try:
         pack = load_private_pack(pack_path)
+        pack_digest = hash_private_pack(pack)
         gates.append(ChallengeReadinessGate("private_pack", True, f"{len(pack.tasks)} task(s)"))
     except (ChallengePackError, OSError, ValueError) as error:
         gates.append(ChallengeReadinessGate("private_pack", False, str(error)))
@@ -116,7 +118,7 @@ def evaluate_readiness(
         try:
             review = validate_roster_review(
                 _read_json(Path(roster_review_path)),
-                expected_pack_digest=hash_private_pack(pack),
+                expected_pack_digest=pack_digest,
                 expected_task_ids=(task.task_id for task in pack.tasks),
                 expected_pack_preparer_id=pack.manifest.get("prepared_by"),
                 require_pack_preparer_id=True,
@@ -185,7 +187,7 @@ def evaluate_readiness(
                 _read_json(Path(deliberately_bad_path)),
                 minimum_margin=rules["baseline_minimum_margin"],
                 expected_pack_id=pack.manifest["pack_id"],
-                expected_pack_digest=hash_private_pack(pack),
+                expected_pack_digest=pack_digest,
                 expected_rules_digest=rules_digest(rules),
                 expected_policy_digest=policy.digest(),
                 expected_scoring_version=pack.manifest["scoring_version"],
