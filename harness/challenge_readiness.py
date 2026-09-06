@@ -19,6 +19,7 @@ from .challenge_rules import (
     validate_rules_for_task_ids,
 )
 from .challenge_redteam import ChallengeRedTeamError, validate_red_team_report
+from .challenge_roster import ChallengeRosterReviewError, validate_roster_review
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,7 @@ def evaluate_readiness(
     baseline_path: str | Path | None = None,
     deliberately_bad_path: str | Path | None = None,
     red_team_report_path: str | Path | None = None,
+    roster_review_path: str | Path | None = None,
     evaluator_revision: str | None = None,
 ) -> tuple[ChallengeReadinessGate, ...]:
     """Return every gate result without hiding a missing external prerequisite."""
@@ -77,6 +79,24 @@ def evaluate_readiness(
             gates.append(ChallengeReadinessGate("container_isolation", True, image))
         except (ChallengeRedTeamError, OSError, TypeError, ValueError) as error:
             gates.append(ChallengeReadinessGate("container_isolation", False, str(error)))
+    if roster_review_path is None:
+        gates.append(
+            ChallengeReadinessGate("task_roster_review", False, "roster review was not supplied")
+        )
+    elif pack is None:
+        gates.append(
+            ChallengeReadinessGate("task_roster_review", False, "private pack is unavailable")
+        )
+    else:
+        try:
+            review = validate_roster_review(
+                _read_json(Path(roster_review_path)),
+                expected_pack_digest=hash_private_pack(pack),
+                expected_task_ids=(task.task_id for task in pack.tasks),
+            )
+            gates.append(ChallengeReadinessGate("task_roster_review", True, review["reviewer_id"]))
+        except (ChallengeRosterReviewError, OSError, TypeError, ValueError) as error:
+            gates.append(ChallengeReadinessGate("task_roster_review", False, str(error)))
     try:
         policy = load_policy(policy_path, require_frozen=True)
         gates.append(ChallengeReadinessGate("evaluation_policy", True, policy.digest()))

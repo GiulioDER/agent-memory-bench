@@ -69,6 +69,7 @@ def test_readiness_reports_missing_external_gates(tmp_path: Path):
         "private_pack",
         "corpus_leakage",
         "container_isolation",
+        "task_roster_review",
         "evaluation_policy",
         "final_rules",
         "release_record",
@@ -185,6 +186,27 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
         ),
         encoding="utf-8",
     )
+    roster_review_path = tmp_path / "roster-review.json"
+    roster_review_path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "kind": "amb-challenge-roster-review",
+                "status": "pass",
+                "pack_digest": pack_digest,
+                "task_count": 1,
+                "task_ids": ["task-a"],
+                "reviewer_id": "independent-reviewer",
+                "independent_review": True,
+                "reviewed_at_utc": "2026-09-06T12:00:00Z",
+                "checks": {
+                    name: {"status": "pass", "evidence": f"{name} reviewed"}
+                    for name in ("capacity", "leakage", "overlap", "findability")
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
 
     result = readiness_result(
         evaluate_readiness(
@@ -195,6 +217,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             baseline_path=baseline_path,
             deliberately_bad_path=bad_path,
             red_team_report_path=red_team_path,
+            roster_review_path=roster_review_path,
             evaluator_revision="a" * 40,
         )
     )
@@ -209,6 +232,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             baseline_path=baseline_path,
             deliberately_bad_path=bad_path,
             red_team_report_path=red_team_path,
+            roster_review_path=roster_review_path,
             evaluator_revision="dirty",
         )
     )
@@ -227,6 +251,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
             baseline_path=baseline_path,
             deliberately_bad_path=bad_path,
             red_team_report_path=red_team_path,
+            roster_review_path=roster_review_path,
             evaluator_revision="a" * 40,
         )
     )

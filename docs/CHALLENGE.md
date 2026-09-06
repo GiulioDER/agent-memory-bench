@@ -264,7 +264,7 @@ must come from independent runs under the frozen policy and private pack.
 
 The organizer can aggregate the machine checkable release gates into one blocked or passing
 report. Missing private material, draft rules, stale release hashes, corpus leakage, container
-isolation evidence or baseline evidence remains an explicit failure:
+isolation evidence, roster review or baseline evidence remains an explicit failure:
 
 ```bash
 python -m scripts.check_challenge_readiness \
@@ -275,11 +275,16 @@ python -m scripts.check_challenge_readiness \
   --release /private/amb-release.json \
   --baseline /private/results/baseline-public.json \
   --deliberately-bad /private/results/empty-public.json \
-  --red-team-report /private/results/red-team.json
+  --red-team-report /private/results/red-team.json \
+  --roster-review /private/results/roster-review.json
 ```
 
 The command exits successfully only when every supplied release gate passes. It does not create
 private task material, approve rules, or treat a missing external prerequisite as a pass.
+
+The roster review is an independent JSON report bound to the private pack digest and exact task
+IDs. It must record passing evidence for capacity, leakage, overlap and findability. The readiness
+command rejects an absent report, a report for another pack, or a report with an incomplete review.
 
 After entries have been evaluated, ranking applies the frozen tie breaker task IDs in order. It
 validates every public manifest against the private pack and policy, and exits with a failure when
