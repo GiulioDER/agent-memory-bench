@@ -49,6 +49,10 @@ The official run ranks retrieval over a corpus ingested before the grid. No arm 
 store during the run, so extraction, consolidation and persistence are not measured. The result
 must not be read as a complete ranking of memory systems.
 
+The additive [capability tracks](docs/CAPABILITY_TRACKS.md) cover point in time supersession,
+targeted tenant isolation, and a seven probe vendor qualification subset. They are separate from
+the official leaderboard and are verified without an LLM judge.
+
 Other limits are material:
 
 1. The official grid uses one seed per cell.

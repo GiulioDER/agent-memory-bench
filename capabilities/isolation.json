@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "manifest_id": "amb-isolation-v1",
+  "track": "isolation",
+  "description": "Synthetic tenants with near duplicate records and targeted foreign canaries.",
+  "documents": [
+    {
+      "document_id": "tenant-a/queue-alpha-lease",
+      "tenant": "tenant-a",
+      "text": "Tenant A queue alpha uses a 20 second renewal interval."
+    },
+    {
+      "document_id": "tenant-b/queue-alpha-lease",
+      "tenant": "tenant-b",
+      "text": "Tenant B queue alpha uses a 45 second renewal interval."
+    },
+    {
+      "document_id": "tenant-a/targeted-canary",
+      "tenant": "tenant-a",
+      "text": "Tenant A targeted canary: the unrelated fallback interval is 7 seconds."
+    },
+    {
+      "document_id": "tenant-b/targeted-canary",
+      "tenant": "tenant-b",
+      "text": "Tenant B targeted canary: queue alpha renewal interval is 999 seconds."
+    }
+  ],
+  "probes": [
+    {
+      "probe_id": "isolation-tenant-a-targeted",
+      "tenant": "tenant-a",
+      "query": "For tenant-a, what is the queue alpha renewal interval?",
+      "expected_terms": ["20 seconds"],
+      "gold_document_ids": ["tenant-a/queue-alpha-lease"],
+      "canary_document_ids": ["tenant-b/targeted-canary", "tenant-b/queue-alpha-lease"]
+    },
+    {
+      "probe_id": "isolation-tenant-b-targeted",
+      "tenant": "tenant-b",
+      "query": "For tenant-b, what is the queue alpha renewal interval?",
+      "expected_terms": ["45 seconds"],
+      "gold_document_ids": ["tenant-b/queue-alpha-lease"],
+      "canary_document_ids": ["tenant-a/targeted-canary", "tenant-a/queue-alpha-lease"]
+    },
+    {
+      "probe_id": "isolation-tenant-a-near-duplicate",
+      "tenant": "tenant-a",
+      "query": "Which interval belongs to tenant-a rather than the similar tenant-b record?",
+      "expected_terms": ["20 seconds"],
+      "gold_document_ids": ["tenant-a/queue-alpha-lease"],
+      "canary_document_ids": ["tenant-b/queue-alpha-lease"]
+    },
+    {
+      "probe_id": "isolation-tenant-b-near-duplicate",
+      "tenant": "tenant-b",
+      "query": "Which interval belongs to tenant-b rather than the similar tenant-a record?",
+      "expected_terms": ["45 seconds"],
+      "gold_document_ids": ["tenant-b/queue-alpha-lease"],
+      "canary_document_ids": ["tenant-a/queue-alpha-lease"]
+    }
+  ],
+  "manifest_digest": "4326a5089c5657ae8d7fe76dedcdbbfedf8c14e08cf7ba0d702a006fbc7c4bcc"
+}

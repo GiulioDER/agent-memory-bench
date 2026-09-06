@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "subset_id": "amb-isolation-standard-v1",
+  "track": "isolation",
+  "manifest_id": "amb-isolation-v1",
+  "probe_ids": [
+    "isolation-tenant-a-targeted",
+    "isolation-tenant-b-targeted",
+    "isolation-tenant-a-near-duplicate",
+    "isolation-tenant-b-near-duplicate"
+  ]
+}
