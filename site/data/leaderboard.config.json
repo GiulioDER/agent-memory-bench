@@ -4,8 +4,8 @@
     "cognee"
   ],
   "arm_runs": {
-    "supermemory": "supermemory-003"
+    "supermemory": "supermemory-004"
   },
   "analysis_report": "reports/official-003-analysis.json",
-  "updated": "2026-09-05"
+  "updated": "2026-09-07"
 }

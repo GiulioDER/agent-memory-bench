@@ -773,52 +773,52 @@
     "supermemory": {
       "status": "published",
       "comparison": "joined to official-003",
-      "source_run": "supermemory-003",
-      "success": 0.2077,
-      "delta_vs_baseline": -0.3706,
+      "source_run": "supermemory-004",
+      "success": 0.2482,
+      "delta_vs_baseline": -0.3285,
       "ci95": [
-        -0.3465,
-        -0.1149
+        -0.3904,
+        -0.1101
       ],
       "solved_cells": null,
-      "admitted_cells": 313,
-      "discarded_cells": 4,
+      "admitted_cells": 274,
+      "discarded_cells": 31,
       "by_condition": {
-        "present": {
-          "solved": 17,
-          "cells": 110
-        },
         "absent": {
           "solved": 29,
-          "cells": 52
+          "cells": 46
+        },
+        "adjacent": {
+          "solved": 8,
+          "cells": 50
+        },
+        "contradictory": {
+          "solved": 16,
+          "cells": 46
+        },
+        "present": {
+          "solved": 12,
+          "cells": 89
         },
         "superseded": {
           "solved": 3,
-          "cells": 46
-        },
-        "contradictory": {
-          "solved": 12,
-          "cells": 50
-        },
-        "adjacent": {
-          "solved": 4,
-          "cells": 55
+          "cells": 43
         }
       },
       "condition_delta_vs_baseline": {
-        "present": -0.2329,
-        "absent": -0.0577,
-        "superseded": -0.6087,
-        "contradictory": -0.5247,
-        "adjacent": -0.594
+        "present": -0.2526,
+        "absent": 0.015,
+        "superseded": -0.6041,
+        "contradictory": -0.4169,
+        "adjacent": -0.5067
       },
       "cost": {
         "total_usd": null,
         "usd_per_admitted_cell": null,
-        "reported_usd_per_task": 0.0046,
-        "total_tokens": 28870777,
-        "tokens_per_observed_session": 79098,
-        "tokens_per_admitted_cell": 92239,
+        "reported_usd_per_task": 0.0052,
+        "total_tokens": 31081691,
+        "tokens_per_observed_session": 90092,
+        "tokens_per_admitted_cell": 113437,
         "pricing_model": "deepseek/deepseek-v4-flash",
         "pricing_as_of": null,
         "relative_to_baseline": null
@@ -834,14 +834,14 @@
       "join": {
         "baseRun": "official-003",
         "baseAdmittedCells": 317,
-        "joinedCells": 313,
-        "baseCellsLostToJoin": 4,
+        "joinedCells": 274,
+        "baseCellsLostToJoin": 43,
         "conditions": [
-          "present",
           "absent",
-          "superseded",
+          "adjacent",
           "contradictory",
-          "adjacent"
+          "present",
+          "superseded"
         ]
       }
     }
@@ -1696,19 +1696,19 @@
       },
       "supermemory": {
         "status": "published",
-        "success": 0.2077,
-        "delta_vs_baseline": -0.3706,
+        "success": 0.2482,
+        "delta_vs_baseline": -0.3285,
         "ci95": [
-          -0.3465,
-          -0.1149
+          -0.3904,
+          -0.1101
         ],
         "cost": {
           "total_usd": null,
           "usd_per_admitted_cell": null,
-          "reported_usd_per_task": 0.0046,
-          "total_tokens": 28870777,
-          "tokens_per_observed_session": 79098,
-          "tokens_per_admitted_cell": 92239,
+          "reported_usd_per_task": 0.0052,
+          "total_tokens": 31081691,
+          "tokens_per_observed_session": 90092,
+          "tokens_per_admitted_cell": 113437,
           "pricing_model": "deepseek/deepseek-v4-flash",
           "pricing_as_of": null,
           "relative_to_baseline": null
