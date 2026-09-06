@@ -30,6 +30,13 @@ from harness.challenge_agent import make_command_agent_runner
 from harness.challenge_evaluator import ChallengeEvaluatorError, evaluate_submission
 from harness.challenge_pack import ChallengePackError, load_private_pack, load_submission
 from harness.challenge_policy import ChallengePolicyError, agent_command_digest, load_policy
+from harness.challenge_release import hash_private_pack
+from harness.challenge_rules import (
+    ChallengeRulesError,
+    load_rules,
+    rules_digest,
+    validate_rules_for_task_ids,
+)
 from harness.challenge_scoring import ChallengeScoringError, write_score_manifest
 
 
@@ -43,6 +50,7 @@ def main() -> int:
     parser.add_argument("--private-manifest", required=True, type=Path)
     parser.add_argument("--agent-command", required=True)
     parser.add_argument("--policy", required=True, type=Path)
+    parser.add_argument("--rules", required=True, type=Path)
     parser.add_argument("--evaluator-revision", required=True)
     parser.add_argument("--model-proxy-socket", type=Path)
     args = parser.parse_args()
@@ -55,6 +63,8 @@ def main() -> int:
         if agent_command_digest(command) != policy.agent_command_sha256:
             raise ChallengePolicyError("agent command does not match the frozen policy digest")
         pack = load_private_pack(args.pack)
+        rules = load_rules(args.rules, require_final=True)
+        validate_rules_for_task_ids(rules, (task.task_id for task in pack.tasks))
         submission = load_submission(args.submission)
         public, private = evaluate_submission(
             pack,
@@ -77,6 +87,8 @@ def main() -> int:
                 },
             ),
             checker_timeout_s=policy.checker_timeout_seconds,
+            pack_digest=hash_private_pack(pack),
+            rules_digest=rules_digest(rules),
             evaluator_revision=args.evaluator_revision,
             model_proxy_socket=args.model_proxy_socket,
             adapter_call_budget=policy.adapter_call_budget,
@@ -85,7 +97,13 @@ def main() -> int:
         private["policy_digest"] = policy.digest()
         write_score_manifest(args.public_manifest, public)
         write_score_manifest(args.private_manifest, private)
-    except (ChallengePackError, ChallengePolicyError, ChallengeEvaluatorError, ChallengeScoringError) as error:
+    except (
+        ChallengePackError,
+        ChallengePolicyError,
+        ChallengeRulesError,
+        ChallengeEvaluatorError,
+        ChallengeScoringError,
+    ) as error:
         print(f"challenge evaluation failed: {error}", file=sys.stderr)
         return 1
 

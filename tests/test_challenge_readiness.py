@@ -8,7 +8,12 @@ from pathlib import Path
 from harness.challenge_pack import load_private_pack
 from harness.challenge_policy import load_policy
 from harness.challenge_readiness import evaluate_readiness, readiness_result
-from harness.challenge_release import build_release_manifest, write_release_manifest
+from harness.challenge_release import (
+    build_release_manifest,
+    hash_private_pack,
+    write_release_manifest,
+)
+from harness.challenge_rules import rules_digest
 
 
 def _private_pack(root: Path):
@@ -137,12 +142,16 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
     )
     baseline_path = tmp_path / "baseline.json"
     bad_path = tmp_path / "bad.json"
+    pack_digest = hash_private_pack(pack)
+    frozen_rules_digest = rules_digest(json.loads(rules_path.read_text()))
     def manifest(score: float, passed_count: int, submission_id: str) -> dict:
         return {
             "schema": 1,
             "kind": "amb-challenge-score-manifest",
             "pack_id": "pack-readiness",
             "scoring_version": "score-readiness",
+            "pack_digest": pack_digest,
+            "rules_digest": frozen_rules_digest,
             "evaluator_revision": "a" * 40,
             "policy_digest": loaded_policy.digest(),
             "submission_id": submission_id,

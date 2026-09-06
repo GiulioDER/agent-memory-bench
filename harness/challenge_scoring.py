@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .challenge_pack import ChallengePack, ChallengeSubmission, ChallengeTask
-from .challenge_release import validate_evaluator_revision
+from .challenge_release import validate_evaluator_revision, validate_sha256_digest
 from .checker_run import DEFAULT_TIMEOUT_S, run_bounded
 
 
@@ -123,12 +123,16 @@ def build_score_manifest(
     submission: ChallengeSubmission,
     scores: list[ChallengeTaskScore] | tuple[ChallengeTaskScore, ...],
     *,
+    pack_digest: str,
+    rules_digest: str,
     evaluator_revision: str,
     public: bool = False,
 ) -> dict[str, Any]:
     """Build a deterministic aggregate manifest from one score per private task."""
 
     try:
+        pack_digest = validate_sha256_digest(pack_digest, "pack_digest")
+        rules_digest = validate_sha256_digest(rules_digest, "rules_digest")
         evaluator_revision = validate_evaluator_revision(evaluator_revision)
     except ValueError as error:
         raise ChallengeScoringError(str(error)) from error
@@ -148,6 +152,8 @@ def build_score_manifest(
         "kind": "amb-challenge-score-manifest",
         "pack_id": pack.manifest["pack_id"],
         "scoring_version": pack.manifest["scoring_version"],
+        "pack_digest": pack_digest,
+        "rules_digest": rules_digest,
         "evaluator_revision": evaluator_revision,
         "submission_id": submission.submission_id,
         "image": submission.image,

@@ -13,6 +13,8 @@ def _manifest(score: float, passed_count: int) -> dict:
         "kind": "amb-challenge-score-manifest",
         "pack_id": "pack-a",
         "scoring_version": "score-a",
+        "pack_digest": "b" * 64,
+        "rules_digest": "c" * 64,
         "evaluator_revision": "a" * 40,
         "policy_digest": "policy-a",
         "submission_id": "entry-a",

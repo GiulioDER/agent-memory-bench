@@ -13,6 +13,15 @@ from .challenge_policy import ChallengeEvaluationPolicy
 from .challenge_rules import rules_digest
 
 EVALUATOR_REVISION = re.compile(r"^[0-9a-f]{40,64}$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def validate_sha256_digest(value: str, label: str) -> str:
+    """Validate a lowercase SHA256 provenance digest."""
+
+    if not isinstance(value, str) or not SHA256.fullmatch(value):
+        raise ValueError(f"{label} must be a lowercase SHA256 digest")
+    return value
 
 
 def validate_evaluator_revision(value: str) -> str:

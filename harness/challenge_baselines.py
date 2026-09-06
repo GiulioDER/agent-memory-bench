@@ -6,7 +6,7 @@ import math
 from collections.abc import Iterable
 from typing import Any
 
-from .challenge_release import validate_evaluator_revision
+from .challenge_release import validate_evaluator_revision, validate_sha256_digest
 
 
 class ChallengeBaselineError(ValueError):
@@ -30,6 +30,8 @@ def validate_public_score_manifest(manifest: dict[str, Any], label: str = "score
     for field in (
         "pack_id",
         "scoring_version",
+        "pack_digest",
+        "rules_digest",
         "evaluator_revision",
         "policy_digest",
         "submission_id",
@@ -38,6 +40,8 @@ def validate_public_score_manifest(manifest: dict[str, Any], label: str = "score
         if not isinstance(manifest.get(field), str) or not manifest[field].strip():
             raise ChallengeBaselineError(f"{label} manifest is missing {field}")
     try:
+        validate_sha256_digest(manifest["pack_digest"], f"{label} pack_digest")
+        validate_sha256_digest(manifest["rules_digest"], f"{label} rules_digest")
         validate_evaluator_revision(manifest["evaluator_revision"])
     except ValueError as error:
         raise ChallengeBaselineError(f"{label} manifest has an invalid evaluator_revision") from error
@@ -93,6 +97,8 @@ def verify_baseline_ordering(
     *,
     minimum_margin: float = 0.0,
     expected_pack_id: str | None = None,
+    expected_pack_digest: str | None = None,
+    expected_rules_digest: str | None = None,
     expected_policy_digest: str | None = None,
     expected_scoring_version: str | None = None,
     expected_evaluator_revision: str | None = None,
@@ -107,6 +113,8 @@ def verify_baseline_ordering(
     comparable_fields = (
         "pack_id",
         "scoring_version",
+        "pack_digest",
+        "rules_digest",
         "evaluator_revision",
         "policy_digest",
         "task_count",
@@ -118,6 +126,8 @@ def verify_baseline_ordering(
         raise ChallengeBaselineError("baseline manifests have different task rosters")
     expected = {
         "pack_id": expected_pack_id,
+        "pack_digest": expected_pack_digest,
+        "rules_digest": expected_rules_digest,
         "policy_digest": expected_policy_digest,
         "scoring_version": expected_scoring_version,
         "evaluator_revision": expected_evaluator_revision,

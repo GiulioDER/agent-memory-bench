@@ -17,6 +17,8 @@ def rank_challenge_entries(
     rules: dict[str, Any],
     *,
     expected_pack_id: str | None = None,
+    expected_pack_digest: str | None = None,
+    expected_rules_digest: str | None = None,
     expected_policy_digest: str | None = None,
     expected_scoring_version: str | None = None,
     expected_evaluator_revision: str | None = None,
@@ -45,6 +47,7 @@ def rank_challenge_entries(
     seen_submission_ids: set[str] = set()
     roster: tuple[str, ...] | None = None
     evaluator_revision: str | None = None
+    provenance: tuple[str, ...] | None = None
     for manifest in manifests:
         try:
             task_ids = validate_public_score_manifest(manifest)
@@ -58,6 +61,33 @@ def rank_challenge_entries(
             evaluator_revision = manifest["evaluator_revision"]
         elif evaluator_revision != manifest["evaluator_revision"]:
             raise ChallengeRankingError("score manifests use different evaluator revisions")
+        current_provenance = (
+            manifest["pack_id"],
+            manifest["scoring_version"],
+            manifest["pack_digest"],
+            manifest["rules_digest"],
+            manifest["policy_digest"],
+            manifest["evaluator_revision"],
+        )
+        if provenance is None:
+            provenance = current_provenance
+        elif provenance != current_provenance:
+            fields = (
+                "pack_id",
+                "scoring_version",
+                "pack_digest",
+                "rules_digest",
+                "policy_digest",
+                "evaluator_revision",
+            )
+            mismatches = [
+                field
+                for field, expected, actual in zip(fields, provenance, current_provenance)
+                if expected != actual
+            ]
+            raise ChallengeRankingError(
+                f"score manifests use different frozen provenance: {mismatches}"
+            )
         submission_id = manifest["submission_id"]
         if submission_id in excluded_submission_ids:
             raise ChallengeRankingError(
@@ -68,6 +98,10 @@ def rank_challenge_entries(
         seen_submission_ids.add(submission_id)
         if expected_pack_id is not None and manifest["pack_id"] != expected_pack_id:
             raise ChallengeRankingError("score manifest does not match expected pack_id")
+        if expected_pack_digest is not None and manifest["pack_digest"] != expected_pack_digest:
+            raise ChallengeRankingError("score manifest does not match expected pack_digest")
+        if expected_rules_digest is not None and manifest["rules_digest"] != expected_rules_digest:
+            raise ChallengeRankingError("score manifest does not match expected rules_digest")
         if expected_policy_digest is not None and manifest["policy_digest"] != expected_policy_digest:
             raise ChallengeRankingError("score manifest does not match expected policy_digest")
         if expected_scoring_version is not None and manifest["scoring_version"] != expected_scoring_version:

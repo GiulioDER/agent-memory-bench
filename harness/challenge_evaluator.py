@@ -142,6 +142,8 @@ def evaluate_submission(
     agent_runner: AgentRunner,
     *,
     checker_timeout_s: float = DEFAULT_TIMEOUT_SECONDS,
+    pack_digest: str,
+    rules_digest: str,
     evaluator_revision: str,
     model_proxy_socket: str | Path | None = None,
     adapter_call_budget: int = DEFAULT_ADAPTER_CALL_BUDGET,
@@ -218,9 +220,21 @@ def evaluate_submission(
         scores.append(score)
 
     public = build_score_manifest(
-        pack, submission, scores, evaluator_revision=evaluator_revision, public=True
+        pack,
+        submission,
+        scores,
+        pack_digest=pack_digest,
+        rules_digest=rules_digest,
+        evaluator_revision=evaluator_revision,
+        public=True,
     )
     private = build_score_manifest(
-        pack, submission, scores, evaluator_revision=evaluator_revision, public=False
+        pack,
+        submission,
+        scores,
+        pack_digest=pack_digest,
+        rules_digest=rules_digest,
+        evaluator_revision=evaluator_revision,
+        public=False,
     )
     return public, private

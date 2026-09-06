@@ -14,7 +14,8 @@ if str(REPO) not in sys.path:
 from harness.challenge_pack import ChallengePackError, load_private_pack
 from harness.challenge_policy import ChallengePolicyError, load_policy
 from harness.challenge_ranking import ChallengeRankingError, rank_challenge_entries
-from harness.challenge_rules import ChallengeRulesError, load_rules
+from harness.challenge_release import hash_private_pack
+from harness.challenge_rules import ChallengeRulesError, load_rules, rules_digest
 
 
 def main() -> int:
@@ -34,6 +35,8 @@ def main() -> int:
             manifests,
             rules,
             expected_pack_id=pack.manifest["pack_id"],
+            expected_pack_digest=hash_private_pack(pack),
+            expected_rules_digest=rules_digest(rules),
             expected_policy_digest=policy.digest(),
             expected_scoring_version=pack.manifest["scoring_version"],
             expected_evaluator_revision=args.evaluator_revision,

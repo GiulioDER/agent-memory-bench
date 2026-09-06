@@ -13,6 +13,8 @@ def _manifest(submission_id: str, score: float, passed: tuple[bool, bool]) -> di
         "kind": "amb-challenge-score-manifest",
         "pack_id": "pack-a",
         "scoring_version": "score-a",
+        "pack_digest": "b" * 64,
+        "rules_digest": "c" * 64,
         "evaluator_revision": "a" * 40,
         "policy_digest": "policy-a",
         "submission_id": submission_id,

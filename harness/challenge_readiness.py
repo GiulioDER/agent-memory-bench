@@ -11,7 +11,7 @@ from .challenge_baselines import ChallengeBaselineError, verify_baseline_orderin
 from .challenge_pack import ChallengePackError, load_private_pack
 from .challenge_pack_audit import ChallengePackLeakageError, audit_pack_corpus
 from .challenge_policy import ChallengePolicyError, load_policy
-from .challenge_release import build_release_manifest
+from .challenge_release import build_release_manifest, hash_private_pack
 from .challenge_rules import (
     ChallengeRulesError,
     load_rules,
@@ -123,6 +123,8 @@ def evaluate_readiness(
                 _read_json(Path(deliberately_bad_path)),
                 minimum_margin=0.0,
                 expected_pack_id=pack.manifest["pack_id"],
+                expected_pack_digest=hash_private_pack(pack),
+                expected_rules_digest=rules_digest(rules),
                 expected_policy_digest=policy.digest(),
                 expected_scoring_version=pack.manifest["scoring_version"],
                 expected_evaluator_revision=evaluator_revision,

@@ -215,6 +215,7 @@ python -m scripts.evaluate_challenge \
   --public-manifest /private/amb-results/public.json \
   --private-manifest /private/amb-results/private.json \
   --policy /private/amb-challenge-policy.json \
+  --rules /private/amb-challenge-rules.json \
   --evaluator-revision <clean-evaluator-git-commit> \
   --agent-command "python /evaluator/fixed_agent.py"
 ```
