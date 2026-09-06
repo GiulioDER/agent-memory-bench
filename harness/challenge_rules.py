@@ -38,6 +38,7 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         "appeal_window_days",
         "entry_deadline_utc",
         "tie_breaker_task_ids",
+        "excluded_submission_ids",
         "independent_reviewer_count",
         "sponsor_entry_eligible",
         "infrastructure_retry_count",
@@ -81,6 +82,13 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
         raise ChallengeRulesError("tie_breaker_task_ids must be a list of non empty strings")
     if len(set(data["tie_breaker_task_ids"])) != len(data["tie_breaker_task_ids"]):
         raise ChallengeRulesError("tie_breaker_task_ids must not contain duplicates")
+    if not isinstance(data["excluded_submission_ids"], list) or not all(
+        isinstance(submission_id, str) and submission_id.strip()
+        for submission_id in data["excluded_submission_ids"]
+    ):
+        raise ChallengeRulesError("excluded_submission_ids must be a list of non empty strings")
+    if len(set(data["excluded_submission_ids"])) != len(data["excluded_submission_ids"]):
+        raise ChallengeRulesError("excluded_submission_ids must not contain duplicates")
     if not isinstance(data["publication"], dict):
         raise ChallengeRulesError("publication must be an object")
     if any(not isinstance(value, bool) for value in data["publication"].values()):
@@ -92,6 +100,8 @@ def load_rules(path: str | Path, *, require_final: bool = False) -> dict[str, An
             raise ChallengeRulesError("final rules contain unresolved approval placeholders")
         if not data["tie_breaker_task_ids"]:
             raise ChallengeRulesError("final rules need at least one tie breaker task")
+        if not data["excluded_submission_ids"]:
+            raise ChallengeRulesError("final rules need at least one excluded submission id")
         deadline = data["entry_deadline_utc"]
         try:
             parsed_deadline = datetime.fromisoformat(deadline)

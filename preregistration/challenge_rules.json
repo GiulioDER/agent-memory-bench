@@ -10,6 +10,9 @@
   "tie_breaker_task_ids": [
     "TO_BE_APPROVED"
   ],
+  "excluded_submission_ids": [
+    "TO_BE_APPROVED"
+  ],
   "independent_reviewer_count": 1,
   "sponsor_entry_eligible": false,
   "infrastructure_retry_count": 1,

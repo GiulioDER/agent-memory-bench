@@ -113,6 +113,7 @@ def test_readiness_passes_with_valid_private_release_inputs(tmp_path: Path):
                 "appeal_window_days": 7,
                 "entry_deadline_utc": "2026-10-01T23:59:59Z",
                 "tie_breaker_task_ids": ["task-a"],
+                "excluded_submission_ids": ["sponsor-reference"],
                 "independent_reviewer_count": 1,
                 "sponsor_entry_eligible": False,
                 "infrastructure_retry_count": 0,

@@ -28,6 +28,15 @@ def rank_challenge_entries(
     tie_breaker_ids = rules.get("tie_breaker_task_ids")
     if not isinstance(tie_breaker_ids, list) or not all(isinstance(value, str) for value in tie_breaker_ids):
         raise ChallengeRulesError("ranking requires a valid tie breaker task list")
+    if not tie_breaker_ids or len(set(tie_breaker_ids)) != len(tie_breaker_ids):
+        raise ChallengeRulesError("ranking requires unique tie breaker task ids")
+    excluded_submission_ids = rules.get("excluded_submission_ids")
+    if not isinstance(excluded_submission_ids, list) or not all(
+        isinstance(value, str) and value.strip() for value in excluded_submission_ids
+    ):
+        raise ChallengeRulesError("ranking requires excluded submission ids")
+    if len(set(excluded_submission_ids)) != len(excluded_submission_ids):
+        raise ChallengeRulesError("ranking requires unique excluded submission ids")
     if not manifests:
         raise ChallengeRankingError("at least one score manifest is required")
 
@@ -44,6 +53,10 @@ def rank_challenge_entries(
         elif roster != task_ids:
             raise ChallengeRankingError("score manifests have different task rosters")
         submission_id = manifest["submission_id"]
+        if submission_id in excluded_submission_ids:
+            raise ChallengeRankingError(
+                f"excluded submission id cannot be ranked: {submission_id}"
+            )
         if submission_id in seen_submission_ids:
             raise ChallengeRankingError(f"duplicate submission id: {submission_id}")
         seen_submission_ids.add(submission_id)

@@ -363,8 +363,10 @@ Before entries open, the organizer publishes:
 
 The sponsor's own product, including RE-call, is ineligible for the prize. It may appear as a
 clearly labelled reference run, but it must not determine eligibility, approve its own exception,
-or be the only party holding the private evaluator. A reviewer who did not implement the winning
-entry signs the final score manifest.
+or be the only party holding the private evaluator. The final rules must freeze the exact
+`excluded_submission_ids` reserved for sponsor or reference runs, and the ranking gate rejects any
+manifest using one of those IDs. A reviewer who did not implement the winning entry signs the
+final score manifest.
 
 The machine readable draft rules are in `preregistration/challenge_rules.json`. They record the
 200 USD total prize, one winner, seven day appeal window, sponsor exclusion and publication policy.

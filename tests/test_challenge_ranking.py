@@ -37,6 +37,7 @@ def _rules(tie_breaker_task_ids: list[str]) -> dict:
         "status": "final",
         "winner_count": 1,
         "tie_breaker_task_ids": tie_breaker_task_ids,
+        "excluded_submission_ids": ["sponsor-reference"],
     }
 
 
@@ -68,4 +69,12 @@ def test_ranking_rejects_provenance_mismatch():
             [_manifest("entry-a", 0.5, (True, False)), bad],
             _rules(["task-a"]),
             expected_policy_digest="policy-a",
+        )
+
+
+def test_ranking_rejects_excluded_submission():
+    with pytest.raises(ChallengeRankingError, match="excluded submission"):
+        rank_challenge_entries(
+            [_manifest("sponsor-reference", 1.0, (True, True))],
+            _rules(["task-a"]),
         )

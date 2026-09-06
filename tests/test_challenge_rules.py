@@ -65,6 +65,7 @@ def test_final_rules_require_integer_counts_and_utc_deadline(tmp_path: Path):
         status="final",
         entry_deadline_utc="2026-10-01T23:59:59Z",
         tie_breaker_task_ids=["task-a"],
+        excluded_submission_ids=["sponsor-reference"],
         winner_count=1,
         appeal_window_days=7,
         independent_reviewer_count=1,
@@ -76,6 +77,7 @@ def test_final_rules_require_integer_counts_and_utc_deadline(tmp_path: Path):
         status="final",
         entry_deadline_utc="2026-10-01T23:59:59",
         tie_breaker_task_ids=["task-a"],
+        excluded_submission_ids=["sponsor-reference"],
     )
     with pytest.raises(ChallengeRulesError, match="UTC timezone"):
         load_rules(path, require_final=True)
@@ -83,6 +85,24 @@ def test_final_rules_require_integer_counts_and_utc_deadline(tmp_path: Path):
 
 def test_rules_reject_duplicate_tie_breakers(tmp_path: Path):
     path = _rules(tmp_path / "rules.json", tie_breaker_task_ids=["task-a", "task-a"])
+    with pytest.raises(ChallengeRulesError, match="duplicates"):
+        load_rules(path)
+
+
+def test_final_rules_require_an_excluded_submission_id(tmp_path: Path):
+    path = _rules(
+        tmp_path / "rules.json",
+        status="final",
+        entry_deadline_utc="2026-10-01T23:59:59Z",
+        tie_breaker_task_ids=["task-a"],
+        excluded_submission_ids=[],
+    )
+    with pytest.raises(ChallengeRulesError, match="excluded submission"):
+        load_rules(path, require_final=True)
+
+
+def test_rules_reject_duplicate_excluded_submission_ids(tmp_path: Path):
+    path = _rules(tmp_path / "rules.json", excluded_submission_ids=["sponsor", "sponsor"])
     with pytest.raises(ChallengeRulesError, match="duplicates"):
         load_rules(path)
 
