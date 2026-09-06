@@ -286,8 +286,16 @@ python -m scripts.check_challenge_readiness \
 
 The public smoke report must be produced on a clean machine and record passing Ruff, the complete
 pytest suite, corpus and plant audits, and both dry-run runners. It must explicitly declare that no
-credentials or database were required and must be bound to the evaluator revision. Validate it
-independently with:
+credentials or database were required and must be bound to the evaluator revision. Produce it from
+a clean checkout with Python 3.12 and Git using:
+
+```bash
+python -m scripts.run_challenge_public_smoke \
+  --output /private/results/public-smoke.json
+```
+
+The producer removes host credentials and database variables, derives the test counts, and refuses
+to overwrite a different existing report. Validate the generated report independently with:
 
 ```bash
 python -m scripts.validate_challenge_smoke \
