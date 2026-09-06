@@ -285,6 +285,13 @@ private task material, approve rules, or treat a missing external prerequisite a
 The roster review is an independent JSON report bound to the private pack digest and exact task
 IDs. It must record passing evidence for capacity, leakage, overlap and findability. The readiness
 command rejects an absent report, a report for another pack, or a report with an incomplete review.
+Validate it independently before the aggregate readiness check with:
+
+```bash
+python -m scripts.validate_challenge_roster_review \
+  --pack /private/amb-challenge-pack \
+  --review /private/results/roster-review.json
+```
 
 After entries have been evaluated, ranking applies the frozen tie breaker task IDs in order. It
 validates every public manifest against the private pack and policy, and exits with a failure when
