@@ -11,7 +11,10 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from harness.challenge_pack_builder import ChallengePackBuildError, materialize_private_pack  # noqa: E402
+from harness.challenge_pack_builder import (
+    ChallengePackBuildError,
+    materialize_private_pack,
+)
 
 
 def main() -> int:
