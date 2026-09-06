@@ -195,6 +195,37 @@ class SupermemoryAdapter(MemoryAdapter):
 
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
+        reuse_existing = os.environ.get("SUPERMEMORY_BENCHMARK_REUSE_EXISTING", "").lower() == "true"
+        if reuse_existing:
+            start = time.monotonic()
+            query = os.environ.get("SUPERMEMORY_BENCHMARK_REUSE_QUERY", "project memory")
+            verification_hits = self._stored_verification(namespace, query)
+            if verification_hits == 0:
+                raise RuntimeError(
+                    "Supermemory reuse was requested, but the existing namespace returned no "
+                    "search hits; refusing to skip ingestion"
+                )
+            if not self._profile_ready(namespace, query):
+                raise RuntimeError(
+                    "Supermemory reuse was requested, but the existing namespace did not become "
+                    "profile-ready within the bounded settle window"
+                )
+            base_url = self._base_url().lower()
+            local = base_url.startswith(("http://localhost", "http://127.0.0.1"))
+            return IngestReport(
+                arm=self.name,
+                namespace=namespace,
+                sessions_offered=len(corpus.sessions),
+                items_stored=None,
+                wall_time_ms=(time.monotonic() - start) * 1000.0,
+                local_model=(os.environ.get("SUPERMEMORY_LOCAL_MODEL") or "Supermemory Local configured model")
+                if local
+                else None,
+                notes=(
+                    "reused an existing verified Supermemory namespace; no corpus writes were issued",
+                    f"search verification returned {verification_hits} hit(s)",
+                ),
+            )
         staged = namespace_path(self.staging_root, namespace, "feed")
         if staged.exists():
             shutil.rmtree(staged)
