@@ -295,7 +295,7 @@ The command exits successfully only when every supplied release gate passes. It 
 private task material, approve rules, or treat a missing external prerequisite as a pass.
 
 The roster review is an independent JSON report bound to the private pack digest and exact task
-IDs. The private pack should record a `prepared_by` identity, and the review must repeat that
+IDs. The private pack must record a `prepared_by` identity, and the review must repeat that
 identity as `pack_preparer_id` with a different `reviewer_id`. It must record passing evidence for
 capacity, leakage, overlap and findability. The readiness command rejects an absent report, a
 report for another pack, a report with an incomplete review, or a reviewer who is also the pack

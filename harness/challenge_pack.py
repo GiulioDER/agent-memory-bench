@@ -158,6 +158,10 @@ def _validate_manifest(root: Path, data: Any) -> ChallengePack:
     for field in ("pack_id", "source_public_commit", "scoring_version"):
         if not isinstance(data.get(field), str) or not data[field].strip():
             raise ChallengePackError(f"pack.json field {field!r} must be a non empty string")
+    if "prepared_by" in data and (
+        not isinstance(data["prepared_by"], str) or not data["prepared_by"].strip()
+    ):
+        raise ChallengePackError("pack.json field 'prepared_by' must be a non empty string")
     corpus = _resolve_pack_path(root, data.get("corpus"), "corpus", directory=True)
 
     raw_tasks = data.get("tasks")

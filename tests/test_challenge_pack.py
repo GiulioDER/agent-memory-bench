@@ -109,3 +109,11 @@ def test_corpus_must_not_overlap_private_task_paths(tmp_path: Path):
 
     with pytest.raises(ChallengePackError, match="corpus overlaps private task path"):
         load_private_pack(pack)
+
+
+@pytest.mark.parametrize("prepared_by", ["", 123, None])
+def test_declared_pack_preparer_must_be_non_empty(tmp_path: Path, prepared_by):
+    pack = _write_pack(tmp_path / "pack", prepared_by=prepared_by)
+
+    with pytest.raises(ChallengePackError, match="prepared_by"):
+        load_private_pack(pack)

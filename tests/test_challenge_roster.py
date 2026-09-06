@@ -74,3 +74,13 @@ def test_roster_review_requires_preparer_binding_when_pack_declares_one():
             expected_task_ids=("task-a",),
             expected_pack_preparer_id="pack-author",
         )
+
+
+def test_roster_review_requires_preparer_metadata_for_final_release():
+    with pytest.raises(ChallengeRosterReviewError, match="must declare prepared_by"):
+        validate_roster_review(
+            _review(),
+            expected_pack_digest="a" * 64,
+            expected_task_ids=("task-a",),
+            require_pack_preparer_id=True,
+        )
