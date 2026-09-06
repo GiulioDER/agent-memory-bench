@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from harness.challenge_smoke import ChallengeSmokeError, validate_public_smoke_report
+from scripts.run_challenge_public_smoke import PublicSmokeError, _pytest_counts, _write_immutable
 
 
 def _report() -> dict:
@@ -48,3 +49,14 @@ def test_public_smoke_report_rejects_incomplete_or_unbound_evidence(mutation):
     mutation(report)
     with pytest.raises(ChallengeSmokeError):
         validate_public_smoke_report(report, expected_repository_revision="a" * 40)
+
+
+def test_smoke_producer_parses_final_pytest_counts():
+    assert _pytest_counts("================ 1132 passed, 17 skipped in 12s ================") == (1132, 17)
+
+
+def test_smoke_producer_does_not_overwrite_different_evidence(tmp_path):
+    target = tmp_path / "smoke.json"
+    _write_immutable(target, {"status": "pass"})
+    with pytest.raises(PublicSmokeError, match="already contains different data"):
+        _write_immutable(target, {"status": "different"})
