@@ -54,7 +54,8 @@ Validation also compares corpus file hashes with every private fixture, prompt, 
 reference file. An exact duplicate fails the pack audit because it can expose the task or answer
 surface through the memory corpus. Suspicious corpus filenames are reported for human review even
 when their bytes are unique. Private fixture, prompt, oracle and reference paths must also be
-unique and non overlapping across tasks.
+unique and non overlapping across tasks, and the corpus directory must not contain any of those
+private task paths.
 
 When the organizer has prepared the heldout source bundle in a separate location, it can be copied
 into a fresh private destination and validated in one step:
@@ -228,6 +229,11 @@ of the fixed agent command, and the evaluator rejects a command that does not ma
 digest is recorded in both score manifests. The submission descriptor cannot override them. The checked in
 `preregistration/challenge_policy.json` is a draft template and cannot be used for a prize run
 until its model and provider identifiers are replaced and independently approved.
+
+The evaluation command repeats the private corpus leakage audit immediately before running a
+submission. A pack that overlaps private task paths or contains an exact sensitive file duplicate
+is rejected even if an earlier preparation step reported success. Sidecar runtime cleanup failures
+also abort evaluation explicitly, so no partial score manifest is produced.
 
 The final release record is generated only from a validated private pack, a non placeholder policy,
 and final contest rules:
