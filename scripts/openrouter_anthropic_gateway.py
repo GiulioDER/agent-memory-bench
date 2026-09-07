@@ -82,6 +82,14 @@ def _provider_from_probe(data: bytes) -> str | None:
     return match.group(1).decode("utf-8", "replace") if match else None
 
 
+def stream_has_terminal_event(data: bytes) -> bool:
+    """Return whether a buffered Anthropic SSE response contains ``message_stop``."""
+
+    return b"event: message_stop" in data or re.search(
+        rb'"type"\s*:\s*"message_stop"', data
+    ) is not None
+
+
 class GatewayHandler(BaseHTTPRequestHandler):
     server_version = "AMBOpenRouterGateway/1.0"
 
@@ -178,6 +186,8 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
 
         probe = bytearray()
+        terminal_tail = bytearray()
+        terminal_event = False
         try:
             self.send_response(response.status)
             for header, value in response.headers.items():
@@ -192,15 +202,21 @@ class GatewayHandler(BaseHTTPRequestHandler):
                     probe.extend(chunk[: 262144 - len(probe)])
                 self.wfile.write(chunk)
                 self.wfile.flush()
+                terminal_tail.extend(chunk)
+                del terminal_tail[:-512]
+                if stream_has_terminal_event(bytes(terminal_tail)):
+                    terminal_event = True
+                    break
         except (BrokenPipeError, ConnectionResetError):
             self.gateway.logger.warning("client disconnected during upstream stream")
         finally:
             response.close()
         self.gateway.logger.info(
-            "upstream status=%s provider=%s streamed_probe_bytes=%d",
+            "upstream status=%s provider=%s streamed_probe_bytes=%d terminal_event=%s",
             response.status,
             _provider_from_probe(bytes(probe)),
             len(probe),
+            terminal_event,
         )
 
     def _relay_response(self, response: Any, body: bytes) -> None:

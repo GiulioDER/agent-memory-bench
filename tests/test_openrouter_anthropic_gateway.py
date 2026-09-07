@@ -9,6 +9,7 @@ from scripts.openrouter_anthropic_gateway import (
     DEFAULT_PROVIDER_ORDER,
     build_upstream_payload,
     parse_provider_order,
+    stream_has_terminal_event,
 )
 
 
@@ -41,3 +42,9 @@ def test_provider_order_is_explicit_and_unique() -> None:
         parse_provider_order(" , ")
     with pytest.raises(ValueError, match="duplicates"):
         parse_provider_order("deepinfra,deepinfra")
+
+
+def test_stream_terminal_event_is_detected_across_chunk_boundaries() -> None:
+    assert stream_has_terminal_event(b"event: message_stop\ndata: {}\n")
+    assert stream_has_terminal_event(b'{"type": "message_stop"}')
+    assert not stream_has_terminal_event(b"event: content_block_delta\n")
