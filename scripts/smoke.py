@@ -34,6 +34,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from adapters.bare.adapter import BareAdapter
+from adapters.claude_mem.adapter import ClaudeMemAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.fs_grep.adapter import FsGrepAdapter
 from adapters.recall.adapter import RecallAdapter
@@ -86,7 +87,7 @@ async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
     parser.add_argument(
-        "--arms", default="bare,claude_md,fs_grep,recall,supermemory", help="comma-separated arm roster"
+        "--arms", default="bare,claude_md,fs_grep,recall,supermemory,claude_mem", help="comma-separated arm roster"
     )
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument(
@@ -133,6 +134,7 @@ async def main() -> int:
 
     registry = AdapterRegistry()
     registry.register(BareAdapter())
+    registry.register(ClaudeMemAdapter(staging, base_prompt))
     registry.register(ClaudeMdAdapter(base_prompt))
     registry.register(FsGrepAdapter(staging, base_prompt))
     registry.register(RecallAdapter(staging, base_prompt))
