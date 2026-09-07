@@ -60,7 +60,10 @@ def test_the_arm_is_registered_in_runner_and_abstention_rosters():
 
 
 def test_instruction_uses_the_shared_protocol_and_capped_appendix():
-    instructions.assert_shared_protocol({"claude_mem": ClaudeMemAdapter.shared_instruction()})
+    instruction = ClaudeMemAdapter.shared_instruction()
+    instructions.assert_shared_protocol({"claude_mem": instruction})
+    assert "mcp__mcp-search__search" in instruction
+    assert "before your first file read or state-changing command" in instruction
     appendix = (REPO / "adapters" / "claude_mem" / "instruction_appendix.md").read_bytes()
     assert 0 < len(appendix) <= APPENDIX_MAX_BYTES
 

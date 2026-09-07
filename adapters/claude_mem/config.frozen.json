@@ -25,5 +25,5 @@
   "search_path": "/api/search",
   "search_project": "claude_mem",
   "ingest_timeout_s": 180,
-  "instruction": "This project has persistent Claude-Mem context available through its official Claude Code hooks and MCP search tools; use retrieved context before acting when relevant."
+  "instruction": "This project has persistent Claude-Mem context available through the official Claude Code hooks and the mcp__mcp-search__search tool; before your first file read or state-changing command, call mcp__mcp-search__search with a short query about the task's operations and likely failure modes, then use the retrieved context before acting when relevant."
 }
