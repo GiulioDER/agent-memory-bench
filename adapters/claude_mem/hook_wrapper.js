@@ -35,6 +35,11 @@ const stdout = result.stdout || '';
 const stderr = result.stderr || '';
 if (stdout) process.stdout.write(stdout);
 if (stderr) process.stderr.write(stderr);
+const vendorExitCode = result.error ? null : (typeof result.status === 'number' ? result.status : 1);
+const idempotentPrestart = event === 'SessionStartWorker'
+  && vendorExitCode !== 0
+  && process.env.CLAUDE_MEM_BENCHMARK_PRESTARTED === '1';
+const exitCode = idempotentPrestart ? 0 : vendorExitCode;
 
 let payload = null;
 try {
@@ -56,7 +61,9 @@ const entry = {
   session_id: (() => {
     try { return JSON.parse(input).session_id || null; } catch { return null; }
   })(),
-  exit_code: result.error ? null : (typeof result.status === 'number' ? result.status : 1),
+  exit_code: exitCode,
+  vendor_exit_code: vendorExitCode,
+  idempotent_prestart: idempotentPrestart,
   output_sha256: crypto.createHash('sha256').update(stdout).digest('hex'),
   elapsed_ms: performance.now() - started,
   additional_context_bytes: Buffer.byteLength(additionalContext, 'utf8'),
@@ -72,4 +79,4 @@ try {
 }
 
 if (result.error) process.exit(1);
-process.exit(typeof result.status === 'number' ? result.status : 1);
+process.exit(exitCode);

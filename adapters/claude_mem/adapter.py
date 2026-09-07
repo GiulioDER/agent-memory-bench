@@ -127,6 +127,7 @@ class ClaudeMemAdapter(MemoryAdapter):
                 str(self.config["worker_host_env"]): str(self.config["worker_host"]),
                 str(self.config["worker_port_env"]): str(self._worker_port(namespace)),
                 "CLAUDE_MEM_PROJECT": _PROJECT,
+                "CLAUDE_MEM_BENCHMARK_PRESTARTED": "1",
             }
         )
         return env

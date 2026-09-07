@@ -58,7 +58,8 @@ PROMPT = (
     "Determine which TCP port this service is configured to listen on, and write it to "
     "the current repository root as ./RESULT.txt using a relative path. You must use Bash to "
     "write the number you found, then use Read to verify the file: just the number, one line, "
-    "nothing else."
+    "nothing else. Do not answer with the port alone. The task is incomplete until RESULT.txt "
+    "exists and has been verified with Read."
 )
 BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
 DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
