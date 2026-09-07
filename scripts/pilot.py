@@ -1022,7 +1022,32 @@ async def main() -> int:
         workdir = work_root / "work" / task_id / f"s{seed}" / arm
         overlay = fs_grep_memory if arm == "fs_grep" else None
         digest = sandbox.restore(task_id, workdir, overlay=overlay)
-        record = await run_claude_case(row, arm, config_for(task_id, seed, arm, workdir))
+        session_config = config_for(task_id, seed, arm, workdir)
+        silent_retries = 0
+        max_silent_retries = min(
+            2, max(0, int(os.environ.get("AMB_SILENT_COMPLETION_RETRIES", "1")))
+        )
+        while True:
+            record = await run_claude_case(row, arm, session_config)
+            silent = (
+                not record.response
+                and not record.tool_calls
+                and (record.output_tokens or 0) <= 2
+                and record.metadata.get("ttft_ms") is None
+                and record.error is None
+            )
+            if not silent or silent_retries >= max_silent_retries:
+                break
+            silent_retries += 1
+            await asyncio.sleep(2.0)
+        if silent_retries:
+            record = replace(
+                record,
+                metadata={
+                    **record.metadata,
+                    "silent_completion_retries": silent_retries,
+                },
+            )
         ok, verdict = run_checker(by_id[task_id], workdir)
         spec = cell_specs[(task_id, seed, arm)]
         prompt_file = spec.append_system_prompt_file
