@@ -148,6 +148,75 @@ class ClaudeMemAdapter(MemoryAdapter):
     def _worker_url(self, namespace: str) -> str:
         return f"http://{self.config['worker_host']}:{self._worker_port(namespace)}"
 
+    def isolate_cell_namespaces(
+        self, source_namespace: str, target_namespaces: tuple[str, ...]
+    ) -> None:
+        """Clone the imported worker state once per benchmark cell.
+
+        Claude-Mem records lifecycle observations from the benchmark sessions themselves. Sharing
+        one live worker across cells therefore lets an earlier cell answer a later task through
+        startup context. The imported database is the reusable fixture; each cell gets a
+        filesystem clone of that fixture and its own worker namespace, so no vendor API import is
+        repeated and no live observation crosses a cell boundary.
+        """
+
+        if not target_namespaces:
+            return
+        plugin_root = self._plugin_root()
+        source_data = self._data_dir(source_namespace)
+        if not source_data.is_dir():
+            raise RuntimeError(
+                f"Claude-Mem imported data is missing at {source_data}; cannot clone cell state"
+            )
+
+        env = {
+            **os.environ,
+            **self._runtime_env(source_namespace, source_data),
+            "CLAUDE_PLUGIN_ROOT": str(plugin_root),
+        }
+        node = shutil.which("node") or "node"
+        result = subprocess.run(
+            [
+                node,
+                str(plugin_root / "scripts" / "bun-runner.js"),
+                str(plugin_root / "scripts" / "worker-service.cjs"),
+                "stop",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=45,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                "Claude-Mem imported worker stop failed with exit "
+                f"{result.returncode}: {result.stderr[-2000:]}"
+            )
+
+        def ignore_runtime(_directory: str, names: list[str]) -> set[str]:
+            return {
+                name
+                for name in names
+                if name in {
+                    "worker.pid",
+                    "supervisor.json",
+                    "observer-health.json",
+                    "chroma-sync-state.json",
+                    "logs",
+                }
+                or name.endswith(".lock")
+            }
+
+        for target_namespace in target_namespaces:
+            target_data = self._data_dir(target_namespace)
+            if target_data.exists():
+                shutil.rmtree(target_data)
+            shutil.copytree(source_data, target_data, ignore=ignore_runtime)
+            self._write_worker_settings(target_data, target_namespace)
+
     def _request(self, method: str, url: str, body: dict[str, Any] | None = None) -> Any:
         payload = None if body is None else json.dumps(body).encode("utf-8")
         headers = {"Content-Type": "application/json"} if payload is not None else {}

@@ -496,6 +496,19 @@ def diagnostic_metadata(spec: Any) -> dict[str, Any]:
     return {}
 
 
+def cell_namespace(base_namespace: str, task_id: str, seed: int, arm: str) -> str:
+    """Give Claude-Mem one live store per task and seed.
+
+    Its lifecycle hooks persist benchmark sessions, so sharing one live worker lets an earlier
+    cell inject its answer into a later cell's startup context. The imported corpus is cloned into
+    each cell without repeating the vendor import.
+    """
+
+    if arm == "claude_mem":
+        return f"{base_namespace}-{task_id}-s{seed}"
+    return base_namespace
+
+
 def block_concurrency() -> int:
     """How many (task, seed) cells run at once. `AMB_BLOCK_CONCURRENCY`, default 1.
 
@@ -765,6 +778,15 @@ async def main() -> int:
                 flush=True,
             )
             ingest_reports.append(report)
+    if "claude_mem" in self_ingesting:
+        claude_mem_namespaces = tuple(
+            cell_namespace(args.namespace, task.task_id, seed, "claude_mem")
+            for task in tasks
+            for seed in range(args.seeds)
+        )
+        registry.get("claude_mem").isolate_cell_namespaces(
+            args.namespace, claude_mem_namespaces
+        )
     if "recall" in run_arms:
         # Recall is indexed out of band, but a run still has to prove here that its tenant serves
         # the active generation built from THIS frozen manifest. Previously pilot.py skipped this
@@ -786,9 +808,10 @@ async def main() -> int:
     for task in tasks:
         for arm in run_arms:
             adapter = adapter_for(arm, bundles[task.task_id], staging, texts)
+            namespace = cell_namespace(args.namespace, task.task_id, 0, arm)
             specs[(task.task_id, arm)] = adapter.build_for_task(
                 run_dir / "cfg" / task.task_id / arm,
-                args.namespace,
+                namespace,
                 task.task_id,
                 task.prompt,
             )
@@ -796,12 +819,14 @@ async def main() -> int:
             # execute concurrently, so sharing the task/arm directory lets their settings,
             # session state, or hook ledger race and can produce silent zero-token completions.
             # Seed zero keeps the historical path; every additional seed gets its own identical
-            # config copy while retaining the same Claude-Mem worker namespace and imported data.
+            # config copy. Claude-Mem also gets a task-seed worker namespace with the same imported
+            # snapshot, preventing live lifecycle observations from crossing cell boundaries.
             cell_specs[(task.task_id, 0, arm)] = specs[(task.task_id, arm)]
             for seed in range(1, args.seeds):
+                namespace = cell_namespace(args.namespace, task.task_id, seed, arm)
                 cell_specs[(task.task_id, seed, arm)] = adapter.build_for_task(
                     run_dir / "cfg" / task.task_id / f"s{seed}" / arm,
-                    args.namespace,
+                    namespace,
                     task.task_id,
                     task.prompt,
                 )
@@ -922,6 +947,10 @@ async def main() -> int:
                 },
                 "prompt_sha256_by_task": prompt_hashes,
                 "namespace": args.namespace,
+                "cell_namespace_policy": {
+                    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+                    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion",
+                },
                 "work_root": str(work_root),
                 "sandbox_inside_repo": False,
                 "adapters": {
@@ -1032,8 +1061,6 @@ async def main() -> int:
             silent = (
                 not record.response
                 and not record.tool_calls
-                and (record.output_tokens or 0) <= 2
-                and record.metadata.get("ttft_ms") is None
                 and record.error is None
             )
             if not silent or silent_retries >= max_silent_retries:
