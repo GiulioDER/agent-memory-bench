@@ -17,6 +17,7 @@ import os
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -100,7 +101,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def do_GET(self) -> None:
-        if self.path == "/healthz":
+        if urllib.parse.urlsplit(self.path).path == "/healthz":
             self._json(
                 HTTPStatus.OK,
                 {
@@ -113,8 +114,19 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
+    def do_HEAD(self) -> None:
+        path = urllib.parse.urlsplit(self.path).path
+        if path in {"/healthz", "/api/hello"}:
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            return
+        self.send_response(HTTPStatus.NOT_FOUND)
+        self.end_headers()
+
     def do_POST(self) -> None:
-        if self.path not in {"/v1/messages", "/api/v1/messages"}:
+        path = urllib.parse.urlsplit(self.path).path
+        if path not in {"/v1/messages", "/api/v1/messages"}:
             self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
             return
         raw_length = self.headers.get("Content-Length")
