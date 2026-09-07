@@ -8,8 +8,8 @@ set -euo pipefail
 
 REPO="${REPO:-$HOME/amb-claude-mem-official-001}"
 BASE_REPO="${BASE_REPO:-$HOME/amb-repo}"
-RUN_ID="${RUN_ID:-claude-mem-official-005}"
-PREREG="${PREREG:-preregistration/046-claude-mem-official-additive-staggered.md}"
+RUN_ID="${RUN_ID:-claude-mem-official-006}"
+PREREG="${PREREG:-preregistration/047-claude-mem-official-additive-staggered.md}"
 PY="${PY:-$BASE_REPO/.venv/bin/python}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 PRICE_IN="${PRICE_IN:-0.0574}"
