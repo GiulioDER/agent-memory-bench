@@ -24,13 +24,27 @@ try {
 }
 
 const started = performance.now();
-const result = spawnSync(process.execPath, argv, {
-  input,
-  encoding: 'utf8',
-  env: { ...process.env },
-  windowsHide: true,
-  maxBuffer: 20 * 1024 * 1024,
-});
+const isContextHook = event === 'SessionStart'
+  && argv.includes('hook')
+  && argv.includes('context');
+let retryCount = 0;
+let result;
+while (true) {
+  result = spawnSync(process.execPath, argv, {
+    input,
+    encoding: 'utf8',
+    env: { ...process.env },
+    windowsHide: true,
+    maxBuffer: 20 * 1024 * 1024,
+  });
+  const status = result.error ? null : (typeof result.status === 'number' ? result.status : 1);
+  // Claude Code may dispatch the two official SessionStart hooks concurrently. If context wins
+  // the race, the first request sees a worker that is still starting. Retry that one transient
+  // failure after a short delay, while leaving all other vendor exit statuses untouched.
+  if (!isContextHook || status === 0 || retryCount >= 2) break;
+  retryCount += 1;
+  spawnSync('sleep', ['2']);
+}
 const stdout = result.stdout || '';
 const stderr = result.stderr || '';
 if (stdout) process.stdout.write(stdout);
@@ -66,6 +80,7 @@ const entry = {
   idempotent_prestart: idempotentPrestart,
   output_sha256: crypto.createHash('sha256').update(stdout).digest('hex'),
   elapsed_ms: performance.now() - started,
+  retry_count: retryCount,
   additional_context_bytes: Buffer.byteLength(additionalContext, 'utf8'),
   additional_context_sha256: crypto.createHash('sha256').update(additionalContext).digest('hex'),
   injection_status: (additionalContext || systemMessage) ? 'context' : 'empty',

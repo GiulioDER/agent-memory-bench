@@ -478,6 +478,7 @@ class ClaudeMemAdapter(MemoryAdapter):
             arm=self.name,
             mcp_tool_prefixes=(str(self.config["tool_prefix"]),),
             required_hooks=_REQUIRED_HOOKS,
+            metadata={"conditional_hooks": {"PostToolUse": "tool_calls"}},
         )
 
     def describe(self) -> dict[str, Any]:
