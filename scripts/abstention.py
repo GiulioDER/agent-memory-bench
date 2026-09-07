@@ -342,7 +342,7 @@ SEARCH_RATE_FLOOR = 0.50
 # decides whether its numbers mean anything. `_classify_arms` below now refuses an arm that is in
 # neither set, so the next product cannot repeat it.
 MEMORY_ARMS = frozenset(
-    {"recall", "recall_rerank", "mempalace", "fs_grep", "cachly", "supermemory"}
+    {"recall", "recall_rerank", "mempalace", "fs_grep", "cachly", "supermemory", "claude_mem"}
 )
 
 # Arms with no retrieval surface THE AGENT CAN REACH. A search rate for these is meaningless,
@@ -435,6 +435,17 @@ def search_rate_for(run_dir: Path, *, admitted_only: bool = True) -> dict[str, f
                     and int(entry.get("recalled_count") or 0) > 0
                     for entry in ledger
                 )
+        if arm == "claude_mem":
+            # Claude-Mem can retrieve through MCP or its UserPromptSubmit context hook. Count
+            # either official path, but never infer retrieval from a successful worker start.
+            ledger = record.get("hook_ledger")
+            if isinstance(ledger, list) and any(
+                isinstance(entry, dict)
+                and entry.get("event") == "UserPromptSubmit"
+                and entry.get("injection_status") == "context"
+                for entry in ledger
+            ):
+                return True
         return int(record.get("memory_call_count") or 0) > 0
 
     calls: dict[str, list[bool]] = {}
