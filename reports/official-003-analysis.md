@@ -28,7 +28,6 @@ The intervals are within run intervals over the admitted cells. They do not incl
 | `bare` | 65.9% | +8.2% | $0.0014 | 63.50 | 21,807 | published |
 | `recall_prefetch` | 61.2% | +3.5% | $0.0017 | 51.24 | 28,063 | published |
 | `protocol` | 61.2% | +3.5% | $0.0019 | 62.94 | 30,013 | published |
-| `supermemory` | 20.8% | -37.1% | $0.0046/task | n/a | 92,239 | joined to official-003 |
 
 ## Condition analysis
 
@@ -44,7 +43,6 @@ The condition delta is measured against `claude_md` within the same condition.
 | `bare` | +3.6% | +19.2% | +6.5% | +7.8% | +8.8% |
 | `recall_prefetch` | +1.8% | +15.4% | +6.5% | -9.8% | +5.3% |
 | `protocol` | +5.4% | +9.6% | -8.7% | -2.0% | +8.8% |
-| `supermemory` | -23.3% | -5.8% | -60.9% | -52.5% | -59.4% |
 
 ## Strengths and weaknesses
 
@@ -56,7 +54,6 @@ The condition delta is measured against `claude_md` within the same condition.
 1. `bare`: strongest gains `ts-legacy-hash` (+65.2%), `ts-manifest-rel` (+36.4%), `ts-mig-name` (+27.3%); largest losses `ts-cli-exitcode` (-80.0%), `ts-idempotent-run` (-80.0%), `ts-schema-additive` (-8.0%).
 1. `recall_prefetch`: strongest gains `ts-golden-regen` (+70.0%), `ts-manifest-rel` (+54.5%), `ts-bom-merge` (+10.0%); largest losses `ts-cli-exitcode` (-60.0%), `ts-ignore-gen` (-20.0%), `ts-semver-pin` (-20.0%).
 1. `protocol`: strongest gains `ts-atomic-write` (+60.0%), `ts-manifest-rel` (+27.3%), `ts-mig-name` (+27.3%); largest losses `ts-schema-additive` (-20.0%), `ts-bom-merge` (-10.0%), `ts-semver-pin` (-4.0%).
-1. `supermemory`: strongest gains none; largest losses none.
 
 ## Audit status
 

@@ -769,81 +769,6 @@
           "delta": -0.04
         }
       ]
-    },
-    "supermemory": {
-      "status": "published",
-      "comparison": "joined to official-003",
-      "source_run": "supermemory-003",
-      "success": 0.2077,
-      "delta_vs_baseline": -0.3706,
-      "ci95": [
-        -0.3465,
-        -0.1149
-      ],
-      "solved_cells": null,
-      "admitted_cells": 313,
-      "discarded_cells": 4,
-      "by_condition": {
-        "present": {
-          "solved": 17,
-          "cells": 110
-        },
-        "absent": {
-          "solved": 29,
-          "cells": 52
-        },
-        "superseded": {
-          "solved": 3,
-          "cells": 46
-        },
-        "contradictory": {
-          "solved": 12,
-          "cells": 50
-        },
-        "adjacent": {
-          "solved": 4,
-          "cells": 55
-        }
-      },
-      "condition_delta_vs_baseline": {
-        "present": -0.2329,
-        "absent": -0.0577,
-        "superseded": -0.6087,
-        "contradictory": -0.5247,
-        "adjacent": -0.594
-      },
-      "cost": {
-        "total_usd": null,
-        "usd_per_admitted_cell": null,
-        "reported_usd_per_task": 0.0046,
-        "total_tokens": 28870777,
-        "tokens_per_observed_session": 79098,
-        "tokens_per_admitted_cell": 92239,
-        "pricing_model": "deepseek/deepseek-v4-flash",
-        "pricing_as_of": null,
-        "relative_to_baseline": null
-      },
-      "speed": {
-        "mean_session_s": null,
-        "ingest_s": null,
-        "relative_to_baseline": null
-      },
-      "efficiency": {},
-      "strongest_gains": [],
-      "largest_losses": [],
-      "join": {
-        "baseRun": "official-003",
-        "baseAdmittedCells": 317,
-        "joinedCells": 313,
-        "baseCellsLostToJoin": 4,
-        "conditions": [
-          "present",
-          "absent",
-          "superseded",
-          "contradictory",
-          "adjacent"
-        ]
-      }
     }
   },
   "task_profiles": {
@@ -1693,32 +1618,6 @@
           "successes_per_million_tokens": 20.39,
           "successes_per_dollar": 328.87
         }
-      },
-      "supermemory": {
-        "status": "published",
-        "success": 0.2077,
-        "delta_vs_baseline": -0.3706,
-        "ci95": [
-          -0.3465,
-          -0.1149
-        ],
-        "cost": {
-          "total_usd": null,
-          "usd_per_admitted_cell": null,
-          "reported_usd_per_task": 0.0046,
-          "total_tokens": 28870777,
-          "tokens_per_observed_session": 79098,
-          "tokens_per_admitted_cell": 92239,
-          "pricing_model": "deepseek/deepseek-v4-flash",
-          "pricing_as_of": null,
-          "relative_to_baseline": null
-        },
-        "speed": {
-          "mean_session_s": null,
-          "ingest_s": null,
-          "relative_to_baseline": null
-        },
-        "efficiency": {}
       }
     }
   },
