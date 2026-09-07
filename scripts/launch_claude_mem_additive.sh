@@ -21,6 +21,28 @@ export AMB_BLOCK_CONCURRENCY="${AMB_BLOCK_CONCURRENCY:-4}"
 export AMB_CORPUS_FLOOR="${AMB_CORPUS_FLOOR:-4000}"
 export PYTHONUNBUFFERED=1
 
+cleanup_worker() {
+  local namespace="$1"
+  local base="/tmp/agent-memory-bench-work/$namespace"
+  local proc env_dump data_dir
+  for proc in /proc/[0-9]*; do
+    [[ -r "$proc/environ" ]] || continue
+    env_dump="$(tr '\0' '\n' < "$proc/environ" 2>/dev/null || true)"
+    data_dir="$(printf '%s\n' "$env_dump" | sed -n 's/^CLAUDE_MEM_DATA_DIR=//p')"
+    if [[ "$data_dir" == "$base" || "$data_dir" == "$base/"* ]]; then
+      kill "${proc##*/}" 2>/dev/null || true
+    fi
+  done
+}
+
+CURRENT_NAMESPACE=""
+cleanup_current_worker() {
+  if [[ -n "$CURRENT_NAMESPACE" ]]; then
+    cleanup_worker "$CURRENT_NAMESPACE"
+  fi
+}
+trap cleanup_current_worker EXIT
+
 [[ -x "$PY" ]] || { echo "missing benchmark python: $PY" >&2; exit 2; }
 [[ -x "$(command -v claude)" ]] || { echo "claude is not on PATH" >&2; exit 2; }
 command -v bun >/dev/null || { echo "bun is not on PATH" >&2; exit 2; }
@@ -50,6 +72,7 @@ run_condition() {
   local condition="$1"
   local tasks="$2"
   local corpus="$BASE_REPO/corpus/conditions/$condition/seed-1"
+  CURRENT_NAMESPACE="$RUN_ID-$condition"
   [[ -f "$corpus/manifest.json" ]] || { echo "missing corpus manifest: $corpus" >&2; exit 2; }
   echo "[$condition] starting 27/11/10/10/11 frozen task selection with four workers" >&2
   "$PY" -m scripts.pilot \
@@ -71,6 +94,8 @@ run_condition() {
     --expect-arms claude_mem \
     --expect-instruction protocol
   "$PY" -m scripts.verify_run "$REPO/results/$RUN_ID-$condition"
+  cleanup_worker "$CURRENT_NAMESPACE"
+  CURRENT_NAMESPACE=""
 }
 
 run_condition present \
