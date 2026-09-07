@@ -1025,7 +1025,7 @@ async def main() -> int:
         session_config = config_for(task_id, seed, arm, workdir)
         silent_retries = 0
         max_silent_retries = min(
-            2, max(0, int(os.environ.get("AMB_SILENT_COMPLETION_RETRIES", "1")))
+            5, max(0, int(os.environ.get("AMB_SILENT_COMPLETION_RETRIES", "1")))
         )
         while True:
             record = await run_claude_case(row, arm, session_config)
@@ -1039,7 +1039,7 @@ async def main() -> int:
             if not silent or silent_retries >= max_silent_retries:
                 break
             silent_retries += 1
-            await asyncio.sleep(2.0)
+            await asyncio.sleep(2.0 * silent_retries)
         if silent_retries:
             record = replace(
                 record,
