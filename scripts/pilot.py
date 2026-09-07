@@ -782,6 +782,7 @@ async def main() -> int:
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
     # until 2026-08-28 it was inline code here instead, so `adapters/` was reviewable and not run.
     specs: dict[tuple[str, str], ArmSpec] = {}
+    cell_specs: dict[tuple[str, int, str], ArmSpec] = {}
     for task in tasks:
         for arm in run_arms:
             adapter = adapter_for(arm, bundles[task.task_id], staging, texts)
@@ -791,6 +792,19 @@ async def main() -> int:
                 task.task_id,
                 task.prompt,
             )
+            # Claude Code mutates CLAUDE_CONFIG_DIR while a session runs. Seeds of one task can
+            # execute concurrently, so sharing the task/arm directory lets their settings,
+            # session state, or hook ledger race and can produce silent zero-token completions.
+            # Seed zero keeps the historical path; every additional seed gets its own identical
+            # config copy while retaining the same Claude-Mem worker namespace and imported data.
+            cell_specs[(task.task_id, 0, arm)] = specs[(task.task_id, arm)]
+            for seed in range(1, args.seeds):
+                cell_specs[(task.task_id, seed, arm)] = adapter.build_for_task(
+                    run_dir / "cfg" / task.task_id / f"s{seed}" / arm,
+                    args.namespace,
+                    task.task_id,
+                    task.prompt,
+                )
 
     prompt_hashes: dict[str, dict[str, str]] = {}
     for arm in run_arms:
@@ -972,7 +986,7 @@ async def main() -> int:
         values are the four the adapter returned.
         """
 
-        spec = specs[(task_id, arm)]
+        spec = cell_specs[(task_id, seed, arm)]
         return ClaudeExecConfig(
             model=args.model,
             cwd=cwd,
@@ -1010,7 +1024,7 @@ async def main() -> int:
         digest = sandbox.restore(task_id, workdir, overlay=overlay)
         record = await run_claude_case(row, arm, config_for(task_id, seed, arm, workdir))
         ok, verdict = run_checker(by_id[task_id], workdir)
-        spec = specs[(task_id, arm)]
+        spec = cell_specs[(task_id, seed, arm)]
         prompt_file = spec.append_system_prompt_file
 
         # ⛔ Carry the adapter's diagnostic metadata into the RECORD, or the admission gate
@@ -1058,13 +1072,13 @@ async def main() -> int:
         final = replace(
             record,
             success=ok and record.success,
-            config_dir_digest=specs[(task_id, arm)].config_dir_digest,
+            config_dir_digest=cell_specs[(task_id, seed, arm)].config_dir_digest,
             hook_ledger=(
                 registry.get(arm).read_hook_ledger(
-                    record.metadata.get("session_id"), specs[(task_id, arm)].config_dir
+                    record.metadata.get("session_id"), cell_specs[(task_id, seed, arm)].config_dir
                 )
                 if arm in ("supermemory", "claude_mem")
-                and specs[(task_id, arm)].config_dir is not None
+                and cell_specs[(task_id, seed, arm)].config_dir is not None
                 else record.hook_ledger
             ),
             metadata={**record.metadata, **extra},
