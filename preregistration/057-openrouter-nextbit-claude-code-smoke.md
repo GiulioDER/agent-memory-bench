@@ -34,3 +34,21 @@ not a leaderboard result and cannot authorize an official AMB run by itself.
 
 <!-- results are appended below this line; everything above is frozen -->
 
+## Measured result, appended 2026-09-07
+
+The first probe attempt was rejected locally with HTTP 400 because the SSH shell quoting produced
+invalid JSON. The request did not reach OpenRouter and consumed no provider call. The corrected
+probe then passed with HTTP 200, upstream provider `NextBit`, and a complete streamed response with
+`terminal_event=true`.
+
+The Claude Code text request passed on VPS2 with `stop_reason=end_turn`, exact result
+`NEXTBIT_CLAUDE_TEXT_OK`, and no API error. The Claude Code tool request also passed with
+`stop_reason=end_turn`, exact result `NEXTBIT_CLAUDE_TOOL_OK`, and a verified marker file containing
+the same value. Both requests used the exact model `deepseek/deepseek-v4-flash` through the local
+gateway with provider order `nextbit` and `allow_fallbacks=false`.
+
+Claude Code still emitted its known `unrecognized_model` warning for the non-native DeepSeek model,
+but the gateway, response model, provider, terminal results, and tool execution were correct. This
+warning was not treated as a provider or model mismatch. The gateway was stopped after the test and
+port 8794 was verified free. This is a compatibility smoke pass only and does not authorize an
+official AMB run.
