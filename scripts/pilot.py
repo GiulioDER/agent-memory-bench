@@ -1029,6 +1029,10 @@ async def main() -> int:
             disallowed_tools=DENIED_TOOLS,
             append_system_prompt_file=spec.append_system_prompt_file,
             permission_mode="acceptEdits",
+            # The stream and hook ledger are the benchmark evidence. Persisting Claude Code's
+            # session state adds a hidden retry/cache surface and can produce empty continuation
+            # sessions after a silent provider response.
+            extra_args=("--no-session-persistence",),
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
             stream_dir=run_dir / "streams",
             json_schema=(
