@@ -212,6 +212,10 @@ async def main() -> int:
                     record.metadata.get("session_id"), spec.config_dir
                 )
                 if arm == "supermemory" and spec.config_dir is not None
+                else registry.get("claude_mem").read_hook_ledger(
+                    record.metadata.get("session_id"), spec.config_dir
+                )
+                if arm == "claude_mem" and spec.config_dir is not None
                 else record.hook_ledger
             ),
             metadata={**record.metadata, **extra},
