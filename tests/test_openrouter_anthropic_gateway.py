@@ -22,11 +22,11 @@ def test_gateway_replaces_caller_provider_policy() -> None:
     result = json.loads(
         build_upstream_payload(
             _body(provider={"order": ["untrusted"], "allow_fallbacks": True}),
-            provider_order=("DeepInfra", "NovitaAI"),
+            provider_order=("deepinfra", "novitaai"),
         )
     )
     assert result["model"] == DEFAULT_MODEL
-    assert result["provider"] == {"order": ["DeepInfra", "NovitaAI"], "allow_fallbacks": False}
+    assert result["provider"] == {"order": ["deepinfra", "novitaai"], "allow_fallbacks": False}
 
 
 def test_gateway_rejects_model_drift() -> None:
@@ -36,8 +36,8 @@ def test_gateway_rejects_model_drift() -> None:
 
 def test_provider_order_is_explicit_and_unique() -> None:
     assert parse_provider_order(None) == DEFAULT_PROVIDER_ORDER
-    assert parse_provider_order(" DeepInfra, NovitaAI ") == ("DeepInfra", "NovitaAI")
+    assert parse_provider_order(" deepinfra, novitaai ") == ("deepinfra", "novitaai")
     with pytest.raises(ValueError, match="at least one"):
         parse_provider_order(" , ")
     with pytest.raises(ValueError, match="duplicates"):
-        parse_provider_order("DeepInfra,DeepInfra")
+        parse_provider_order("deepinfra,deepinfra")

@@ -24,7 +24,7 @@ from typing import Any
 
 DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
 DEFAULT_UPSTREAM = "https://openrouter.ai/api/v1/messages"
-DEFAULT_PROVIDER_ORDER = ("DeepInfra",)
+DEFAULT_PROVIDER_ORDER = ("deepinfra",)
 MAX_BODY_BYTES = 12 * 1024 * 1024
 _SAFE_RESPONSE_HEADERS = {
     "content-type",
