@@ -263,12 +263,20 @@ class ClaudeMemAdapter(MemoryAdapter):
             )
 
         query = next((item["text"][:200] for item in observations if item["text"]), "project memory")
+        search_start = min(item["created_at"] for item in observations)
         deadline = time.monotonic() + float(self.config["ingest_timeout_s"])
         hits = 0
         while time.monotonic() < deadline:
             try:
                 params = urllib.parse.urlencode(
-                    {"query": query, "project": _PROJECT, "limit": 1}
+                    {
+                        "query": query,
+                        "project": _PROJECT,
+                        "limit": 1,
+                        "format": "json",
+                        "type": "observations",
+                        "date_start": search_start,
+                    }
                 )
                 searched = self._request(
                     "GET", f"{self._worker_url(namespace)}{self.config['search_path']}?{params}"
