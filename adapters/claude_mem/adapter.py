@@ -251,17 +251,31 @@ class ClaudeMemAdapter(MemoryAdapter):
             )
 
         start = time.monotonic()
-        result = self._request(
-            "POST",
-            f"{self._worker_url(namespace)}{self.config['import_path']}",
-            {"sessions": sessions, "summaries": [], "observations": observations, "prompts": []},
-        )
-        stats = result.get("stats") if isinstance(result, dict) else None
-        imported = stats.get("observationsImported") if isinstance(stats, dict) else None
-        if imported != len(observations):
-            raise RuntimeError(
-                f"Claude-Mem imported {imported!r} observations, expected {len(observations)}"
+        batch_size = int(self.config.get("import_batch_size", 50))
+        if batch_size <= 0:
+            raise RuntimeError("Claude-Mem import_batch_size must be positive")
+        imported = 0
+        for offset in range(0, len(observations), batch_size):
+            observation_batch = observations[offset : offset + batch_size]
+            session_batch = sessions[offset : offset + batch_size]
+            result = self._request(
+                "POST",
+                f"{self._worker_url(namespace)}{self.config['import_path']}",
+                {
+                    "sessions": session_batch,
+                    "summaries": [],
+                    "observations": observation_batch,
+                    "prompts": [],
+                },
             )
+            stats = result.get("stats") if isinstance(result, dict) else None
+            batch_imported = stats.get("observationsImported") if isinstance(stats, dict) else None
+            if batch_imported != len(observation_batch):
+                raise RuntimeError(
+                    f"Claude-Mem imported {batch_imported!r} observations in batch "
+                    f"{offset}:{offset + len(observation_batch)}, expected {len(observation_batch)}"
+                )
+            imported += batch_imported
 
         query = next((item["text"][:200] for item in observations if item["text"]), "project memory")
         search_start = min(item["created_at"] for item in observations)

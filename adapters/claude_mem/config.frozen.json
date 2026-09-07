@@ -20,6 +20,7 @@
   "tools": ["search", "timeline", "get_observations"],
   "required_hooks": ["SessionStart", "UserPromptSubmit", "PostToolUse", "Stop"],
   "import_path": "/api/import",
+  "import_batch_size": 50,
   "health_path": "/api/health",
   "search_path": "/api/search",
   "search_project": "claude_mem",
