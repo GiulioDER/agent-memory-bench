@@ -23,7 +23,9 @@
   "import_batch_size": 50,
   "health_path": "/api/health",
   "search_path": "/api/search",
+  "chroma_status_path": "/api/chroma/status",
   "search_project": "claude_mem",
   "ingest_timeout_s": 180,
+  "chroma_sync_timeout_s": 1800,
   "instruction": "MANDATORY FIRST ACTION: before using Read, Write, Edit, Glob, Grep, or Bash, call the exact Claude-Mem MCP tool mcp__mcp-search__search with a short query about the task's operations and likely failure modes, then use the retrieved context before acting when relevant; this project has persistent Claude-Mem context available through its official Claude Code plugin, hooks, and MCP server."
 }

@@ -136,6 +136,35 @@ def test_namespace_copy_retries_a_disappearing_sqlite_journal(tmp_path, monkeypa
     assert (target / "chroma.sqlite3").read_bytes() == b"database"
 
 
+def test_chroma_sync_state_requires_empty_pending_sets(tmp_path):
+    state = tmp_path / "chroma-sync-state.json"
+    state.write_text(
+        json.dumps(
+            {
+                "claude_mem": {
+                    "observations": 3,
+                    "pending": {"observations": [2], "summaries": [], "prompts": []},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert not ClaudeMemAdapter._chroma_sync_complete(tmp_path, 3)
+
+    state.write_text(
+        json.dumps(
+            {
+                "claude_mem": {
+                    "observations": 3,
+                    "pending": {"observations": [], "summaries": [], "prompts": []},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert ClaudeMemAdapter._chroma_sync_complete(tmp_path, 3)
+
+
 def test_frozen_config_contains_the_release_pin_and_no_credentials():
     text = (REPO / "adapters" / "claude_mem" / "config.frozen.json").read_text(encoding="utf-8")
     assert CONFIG["plugin_tag"] == "v13.24.0"

@@ -203,6 +203,70 @@ class ClaudeMemAdapter(MemoryAdapter):
     def _worker_url(self, namespace: str) -> str:
         return f"http://{self.config['worker_host']}:{self._worker_port(namespace)}"
 
+    @staticmethod
+    def _chroma_sync_complete(data_dir: Path, expected_observations: int) -> bool:
+        """Return true only after Claude-Mem's asynchronous Chroma backfill has drained."""
+
+        state_path = data_dir / "chroma-sync-state.json"
+        try:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            project = state[str(_PROJECT)]
+            pending = project.get("pending") or {}
+            if any(pending.get(kind) for kind in ("observations", "summaries", "prompts")):
+                return False
+            return int(project.get("observations", -1)) == expected_observations
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return False
+
+    def _stop_worker(self, plugin_root: Path, data_dir: Path, namespace: str) -> None:
+        env = {
+            **os.environ,
+            **self._runtime_env(namespace, data_dir),
+            "CLAUDE_PLUGIN_ROOT": str(plugin_root),
+        }
+        node = shutil.which("node") or "node"
+        result = subprocess.run(
+            [
+                node,
+                str(plugin_root / "scripts" / "bun-runner.js"),
+                str(plugin_root / "scripts" / "worker-service.cjs"),
+                "stop",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=45,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                "Claude-Mem worker stop failed with exit "
+                f"{result.returncode}: {result.stderr[-2000:]}"
+            )
+
+    def _wait_for_chroma_sync(self, data_dir: Path, namespace: str, expected_observations: int) -> None:
+        """Wait for the vendor's semantic index, not only its SQLite import, to become usable."""
+
+        deadline = time.monotonic() + float(self.config["chroma_sync_timeout_s"])
+        while time.monotonic() < deadline:
+            if self._chroma_sync_complete(data_dir, expected_observations):
+                try:
+                    status = self._request(
+                        "GET",
+                        f"{self._worker_url(namespace)}{self.config['chroma_status_path']}?deep=1",
+                    )
+                    if status.get("status") == "healthy" and status.get("connected") is True:
+                        return
+                except RuntimeError:
+                    pass
+            time.sleep(1.0)
+        raise RuntimeError(
+            "Claude-Mem import completed but Chroma semantic backfill did not become ready "
+            f"for {expected_observations} observations before timeout"
+        )
+
     def isolate_cell_namespaces(
         self, source_namespace: str, target_namespaces: tuple[str, ...]
     ) -> None:
@@ -224,32 +288,7 @@ class ClaudeMemAdapter(MemoryAdapter):
                 f"Claude-Mem imported data is missing at {source_data}; cannot clone cell state"
             )
 
-        env = {
-            **os.environ,
-            **self._runtime_env(source_namespace, source_data),
-            "CLAUDE_PLUGIN_ROOT": str(plugin_root),
-        }
-        node = shutil.which("node") or "node"
-        result = subprocess.run(
-            [
-                node,
-                str(plugin_root / "scripts" / "bun-runner.js"),
-                str(plugin_root / "scripts" / "worker-service.cjs"),
-                "stop",
-            ],
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=45,
-            check=False,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(
-                "Claude-Mem imported worker stop failed with exit "
-                f"{result.returncode}: {result.stderr[-2000:]}"
-            )
+        self._stop_worker(plugin_root, source_data, source_namespace)
 
         def ignore_runtime(_directory: str, names: list[str]) -> set[str]:
             return {
@@ -259,7 +298,6 @@ class ClaudeMemAdapter(MemoryAdapter):
                     "worker.pid",
                     "supervisor.json",
                     "observer-health.json",
-                    "chroma-sync-state.json",
                     "logs",
                 }
                 or name.endswith(".lock")
@@ -427,6 +465,14 @@ class ClaudeMemAdapter(MemoryAdapter):
             time.sleep(1.0)
         if hits == 0:
             raise RuntimeError("Claude-Mem import completed but worker search returned no hits")
+
+        # The official import route writes SQLite immediately, while Claude-Mem's semantic index
+        # is backfilled asynchronously. Restarting after import makes its startup backfill see the
+        # complete frozen corpus, and this barrier prevents cloning a namespace whose first MCP
+        # search would still be waiting on thousands of pending Chroma documents.
+        self._stop_worker(plugin_root, data_dir, namespace)
+        self._start_worker(plugin_root, data_dir, namespace)
+        self._wait_for_chroma_sync(data_dir, namespace, len(observations))
 
         return IngestReport(
             arm=self.name,
