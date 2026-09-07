@@ -32,6 +32,14 @@ _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 _WRAPPER_PATH = Path(__file__).with_name("hook_wrapper.js")
 _REQUIRED_HOOKS = ("SessionStart", "UserPromptSubmit", "PostToolUse", "Stop")
 _PROJECT = "claude_mem"
+_TRANSIENT_SQLITE_SUFFIXES = (
+    ".sqlite3-journal",
+    ".sqlite3-wal",
+    ".sqlite3-shm",
+    ".db-journal",
+    ".db-wal",
+    ".db-shm",
+)
 
 
 def _config() -> dict[str, Any]:
@@ -121,6 +129,14 @@ class ClaudeMemAdapter(MemoryAdapter):
 
     def _runtime_env(self, namespace: str, data_dir: Path) -> dict[str, str]:
         env = self._observer_env()
+        local_bin = str(Path.home() / ".local" / "bin")
+        current_path = os.environ.get("PATH", "")
+        path_parts = [local_bin]
+        path_parts.extend(
+            item
+            for item in current_path.split(os.pathsep)
+            if item and item not in path_parts
+        )
         env.update(
             {
                 str(self.config["data_dir_env"]): str(data_dir.resolve()),
@@ -128,9 +144,48 @@ class ClaudeMemAdapter(MemoryAdapter):
                 str(self.config["worker_port_env"]): str(self._worker_port(namespace)),
                 "CLAUDE_MEM_PROJECT": _PROJECT,
                 "CLAUDE_MEM_BENCHMARK_PRESTARTED": "1",
+                "PATH": os.pathsep.join(path_parts),
             }
         )
         return env
+
+    @staticmethod
+    def _is_transient_sqlite_path(path: str | Path) -> bool:
+        name = Path(path).name
+        return name.endswith(_TRANSIENT_SQLITE_SUFFIXES)
+
+    @classmethod
+    def _copy_stable_tree(
+        cls,
+        source_data: Path,
+        target_data: Path,
+        ignore: Any,
+    ) -> None:
+        """Copy a stopped worker tree, retrying only transient SQLite races."""
+
+        for attempt in range(3):
+            if target_data.exists():
+                shutil.rmtree(target_data)
+            try:
+                shutil.copytree(source_data, target_data, ignore=ignore)
+                return
+            except shutil.Error as error:
+                entries = error.args[0] if error.args else ()
+                transient_only = bool(entries) and all(
+                    len(entry) == 3
+                    and cls._is_transient_sqlite_path(entry[0])
+                    and "No such file" in str(entry[2])
+                    for entry in entries
+                )
+                if not transient_only or attempt == 2:
+                    raise
+                time.sleep(0.2 * (attempt + 1))
+            except FileNotFoundError as error:
+                if not cls._is_transient_sqlite_path(error.filename or "") or attempt == 2:
+                    raise
+                time.sleep(0.2 * (attempt + 1))
+
+        raise RuntimeError("Claude-Mem namespace snapshot did not stabilize")
 
     def _write_worker_settings(self, data_dir: Path, namespace: str) -> None:
         data_dir.mkdir(parents=True, exist_ok=True)
@@ -212,9 +267,7 @@ class ClaudeMemAdapter(MemoryAdapter):
 
         for target_namespace in target_namespaces:
             target_data = self._data_dir(target_namespace)
-            if target_data.exists():
-                shutil.rmtree(target_data)
-            shutil.copytree(source_data, target_data, ignore=ignore_runtime)
+            self._copy_stable_tree(source_data, target_data, ignore_runtime)
             self._write_worker_settings(target_data, target_namespace)
 
     def _request(self, method: str, url: str, body: dict[str, Any] | None = None) -> Any:

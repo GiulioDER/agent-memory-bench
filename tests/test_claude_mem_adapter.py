@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 from pathlib import Path
 
 from adapters.claude_mem.adapter import ClaudeMemAdapter
@@ -86,6 +88,47 @@ def test_build_uses_the_pinned_official_server_and_hooks(tmp_path, monkeypatch):
     assert set(CONFIG["required_hooks"]).issubset(settings["hooks"])
     assert "SessionStartWorker" in json.dumps(settings)
     assert spec.bare is False
+
+
+def test_runtime_env_exposes_user_local_bin_for_uvx(tmp_path, monkeypatch):
+    plugin_root = _fake_plugin(tmp_path / "vendor")
+    monkeypatch.setenv(CONFIG["plugin_dir_env"], str(plugin_root))
+    monkeypatch.setenv(CONFIG["observer_api_key_env"], "test-key")
+    existing = os.pathsep.join(("/usr/bin", str(Path.home() / ".local" / "bin")))
+    monkeypatch.setenv("PATH", existing)
+
+    adapter = ClaudeMemAdapter(tmp_path / "staging", tmp_path / "base.md")
+    runtime = adapter._runtime_env("namespace", tmp_path / "data")
+    path_parts = runtime["PATH"].split(os.pathsep)
+
+    assert path_parts[0] == str(Path.home() / ".local" / "bin")
+    assert path_parts.count(str(Path.home() / ".local" / "bin")) == 1
+    assert "/usr/bin" in path_parts
+
+
+def test_namespace_copy_retries_a_disappearing_sqlite_journal(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.mkdir()
+    (source / "chroma.sqlite3").write_bytes(b"database")
+    journal = str(source / "chroma.sqlite3-journal")
+    real_copytree = shutil.copytree
+    calls = 0
+
+    def flaky_copytree(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise shutil.Error(
+                [(journal, str(target / "chroma.sqlite3-journal"), "[Errno 2] No such file or directory")]
+            )
+        return real_copytree(*args, **kwargs)
+
+    monkeypatch.setattr(shutil, "copytree", flaky_copytree)
+    ClaudeMemAdapter._copy_stable_tree(source, target, lambda _directory, _names: set())
+
+    assert calls == 2
+    assert (target / "chroma.sqlite3").read_bytes() == b"database"
 
 
 def test_frozen_config_contains_the_release_pin_and_no_credentials():
