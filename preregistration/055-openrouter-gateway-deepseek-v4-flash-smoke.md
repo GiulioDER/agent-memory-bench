@@ -33,3 +33,23 @@ one minimal Claude Code request is sent with `ANTHROPIC_BASE_URL` pointed at the
 The gateway log records status, provider field when present, and byte counts only. It never records
 the API key or message body. The live result, request policy, exact source commit, and command are
 appended below this frozen section after measurement. This file is not edited above this line.
+
+## Measured result, appended 2026-09-07
+
+The frozen DeepInfra attempt reached OpenRouter with fallbacks disabled but returned HTTP 429 from
+DeepInfra, with `engine_overloaded` and no alternate provider selected. That provider attempt is a
+failure and is not a publishable result.
+
+The gateway then used the exact OpenRouter slug `digitalocean`, after the provider page and routing
+documentation established that routing accepts slugs rather than display names. The gateway health
+check reported model `deepseek/deepseek-v4-flash`, provider order `digitalocean`, and
+`allow_fallbacks=false`. A direct nonstreaming Messages request returned HTTP 200, text
+`gateway-ok`, and upstream provider `DigitalOcean`. A Claude Code request through the gateway also
+returned a successful terminal result with the same text. A second Claude Code request executed a
+Bash tool and returned `gateway-tool-ok`; the stream log recorded `terminal_event=true`.
+
+The gateway therefore passes the transport and Claude Code compatibility smoke on DigitalOcean,
+but the preregistered DeepInfra route does not pass availability. No official AMB run is authorized
+by this smoke. The source commits for the implementation and fixes are `80ca9293`, `b280c828`,
+`a1f7c610`, and `710e3808`. The live test ran on VPS2 in the isolated AMB worktree with the exact
+model `deepseek/deepseek-v4-flash`; no gateway retry was implemented.
