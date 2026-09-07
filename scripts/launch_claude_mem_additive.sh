@@ -14,12 +14,19 @@ MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 PRICE_IN="${PRICE_IN:-0.0574}"
 PRICE_OUT="${PRICE_OUT:-0.1148}"
 PRICE_AS_OF="${PRICE_AS_OF:-2026-08-22}"
+SECRETS="${SECRETS:-$HOME/amb-secrets.env}"
 
 export PATH="$HOME/.npm-global/bin:$HOME/.bun/bin:$PATH"
 export CLAUDE_MEM_PLUGIN_DIR="${CLAUDE_MEM_PLUGIN_DIR:-$HOME/amb-claude-mem-v13-24-0}"
 export AMB_BLOCK_CONCURRENCY="${AMB_BLOCK_CONCURRENCY:-4}"
 export AMB_CORPUS_FLOOR="${AMB_CORPUS_FLOOR:-4000}"
 export PYTHONUNBUFFERED=1
+
+if [[ -f "$SECRETS" ]]; then
+  set -a
+  . "$SECRETS"
+  set +a
+fi
 
 cleanup_worker() {
   local namespace="$1"
@@ -47,6 +54,7 @@ trap cleanup_current_worker EXIT
 [[ -x "$(command -v claude)" ]] || { echo "claude is not on PATH" >&2; exit 2; }
 command -v bun >/dev/null || { echo "bun is not on PATH" >&2; exit 2; }
 [[ -d "$CLAUDE_MEM_PLUGIN_DIR" ]] || { echo "missing CLAUDE_MEM_PLUGIN_DIR=$CLAUDE_MEM_PLUGIN_DIR" >&2; exit 2; }
+[[ -n "${OPENROUTER_API_KEY:-}" ]] || { echo "OPENROUTER_API_KEY is unset; put it in $SECRETS" >&2; exit 2; }
 
 mkdir -p "$REPO/results"
 
