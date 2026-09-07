@@ -8,10 +8,14 @@ set -euo pipefail
 
 REPO="${REPO:-$HOME/amb-claude-mem-official-001}"
 BASE_REPO="${BASE_REPO:-$HOME/amb-repo}"
-RUN_ID="${RUN_ID:-claude-mem-official-013}"
-PREREG="${PREREG:-preregistration/054-claude-mem-official-additive-cell-isolation-final.md}"
+RUN_ID="${RUN_ID:-claude-mem-official-014}"
+PREREG="${PREREG:-preregistration/056-claude-mem-official-additive-pinned-gateway.md}"
 PY="${PY:-$BASE_REPO/.venv/bin/python}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
+GATEWAY_HOST="${GATEWAY_HOST:-127.0.0.1}"
+GATEWAY_PORT="${GATEWAY_PORT:-8787}"
+GATEWAY_PROVIDER_ORDER="${GATEWAY_PROVIDER_ORDER:-digitalocean}"
 PRICE_IN="${PRICE_IN:-0.0574}"
 PRICE_OUT="${PRICE_OUT:-0.1148}"
 PRICE_AS_OF="${PRICE_AS_OF:-2026-08-22}"
@@ -46,12 +50,21 @@ cleanup_worker() {
 }
 
 CURRENT_NAMESPACE=""
+GATEWAY_PID=""
+
+stop_gateway() {
+  if [[ -n "$GATEWAY_PID" ]] && kill -0 "$GATEWAY_PID" 2>/dev/null; then
+    kill "$GATEWAY_PID" 2>/dev/null || true
+    wait "$GATEWAY_PID" 2>/dev/null || true
+  fi
+}
+
 cleanup_current_worker() {
   if [[ -n "$CURRENT_NAMESPACE" ]]; then
     cleanup_worker "$CURRENT_NAMESPACE"
   fi
 }
-trap cleanup_current_worker EXIT
+trap 'stop_gateway; cleanup_current_worker' EXIT
 
 [[ -x "$PY" ]] || { echo "missing benchmark python: $PY" >&2; exit 2; }
 [[ -x "$(command -v claude)" ]] || { echo "claude is not on PATH" >&2; exit 2; }
@@ -59,7 +72,38 @@ command -v bun >/dev/null || { echo "bun is not on PATH" >&2; exit 2; }
 [[ -d "$CLAUDE_MEM_PLUGIN_DIR" ]] || { echo "missing CLAUDE_MEM_PLUGIN_DIR=$CLAUDE_MEM_PLUGIN_DIR" >&2; exit 2; }
 [[ -n "${OPENROUTER_API_KEY:-}" ]] || { echo "OPENROUTER_API_KEY is unset; put it in $SECRETS" >&2; exit 2; }
 
+start_gateway() {
+  local log="$REPO/results/logs/$RUN_ID-gateway.log"
+  echo "[gateway] starting $BASE_URL with provider order $GATEWAY_PROVIDER_ORDER" >&2
+  if ss -ltn "sport = :$GATEWAY_PORT" | grep -q LISTEN; then
+    echo "gateway port $GATEWAY_PORT is already in use; refusing to attach to an unknown process" >&2
+    exit 2
+  fi
+  "$PY" -m scripts.openrouter_anthropic_gateway \
+    --host "$GATEWAY_HOST" \
+    --port "$GATEWAY_PORT" \
+    --model "$MODEL" \
+    --provider-order "$GATEWAY_PROVIDER_ORDER" \
+    --log "$log" \
+    >"$log.stdout" 2>&1 &
+  GATEWAY_PID=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    if ! kill -0 "$GATEWAY_PID" 2>/dev/null; then
+      break
+    fi
+    if curl -fsS "$BASE_URL/healthz" >/dev/null; then
+      return
+    fi
+    sleep 1
+  done
+  echo "gateway did not become healthy" >&2
+  tail -40 "$log" "$log.stdout" >&2 2>/dev/null || true
+  exit 2
+}
+
 mkdir -p "$REPO/results"
+mkdir -p "$REPO/results/logs"
+start_gateway
 
 # Copy only the immutable base evidence needed by the additive join. The source checkout is left
 # untouched; this worktree owns the new result directories.
@@ -92,6 +136,7 @@ run_condition() {
     --tasks "$tasks" \
     --seeds 5 \
     --model "$MODEL" \
+    --base-url "$BASE_URL" \
     --namespace "$RUN_ID-$condition" \
     --corpus-root "$corpus" \
     --condition "$condition" \
