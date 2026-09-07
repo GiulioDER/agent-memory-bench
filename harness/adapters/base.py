@@ -192,6 +192,7 @@ class ArmSpec:
     append_system_prompt_file: str | Path | None = None
     memory_tool_prefix: str | None = None
     extra_allowed_tools: tuple[str, ...] = ()
+    extra_args: tuple[str, ...] = ()
     config_dir: Path | None = None
     config_dir_digest: str | None = None
     env: Mapping[str, str] = field(default_factory=dict)

@@ -63,7 +63,8 @@ def test_instruction_uses_the_shared_protocol_and_capped_appendix():
     instruction = ClaudeMemAdapter.shared_instruction()
     instructions.assert_shared_protocol({"claude_mem": instruction})
     assert "mcp__mcp-search__search" in instruction
-    assert "before your first file read or state-changing command" in instruction
+    assert "MANDATORY FIRST ACTION" in instruction
+    assert "before using Read, Write, Edit, Glob, Grep, or Bash" in instruction
     appendix = (REPO / "adapters" / "claude_mem" / "instruction_appendix.md").read_bytes()
     assert 0 < len(appendix) <= APPENDIX_MAX_BYTES
 
@@ -87,6 +88,7 @@ def test_build_uses_the_pinned_official_server_and_hooks(tmp_path, monkeypatch):
     assert spec.extra_allowed_tools == tuple(
         f"{CONFIG['tool_prefix']}{tool}" for tool in CONFIG["tools"]
     )
+    assert spec.extra_args == ("--plugin-dir", str(Path(spec.config_dir) / "plugin"))
     settings = json.loads((Path(spec.config_dir) / "settings.json").read_text(encoding="utf-8"))
     assert set(CONFIG["required_hooks"]).issubset(settings["hooks"])
     assert "SessionStartWorker" in json.dumps(settings)

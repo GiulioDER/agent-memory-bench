@@ -1027,6 +1027,7 @@ async def main() -> int:
             strict_mcp_config=bool(spec.mcp_config),
             allowed_tools=BASE_TOOLS + spec.extra_allowed_tools,
             disallowed_tools=DENIED_TOOLS,
+            extra_args=spec.extra_args,
             append_system_prompt_file=spec.append_system_prompt_file,
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",

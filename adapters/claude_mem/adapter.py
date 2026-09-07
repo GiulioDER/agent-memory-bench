@@ -563,6 +563,7 @@ class ClaudeMemAdapter(MemoryAdapter):
             extra_allowed_tools=tuple(
                 f"{self.config['tool_prefix']}{tool}" for tool in self.config["tools"]
             ),
+            extra_args=("--plugin-dir", str(copied_plugin)),
             config_dir=config_dir,
             config_dir_digest=digest_tree(config_dir),
             env=env,
