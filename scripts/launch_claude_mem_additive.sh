@@ -8,7 +8,7 @@ set -euo pipefail
 
 REPO="${REPO:-$HOME/amb-claude-mem-official-001}"
 BASE_REPO="${BASE_REPO:-$HOME/amb-repo}"
-RUN_ID="${RUN_ID:-claude-mem-official-003}"
+RUN_ID="${RUN_ID:-claude-mem-official-004}"
 PY="${PY:-$BASE_REPO/.venv/bin/python}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 PRICE_IN="${PRICE_IN:-0.0574}"
@@ -114,13 +114,13 @@ run_condition adjacent \
   --arm claude_mem \
   --base-run official-003 \
   --date "$(date -u +%F)" \
-  --prereg preregistration/044-claude-mem-official-additive-worker-cleanup.md \
+  --prereg preregistration/045-claude-mem-official-additive-observer-repair.md \
   --results-root "$REPO/results"
 "$PY" scripts/build_arm_submission.py --check \
   --run-id "$RUN_ID" \
   --arm claude_mem \
   --base-run official-003 \
   --date "$(date -u +%F)" \
-  --prereg preregistration/044-claude-mem-official-additive-worker-cleanup.md \
+  --prereg preregistration/045-claude-mem-official-additive-observer-repair.md \
   --results-root "$REPO/results"
 echo "FULL CLAUDE-MEM ADDITIVE RUN COMPLETE: $REPO/results/$RUN_ID/arm_summary.json" >&2

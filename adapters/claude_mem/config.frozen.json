@@ -7,7 +7,7 @@
   "plugin_commit": "ffe75a81e71b190644195a0ae9a5b6997757317c",
   "plugin_dir_env": "CLAUDE_MEM_PLUGIN_DIR",
   "provider": "openrouter",
-  "observer_model": "xiaomi/mimo-v2.5:free",
+  "observer_model": "xiaomi/mimo-v2.5",
   "observer_api_key_env": "CLAUDE_MEM_OPENROUTER_API_KEY",
   "observer_api_key_fallback_env": "OPENROUTER_API_KEY",
   "data_dir_env": "CLAUDE_MEM_DATA_DIR",
