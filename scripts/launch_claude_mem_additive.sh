@@ -8,8 +8,8 @@ set -euo pipefail
 
 REPO="${REPO:-$HOME/amb-claude-mem-official-001}"
 BASE_REPO="${BASE_REPO:-$HOME/amb-repo}"
-RUN_ID="${RUN_ID:-claude-mem-official-008}"
-PREREG="${PREREG:-preregistration/049-claude-mem-official-additive-silent-retry.md}"
+RUN_ID="${RUN_ID:-claude-mem-official-009}"
+PREREG="${PREREG:-preregistration/050-claude-mem-official-additive-silent-retry-2.md}"
 PY="${PY:-$BASE_REPO/.venv/bin/python}"
 MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 PRICE_IN="${PRICE_IN:-0.0574}"
@@ -21,7 +21,7 @@ export PATH="$HOME/.npm-global/bin:$HOME/.bun/bin:$PATH"
 export CLAUDE_MEM_PLUGIN_DIR="${CLAUDE_MEM_PLUGIN_DIR:-$HOME/amb-claude-mem-v13-24-0}"
 export AMB_BLOCK_CONCURRENCY="${AMB_BLOCK_CONCURRENCY:-4}"
 export AMB_CELL_START_STAGGER_SECONDS="${AMB_CELL_START_STAGGER_SECONDS:-15}"
-export AMB_SILENT_COMPLETION_RETRIES="${AMB_SILENT_COMPLETION_RETRIES:-1}"
+export AMB_SILENT_COMPLETION_RETRIES="${AMB_SILENT_COMPLETION_RETRIES:-2}"
 export AMB_CORPUS_FLOOR="${AMB_CORPUS_FLOOR:-4000}"
 export PYTHONUNBUFFERED=1
 
