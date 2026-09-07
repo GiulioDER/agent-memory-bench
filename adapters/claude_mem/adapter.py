@@ -345,6 +345,11 @@ class ClaudeMemAdapter(MemoryAdapter):
                     new_hook["command"] = (
                         f'"{command_node}" "{command_wrapper}" {json.dumps(label)} {encoded_args}'
                     )
+                    if event in {"PostToolUse", "Stop"}:
+                        # Claude Code marks these vendor hooks async. The benchmark must wait for
+                        # their evidence before admission, so keep the official command but make
+                        # the wrapper invocation synchronous inside the isolated config.
+                        new_hook.pop("async", None)
                     # Keep the vendor's supported hook shell. The generated command contains no
                     # shell expansion and the argv payload is base64 encoded for Windows quoting.
                     new_hook["shell"] = str(hook.get("shell") or "bash")
