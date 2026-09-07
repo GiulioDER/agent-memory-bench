@@ -157,7 +157,7 @@ class ClaudeMemAdapter(MemoryAdapter):
         except urllib.error.HTTPError as error:
             detail = error.read().decode("utf-8", errors="replace")[-1200:]
             raise RuntimeError(f"Claude-Mem worker returned {error.code}: {detail}") from error
-        except urllib.error.URLError as error:
+        except (urllib.error.URLError, TimeoutError) as error:
             raise RuntimeError(f"Claude-Mem worker unavailable at {url}: {error}") from error
         return json.loads(raw) if raw else {}
 
