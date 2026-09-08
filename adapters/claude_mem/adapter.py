@@ -657,6 +657,9 @@ class ClaudeMemAdapter(MemoryAdapter):
             **self._runtime_env(namespace, data_dir),
             "CLAUDE_PLUGIN_ROOT": str(copied_plugin),
             "CLAUDE_MEM_HOOK_LEDGER": str(ledger),
+            "CLAUDE_MEM_ENFORCE_FIRST_SEARCH": os.environ.get(
+                "CLAUDE_MEM_ENFORCE_FIRST_SEARCH", "0"
+            ),
             "CLAUDE_MEM_FIRST_SEARCH_SENTINEL": str(first_search_sentinel),
             "CLAUDE_MEM_FIRST_SEARCH_TOOL": f"{self.config['tool_prefix']}search",
             "HOME": str(home),

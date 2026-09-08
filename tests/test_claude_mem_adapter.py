@@ -77,6 +77,7 @@ def test_build_uses_the_pinned_official_server_and_hooks(tmp_path, monkeypatch):
     base_prompt.write_text("# Fixture\n", encoding="utf-8")
     monkeypatch.setenv(CONFIG["plugin_dir_env"], str(plugin_root))
     monkeypatch.setenv(CONFIG["observer_api_key_env"], "test-key")
+    monkeypatch.setenv("CLAUDE_MEM_ENFORCE_FIRST_SEARCH", "1")
 
     adapter = ClaudeMemAdapter(tmp_path / "staging", base_prompt)
     spec = adapter.build_for_task(tmp_path / "session", "namespace", "task", "do it")
@@ -96,6 +97,7 @@ def test_build_uses_the_pinned_official_server_and_hooks(tmp_path, monkeypatch):
     assert "SessionStartWorker" in json.dumps(settings)
     assert spec.env["CLAUDE_MEM_FIRST_SEARCH_TOOL"] == "mcp__mcp-search__search"
     assert spec.env["CLAUDE_MEM_FIRST_SEARCH_SENTINEL"].endswith("first-search-called")
+    assert spec.env["CLAUDE_MEM_ENFORCE_FIRST_SEARCH"] == "1"
     assert spec.bare is False
 
 
