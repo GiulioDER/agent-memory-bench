@@ -44,3 +44,12 @@ gateway process alive. This smoke is a corrected integration test only. It does 
 official leaderboard result because the guard changes tool selection behaviour.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Invalid setup attempt, appended 2026-09-08
+
+Run `claude-mem-first-search-guard-001-present` reached VPS2 and passed the gateway and Claude Mem
+preflight, but it is invalid for this preregistration. The pilot supplies an explicit session
+environment and the first implementation failed to propagate `CLAUDE_MEM_ENFORCE_FIRST_SEARCH`
+into that environment. The wrapper therefore ran without the guard. The session again called
+`Read` first and recorded zero memory calls. No result from this attempt is used. The propagation
+bug was fixed in commit `aae2bb12` and a new preregistration is required before rerunning.
