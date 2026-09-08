@@ -45,3 +45,22 @@ gateway process alive. This smoke is a corrected integration test only. It does 
 official leaderboard result because the guard changes tool selection behaviour.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Measured result, appended 2026-09-08
+
+Run `claude-mem-first-search-guard-003-present` completed on VPS2 from source commit `680862ee`.
+The gateway health check passed with model `deepseek/deepseek-v4-flash`, provider order `nextbit`,
+and `allow_fallbacks=false`. All gateway requests completed through `NextBit`, with no gateway
+retry or fallback.
+
+Claude Mem ingestion stored 196 of 196 sessions. MCP preflight passed, all 14 vendor tools were
+available, and the live server search probe succeeded. The synchronous guard recorded two denied
+initial `Read` attempts. DeepSeek then called the exact
+`mcp__mcp-search__search` tool successfully. Retrieval telemetry recorded one attempted and one
+successful memory call with 35 parsed hits. Normal `Bash` and `Write` tools ran afterward. All
+vendor and guard hook entries exited zero, and gateway and worker cleanup were clean.
+
+The integration smoke therefore passes. The task checker still failed because the model output
+`ORD-24GI` instead of the expected `ORD-24GJ`. The cell is not a leaderboard quality result and
+must not be pooled with unconstrained arms. The guard is an explicit AMB protocol enforcement for
+this smoke, not a claim that DeepSeek naturally discovers Claude Mem search.
