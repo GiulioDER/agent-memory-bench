@@ -23,6 +23,7 @@ from harness.adapters.base import (
     MemoryAdapter,
     digest_tree,
     namespace_path,
+    resolve_corpus_path,
 )
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
@@ -42,6 +43,9 @@ _TRANSIENT_SQLITE_SUFFIXES = (
     ".db-wal",
     ".db-shm",
 )
+_FIXTURE_CACHE_ENV = "CLAUDE_MEM_BENCHMARK_FIXTURE_CACHE"
+_FIXTURE_CACHE_MAX_AGE_ENV = "CLAUDE_MEM_BENCHMARK_FIXTURE_MAX_AGE_S"
+_FIXTURE_SCHEMA = 1
 
 
 def _config() -> dict[str, Any]:
@@ -308,6 +312,162 @@ class ClaudeMemAdapter(MemoryAdapter):
             f"for {expected_observations} observations before timeout"
         )
 
+    @staticmethod
+    def _runtime_ignore(_directory: str, names: list[str]) -> set[str]:
+        return {
+            name
+            for name in names
+            if name in {"worker.pid", "supervisor.json", "observer-health.json", "logs"}
+            or name.endswith(".lock")
+        }
+
+    def _fixture_cache_root(self) -> Path | None:
+        configured = os.environ.get(_FIXTURE_CACHE_ENV, "").strip()
+        if not configured:
+            return None
+        root = Path(configured).expanduser().resolve()
+        if root == root.parent:
+            raise RuntimeError(f"{_FIXTURE_CACHE_ENV} must not be a filesystem root")
+        return root
+
+    def _fixture_fingerprint(self, corpus: CorpusManifest, plugin_root: Path) -> tuple[str, dict[str, Any]]:
+        corpus_hash = hashlib.sha256(
+            json.dumps(sorted(corpus.sessions.items()), separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        material = {
+            "schema": _FIXTURE_SCHEMA,
+            "corpus_sha256": corpus_hash,
+            "config_sha256": hashlib.sha256(_CONFIG_PATH.read_bytes()).hexdigest(),
+            "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "plugin_tree_sha256": digest_tree(plugin_root),
+            "plugin_version": self.config["plugin_version"],
+            "plugin_commit": self.config["plugin_commit"],
+        }
+        key = hashlib.sha256(
+            json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        return key, material
+
+    def _cached_fixture(self, cache_root: Path, key: str, material: dict[str, Any], expected: int) -> tuple[Path, dict[str, Any]] | None:
+        fixture = cache_root / key
+        metadata_path = fixture / "fixture.json"
+        data_path = fixture / "claude-mem-data"
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            created = float(metadata["created_at_epoch"])
+            max_age = float(os.environ.get(_FIXTURE_CACHE_MAX_AGE_ENV, "172800"))
+            if (
+                metadata.get("schema") != _FIXTURE_SCHEMA
+                or metadata.get("fingerprint") != material
+                or int(metadata.get("observations", -1)) != expected
+                or not data_path.is_dir()
+                or time.time() - created > max_age
+                or not self._chroma_sync_complete(data_path, expected)
+            ):
+                return None
+        except (OSError, TypeError, ValueError, KeyError, json.JSONDecodeError):
+            return None
+        return data_path, metadata
+
+    def _publish_fixture(
+        self,
+        cache_root: Path,
+        key: str,
+        material: dict[str, Any],
+        data_dir: Path,
+        *,
+        observations: int,
+        imported: int,
+        verification_query: str,
+        search_start: str,
+    ) -> None:
+        cache_root.mkdir(parents=True, exist_ok=True)
+        fixture = cache_root / key
+        if self._cached_fixture(cache_root, key, material, observations):
+            return
+        partial = cache_root / f".{key}.{os.getpid()}.partial"
+        if partial.exists():
+            shutil.rmtree(partial)
+        try:
+            self._copy_stable_tree(data_dir, partial / "claude-mem-data", self._runtime_ignore)
+            (partial / "fixture.json").write_text(
+                json.dumps(
+                    {
+                        "schema": _FIXTURE_SCHEMA,
+                        "fingerprint": material,
+                        "created_at_epoch": time.time(),
+                        "observations": observations,
+                        "items_stored": imported,
+                        "verification_query": verification_query,
+                        "search_start": search_start,
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            try:
+                partial.rename(fixture)
+            except FileExistsError:
+                shutil.rmtree(partial)
+        finally:
+            if partial.exists():
+                shutil.rmtree(partial)
+
+    def _reuse_fixture(
+        self,
+        cache_root: Path,
+        key: str,
+        material: dict[str, Any],
+        corpus: CorpusManifest,
+        plugin_root: Path,
+        data_dir: Path,
+    ) -> IngestReport | None:
+        cached = self._cached_fixture(cache_root, key, material, len(corpus.sessions))
+        if cached is None:
+            return None
+        cached_data, metadata = cached
+        self._copy_stable_tree(cached_data, data_dir, self._runtime_ignore)
+        self._write_worker_settings(data_dir, str(data_dir.parent.name))
+        namespace = str(data_dir.parent.name)
+        started = time.monotonic()
+        try:
+            self._start_worker(plugin_root, data_dir, namespace)
+            self._wait_for_chroma_sync(data_dir, namespace, len(corpus.sessions))
+            params = urllib.parse.urlencode(
+                {
+                    "query": metadata["verification_query"],
+                    "project": _PROJECT,
+                    "limit": 1,
+                    "format": "json",
+                    "type": "observations",
+                    "date_start": metadata["search_start"],
+                }
+            )
+            searched = self._request(
+                "GET", f"{self._worker_url(namespace)}{self.config['search_path']}?{params}"
+            )
+            rows = searched.get("observations") if isinstance(searched, dict) else None
+            if not isinstance(rows, list) or not rows:
+                raise RuntimeError("cached Claude-Mem fixture returned no verification hits")
+        except Exception:
+            self._stop_worker(plugin_root, data_dir, namespace)
+            raise
+        return IngestReport(
+            arm=self.name,
+            namespace=namespace,
+            sessions_offered=len(corpus.sessions),
+            items_stored=int(metadata["items_stored"]),
+            wall_time_ms=(time.monotonic() - started) * 1000.0,
+            local_model=None,
+            notes=(
+                "reused a verified immutable Claude-Mem fixture; no vendor import was issued",
+                f"fixture key {key}",
+                "semantic cache and worker search verification passed",
+            ),
+        )
+
     def isolate_cell_namespaces(
         self, source_namespace: str, target_namespaces: tuple[str, ...]
     ) -> None:
@@ -331,22 +491,9 @@ class ClaudeMemAdapter(MemoryAdapter):
 
         self._stop_worker(plugin_root, source_data, source_namespace)
 
-        def ignore_runtime(_directory: str, names: list[str]) -> set[str]:
-            return {
-                name
-                for name in names
-                if name in {
-                    "worker.pid",
-                    "supervisor.json",
-                    "observer-health.json",
-                    "logs",
-                }
-                or name.endswith(".lock")
-            }
-
         for target_namespace in target_namespaces:
             target_data = self._data_dir(target_namespace)
-            self._copy_stable_tree(source_data, target_data, ignore_runtime)
+            self._copy_stable_tree(source_data, target_data, self._runtime_ignore)
             self._write_worker_settings(target_data, target_namespace)
 
     def _request(self, method: str, url: str, body: dict[str, Any] | None = None) -> Any:
@@ -408,6 +555,21 @@ class ClaudeMemAdapter(MemoryAdapter):
         data_dir = self._data_dir(namespace)
         if data_dir.exists():
             shutil.rmtree(data_dir)
+        cache_root = self._fixture_cache_root()
+        cache_key: str | None = None
+        cache_material: dict[str, Any] | None = None
+        if cache_root is not None:
+            cache_key, cache_material = self._fixture_fingerprint(corpus, plugin_root)
+            reused = self._reuse_fixture(
+                cache_root,
+                cache_key,
+                cache_material,
+                corpus,
+                plugin_root,
+                data_dir,
+            )
+            if reused is not None:
+                return reused
         preparation_root = self._bulk_backfill_plugin_root(plugin_root, namespace)
         self._start_worker(preparation_root, data_dir, namespace)
 
@@ -529,6 +691,17 @@ class ClaudeMemAdapter(MemoryAdapter):
         self._start_worker(preparation_root, data_dir, namespace)
         self._wait_for_chroma_sync(data_dir, namespace, len(observations))
         self._stop_worker(preparation_root, data_dir, namespace)
+        if cache_root is not None and cache_key is not None and cache_material is not None:
+            self._publish_fixture(
+                cache_root,
+                cache_key,
+                cache_material,
+                data_dir,
+                observations=len(observations),
+                imported=imported,
+                verification_query=query,
+                search_start=search_start,
+            )
         self._start_worker(plugin_root, data_dir, namespace)
 
         return IngestReport(
@@ -736,4 +909,6 @@ class ClaudeMemAdapter(MemoryAdapter):
             "import_path": self.config["import_path"],
             "observer_provider": self.config["provider"],
             "observer_model": self.config["observer_model"],
+            "fixture_cache_env": _FIXTURE_CACHE_ENV,
+            "fixture_cache_max_age_default_s": 172800,
         }

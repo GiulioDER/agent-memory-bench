@@ -7,6 +7,7 @@ import os
 import shutil
 import base64
 import subprocess
+import time
 from pathlib import Path
 
 from adapters.claude_mem.adapter import ClaudeMemAdapter
@@ -215,6 +216,50 @@ def test_chroma_sync_state_requires_empty_pending_sets(tmp_path):
         encoding="utf-8",
     )
     assert ClaudeMemAdapter._chroma_sync_complete(tmp_path, 3)
+
+
+def test_reuses_only_a_fresh_verified_fixture_without_import(tmp_path, monkeypatch):
+    adapter = ClaudeMemAdapter(tmp_path / "staging", tmp_path / "base.md")
+    cache_root = tmp_path / "fixtures"
+    material = {"schema": 1, "corpus_sha256": "corpus", "plugin_tree_sha256": "plugin"}
+    fixture = cache_root / "fixture-key"
+    data = fixture / "claude-mem-data"
+    data.mkdir(parents=True)
+    (data / "chroma-sync-state.json").write_text(
+        json.dumps({"claude_mem": {"observations": 2, "pending": {"observations": [], "summaries": [], "prompts": []}}}),
+        encoding="utf-8",
+    )
+    (fixture / "fixture.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "fingerprint": material,
+                "created_at_epoch": time.time(),
+                "observations": 2,
+                "items_stored": 2,
+                "verification_query": "fixture query",
+                "search_start": "2026-09-08T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+    calls = []
+    monkeypatch.setattr(adapter, "_start_worker", lambda *args: calls.append("start"))
+    monkeypatch.setattr(adapter, "_wait_for_chroma_sync", lambda *args: calls.append("wait"))
+    monkeypatch.setattr(adapter, "_request", lambda *args: {"observations": [{}]})
+
+    report = adapter._reuse_fixture(
+        cache_root,
+        "fixture-key",
+        material,
+        type("Corpus", (), {"sessions": {"one.md": "hash", "two.md": "hash"}})(),
+        tmp_path / "plugin",
+        tmp_path / "staging" / "run" / "claude-mem-data",
+    )
+
+    assert report is not None
+    assert any("reused a verified immutable Claude-Mem fixture" in note for note in report.notes)
+    assert calls == ["start", "wait"]
 
 
 def test_frozen_config_contains_the_release_pin_and_no_credentials():

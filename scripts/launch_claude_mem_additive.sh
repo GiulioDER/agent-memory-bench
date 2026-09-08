@@ -16,6 +16,9 @@ BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
 GATEWAY_HOST="${GATEWAY_HOST:-127.0.0.1}"
 GATEWAY_PORT="${GATEWAY_PORT:-8787}"
 GATEWAY_PROVIDER_ORDER="${GATEWAY_PROVIDER_ORDER:-nextbit}"
+GATEWAY_RETRY_ATTEMPTS="${GATEWAY_RETRY_ATTEMPTS:-3}"
+GATEWAY_RETRY_BACKOFF="${GATEWAY_RETRY_BACKOFF:-20}"
+FIXTURE_CACHE_ROOT="${FIXTURE_CACHE_ROOT:-$HOME/amb-claude-mem-fixtures}"
 PRICE_IN="${PRICE_IN:-0.0574}"
 PRICE_OUT="${PRICE_OUT:-0.1148}"
 PRICE_AS_OF="${PRICE_AS_OF:-2026-08-22}"
@@ -25,10 +28,12 @@ CONDITION_ORDER="${CONDITION_ORDER:-absent present superseded contradictory adja
 export PATH="$HOME/.npm-global/bin:$HOME/.bun/bin:$PATH"
 export CLAUDE_MEM_PLUGIN_DIR="${CLAUDE_MEM_PLUGIN_DIR:-$HOME/amb-claude-mem-v13-24-0}"
 export CLAUDE_MEM_ENFORCE_FIRST_SEARCH="${CLAUDE_MEM_ENFORCE_FIRST_SEARCH:-1}"
-export AMB_BLOCK_CONCURRENCY="${AMB_BLOCK_CONCURRENCY:-4}"
-export AMB_CELL_START_STAGGER_SECONDS="${AMB_CELL_START_STAGGER_SECONDS:-15}"
+export AMB_BLOCK_CONCURRENCY="${AMB_BLOCK_CONCURRENCY:-1}"
+export AMB_CELL_START_STAGGER_SECONDS="${AMB_CELL_START_STAGGER_SECONDS:-0}"
 export AMB_SILENT_COMPLETION_RETRIES="${AMB_SILENT_COMPLETION_RETRIES:-5}"
 export AMB_CORPUS_FLOOR="${AMB_CORPUS_FLOOR:-4000}"
+export CLAUDE_MEM_BENCHMARK_FIXTURE_CACHE="$FIXTURE_CACHE_ROOT"
+export CLAUDE_MEM_BENCHMARK_FIXTURE_MAX_AGE_S="${CLAUDE_MEM_BENCHMARK_FIXTURE_MAX_AGE_S:-172800}"
 export PYTHONUNBUFFERED=1
 
 if [[ -f "$SECRETS" ]]; then
@@ -86,6 +91,8 @@ start_gateway() {
     --port "$GATEWAY_PORT" \
     --model "$MODEL" \
     --provider-order "$GATEWAY_PROVIDER_ORDER" \
+    --retry-attempts "$GATEWAY_RETRY_ATTEMPTS" \
+    --retry-backoff "$GATEWAY_RETRY_BACKOFF" \
     --log "$log" \
     >"$log.stdout" 2>&1 &
   GATEWAY_PID=$!
@@ -131,7 +138,7 @@ run_condition() {
   local corpus="$BASE_REPO/corpus/conditions/$condition/seed-1"
   CURRENT_NAMESPACE="$RUN_ID-$condition"
   [[ -f "$corpus/manifest.json" ]] || { echo "missing corpus manifest: $corpus" >&2; exit 2; }
-  echo "[$condition] starting 27/11/10/10/11 frozen task selection with four workers" >&2
+  echo "[$condition] starting frozen task selection with $AMB_BLOCK_CONCURRENCY worker(s)" >&2
   "$PY" -m scripts.pilot \
     --run-id "$RUN_ID-$condition" \
     --arms claude_mem \

@@ -4,8 +4,8 @@ Claude Code talks to this process through ``ANTHROPIC_BASE_URL``.  The gateway a
 Anthropic Messages request, validates the frozen benchmark model, replaces any caller supplied
 provider policy with the configured policy, and streams the upstream response unchanged.
 
-The gateway intentionally does not retry requests.  A transport or provider failure is an
-observable failure for the benchmark and must not be hidden by the gateway.
+The gateway retries only pre-stream transient failures when explicitly configured. A request that
+has begun streaming is never retried, and 429 responses remain visible to the benchmark.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ import logging
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -27,6 +28,7 @@ DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
 DEFAULT_UPSTREAM = "https://openrouter.ai/api/v1/messages"
 DEFAULT_PROVIDER_ORDER = ("deepinfra",)
 MAX_BODY_BYTES = 12 * 1024 * 1024
+RETRYABLE_HTTP_STATUSES = frozenset({502, 503, 504})
 _SAFE_RESPONSE_HEADERS = {
     "content-type",
     "cache-control",
@@ -90,6 +92,12 @@ def stream_has_terminal_event(data: bytes) -> bool:
     ) is not None
 
 
+def should_retry_upstream(status: int | None, attempt: int, max_attempts: int) -> bool:
+    """Retry only a bounded pre-stream transient failure, never a rate limit."""
+
+    return attempt < max_attempts and (status is None or status in RETRYABLE_HTTP_STATUSES)
+
+
 class GatewayHandler(BaseHTTPRequestHandler):
     server_version = "AMBOpenRouterGateway/1.0"
 
@@ -117,6 +125,8 @@ class GatewayHandler(BaseHTTPRequestHandler):
                     "model": self.gateway.model,
                     "provider_order": list(self.gateway.provider_order),
                     "allow_fallbacks": False,
+                    "retry_attempts": self.gateway.retry_attempts,
+                    "retry_backoff_s": self.gateway.retry_backoff_s,
                 },
             )
             return
@@ -168,21 +178,55 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 "X-Title": "Agent Memory Benchmark",
             },
         )
-        try:
-            response = urllib.request.urlopen(request, timeout=self.gateway.timeout_s)
-        except urllib.error.HTTPError as error:
-            error_body = error.read(MAX_BODY_BYTES)
-            self.gateway.logger.error(
-                "upstream status=%s provider=%s error_bytes=%d",
-                error.code,
-                _provider_from_probe(error_body),
-                len(error_body),
-            )
-            self._relay_response(error, error_body)
-            return
-        except (urllib.error.URLError, TimeoutError, OSError) as error:
-            self.gateway.logger.error("upstream transport error=%s", type(error).__name__)
-            self._json(HTTPStatus.BAD_GATEWAY, {"error": "upstream transport failure"})
+        response = None
+        for attempt in range(1, self.gateway.retry_attempts + 1):
+            try:
+                response = urllib.request.urlopen(request, timeout=self.gateway.timeout_s)
+                break
+            except urllib.error.HTTPError as error:
+                error_body = error.read(MAX_BODY_BYTES)
+                if should_retry_upstream(error.code, attempt, self.gateway.retry_attempts):
+                    delay = self.gateway.retry_backoff_s * (2 ** (attempt - 1))
+                    self.gateway.logger.warning(
+                        "upstream transient status=%s attempt=%d/%d retry_in=%.1fs",
+                        error.code,
+                        attempt,
+                        self.gateway.retry_attempts,
+                        delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                self.gateway.logger.error(
+                    "upstream status=%s provider=%s error_bytes=%d attempts=%d",
+                    error.code,
+                    _provider_from_probe(error_body),
+                    len(error_body),
+                    attempt,
+                )
+                self._relay_response(error, error_body)
+                return
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                if should_retry_upstream(None, attempt, self.gateway.retry_attempts):
+                    delay = self.gateway.retry_backoff_s * (2 ** (attempt - 1))
+                    self.gateway.logger.warning(
+                        "upstream transport transient=%s attempt=%d/%d retry_in=%.1fs",
+                        type(error).__name__,
+                        attempt,
+                        self.gateway.retry_attempts,
+                        delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                self.gateway.logger.error(
+                    "upstream transport error=%s attempts=%d",
+                    type(error).__name__,
+                    attempt,
+                )
+                self._json(HTTPStatus.BAD_GATEWAY, {"error": "upstream transport failure"})
+                return
+
+        if response is None:
+            self._json(HTTPStatus.BAD_GATEWAY, {"error": "upstream retry exhausted"})
             return
 
         probe = bytearray()
@@ -242,6 +286,8 @@ class GatewayServer(ThreadingHTTPServer):
         provider_order: tuple[str, ...],
         upstream: str,
         timeout_s: float,
+        retry_attempts: int,
+        retry_backoff_s: float,
         logger: logging.Logger,
     ) -> None:
         super().__init__(address, GatewayHandler)
@@ -250,6 +296,8 @@ class GatewayServer(ThreadingHTTPServer):
         self.provider_order = provider_order
         self.upstream = upstream
         self.timeout_s = timeout_s
+        self.retry_attempts = retry_attempts
+        self.retry_backoff_s = retry_backoff_s
         self.logger = logger
 
 
@@ -264,6 +312,18 @@ def main(argv: list[str] | None = None) -> int:
         default=os.environ.get("AMB_GATEWAY_PROVIDER_ORDER", ",".join(DEFAULT_PROVIDER_ORDER)),
     )
     parser.add_argument("--timeout", type=float, default=float(os.environ.get("AMB_GATEWAY_TIMEOUT", "900")))
+    parser.add_argument(
+        "--retry-attempts",
+        type=int,
+        default=int(os.environ.get("AMB_GATEWAY_RETRY_ATTEMPTS", "1")),
+        help="total pre-stream attempts; 1 disables retry and 429 is never retried",
+    )
+    parser.add_argument(
+        "--retry-backoff",
+        type=float,
+        default=float(os.environ.get("AMB_GATEWAY_RETRY_BACKOFF", "20")),
+        help="initial seconds between transient retries",
+    )
     parser.add_argument("--log", default=os.environ.get("AMB_GATEWAY_LOG"))
     args = parser.parse_args(argv)
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -271,6 +331,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("OPENROUTER_API_KEY is required")
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    if args.retry_attempts <= 0:
+        parser.error("--retry-attempts must be positive")
+    if args.retry_backoff < 0:
+        parser.error("--retry-backoff must not be negative")
     try:
         provider_order = parse_provider_order(args.provider_order)
     except ValueError as error:
@@ -292,6 +356,8 @@ def main(argv: list[str] | None = None) -> int:
         provider_order=provider_order,
         upstream=args.upstream,
         timeout_s=args.timeout,
+        retry_attempts=args.retry_attempts,
+        retry_backoff_s=args.retry_backoff,
         logger=logger,
     )
     logger.info(

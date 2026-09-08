@@ -9,6 +9,7 @@ from scripts.openrouter_anthropic_gateway import (
     DEFAULT_PROVIDER_ORDER,
     build_upstream_payload,
     parse_provider_order,
+    should_retry_upstream,
     stream_has_terminal_event,
 )
 
@@ -48,3 +49,11 @@ def test_stream_terminal_event_is_detected_across_chunk_boundaries() -> None:
     assert stream_has_terminal_event(b"event: message_stop\ndata: {}\n")
     assert stream_has_terminal_event(b'{"type": "message_stop"}')
     assert not stream_has_terminal_event(b"event: content_block_delta\n")
+
+
+def test_gateway_retries_only_pre_stream_transient_failures() -> None:
+    assert should_retry_upstream(502, 1, 3)
+    assert should_retry_upstream(503, 2, 3)
+    assert should_retry_upstream(None, 1, 3)
+    assert not should_retry_upstream(429, 1, 3)
+    assert not should_retry_upstream(502, 3, 3)
