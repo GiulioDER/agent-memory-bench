@@ -32,6 +32,8 @@ _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 _WRAPPER_PATH = Path(__file__).with_name("hook_wrapper.js")
 _REQUIRED_HOOKS = ("SessionStart", "UserPromptSubmit", "PostToolUse", "Stop")
 _PROJECT = "claude_mem"
+_BACKFILL_METHOD_START = "async backfillKind(e,r,n,s){"
+_BACKFILL_METHOD_END = "}async backfillObservations"
 _TRANSIENT_SQLITE_SUFFIXES = (
     ".sqlite3-journal",
     ".sqlite3-wal",
@@ -186,6 +188,42 @@ class ClaudeMemAdapter(MemoryAdapter):
                 time.sleep(0.2 * (attempt + 1))
 
         raise RuntimeError("Claude-Mem namespace snapshot did not stabilize")
+
+    def _bulk_backfill_plugin_root(self, plugin_root: Path, namespace: str) -> Path:
+        """Make a preparation-only copy that preserves vendor documents and batches Chroma writes.
+
+        Claude-Mem v13.24.0 formats each observation correctly but calls its Chroma writer once
+        per observation during startup backfill. The resulting serialized queue makes an MCP
+        search wait for hours on the AMB corpus. This copy changes only the preparation loop:
+        the pinned formatter, document IDs, metadata, Chroma writer, and watermark store remain
+        vendor code. The copy is never handed to Claude Code sessions.
+        """
+
+        prepared = namespace_path(self.staging_root, namespace, "claude-mem-prep-plugin")
+        if prepared.exists():
+            shutil.rmtree(prepared)
+        shutil.copytree(plugin_root, prepared)
+        worker_path = prepared / "scripts" / "worker-service.cjs"
+        source = worker_path.read_text(encoding="utf-8")
+        start = source.find(_BACKFILL_METHOD_START)
+        end = source.find(_BACKFILL_METHOD_END, start + len(_BACKFILL_METHOD_START))
+        if start < 0 or end < 0:
+            raise RuntimeError(
+                "Claude-Mem worker no longer has the pinned v13.24.0 backfill shape; "
+                "refusing to use an unreviewed preparation shim"
+            )
+        replacement = (
+            "async backfillKind(e,r,n,s){"
+            "let i=e.map(c=>({row:c,docs:r(c)})),o=i.reduce((c,{docs:l})=>c+l.length,0),"
+            "a=i.filter(({docs:c})=>c.length>0),l=a.flatMap(({docs:c})=>c);"
+            "if(l.length===0)return 0;"
+            "let u=await this.addDocuments(l);"
+            "if(u<l.length){for(let c of a)ln.markPending(s,n,[c.row.id]);return u}"
+            "for(let{row:c}of a)ln.clearPending(s,n,[c.id]),ln.bump(s,n,c.id);"
+            "return o}async backfillObservations"
+        )
+        worker_path.write_text(source[:start] + replacement + source[end + len(_BACKFILL_METHOD_END) :], encoding="utf-8")
+        return prepared
 
     def _write_worker_settings(self, data_dir: Path, namespace: str) -> None:
         data_dir.mkdir(parents=True, exist_ok=True)
@@ -357,7 +395,8 @@ class ClaudeMemAdapter(MemoryAdapter):
         data_dir = self._data_dir(namespace)
         if data_dir.exists():
             shutil.rmtree(data_dir)
-        self._start_worker(plugin_root, data_dir, namespace)
+        preparation_root = self._bulk_backfill_plugin_root(plugin_root, namespace)
+        self._start_worker(preparation_root, data_dir, namespace)
 
         staged = namespace_path(self.staging_root, namespace, "claude-mem-feed")
         if staged.exists():
@@ -470,9 +509,11 @@ class ClaudeMemAdapter(MemoryAdapter):
         # is backfilled asynchronously. Restarting after import makes its startup backfill see the
         # complete frozen corpus, and this barrier prevents cloning a namespace whose first MCP
         # search would still be waiting on thousands of pending Chroma documents.
-        self._stop_worker(plugin_root, data_dir, namespace)
-        self._start_worker(plugin_root, data_dir, namespace)
+        self._stop_worker(preparation_root, data_dir, namespace)
+        self._start_worker(preparation_root, data_dir, namespace)
         self._wait_for_chroma_sync(data_dir, namespace, len(observations))
+        self._stop_worker(preparation_root, data_dir, namespace)
+        self._start_worker(plugin_root, data_dir, namespace)
 
         return IngestReport(
             arm=self.name,
@@ -484,6 +525,7 @@ class ClaudeMemAdapter(MemoryAdapter):
             notes=(
                 "loaded through Claude-Mem's shipped /api/import route",
                 f"worker search verification returned {hits} hit(s) for project {_PROJECT}",
+                "semantic cache prepared with the pinned vendor formatter and writer in batch mode",
                 f"observer provider {self.config['provider']} with model {self.config['observer_model']}",
             ),
         )

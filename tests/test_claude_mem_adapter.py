@@ -111,6 +111,22 @@ def test_runtime_env_exposes_user_local_bin_for_uvx(tmp_path, monkeypatch):
     assert "/usr/bin" in path_parts
 
 
+def test_bulk_backfill_patch_isolated_from_the_official_plugin(tmp_path):
+    plugin_root = _fake_plugin(tmp_path / "vendor")
+    worker = plugin_root / "plugin" / "scripts" / "worker-service.cjs"
+    marker = "async backfillKind(e,r,n,s){old}async backfillObservations"
+    worker.write_text("prefix" + marker + "suffix", encoding="utf-8")
+
+    adapter = ClaudeMemAdapter(tmp_path / "staging", tmp_path / "base.md")
+    prepared = adapter._bulk_backfill_plugin_root(plugin_root / "plugin", "namespace")
+
+    assert prepared == tmp_path / "staging" / "namespace" / "claude-mem-prep-plugin"
+    assert marker in worker.read_text(encoding="utf-8")
+    patched = (prepared / "scripts" / "worker-service.cjs").read_text(encoding="utf-8")
+    assert "old" not in patched
+    assert "this.addDocuments(l)" in patched
+
+
 def test_namespace_copy_retries_a_disappearing_sqlite_journal(tmp_path, monkeypatch):
     source = tmp_path / "source"
     target = tmp_path / "target"
