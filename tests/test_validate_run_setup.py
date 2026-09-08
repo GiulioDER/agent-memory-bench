@@ -19,6 +19,7 @@ from scripts.validate_run_setup import (
     DEFAULT_MAX_APPENDIX_FRACTION,
     check_appendix_proportion,
     check_corpus_reached,
+    check_claude_mem_preflight,
     check_shared_protocol_identical,
     main,
     validate,
@@ -110,6 +111,19 @@ def test_the_default_bound_separates_the_two_real_runs() -> None:
     """0.33 is not arbitrary: it sits between the confounded run and the fair one."""
 
     assert 1958 / SHARED_BASE > DEFAULT_MAX_APPENDIX_FRACTION > 853 / SHARED_BASE
+
+
+def test_claude_mem_requires_a_real_mcp_search_preflight() -> None:
+    env = json.loads(json.dumps(FAIR)) | {"arms": [*FAIR["arms"], "claude_mem"]}
+    assert check_claude_mem_preflight(env).ok is False
+
+    env["claude_mem_preflight"] = {
+        "status": "passed",
+        "required_tools": ["search", "timeline", "get_observations"],
+        "tools_observed": ["search", "timeline", "get_observations"],
+        "search": "tools/call search succeeded",
+    }
+    assert check_claude_mem_preflight(env).ok is True
 
 
 # --- the arithmetic check does not trust the harness flag ------------------------------------

@@ -133,6 +133,10 @@ RECALL_CONFIG = json.loads(
     (REPO / "adapters" / "recall" / "config.frozen.json").read_text(encoding="utf-8")
 )
 RECALL_PREFIX = str(RECALL_CONFIG["tool_prefix"])
+CLAUDE_MEM_CONFIG = json.loads(
+    (REPO / "adapters" / "claude_mem" / "config.frozen.json").read_text(encoding="utf-8")
+)
+CLAUDE_MEM_PREFIX = str(CLAUDE_MEM_CONFIG["tool_prefix"])
 GENERIC_RULES = (
     "# Project notes\n\n"
     "You are working in this repository. Keep changes small and leave the tree clean.\n\n"
@@ -878,6 +882,47 @@ async def main() -> int:
                 flush=True,
             )
 
+    claude_mem_preflight: dict[str, Any] = {"status": "not_required"}
+    if "claude_mem" in run_arms:
+        # Claude-Mem is self-hosted and its MCP server reaches the per-cell worker over HTTP.
+        # Start the exact first cell worker for this probe, then stop it before the measured
+        # session. This proves the complete MCP path without turning the probe into a model call.
+        spec = specs[(tasks[0].task_id, "claude_mem")]
+        adapter = registry.get("claude_mem")
+        namespace = cell_namespace(args.namespace, tasks[0].task_id, 0, "claude_mem")
+        required = [name.removeprefix(CLAUDE_MEM_PREFIX) for name in spec.extra_allowed_tools]
+        try:
+            adapter.prepare_for_session(namespace)
+            tools = probe(
+                spec.mcp_config,
+                str(CLAUDE_MEM_CONFIG["server_name"]),
+                required,
+                probe_tool="search",
+                probe_arguments={"query": tasks[0].prompt},
+            )
+            claude_mem_preflight = {
+                "status": "passed",
+                "server": CLAUDE_MEM_CONFIG["server_name"],
+                "required_tools": required,
+                "tools_observed": tools,
+                "search": "tools/call search succeeded",
+            }
+            print(f"[preflight] claude_mem MCP and search up: {len(tools)} tool(s)", flush=True)
+        except Exception as exc:  # noqa: BLE001, setup validation records the refusal
+            claude_mem_preflight = {
+                "status": "failed",
+                "server": CLAUDE_MEM_CONFIG["server_name"],
+                "required_tools": required,
+                "error": str(exc)[-2000:],
+            }
+            print(
+                f"[preflight] claude_mem FAILED: {claude_mem_preflight['error']}",
+                file=sys.stderr,
+                flush=True,
+            )
+        finally:
+            adapter.cleanup_after_session(namespace)
+
     signals = with_forbidden_prefixes(
         {
             arm: replace(
@@ -960,6 +1005,7 @@ async def main() -> int:
                 },
                 "ingest": [report.to_dict() for report in ingest_reports],
                 "recall_preflight": recall_preflight,
+                "claude_mem_preflight": claude_mem_preflight,
             },
             indent=2,
         ),
