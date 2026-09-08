@@ -945,6 +945,7 @@ async def main() -> int:
             {
                 "run_id": args.run_id,
                 "model": args.model,
+                "base_url": args.base_url,
                 "arms": list(run_arms),
                 "memory_instruction": args.memory_instruction,
                 "condition": args.condition,
