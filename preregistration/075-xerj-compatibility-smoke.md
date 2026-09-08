@@ -38,3 +38,24 @@ requires the pinned released asset on a compatible runner, a reviewed adapter an
 an additive preregistration, and a committed setup record before model spend.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Measured result, appended 2026-09-08
+
+The official Windows asset `xerj-1.0.0-rc.72-x86_64-pc-windows-msvc.zip` was downloaded from
+the pinned GitHub release and its SHA256 matched
+`064bf1754e54f7212a649085c51fac620ff5e16f07ac38c3704beddd397f7a65`. It exited before printing
+version information with Windows status `0xC000001D`, illegal instruction. The host is an Intel
+Xeon X5690, which predates AVX2. This agrees with the vendor source configuration requiring
+x86-64-v3 for the Windows x86_64 release, so the official asset is not runnable on this host.
+
+A generic Windows source build reached the vendor workspace but failed in `openssl-sys` because
+the available Perl installation lacks `Locale::Maketext::Simple`. A generic Linux source build
+was then attempted in Docker from the same pinned source. It progressed through dependency
+compilation but stopped when the target directory was on a Windows mounted filesystem and Rust
+received input and output errors. No XERJ node or MCP session was started, and no benchmark model
+call was made.
+
+This smoke is therefore inconclusive about the generic source binary, but it establishes a hard
+deployment blocker for the official release on this host. A compatible Linux runner or a vendor
+asset built for an older x86_64 baseline is required before the REST and MCP runtime checks can
+continue.
