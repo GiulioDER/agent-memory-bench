@@ -50,3 +50,30 @@ admission result, retrieval telemetry, hook exit summary, task checker result, a
 below this line. Do not edit the frozen sections above.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Measured result, appended 2026-09-08
+
+Run `claude-mem-nextbit-gateway-001-present` completed on VPS2 from source commit `77c33a04`.
+The gateway health check passed with model `deepseek/deepseek-v4-flash`, provider order `nextbit`,
+and `allow_fallbacks=false`. The gateway log recorded successful responses from `NextBit` and no
+gateway retry. It also recorded upstream HTTP 429 responses before later successful responses;
+Claude Code reported 11 client retries. This is a transport reliability warning, not evidence of
+fallback routing.
+
+Claude Mem ingestion stored 196 of 196 offered sessions. The Claude Mem MCP preflight passed, with
+all three required tools observed and a successful direct `search` call. The measured session had
+the complete prompt, all 14 Claude Mem tools in its live tool list, and the `mcp-search` server
+connected. Every worker hook and vendor hook exited with code zero, and the gateway and worker
+cleanup checks were clean.
+
+The smoke failed its behavioural gate. The first model tool call was `Read`, followed by `Grep`,
+`Write`, and `Bash`. `memory_call_count=0`, `memory_calls_succeeded=0`, and
+`memory_hits_returned=0`. The task was also incorrect, producing `ORD-24GI` instead of
+`ORD-24GJ`. The cell was admitted by the harness because admission records memory availability
+separately from model discoverability, but it is not a Claude Mem integration pass and is not
+publishable.
+
+The evidence separates wiring from model behaviour: the Claude Mem server was connected, the
+search tool succeeded in preflight, and the full instruction was present in `prompt.md`. The
+remaining defect is nondeterministic DeepSeek tool selection, not absent ingestion, MCP setup, or
+gateway routing. No official AMB leaderboard run is authorized by this result.
