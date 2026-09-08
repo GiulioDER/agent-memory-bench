@@ -1053,21 +1053,30 @@ async def main() -> int:
         overlay = fs_grep_memory if arm == "fs_grep" else None
         digest = sandbox.restore(task_id, workdir, overlay=overlay)
         session_config = config_for(task_id, seed, arm, workdir)
+        session_namespace = cell_namespace(args.namespace, task_id, seed, arm)
+        session_adapter = registry.get(arm)
+        session_prepared = False
+        session_adapter.prepare_for_session(session_namespace)
+        session_prepared = True
         silent_retries = 0
         max_silent_retries = min(
             5, max(0, int(os.environ.get("AMB_SILENT_COMPLETION_RETRIES", "1")))
         )
-        while True:
-            record = await run_claude_case(row, arm, session_config)
-            silent = (
-                not record.response
-                and not record.tool_calls
-                and record.error is None
-            )
-            if not silent or silent_retries >= max_silent_retries:
-                break
-            silent_retries += 1
-            await asyncio.sleep(2.0 * silent_retries)
+        try:
+            while True:
+                record = await run_claude_case(row, arm, session_config)
+                silent = (
+                    not record.response
+                    and not record.tool_calls
+                    and record.error is None
+                )
+                if not silent or silent_retries >= max_silent_retries:
+                    break
+                silent_retries += 1
+                await asyncio.sleep(2.0 * silent_retries)
+        finally:
+            if session_prepared:
+                session_adapter.cleanup_after_session(session_namespace)
         if silent_retries:
             record = replace(
                 record,

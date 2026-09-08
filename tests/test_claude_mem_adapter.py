@@ -127,6 +127,31 @@ def test_bulk_backfill_patch_isolated_from_the_official_plugin(tmp_path):
     assert "this.addDocuments(l)" in patched
 
 
+def test_session_lifecycle_starts_and_stops_the_isolated_worker(tmp_path, monkeypatch):
+    plugin_root = _fake_plugin(tmp_path / "vendor")
+    monkeypatch.setenv(CONFIG["plugin_dir_env"], str(plugin_root))
+    monkeypatch.setenv(CONFIG["observer_api_key_env"], "test-key")
+    adapter = ClaudeMemAdapter(tmp_path / "staging", tmp_path / "base.md")
+    calls = []
+    monkeypatch.setattr(
+        adapter,
+        "_start_worker",
+        lambda plugin, data, namespace: calls.append(("start", plugin, data, namespace)),
+    )
+    monkeypatch.setattr(
+        adapter,
+        "_stop_worker",
+        lambda plugin, data, namespace: calls.append(("stop", plugin, data, namespace)),
+    )
+
+    adapter.prepare_for_session("cell")
+    adapter.cleanup_after_session("cell")
+
+    assert [call[0] for call in calls] == ["start", "stop"]
+    assert all(call[1] == plugin_root / "plugin" for call in calls)
+    assert all(call[3] == "cell" for call in calls)
+
+
 def test_namespace_copy_retries_a_disappearing_sqlite_journal(tmp_path, monkeypatch):
     source = tmp_path / "source"
     target = tmp_path / "target"

@@ -360,6 +360,12 @@ class MemoryAdapter(ABC):
 
         return self.build(session_dir, namespace)
 
+    def prepare_for_session(self, namespace: str) -> None:  # pragma: no cover - optional lifecycle
+        """Prepare a per-session vendor runtime immediately before execution."""
+
+    def cleanup_after_session(self, namespace: str) -> None:  # pragma: no cover - optional lifecycle
+        """Release a per-session vendor runtime after execution."""
+
     @abstractmethod
     def admission_signal(self) -> AdmissionSignal:
         """What the gate must verify before this arm's sessions count as evidence."""

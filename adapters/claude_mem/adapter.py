@@ -389,6 +389,16 @@ class ClaudeMemAdapter(MemoryAdapter):
                 time.sleep(1.0)
         raise RuntimeError("Claude-Mem worker did not become healthy before ingestion timeout")
 
+    def prepare_for_session(self, namespace: str) -> None:
+        """Start the isolated worker before Claude Code dispatches lifecycle hooks."""
+
+        self._start_worker(self._plugin_root(), self._data_dir(namespace), namespace)
+
+    def cleanup_after_session(self, namespace: str) -> None:
+        """Stop the isolated worker after Claude Code has emitted its Stop hook."""
+
+        self._stop_worker(self._plugin_root(), self._data_dir(namespace), namespace)
+
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
         plugin_root = self._plugin_root()
