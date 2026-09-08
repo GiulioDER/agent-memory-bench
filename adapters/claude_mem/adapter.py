@@ -408,7 +408,10 @@ class ClaudeMemAdapter(MemoryAdapter):
         # second, harness-authored summarizer.
         sessions: list[dict[str, Any]] = []
         observations: list[dict[str, Any]] = []
-        base_epoch = 1_700_000_000_000
+        # Claude-Mem's default MCP search applies a recent date window when the model does not
+        # provide an explicit date_start. Anchor the static fixture at ingestion time so the
+        # vendor's default search can retrieve it during the benchmark session.
+        base_epoch = int(time.time() * 1000)
         for index, path in enumerate(sorted(staged.glob("*.md"))):
             content_session_id = f"{namespace}:{path.stem}"
             memory_session_id = hashlib.sha256(content_session_id.encode("utf-8")).hexdigest()
@@ -526,6 +529,7 @@ class ClaudeMemAdapter(MemoryAdapter):
                 "loaded through Claude-Mem's shipped /api/import route",
                 f"worker search verification returned {hits} hit(s) for project {_PROJECT}",
                 "semantic cache prepared with the pinned vendor formatter and writer in batch mode",
+                "import timestamps anchored to ingestion time for Claude-Mem's default recency window",
                 f"observer provider {self.config['provider']} with model {self.config['observer_model']}",
             ),
         )
