@@ -652,10 +652,13 @@ class ClaudeMemAdapter(MemoryAdapter):
             newline="\n",
         )
         ledger = config_dir / "hook-ledger.jsonl"
+        first_search_sentinel = config_dir / "first-search-called"
         env = {
             **self._runtime_env(namespace, data_dir),
             "CLAUDE_PLUGIN_ROOT": str(copied_plugin),
             "CLAUDE_MEM_HOOK_LEDGER": str(ledger),
+            "CLAUDE_MEM_FIRST_SEARCH_SENTINEL": str(first_search_sentinel),
+            "CLAUDE_MEM_FIRST_SEARCH_TOOL": f"{self.config['tool_prefix']}search",
             "HOME": str(home),
             "USERPROFILE": str(home),
         }
@@ -680,6 +683,7 @@ class ClaudeMemAdapter(MemoryAdapter):
                 "worker_data_dir": str(data_dir),
                 "worker_port": self._worker_port(namespace),
                 "hook_ledger": str(ledger),
+                "first_search_sentinel": str(first_search_sentinel),
                 "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest(),
             },
         )

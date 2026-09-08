@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import base64
+import subprocess
 from pathlib import Path
 
 from adapters.claude_mem.adapter import ClaudeMemAdapter
@@ -92,6 +94,8 @@ def test_build_uses_the_pinned_official_server_and_hooks(tmp_path, monkeypatch):
     settings = json.loads((Path(spec.config_dir) / "settings.json").read_text(encoding="utf-8"))
     assert set(CONFIG["required_hooks"]).issubset(settings["hooks"])
     assert "SessionStartWorker" in json.dumps(settings)
+    assert spec.env["CLAUDE_MEM_FIRST_SEARCH_TOOL"] == "mcp__mcp-search__search"
+    assert spec.env["CLAUDE_MEM_FIRST_SEARCH_SENTINEL"].endswith("first-search-called")
     assert spec.bare is False
 
 
@@ -213,3 +217,40 @@ def test_frozen_config_contains_the_release_pin_and_no_credentials():
     assert CONFIG["plugin_tag"] == "v13.24.0"
     assert len(CONFIG["plugin_commit"]) == 40
     assert "test-key" not in text
+
+
+def test_opt_in_first_search_guard_denies_file_tools_until_search(tmp_path):
+    node = shutil.which("node")
+    if not node:
+        return
+    wrapper = REPO / "adapters" / "claude_mem" / "hook_wrapper.js"
+    ledger = tmp_path / "ledger.jsonl"
+    sentinel = tmp_path / "first-search-called"
+    env = {
+        **os.environ,
+        "CLAUDE_MEM_ENFORCE_FIRST_SEARCH": "1",
+        "CLAUDE_MEM_FIRST_SEARCH_SENTINEL": str(sentinel),
+        "CLAUDE_MEM_FIRST_SEARCH_TOOL": "mcp__mcp-search__search",
+        "CLAUDE_MEM_HOOK_LEDGER": str(ledger),
+    }
+    argv = base64.b64encode(json.dumps(["-e", ""]).encode()).decode()
+
+    def call(tool_name):
+        return subprocess.run(
+            [node, str(wrapper), "PreToolUse", argv],
+            input=json.dumps({"session_id": "session", "tool_name": tool_name}),
+            text=True,
+            capture_output=True,
+            env=env,
+            check=False,
+        )
+
+    denied = call("Read")
+    assert denied.returncode == 0
+    assert json.loads(denied.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert not sentinel.exists()
+
+    searched = call("mcp__mcp-search__search")
+    assert searched.returncode == 0
+    assert sentinel.exists()
+    assert call("Read").returncode == 0
