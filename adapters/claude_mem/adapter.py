@@ -446,7 +446,9 @@ class ClaudeMemAdapter(MemoryAdapter):
                 }
             )
             searched = self._request(
-                "GET", f"{self._worker_url(namespace)}{self.config['search_path']}?{params}"
+                "GET",
+                f"{self._worker_url(namespace)}{self.config['search_path']}?{params}",
+                timeout=float(self.config["ingest_timeout_s"]),
             )
             rows = searched.get("observations") if isinstance(searched, dict) else None
             if not isinstance(rows, list) or not rows:
@@ -496,12 +498,19 @@ class ClaudeMemAdapter(MemoryAdapter):
             self._copy_stable_tree(source_data, target_data, self._runtime_ignore)
             self._write_worker_settings(target_data, target_namespace)
 
-    def _request(self, method: str, url: str, body: dict[str, Any] | None = None) -> Any:
+    def _request(
+        self,
+        method: str,
+        url: str,
+        body: dict[str, Any] | None = None,
+        *,
+        timeout: float = 10.0,
+    ) -> Any:
         payload = None if body is None else json.dumps(body).encode("utf-8")
         headers = {"Content-Type": "application/json"} if payload is not None else {}
         request = urllib.request.Request(url, data=payload, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(request, timeout=10.0) as response:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 raw = response.read().decode("utf-8")
         except urllib.error.HTTPError as error:
             detail = error.read().decode("utf-8", errors="replace")[-1200:]

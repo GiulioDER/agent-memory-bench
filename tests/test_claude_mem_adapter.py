@@ -246,7 +246,13 @@ def test_reuses_only_a_fresh_verified_fixture_without_import(tmp_path, monkeypat
     calls = []
     monkeypatch.setattr(adapter, "_start_worker", lambda *args: calls.append("start"))
     monkeypatch.setattr(adapter, "_wait_for_chroma_sync", lambda *args: calls.append("wait"))
-    monkeypatch.setattr(adapter, "_request", lambda *args: {"observations": [{}]})
+    request_timeouts = []
+
+    def request(*args, **kwargs):
+        request_timeouts.append(kwargs.get("timeout"))
+        return {"observations": [{}]}
+
+    monkeypatch.setattr(adapter, "_request", request)
 
     report = adapter._reuse_fixture(
         cache_root,
@@ -260,6 +266,7 @@ def test_reuses_only_a_fresh_verified_fixture_without_import(tmp_path, monkeypat
     assert report is not None
     assert any("reused a verified immutable Claude-Mem fixture" in note for note in report.notes)
     assert calls == ["start", "wait"]
+    assert request_timeouts == [180.0]
 
 
 def test_frozen_config_contains_the_release_pin_and_no_credentials():
