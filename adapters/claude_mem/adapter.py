@@ -132,8 +132,11 @@ class ClaudeMemAdapter(MemoryAdapter):
     def _runtime_env(self, namespace: str, data_dir: Path) -> dict[str, str]:
         env = self._observer_env()
         local_bin = str(Path.home() / ".local" / "bin")
+        bun_bin = str(Path.home() / ".bun" / "bin")
         current_path = os.environ.get("PATH", "")
         path_parts = [local_bin]
+        if bun_bin not in path_parts:
+            path_parts.append(bun_bin)
         path_parts.extend(
             item
             for item in current_path.split(os.pathsep)

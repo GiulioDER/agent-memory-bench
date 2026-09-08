@@ -108,6 +108,8 @@ def test_runtime_env_exposes_user_local_bin_for_uvx(tmp_path, monkeypatch):
 
     assert path_parts[0] == str(Path.home() / ".local" / "bin")
     assert path_parts.count(str(Path.home() / ".local" / "bin")) == 1
+    assert path_parts[1] == str(Path.home() / ".bun" / "bin")
+    assert path_parts.count(str(Path.home() / ".bun" / "bin")) == 1
     assert "/usr/bin" in path_parts
 
 
