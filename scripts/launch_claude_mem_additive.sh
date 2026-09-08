@@ -15,14 +15,16 @@ MODEL="${MODEL:-deepseek/deepseek-v4-flash}"
 BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
 GATEWAY_HOST="${GATEWAY_HOST:-127.0.0.1}"
 GATEWAY_PORT="${GATEWAY_PORT:-8787}"
-GATEWAY_PROVIDER_ORDER="${GATEWAY_PROVIDER_ORDER:-digitalocean}"
+GATEWAY_PROVIDER_ORDER="${GATEWAY_PROVIDER_ORDER:-nextbit}"
 PRICE_IN="${PRICE_IN:-0.0574}"
 PRICE_OUT="${PRICE_OUT:-0.1148}"
 PRICE_AS_OF="${PRICE_AS_OF:-2026-08-22}"
 SECRETS="${SECRETS:-$HOME/amb-secrets.env}"
+CONDITION_ORDER="${CONDITION_ORDER:-absent present superseded contradictory adjacent}"
 
 export PATH="$HOME/.npm-global/bin:$HOME/.bun/bin:$PATH"
 export CLAUDE_MEM_PLUGIN_DIR="${CLAUDE_MEM_PLUGIN_DIR:-$HOME/amb-claude-mem-v13-24-0}"
+export CLAUDE_MEM_ENFORCE_FIRST_SEARCH="${CLAUDE_MEM_ENFORCE_FIRST_SEARCH:-1}"
 export AMB_BLOCK_CONCURRENCY="${AMB_BLOCK_CONCURRENCY:-4}"
 export AMB_CELL_START_STAGGER_SECONDS="${AMB_CELL_START_STAGGER_SECONDS:-15}"
 export AMB_SILENT_COMPLETION_RETRIES="${AMB_SILENT_COMPLETION_RETRIES:-5}"
@@ -154,16 +156,28 @@ run_condition() {
   CURRENT_NAMESPACE=""
 }
 
-run_condition present \
-  "fa-dedup-key,ts-atomic-write,ts-base36-id,ts-bom-merge,ts-casefold-sort,ts-cli-exitcode,ts-config-layer,ts-crlf-export,ts-dedup-order,ts-empty-input,ts-golden-regen,ts-idempotent-run,ts-ignore-gen,ts-json-sorted,ts-legacy-hash,ts-log-mask,ts-manifest-rel,ts-mig-name,ts-natural-order,ts-nfc-count,ts-quote-shell,ts-retry-cap,ts-round-money,ts-schema-additive,ts-semver-pin,ts-stable-sort,ts-tz-utc"
-run_condition absent \
-  "ts-base36-id,ts-bom-merge,ts-dedup-order,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc"
-run_condition superseded \
-  "ts-base36-id,ts-bom-merge,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc"
-run_condition contradictory \
-  "ts-bom-merge,ts-dedup-order,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc"
-run_condition adjacent \
-  "ts-base36-id,ts-bom-merge,ts-dedup-order,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc"
+for condition in $CONDITION_ORDER; do
+  case "$condition" in
+    present)
+      run_condition present \
+        "fa-dedup-key,ts-atomic-write,ts-base36-id,ts-bom-merge,ts-casefold-sort,ts-cli-exitcode,ts-config-layer,ts-crlf-export,ts-dedup-order,ts-empty-input,ts-golden-regen,ts-idempotent-run,ts-ignore-gen,ts-json-sorted,ts-legacy-hash,ts-log-mask,ts-manifest-rel,ts-mig-name,ts-natural-order,ts-nfc-count,ts-quote-shell,ts-retry-cap,ts-round-money,ts-schema-additive,ts-semver-pin,ts-stable-sort,ts-tz-utc" ;;
+    absent)
+      run_condition absent \
+        "ts-base36-id,ts-bom-merge,ts-dedup-order,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc" ;;
+    superseded)
+      run_condition superseded \
+        "ts-base36-id,ts-bom-merge,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc" ;;
+    contradictory)
+      run_condition contradictory \
+        "ts-bom-merge,ts-dedup-order,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc" ;;
+    adjacent)
+      run_condition adjacent \
+        "ts-base36-id,ts-bom-merge,ts-dedup-order,ts-golden-regen,ts-ignore-gen,ts-legacy-hash,ts-mig-name,ts-natural-order,ts-schema-additive,ts-semver-pin,ts-tz-utc" ;;
+    *)
+      echo "unknown condition in CONDITION_ORDER: $condition" >&2
+      exit 2 ;;
+  esac
+done
 
 "$PY" scripts/build_arm_submission.py --write \
   --run-id "$RUN_ID" \
