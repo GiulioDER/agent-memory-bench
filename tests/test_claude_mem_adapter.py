@@ -40,7 +40,9 @@ def _fake_plugin(root: Path) -> Path:
                     ],
                     "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "init"}]}],
                     "PostToolUse": [{"hooks": [{"type": "command", "command": "observe"}]}],
-                    "PreToolUse": [{"hooks": [{"type": "command", "command": "file"}]}],
+                    "PreToolUse": [
+                        {"hooks": [{"type": "command", "command": "file", "async": True}]}
+                    ],
                     "Stop": [{"hooks": [{"type": "command", "command": "summarize"}]}],
                 }
             }
@@ -95,6 +97,7 @@ def test_build_uses_the_pinned_official_server_and_hooks(tmp_path, monkeypatch):
     settings = json.loads((Path(spec.config_dir) / "settings.json").read_text(encoding="utf-8"))
     assert set(CONFIG["required_hooks"]).issubset(settings["hooks"])
     assert "SessionStartWorker" in json.dumps(settings)
+    assert all("async" not in hook for group in settings["hooks"]["PreToolUse"] for hook in group["hooks"])
     assert spec.env["CLAUDE_MEM_FIRST_SEARCH_TOOL"] == "mcp__mcp-search__search"
     assert spec.env["CLAUDE_MEM_FIRST_SEARCH_SENTINEL"].endswith("first-search-called")
     assert spec.env["CLAUDE_MEM_ENFORCE_FIRST_SEARCH"] == "1"
