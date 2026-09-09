@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; result numbers enter
    through the run summary and the generated analysis artifact. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-09-07",
+  "updated": "2026-09-09",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
@@ -161,6 +161,19 @@ window.AMB_LEADERBOARD = {
     {
       "name": "supermemory",
       "type": "official Claude Code lifecycle hooks",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null,
+      "pending": true,
+      "totalTokens": null,
+      "byCondition": null
+    },
+    {
+      "name": "product_a",
+      "type": "third-party product, not yet named",
       "success": null,
       "delta": null,
       "ci": null,

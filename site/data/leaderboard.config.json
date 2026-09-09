@@ -2,8 +2,9 @@
   "official_run": "official-003",
   "pending_arms": [
     "cognee",
-    "supermemory"
+    "supermemory",
+    "claude_mem"
   ],
   "analysis_report": "reports/official-003-analysis.json",
-  "updated": "2026-09-07"
+  "updated": "2026-09-09"
 }
