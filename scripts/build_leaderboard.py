@@ -74,7 +74,7 @@ PENDING_ARM_DEFINITIONS = {
     # internal name: integration, role, public name
     "cognee": ("MCP server", None, "cognee"),
     "supermemory": ("official Claude Code lifecycle hooks", None, "supermemory"),
-    "claude_mem": ("official Claude Code lifecycle hooks and MCP search", None, None),
+    "claude_mem": ("official Claude Code lifecycle hooks and MCP search", None, "Claude Mem"),
 }
 
 # Arms that may be added by an independently validated submission.  They are deliberately kept
@@ -110,7 +110,7 @@ ADDITIVE_ARM_DEFINITIONS = {
 # disclosure tracks what has had its review window, and the two came apart the moment an arm was
 # deferred. Removing an arm from the board must not quietly remove it from this guard.
 # `tests/test_site_vendor_disclosure.py` reads this.
-UNDISCLOSED_PRODUCTS = ("mem0", "zep", "cachly", "claude_mem")
+UNDISCLOSED_PRODUCTS = ("mem0", "zep", "cachly")
 
 # What an undisclosed arm looks like on the page. The integration description is withheld
 # with the name, because "SaaS API" against a short field of candidates is most of an

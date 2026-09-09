@@ -172,8 +172,8 @@ window.AMB_LEADERBOARD = {
       "byCondition": null
     },
     {
-      "name": "product_a",
-      "type": "third-party product, not yet named",
+      "name": "Claude Mem",
+      "type": "official Claude Code lifecycle hooks and MCP search",
       "success": null,
       "delta": null,
       "ci": null,
