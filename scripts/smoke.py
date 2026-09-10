@@ -44,8 +44,8 @@ from harness.adapters.registry import AdapterRegistry
 from harness.claude_exec import ClaudeExecConfig, run_claude_case
 from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import admit_cells
-from harness.io import write_jsonl
 from harness.prereg import assert_preregistered
+from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
 from harness.runner import run_grid
 
 TASK_ID = "smoke-config-port"
@@ -108,6 +108,10 @@ async def main() -> int:
     arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
     if not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set; the agent cannot run")
+    try:
+        provider_policy = load_provider_policy(os.environ.get("AMB_DATA_POLICY_FILE"))
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
     if "supermemory" in arms:
         missing = []
         if not os.environ.get("SUPERMEMORY_PLUGIN_DIR"):
@@ -124,12 +128,11 @@ async def main() -> int:
     run_dir = REPO / "results" / run_id
     if run_dir.exists():
         raise SystemExit(f"run dir {run_dir} already exists; refusing to mix runs")
-    (run_dir / "streams").mkdir(parents=True)
-
     corpus = build_corpus_manifest()
     base_prompt = REPO / "corpus" / "claude_md_bundle_smoke.md"
     staging = run_dir / "staging"
     work_root = sandbox.default_work_root() / run_id
+    (work_root / "private-streams").mkdir(parents=True, exist_ok=True)
 
     registry = AdapterRegistry()
     registry.register(BareAdapter())
@@ -232,7 +235,7 @@ async def main() -> int:
         and projected_full_run_s <= FULL_RUN_MAX_SECONDS
     )
 
-    write_jsonl(run_dir / "records.jsonl", records)
+    write_public_jsonl(run_dir / "records.jsonl", records)
     report = admit_cells(records, signals, required_arms=arms)
     (run_dir / "admission.json").write_text(
         json.dumps(report.summary(), indent=2), encoding="utf-8"
@@ -247,9 +250,10 @@ async def main() -> int:
             {
                 "run_id": run_id,
                 "model": args.model,
-                "work_root": str(work_root),
+                "work_root": "external-disposable-storage",
                 "arms": {arm: registry.get(arm).describe() for arm in arms},
                 "ingest": [r.to_dict() for r in ingest_reports],
+                "provider_data_policy": provider_policy_metadata(provider_policy),
             },
             indent=2,
         ),

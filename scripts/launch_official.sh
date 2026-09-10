@@ -76,6 +76,8 @@ export AMB_CORPUS_FLOOR="${AMB_CORPUS_FLOOR:-4000}"
 
 # Fail here rather than at the first cell. Each of these has cost a run somewhere.
 [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "OPENROUTER_API_KEY is unset. Put it in $SECRETS" >&2; exit 2; }
+[ -n "${AMB_DATA_POLICY_FILE:-}" ] || { echo "AMB_DATA_POLICY_FILE is unset; hosted data policy is required" >&2; exit 2; }
+"$REPO/.venv/bin/python" -m scripts.audit_data_safety || exit 2
 # Where recall lives. Named, never stored: this tree is published with every run and a host
 # inventory is disclosure on its own, per .gitignore's first three lines. A default here is
 # what put a production .env path and another project's socket in a public artifact for a day.
@@ -129,9 +131,10 @@ if [ "${AMB_ALLOW_NAMED_PATHS:-0}" != "1" ]; then
   done
 fi
 
-mkdir -p "$REPO/results/logs"
+PRIVATE_LOG_DIR="${AMB_PRIVATE_LOG_DIR:-${TMPDIR:-/tmp}/agent-memory-bench-logs}"
+mkdir -p "$PRIVATE_LOG_DIR"
 STAMP="$(date -u +%Y%m%d-%H%M%SZ)"
-LOG="$REPO/results/logs/$RUN_ID-$STAMP.log"
+LOG="$PRIVATE_LOG_DIR/$RUN_ID-$STAMP.log"
 
 ARGV=(.venv/bin/python -m scripts.abstention
       --run-id "$RUN_ID" --namespace "$NAMESPACE" --conditions "$CONDITIONS"
@@ -163,7 +166,7 @@ setsid nohup bash -c "systemd-run --user --scope \
     --quiet nice -n 10 ${QUOTED_ARGV}" > "$LOG" 2>&1 < /dev/null &
 
 PID=$!
-echo "$PID" > "$REPO/results/logs/$RUN_ID.pid"
+echo "$PID" > "$PRIVATE_LOG_DIR/$RUN_ID.pid"
 sleep 2
 
 # ⚠️ Backgrounding reports nothing about whether the child SURVIVED. `systemd-run --user --scope`
@@ -175,7 +178,7 @@ if ! kill -0 "$PID" 2>/dev/null; then
   echo "" >&2
   echo "THE RUN DID NOT START. The process exited within 2 seconds." >&2
   tail -20 "$LOG" >&2 2>/dev/null || true
-  rm -f "$REPO/results/logs/$RUN_ID.pid"
+  rm -f "$PRIVATE_LOG_DIR/$RUN_ID.pid"
   exit 1
 fi
 

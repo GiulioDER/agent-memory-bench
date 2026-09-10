@@ -32,10 +32,10 @@ from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.host_memory import free_memory_mb, wait_for_headroom
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
-from harness.io import write_jsonl
 from harness.memory_bundles import MemoryBundleCatalog
 from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
 from harness.prereg import assert_preregistered
+from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 from scripts.pilot import recall_instruction
@@ -195,13 +195,11 @@ async def main() -> int:
         Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
     )
     run_dir = REPO / "results" / args.run_id
-    if (run_dir / "records.jsonl").exists():
+    if (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records")
     # A dry run must touch NOTHING, including an empty run directory: a stray results/<id>/ is
     # indistinguishable afterwards from a run that started and died, and the next real run with
     # that id then refuses or, worse, appends to it.
-    if not args.dry_run:
-        (run_dir / "streams").mkdir(parents=True, exist_ok=True)
     cfg_root = (
         Path(tempfile.mkdtemp(prefix="amb-dryrun-")) if args.dry_run else run_dir / "cfg"
     )
@@ -230,6 +228,12 @@ async def main() -> int:
         assert_preregistered(REPO)
         if not os.environ.get("OPENROUTER_API_KEY"):
             raise SystemExit("OPENROUTER_API_KEY is not set")
+        if not os.environ.get("AMB_CAPABILITY_MODEL"):
+            raise SystemExit("AMB_CAPABILITY_MODEL is not set; start the trusted model broker first")
+        try:
+            provider_policy = load_provider_policy(os.environ.get("AMB_DATA_POLICY_FILE"))
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
         if not os.environ.get("RECALL_DSN"):
             raise SystemExit("RECALL_DSN is not set")
     else:
@@ -387,7 +391,7 @@ async def main() -> int:
             append_system_prompt_file=spec.append_system_prompt_file,
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
-            stream_dir=run_dir / "streams",
+            stream_dir=work_root / "private-streams",
         )
 
     def claude_code_version() -> str:
@@ -439,7 +443,8 @@ async def main() -> int:
         "arm_concurrency": args.arm_concurrency or None,
         "arm_order_seed": args.run_id,
         "free_mb_at_start": free_memory_mb(),
-        "work_root": str(work_root),
+        "work_root": "external-disposable-storage",
+        "provider_data_policy": provider_policy_metadata(provider_policy),
         "sandbox_inside_repo": False,
         # One construction, so environment.json and costs.json cannot disagree about what
         # the run was priced at.
@@ -458,7 +463,8 @@ async def main() -> int:
     )
 
     rows = [{"task_id": task.task_id, "seed": seed, "user_input": task.prompt} for task in tasks for seed in range(args.seeds)]
-    records_path = run_dir / "records.jsonl"
+    records_path = work_root / "records.private.jsonl"
+    records_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _workdir(task_id: str, seed: int, arm: str, attempt: int) -> Path:
         # Each attempt gets its own sandbox rather than reusing one: sandbox.restore refuses a
@@ -542,7 +548,7 @@ async def main() -> int:
         arm_concurrency=args.arm_concurrency or None,
         order_seed=args.run_id,
     )
-    write_jsonl(run_dir / "records.final.jsonl", records)
+    write_public_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
     (run_dir / "admission.json").write_text(json.dumps(report.summary(), indent=2), encoding="utf-8")
     recovered = [

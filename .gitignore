@@ -36,6 +36,9 @@ staging/
 .ruff_cache/
 .venv/
 results/*/cfg/
+results/*/streams/
+results/*/records.private.jsonl
+results/*/logs/
 results/*.log
 results/*.err
 results/*.pid

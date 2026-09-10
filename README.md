@@ -130,6 +130,7 @@ Run the test suite and static audits:
 python -m pytest tests/ -q
 python -m scripts.audit_corpus
 python -m scripts.audit_plants
+python -m scripts.audit_data_safety
 ```
 
 Re-derive the current published run without credentials, a database or model calls:
@@ -186,6 +187,10 @@ checking a published run from reproducing one and records the infrastructure req
 | `preregistration/` | protocol and predictions committed before measurement |
 | `results/<run_id>/` | session logs, streams, admission verdicts and costs |
 | `site/` | published pages, deployed without a build step |
+
+Security and data handling are defined in [`docs/DATA_SAFETY.md`](docs/DATA_SAFETY.md). Live runs
+require an explicit provider retention declaration and publish hashed receipts rather than raw
+transcripts.
 
 ## Disclosure
 

@@ -87,10 +87,10 @@ from harness.decision_trace import (
 )
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
-from harness.io import write_jsonl
 from harness.mcp_probe import probe
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
+from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
 from harness.runner import run_grid
 from harness.tasks import discover_tasks, run_checker
 from scripts.validate_run_setup import validate as validate_setup
@@ -633,6 +633,12 @@ async def main() -> int:
     assert_preregistered(REPO)
     if not args.dry_run and not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
+    provider_policy = None
+    if not args.dry_run:
+        try:
+            provider_policy = load_provider_policy(os.environ.get("AMB_DATA_POLICY_FILE"))
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
 
     run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
     unknown = [arm for arm in run_arms if arm not in ARMS]
@@ -706,10 +712,10 @@ async def main() -> int:
         return 0
 
     run_dir = REPO / "results" / args.run_id
-    if (run_dir / "records.jsonl").exists():
+    if (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
-    (run_dir / "streams").mkdir(parents=True, exist_ok=True)
     work_root = Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
+    (work_root / "private-streams").mkdir(parents=True, exist_ok=True)
     _refuse_a_dirty_work_root(work_root, args.run_id)
     staging = work_root / "staging"
 
@@ -887,7 +893,7 @@ async def main() -> int:
                 },
                 "prompt_sha256_by_task": prompt_hashes,
                 "namespace": args.namespace,
-                "work_root": str(work_root),
+                "work_root": "external-disposable-storage",
                 "sandbox_inside_repo": False,
                 "adapters": {
                     arm: registry.get(arm).describe()
@@ -896,6 +902,7 @@ async def main() -> int:
                 },
                 "ingest": [report.to_dict() for report in ingest_reports],
                 "recall_preflight": recall_preflight,
+                "provider_data_policy": provider_policy_metadata(provider_policy),
             },
             indent=2,
         ),
@@ -966,7 +973,7 @@ async def main() -> int:
             append_system_prompt_file=spec.append_system_prompt_file,
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
-            stream_dir=run_dir / "streams",
+            stream_dir=work_root / "private-streams",
             json_schema=(
                 STAGED_DECISION_OUTPUT_SCHEMA
                 if args.emit_decision_stages
@@ -974,7 +981,8 @@ async def main() -> int:
             ) if args.emit_decisions else None,
         )
 
-    records_path = run_dir / "records.jsonl"
+    records_path = work_root / "records.private.jsonl"
+    records_path.parent.mkdir(parents=True, exist_ok=True)
     # `--namespace` is a CLI argument and this path is handed to the fs_grep arm as its
     # store. Validated here for the same reason the adapter validates its own join.
     fs_grep_memory = (
@@ -1078,7 +1086,7 @@ async def main() -> int:
     records = await run_grid(rows, run_arms, runner, block_concurrency=block_concurrency())
     wall_min = (time.monotonic() - started) / 60
 
-    write_jsonl(run_dir / "records.final.jsonl", records)
+    write_public_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
     (run_dir / "admission.json").write_text(
         json.dumps(report.summary(), indent=2), encoding="utf-8"
