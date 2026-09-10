@@ -22,9 +22,11 @@ so `--dry-run` is exactly the path where the missing flags do not matter.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -32,6 +34,40 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 SH = REPO / "scripts" / "launch_official.sh"
 PS1 = REPO / "scripts" / "launch_official.ps1"
+
+
+def _usable_posix_shell() -> str | None:
+    """Return a shell that can actually execute a POSIX snippet on this host.
+
+    On Windows, ``System32\\bash.exe`` may be the WSL shim even when WSL has no installed
+    distribution.  Prefer the ordinary Git Bash installation, then validate every candidate
+    instead of trusting PATH resolution alone.
+    """
+
+    candidates: list[str] = []
+    if sys.platform == "win32":
+        for variable in ("ProgramFiles", "ProgramFiles(x86)"):
+            root = os.environ.get(variable)
+            if root:
+                candidates.append(str(Path(root) / "Git" / "usr" / "bin" / "bash.exe"))
+    path_shell = shutil.which("bash")
+    if path_shell:
+        candidates.append(path_shell)
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        if candidate in seen or not Path(candidate).is_file():
+            continue
+        seen.add(candidate)
+        try:
+            result = subprocess.run(
+                [candidate, "-c", "exit 0"], capture_output=True, text=True, timeout=5, check=False
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if result.returncode == 0:
+            return candidate
+    return None
 
 #: Frozen by preregistration 002 and matched by every run since, so this run's scores stay
 #: comparable to the pilots'. A launcher that disagrees produces a run that cannot be compared.
@@ -134,7 +170,7 @@ def test_both_launchers_check_the_child_is_still_alive() -> None:
     # `["bash", ...]` resolves through CreateProcess on Windows, which finds WSL's bash.exe in
     # System32 before Git Bash and then cannot see the working directory. `shutil.which` finds
     # the POSIX one on PATH.
-    bash = shutil.which("bash")
+    bash = _usable_posix_shell()
     if not bash:
         pytest.skip("no POSIX shell available to execute the launcher's liveness block")
     result = subprocess.run(
@@ -193,7 +229,7 @@ def test_the_launcher_refuses_paths_that_will_name_an_account() -> None:
 
     # Executed rather than grepped, because a guard whose test greps for a string is satisfied by
     # the comment explaining it -- which caught four separate assertions in this repository.
-    bash = shutil.which("bash")
+    bash = _usable_posix_shell()
     if not bash:
         pytest.skip("no POSIX shell available")
 

@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; result numbers enter
    through the run summary and the generated analysis artifact. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-09-07",
+  "updated": "2026-09-09",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
@@ -28,8 +28,7 @@ window.AMB_LEADERBOARD = {
       "fs_grep": "official-003",
       "placebo": "official-003",
       "claude_md": "official-003",
-      "bare": "official-003",
-      "product_a": "additive arm"
+      "bare": "official-003"
     }
   },
   "arms": [
@@ -160,42 +159,30 @@ window.AMB_LEADERBOARD = {
       "byCondition": null
     },
     {
-      "name": "product_a",
-      "type": "third-party product, not yet named",
-      "success": 0.2482,
-      "delta": -0.3285,
-      "ci": [
-        -0.3904,
-        -0.1101
-      ],
-      "discarded": 31,
-      "tokensPerTask": 90092,
-      "costPerTask": 0.0052,
-      "totalTokens": 31081691,
-      "sourceRun": "additive arm",
-      "comparison": "joined to official-003",
-      "byCondition": {
-        "absent": {
-          "solved": 29,
-          "cells": 46
-        },
-        "adjacent": {
-          "solved": 8,
-          "cells": 50
-        },
-        "contradictory": {
-          "solved": 16,
-          "cells": 46
-        },
-        "present": {
-          "solved": 12,
-          "cells": 89
-        },
-        "superseded": {
-          "solved": 3,
-          "cells": 43
-        }
-      }
+      "name": "supermemory",
+      "type": "official Claude Code lifecycle hooks",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null,
+      "pending": true,
+      "totalTokens": null,
+      "byCondition": null
+    },
+    {
+      "name": "Claude Mem",
+      "type": "official Claude Code lifecycle hooks and MCP search",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null,
+      "pending": true,
+      "totalTokens": null,
+      "byCondition": null
     }
   ],
   "reference": [
@@ -459,32 +446,6 @@ window.AMB_LEADERBOARD = {
           "successes_per_million_tokens": 20.39,
           "successes_per_dollar": 328.87
         }
-      },
-      "product_a": {
-        "status": "published",
-        "success": 0.2482,
-        "delta_vs_baseline": -0.3285,
-        "ci95": [
-          -0.3904,
-          -0.1101
-        ],
-        "cost": {
-          "total_usd": null,
-          "usd_per_admitted_cell": null,
-          "reported_usd_per_task": 0.0052,
-          "total_tokens": 31081691,
-          "tokens_per_observed_session": 90092,
-          "tokens_per_admitted_cell": 113437,
-          "pricing_model": "deepseek/deepseek-v4-flash",
-          "pricing_as_of": null,
-          "relative_to_baseline": null
-        },
-        "speed": {
-          "mean_session_s": null,
-          "ingest_s": null,
-          "relative_to_baseline": null
-        },
-        "efficiency": {}
       }
     }
   },

@@ -710,12 +710,13 @@ async def main() -> int:
     if args.emit_decision_stages and not args.emit_decisions:
         raise SystemExit("--emit-decision-stages requires --emit-decisions")
 
-    # Before the dry-run return, deliberately: a dry run is how you check a command line, so it has
-    # to catch the two things that make a real run worthless. A recall arm with no DSN is a run
-    # whose treatment is silently absent, which is exactly what the admission gate exists to catch
-    # 216 sessions later.
+    # The preregistration guard applies to every invocation, including dry runs, because the
+    # command should describe a committed protocol. Credentials are different: a dry run resolves
+    # the grid and executes no model call, so it must remain usable before a participant has keys.
+    # A real recall run with no DSN would have its treatment silently absent, which is exactly what
+    # the admission gate exists to catch 216 sessions later.
     assert_preregistered(REPO)
-    if not os.environ.get("OPENROUTER_API_KEY"):
+    if not args.dry_run and not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
     if not os.environ.get("AMB_BROKER_SIGNING_SECRET"):
         raise SystemExit(
