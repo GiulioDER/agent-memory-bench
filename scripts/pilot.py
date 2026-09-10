@@ -63,6 +63,15 @@ from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import instructions, sandbox
+from harness.adjudication import (
+    adjudicate_run,
+    admission_signal_snapshot,
+    issue_challenge,
+    json_digest,
+    load_private_signer,
+    tree_digest,
+    RuntimeEventLog,
+)
 from harness.abstention import declines
 from harness.adapters.base import (
     ArmSpec,
@@ -830,6 +839,32 @@ async def main() -> int:
     _refuse_a_dirty_work_root(work_root, args.run_id)
     staging = work_root / "staging"
 
+    # A live result is accepted only when a trusted controller can bind it to a fresh challenge,
+    # the measured runner and participant images, and the oracle tree used by the checker. The
+    # private signing key is read once here and never enters a participant environment.
+    runner_image_digest = os.environ.get("AMB_RUNNER_IMAGE_DIGEST", "").strip()
+    participant_agent_digest = os.environ.get("AMB_PARTICIPANT_AGENT_DIGEST", "").strip()
+    signing_key_file = os.environ.get("AMB_ADJUDICATOR_SIGNING_KEY_FILE", "").strip()
+    ledger_file = os.environ.get("AMB_ADJUDICATOR_LEDGER_FILE", "").strip()
+    if not runner_image_digest or not participant_agent_digest or not signing_key_file or not ledger_file:
+        raise SystemExit(
+            "trusted adjudication is required for live runs; set "
+            "AMB_RUNNER_IMAGE_DIGEST, AMB_PARTICIPANT_AGENT_DIGEST, and "
+            "AMB_ADJUDICATOR_SIGNING_KEY_FILE, and AMB_ADJUDICATOR_LEDGER_FILE"
+        )
+    challenge = issue_challenge(
+        run_dir,
+        run_id=args.run_id,
+        runner_image_digest=runner_image_digest,
+        participant_agent_digest=participant_agent_digest,
+        oracle_version=f"sha256:{tree_digest(REPO / 'oracles')}",
+    )
+    event_log = RuntimeEventLog(run_dir / "execution-events.jsonl", challenge)
+    event_log.append(
+        "run_started",
+        {"task_count": len(tasks), "seed_count": args.seeds, "arms": list(run_arms)},
+    )
+
     bundles = {
         task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, texts)
         for task in tasks
@@ -1073,6 +1108,12 @@ async def main() -> int:
             for arm in run_arms
         }
     )
+    signal_snapshot = admission_signal_snapshot(signals)
+    signal_digest = json_digest(signal_snapshot)
+    event_log.append(
+        "admission_signals",
+        {"signals_sha256": signal_digest, "arms": sorted(signal_snapshot)},
+    )
 
     (run_dir / "environment.json").write_text(
         json.dumps(
@@ -1155,6 +1196,19 @@ async def main() -> int:
                 "claude_mem_preflight": claude_mem_preflight,
                 "graphiti_preflight": graphiti_preflight,
                 "provider_data_policy": provider_policy_metadata(provider_policy),
+                "admission_signals": signal_snapshot,
+                "adjudication": {
+                    "schema": "amb-adjudication-receipt-v1",
+                    "required": True,
+                    "challenge_version": challenge.version,
+                    "challenge_id": challenge.challenge_id,
+                    "nonce": challenge.nonce,
+                    "runner_image_digest": challenge.runner_image_digest,
+                    "participant_agent_digest": challenge.participant_agent_digest,
+                    "oracle_version": challenge.oracle_version,
+                    "event_log": "execution-events.jsonl",
+                    "receipt": "adjudication.receipt.json",
+                },
             },
             indent=2,
         ),
@@ -1265,6 +1319,10 @@ async def main() -> int:
             5, max(0, int(os.environ.get("AMB_SILENT_COMPLETION_RETRIES", "1")))
         )
         while True:
+            event_log.append(
+                "participant_started",
+                {"task_id": task_id, "arm": arm, "seed": seed, "attempt": silent_retries},
+            )
             record = await asyncio.to_thread(
                 run_isolated_claude_case,
                 row,
@@ -1279,6 +1337,25 @@ async def main() -> int:
                 break
             silent_retries += 1
             await asyncio.sleep(2.0 * silent_retries)
+        event_log.append(
+            "participant_completed",
+            {
+                "task_id": task_id,
+                "arm": arm,
+                "seed": seed,
+                "attempt": silent_retries,
+                "final": True,
+                "success": record.success,
+                "error": bool(record.error),
+                "participant_isolation_verified": record.metadata.get(
+                    "participant_isolation_verified"
+                ),
+                "oracle_visible_to_participant": record.metadata.get(
+                    "oracle_visible_to_participant"
+                ),
+                "workspace_output_digest": record.metadata.get("workspace_output_digest"),
+            },
+        )
         if silent_retries:
             record = replace(
                 record,
@@ -1288,6 +1365,18 @@ async def main() -> int:
                 },
             )
         ok, verdict = run_checker(by_id[task_id], workdir, isolated=True)
+        event_log.append(
+            "checker_completed",
+            {
+                "task_id": task_id,
+                "arm": arm,
+                "seed": seed,
+                "ok": bool(ok),
+                "verdict_sha256": hashlib.sha256(verdict.encode("utf-8")).hexdigest(),
+                "checker_network": "none",
+                "oracle_read_only": True,
+            },
+        )
         spec = cell_specs[(task_id, seed, arm)]
         prompt_file = spec.append_system_prompt_file
 
@@ -1380,14 +1469,25 @@ async def main() -> int:
 
     write_public_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
+    admission_summary = report.summary()
+    admission_summary["runtime_signals_sha256"] = signal_digest
     (run_dir / "admission.json").write_text(
-        json.dumps(report.summary(), indent=2), encoding="utf-8"
+        json.dumps(admission_summary, indent=2), encoding="utf-8"
     )
     pricing = pricing_from_args(args, model=args.model, source="https://openrouter.ai/api/v1/models")
     costs = summarize(records, ingest_reports, pricing=pricing, model=args.model)
     admitted_cells = {record.cell: True for record in report.admitted}
     costs["efficiency"] = efficiency(records, admitted_cells=admitted_cells)
     (run_dir / "costs.json").write_text(json.dumps(costs, indent=2), encoding="utf-8")
+
+    adjudicate_run(
+        run_dir,
+        signer=load_private_signer(
+            signing_key_file,
+            key_id=os.environ.get("AMB_ADJUDICATOR_KEY_ID", "adjudicator"),
+        ),
+        ledger_path=ledger_file,
+    )
 
     by_arm: dict[str, list] = {arm: [] for arm in run_arms}
     for record in report.admitted:
@@ -1408,6 +1508,7 @@ async def main() -> int:
         search_rate = sum(1 for r in searches if r.memory_call_count > 0) / len(searches)
         print(f"  recall search rate: {search_rate:.3f}")
     print(f"  estimated spend: ${costs.get('estimated_usd')} ({costs['total_tokens']} tokens)")
+    print(f"  adjudication receipt: {run_dir / 'adjudication.receipt.json'}")
     print(f"  artifacts: {run_dir}")
     return 0
 

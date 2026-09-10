@@ -37,6 +37,7 @@ sessions. Everything else is what the preregistration and the vendor review are 
 from __future__ import annotations
 
 import argparse
+import base64
 import dataclasses
 import json
 import math
@@ -49,6 +50,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.abstention import cells_from_records, endpoints
+from harness.adjudication import AdjudicationError, verify_receipt
 from harness.costs import ModelPricing, summarize
 from harness.damage import CORPUS_CONDITIONS
 from harness.schema import SessionRecord
@@ -327,7 +329,15 @@ def _check_endpoints(f, run_dir, records, condition, published_admission, publis
                 )
 
 
-def verify(run_dir: Path) -> Findings:
+def _load_public_key(path: Path) -> bytes:
+    raw = path.read_bytes()
+    if len(raw) == 32:
+        return raw
+    value = raw.decode("ascii").strip()
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def verify(run_dir: Path, *, adjudicator_public_key: bytes | None = None) -> Findings:
     f = Findings()
     records = _load_records(run_dir)
 
@@ -522,6 +532,36 @@ def verify(run_dir: Path) -> Findings:
             f"{run_dir.name}: no streams/ directory. The records can be checked against each "
             f"other but not against the sessions that produced them."
         )
+
+    # --- trusted execution receipt ------------------------------------------------------------
+    # Historical artifacts predate the adjudicator and remain readable. Every new pilot writes
+    # an adjudication marker; that marker turns a missing or invalid receipt into a failure.
+    environment_path = run_dir / "environment.json"
+    adjudication = {}
+    if environment_path.is_file():
+        try:
+            environment = json.loads(environment_path.read_text(encoding="utf-8"))
+            adjudication = environment.get("adjudication") or {}
+        except (OSError, json.JSONDecodeError):
+            adjudication = {}
+    receipt_path = run_dir / "adjudication.receipt.json"
+    if adjudication.get("schema") == "amb-adjudication-receipt-v1" or receipt_path.exists():
+        try:
+            verify_receipt(run_dir, public_key=adjudicator_public_key)
+        except (AdjudicationError, OSError, ValueError, KeyError, json.JSONDecodeError) as error:
+            f.check(False, f"{run_dir.name}: trusted execution receipt verifies ({error})")
+        else:
+            f.check(
+                True,
+                f"{run_dir.name}: trusted execution receipt verifies"
+                + (
+                    " against supplied public key"
+                    if adjudicator_public_key
+                    else " using its embedded key"
+                ),
+            )
+    else:
+        f.skip(f"{run_dir.name}: trusted execution receipt predates this artifact")
     return f
 
 
@@ -647,6 +687,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_dirs", nargs="*", help="published run directories")
     parser.add_argument("--all", action="store_true", help="every run under results/")
+    parser.add_argument(
+        "--adjudicator-public-key-file",
+        type=Path,
+        help="raw or base64url Ed25519 public key used to trust execution receipts",
+    )
     args = parser.parse_args()
 
     targets = [Path(d) for d in args.run_dirs]
@@ -661,7 +706,12 @@ def main() -> int:
             print(f"[MISSING] {run_dir}")
             failed += 1
             continue
-        f = verify(run_dir)
+        public_key = (
+            _load_public_key(args.adjudicator_public_key_file)
+            if args.adjudicator_public_key_file
+            else None
+        )
+        f = verify(run_dir, adjudicator_public_key=public_key)
         status = "FAIL" if f.bad else "ok"
         print(f"\n[{status}] {run_dir.name}")
         for line in f.ok:

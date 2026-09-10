@@ -78,6 +78,10 @@ export AMB_CORPUS_FLOOR="${AMB_CORPUS_FLOOR:-4000}"
 [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "OPENROUTER_API_KEY is unset. Put it in $SECRETS" >&2; exit 2; }
 [ -n "${AMB_DATA_POLICY_FILE:-}" ] || { echo "AMB_DATA_POLICY_FILE is unset; hosted data policy is required" >&2; exit 2; }
 "$REPO/.venv/bin/python" -m scripts.audit_data_safety || exit 2
+for v in AMB_RUNNER_IMAGE_DIGEST AMB_PARTICIPANT_AGENT_DIGEST AMB_ADJUDICATOR_SIGNING_KEY_FILE AMB_ADJUDICATOR_LEDGER_FILE; do
+  eval "val=\${$v:-}"
+  [ -n "$val" ] || { echo "$v is unset; immutable isolation provenance is required" >&2; exit 2; }
+done
 # Where recall lives. Named, never stored: this tree is published with every run and a host
 # inventory is disclosure on its own, per .gitignore's first three lines. A default here is
 # what put a production .env path and another project's socket in a public artifact for a day.
