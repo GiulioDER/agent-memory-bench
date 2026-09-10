@@ -129,6 +129,28 @@ def test_mcp_configuration_is_replaced_by_credentialless_relay(
     assert b"/host/private/recall" not in payload
 
 
+def test_mcp_configuration_with_no_allowed_tools_fails_closed(
+    tmp_path: Path,
+) -> None:
+    """Mutation: an empty relay allowlist must not become unrestricted tool access."""
+
+    from harness import isolation
+    from harness.claude_exec import ClaudeExecConfig
+
+    mcp = tmp_path / "mcp.json"
+    mcp.write_text(json.dumps({"mcpServers": {"memory": {"command": "vendor"}}}), encoding="utf-8")
+    config = ClaudeExecConfig(
+        cwd=tmp_path,
+        mcp_config=str(mcp),
+        memory_tool_prefix="mcp__memory__",
+        env={},
+    )
+    with tempfile.TemporaryDirectory() as staging, pytest.raises(
+        isolation.IsolationError, match="no explicit allowed tools"
+    ):
+        isolation._copy_config_archive(config, Path(staging), memory_capability="opaque")
+
+
 def test_archive_rejects_symlinks(tmp_path: Path) -> None:
     root = tmp_path / "workspace"
     root.mkdir()

@@ -918,6 +918,11 @@ def _copy_config_archive(
                 if str(item).startswith(prefix)
             }
         )
+        if not allowed_tools:
+            raise IsolationError(
+                "MCP participant configuration has no explicit allowed tools; refusing an "
+                "unrestricted memory relay"
+            )
         servers = data.get("mcpServers") or {}
         if not isinstance(servers, dict):
             raise IsolationError("MCP configuration must contain an object mcpServers")
