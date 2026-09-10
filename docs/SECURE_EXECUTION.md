@@ -16,6 +16,25 @@ The participant network is the broker network. Brokers use the trusted allowlist
 external connections. Checkers use Docker `network=none`, receive validated artifact and oracle
 directories as read-only mounts, and start only after the participant container exits.
 
+## Encrypted connections
+
+Every connection to a non loopback destination must use TLS or SSH. Plain HTTP is permitted only
+for an explicitly named loopback service. The participant session must not inherit generic proxy
+variables such as `HTTP_PROXY`, `HTTPS_PROXY`, or `NO_PROXY`; a connection may use only the
+explicit broker endpoint and the controller supplied egress proxy.
+
+The egress proxy is an enforced allowlist, checked by destination host and port. Direct outbound
+connections and destinations outside that allowlist fail closed. When an integration uses SSH,
+the client must enable strict host key checking and use the pinned `known_hosts` data supplied for
+that integration. A changed, missing, or unverified host key is a connection failure.
+
+Each attempted connection must append a connection receipt before the run can be accepted. The
+receipt records the session identity, destination host and port, transport, proxy identity, result,
+and peer identity. For TLS, peer identity is the SHA 256 fingerprint of the verified certificate.
+For SSH, it is the SHA 256 fingerprint of the verified host key. Receipt creation, identity
+verification, allowlist enforcement, and transport enforcement are all fail closed. A run without
+complete receipts cannot be promoted or used as a benchmark result.
+
 `run_claude_case()` and `run_checker(..., isolated=False)` remain available for unit fixtures and
 reference tests. Production launchers use `run_isolated_claude_case()` and
 `run_checker(..., isolated=True)`; missing Docker, a non-rootless daemon, missing image digest,
