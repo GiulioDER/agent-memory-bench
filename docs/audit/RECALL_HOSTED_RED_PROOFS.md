@@ -68,3 +68,34 @@ Observed assertion failure: replay completed instead of raising the expected `Ru
 
 Green restoration: both fallback headers must exist and contain exactly `0` or `1` for every Search
 row, otherwise the replay is invalid.
+
+## Registered context selection rule
+
+Test node:
+`tests/test_recall_hosted_select.py::test_selector_chooses_smallest_a4_arm_within_one_absolute_point`
+
+Production symbol: `scripts.recall_hosted_select.select_replay`
+
+Mutation: require the maximum observed A4 coverage instead of the registered one absolute
+percentage point eligibility margin.
+
+Observed assertion failure: the selector chose the 9,000 character arm instead of the eligible
+5,000 character arm.
+
+Green restoration: all A4 arms within 0.01 of the best complete coverage remain eligible, and the
+smallest context budget wins.
+
+## Paired replay product identity
+
+Test node:
+`tests/test_recall_hosted_select.py::test_selector_refuses_population_or_product_identity_drift`
+
+Production symbol: `scripts.recall_hosted_select.select_replay`
+
+Mutation: remove product identity equality after removing only the served variant name.
+
+Observed assertion failure: an arm with a different facet prompt digest was accepted instead of
+raising the expected `ValueError`.
+
+Green restoration: corpus, task population, commit, models, and both prompt identities must match
+across all seven replay artifacts.

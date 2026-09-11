@@ -33,3 +33,15 @@ requests.
 The replay is a retrieval screen, not the executable outcome. After selecting the smallest A4
 context budget within the preregistered coverage margin, use `scripts.pilot` for the fixed
 executable screen and final paired comparison.
+
+After all seven immutable replay files exist, validate and select them mechanically:
+
+```powershell
+python -m scripts.recall_hosted_select `
+  --input-dir results/aml-hosted-v1/replay `
+  --output results/aml-hosted-v1/replay-selection.json
+```
+
+The selector requires exactly one artifact per registered variant and refuses population, corpus,
+task, commit, model, or prompt identity drift. It preserves all attribution summaries and chooses
+the smallest eligible A4 budget.
