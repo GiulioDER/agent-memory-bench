@@ -7,6 +7,7 @@ import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -33,6 +34,20 @@ def _config() -> dict[str, Any]:
     return json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
 
 
+def _timestamp_ms(value: object) -> int:
+    """Translate the corpus ISO timestamp to AML's Unix millisecond wire format."""
+    if isinstance(value, bool):
+        raise TypeError("session timestamp must not be a boolean")
+    if isinstance(value, int):
+        return value
+    if not isinstance(value, str):
+        raise TypeError("session timestamp must be an ISO string or Unix milliseconds")
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return int(parsed.timestamp() * 1_000)
+
+
 def session_messages(path: Path) -> list[dict[str, Any]]:
     """Translate one neutral JSONL transcript without dropping tool evidence."""
     messages: list[dict[str, Any]] = []
@@ -57,7 +72,7 @@ def session_messages(path: Path) -> list[dict[str, Any]]:
             "content": content,
         }
         if event.get("ts"):
-            message["timestamp"] = event["ts"]
+            message["timestamp"] = _timestamp_ms(event["ts"])
         messages.append(message)
     return messages
 
@@ -156,7 +171,15 @@ class RecallHostedAdapter(MemoryAdapter):
                         "session_id": relative,
                     },
                 )
-                stored += int(response["raw_count"]) + int(response["compiled_count"])
+                expected = {
+                    "success": True,
+                    "request_id": request_id,
+                    "user_id": namespace,
+                    "session_id": relative,
+                }
+                if not expected.items() <= response.items():
+                    raise RuntimeError("hosted Add response did not echo the request identity")
+                stored += len(batch)
             return stored
 
         started = time.monotonic()
@@ -172,7 +195,7 @@ class RecallHostedAdapter(MemoryAdapter):
             llm_output_tokens=None,
             notes=(
                 "loaded through the public synchronous Add endpoint",
-                "raw and compiled memory counts are reported by the hosted product",
+                "items_stored counts source messages acknowledged by the hosted product",
             ),
         )
 

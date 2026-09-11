@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 
+import pytest
+
 from adapters.recall_hosted import mcp_bridge
 from adapters.recall_hosted.adapter import RecallHostedAdapter, session_messages
 from harness.adapters.base import CorpusManifest
@@ -15,7 +17,12 @@ class FakeClient:
     def request(self, path, payload=None):
         self.calls.append((path, payload))
         if path == "/v1/add":
-            return {"raw_count": len(payload["messages"]), "compiled_count": 1}
+            return {
+                "success": True,
+                "request_id": payload["request_id"],
+                "user_id": payload["user_id"],
+                "session_id": payload["session_id"],
+            }
         if path == "/v1/search":
             return {
                 "data": [
@@ -28,6 +35,7 @@ class FakeClient:
 
 
 def test_session_translation_preserves_timestamp_and_tool_evidence(tmp_path):
+    """`session_messages` was RED: pre-fix output kept ISO text instead of AML milliseconds."""
     path = tmp_path / "session.jsonl"
     path.write_text(
         json.dumps(
@@ -48,7 +56,7 @@ def test_session_translation_preserves_timestamp_and_tool_evidence(tmp_path):
         {
             "role": "assistant",
             "content": 'tool_name: Bash\ntool_input: {"command":"pytest"}\ntool_result: 1 failed',
-            "timestamp": "2026-01-01T01:02:03Z",
+            "timestamp": 1_767_229_323_000,
         }
     ]
 
@@ -73,7 +81,7 @@ def test_adapter_uses_public_add_search_and_builds_read_only_mcp(monkeypatch, tm
     ranked = adapter.search("run-1", "Error42", limit=2)
 
     assert report.sessions_offered == 1
-    assert report.items_stored == 2
+    assert report.items_stored == 1
     assert client.calls[0] == ("/v1/delete", {"user_id": "run-1"})
     assert client.calls[1][0] == "/v1/add"
     assert client.calls[1][1]["session_id"] == relative
@@ -104,7 +112,7 @@ def test_mcp_bridge_exposes_only_search_and_forwards_stored_evidence(monkeypatch
     monkeypatch.setattr(
         mcp_bridge.HostedHttpClient,
         "request",
-        lambda self, path, payload: {"data": [{"memory": "stored evidence"}]},
+        lambda self, path, payload: {"data": [{"id": "one", "content": "stored evidence"}]},
     )
     listed = mcp_bridge._result({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
     called = mcp_bridge._result(
@@ -116,4 +124,36 @@ def test_mcp_bridge_exposes_only_search_and_forwards_stored_evidence(monkeypatch
         }
     )
     assert [tool["name"] for tool in listed["result"]["tools"]] == ["recall_search"]
-    assert called["result"]["structuredContent"] == {"data": [{"memory": "stored evidence"}]}
+    assert called["result"]["structuredContent"] == {
+        "data": [{"id": "one", "content": "stored evidence"}]
+    }
+
+
+def test_adapter_rejects_add_response_that_does_not_echo_request_identity(monkeypatch, tmp_path):
+    """`ingest` was RED: the pre-fix adapter accepted another request's success response."""
+    relative = "sessions/task/p01.jsonl"
+    source = tmp_path / relative
+    source.parent.mkdir(parents=True)
+    source.write_text('{"role":"user","content":"evidence"}\n', encoding="utf-8")
+    corpus = CorpusManifest(tmp_path, {relative: hashlib.sha256(source.read_bytes()).hexdigest()})
+    base = tmp_path / "base.md"
+    base.write_text("base", encoding="utf-8")
+    adapter = RecallHostedAdapter(tmp_path / "stage", base)
+
+    class WrongEchoClient(FakeClient):
+        def request(self, path, payload=None):
+            if path == "/v1/add":
+                return {
+                    "success": True,
+                    "request_id": "wrong",
+                    "user_id": payload["user_id"],
+                    "session_id": payload["session_id"],
+                    "raw_count": 1,
+                    "compiled_count": 1,
+                }
+            return super().request(path, payload)
+
+    monkeypatch.setattr(adapter, "_client", lambda **kwargs: WrongEchoClient())
+
+    with pytest.raises(RuntimeError, match="did not echo"):
+        adapter.ingest(corpus, "run-1")
