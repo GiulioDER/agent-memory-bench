@@ -59,6 +59,7 @@ from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 from adapters.graphiti.adapter import GraphitiAdapter
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.recall_hosted.adapter import RecallHostedAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
@@ -123,6 +124,7 @@ from scripts.validate_run_setup import validate as validate_setup
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
     "mempalace", "recall_prefetch", "cachly", "graphiti", "supermemory", "claude_mem",
+    "recall_hosted",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
@@ -130,14 +132,15 @@ DEFAULT_ARMS = ("bare", "claude_md", "recall")
 MEMORY_ARMS = frozenset(
     {
         "fs_grep", "recall", "recall_rerank", "mempalace", "cachly", "graphiti",
-        "supermemory", "claude_mem",
+        "supermemory", "claude_mem", "recall_hosted",
     }
 )
 
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
 SELF_INGESTING_ARMS = (
-    "fs_grep", "mempalace", "cachly", "graphiti", "supermemory", "claude_mem"
+    "fs_grep", "mempalace", "cachly", "graphiti", "supermemory", "claude_mem",
+    "recall_hosted"
 )
 
 #: Arms that are a static system-prompt file and nothing else.
@@ -265,6 +268,10 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["claude_mem"] = ClaudeMemAdapter.shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
+    if "recall_hosted" in texts:
+        texts["recall_hosted"] = RecallHostedAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "protocol" in texts:
         texts["protocol"] = instructions.compose(
             "protocol",
@@ -359,6 +366,8 @@ def adapter_for(
         return SupermemoryAdapter(staging, static, instruction=texts.get("supermemory") or None)
     if arm == "claude_mem":
         return ClaudeMemAdapter(staging, static, instruction=texts.get("claude_mem") or None)
+    if arm == "recall_hosted":
+        return RecallHostedAdapter(staging, static, instruction=texts.get("recall_hosted") or None)
     if arm == "recall_prefetch":
         # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
         # is condition-aware for free: it delegates to whichever tenant the condition serves. The
@@ -797,6 +806,16 @@ async def main() -> int:
         if missing:
             raise SystemExit(
                 "Claude-Mem is not configured; set " + ", ".join(missing)
+            )
+    if "recall_hosted" in run_arms and not args.dry_run:
+        missing = [
+            name
+            for name in ("AMB_RECALL_HOSTED_URL", "AMB_RECALL_HOSTED_API_KEY")
+            if not os.environ.get(name)
+        ]
+        if missing:
+            raise SystemExit(
+                "RE-call Hosted is not configured; set " + ", ".join(missing)
             )
 
     # The default grid, and the wider set a --tasks subset may name. Keeping these apart is what
