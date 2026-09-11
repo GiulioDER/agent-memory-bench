@@ -8,7 +8,7 @@ import pytest
 
 from adapters.recall_hosted.adapter import HostedHttpResponse
 from harness.adapters.base import CorpusManifest
-from scripts.recall_hosted_replay import run_replay, score_items
+from scripts.recall_hosted_replay import _percentile, run_replay, score_items
 
 
 class FakeReplayClient:
@@ -46,6 +46,11 @@ class FakeReplayClient:
                 "x-recall-reranker-fallback": "1",
             },
         )
+
+
+def test_replay_p95_uses_nearest_rank_for_sixteen_requests():
+    """RED: floor indexing reported the second slowest request as p95."""
+    assert _percentile(list(range(1, 17)), 0.95) == 16
 
 
 def _fixture(tmp_path):

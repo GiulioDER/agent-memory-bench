@@ -99,3 +99,18 @@ raising the expected `ValueError`.
 
 Green restoration: corpus, task population, commit, models, and both prompt identities must match
 across all seven replay artifacts.
+
+## Replay latency percentile
+
+Test node:
+`tests/test_recall_hosted_replay.py::test_replay_p95_uses_nearest_rank_for_sixteen_requests`
+
+Production symbol: `scripts.recall_hosted_replay._percentile`
+
+Baseline: use a zero-based floor of `(n minus 1) times p` for the percentile index.
+
+Observed assertion failure: p95 of request latencies 1 through 16 was reported as 15 instead of
+16.
+
+Green restoration: replay uses the nearest rank definition and therefore includes the slowest
+request in a sixteen request p95.

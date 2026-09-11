@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import statistics
 import time
@@ -46,7 +47,7 @@ def _percentile(values: list[float], quantile: float) -> float | None:
     if not values:
         return None
     ordered = sorted(values)
-    index = max(0, min(len(ordered) - 1, int((len(ordered) - 1) * quantile)))
+    index = max(0, min(len(ordered) - 1, math.ceil(len(ordered) * quantile) - 1))
     return ordered[index]
 
 
