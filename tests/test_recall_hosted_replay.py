@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from adapters.recall_hosted.adapter import HostedHttpResponse
 from harness.adapters.base import CorpusManifest
 from scripts.recall_hosted_replay import run_replay, score_items
 
@@ -35,6 +36,16 @@ class FakeReplayClient:
                 ]
             }
         return {"status": "deleted"}
+
+    def request_with_headers(self, path, payload=None):
+        response = self.request(path, payload)
+        return HostedHttpResponse(
+            response,
+            {
+                "x-recall-facet-fallback": "1",
+                "x-recall-reranker-fallback": "1",
+            },
+        )
 
 
 def _fixture(tmp_path):
@@ -79,6 +90,23 @@ def test_replay_never_sends_fact_terms_to_the_memory_system(tmp_path):
     search_payload = next(payload for path, payload in client.calls if path == "/v1/search")
     assert search_payload == {"query": "exact task prompt", "user_id": "replay-a0", "top_k": 100}
     assert result["rows"][0]["metrics"]["complete_coverage"] is True
+
+
+def test_replay_counts_request_local_search_fallback_headers(tmp_path):
+    """Hard-coding replay fallback counts to zero makes this request exercise turn RED."""
+    corpus, task = _fixture(tmp_path)
+    result = run_replay(
+        FakeReplayClient(),
+        variant_name="A0_raw",
+        corpus=corpus,
+        tasks=[task],
+        namespace="replay-a0",
+    )
+
+    assert result["aggregate"]["facet_fallbacks"] == 1
+    assert result["aggregate"]["reranker_fallbacks"] == 1
+    assert result["rows"][0]["facet_fallback"] is True
+    assert result["rows"][0]["reranker_fallback"] is True
 
 
 def test_replay_refuses_wrong_served_variant_before_mutating_corpus(tmp_path):

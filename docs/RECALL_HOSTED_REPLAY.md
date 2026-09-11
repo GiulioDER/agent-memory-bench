@@ -24,6 +24,10 @@ Run the same command for `A1_compiler`, `A2_facets`, `A3_rerank`, `A4_pack_5000`
 to overwrite an existing artifact. Preserve each endpoint's `/version` payload and the corpus and
 task digests embedded in every result before comparing arms.
 
+Every result also records compiler fallback counts from Add and request-local query planner and
+reranker fallback counts from the hosted Search response headers. This keeps provider degradation
+visible without changing the AML response body or placing benchmark content in logs.
+
 The replay is a retrieval screen, not the executable outcome. After selecting the smallest A4
 context budget within the preregistered coverage margin, use `scripts.pilot` for the fixed
 executable screen and final paired comparison.

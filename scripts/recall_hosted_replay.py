@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from typing import Any, Protocol
 
-from adapters.recall_hosted.adapter import HostedHttpClient, session_messages
+from adapters.recall_hosted.adapter import HostedHttpClient, HostedHttpResponse, session_messages
 from harness.adapters.base import CorpusManifest, resolve_corpus_path
 from harness.tasks import TaskSpec, discover_tasks
 
@@ -28,6 +28,9 @@ REGISTERED_VARIANTS = (
 
 class Client(Protocol):
     def request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]: ...
+    def request_with_headers(
+        self, path: str, payload: dict[str, Any] | None = None
+    ) -> HostedHttpResponse: ...
 
 
 def _digest_file(path: Path) -> str:
@@ -127,13 +130,20 @@ def run_replay(
             messages_offered += len(batch)
 
     search_latencies: list[float] = []
+    facet_fallbacks = 0
+    reranker_fallbacks = 0
     rows: list[dict[str, Any]] = []
     for task in sorted(tasks, key=lambda item: item.task_id):
         payload = {"query": task.prompt, "user_id": namespace, "top_k": 100}
         started = time.perf_counter()
-        response = client.request("/v1/search", payload)
+        http_response = client.request_with_headers("/v1/search", payload)
+        response = http_response.payload
         latency_ms = (time.perf_counter() - started) * 1_000
         search_latencies.append(latency_ms)
+        facet_fallback = http_response.headers.get("x-recall-facet-fallback") == "1"
+        reranker_fallback = http_response.headers.get("x-recall-reranker-fallback") == "1"
+        facet_fallbacks += int(facet_fallback)
+        reranker_fallbacks += int(reranker_fallback)
         items = _validated_items(response)
         rows.append(
             {
@@ -144,6 +154,8 @@ def run_replay(
                     json.dumps(task.fact_terms, separators=(",", ":")).encode()
                 ).hexdigest(),
                 "latency_ms": latency_ms,
+                "facet_fallback": facet_fallback,
+                "reranker_fallback": reranker_fallback,
                 "metrics": score_items(items, task.fact_terms),
                 "items": items,
             }
@@ -181,6 +193,8 @@ def run_replay(
             "search_p50_ms": _percentile(search_latencies, 0.50),
             "search_p95_ms": _percentile(search_latencies, 0.95),
             "compiler_fallbacks": compiler_fallbacks,
+            "facet_fallbacks": facet_fallbacks,
+            "reranker_fallbacks": reranker_fallbacks,
         },
         "rows": rows,
     }

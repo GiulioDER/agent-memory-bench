@@ -7,6 +7,7 @@ import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,12 @@ from harness.instructions import compose
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 _REPO = Path(__file__).resolve().parents[2]
+
+
+@dataclass(frozen=True)
+class HostedHttpResponse:
+    payload: dict[str, Any]
+    headers: dict[str, str]
 
 
 def _config() -> dict[str, Any]:
@@ -83,7 +90,9 @@ class HostedHttpClient:
         self.api_key = api_key
         self.timeout = timeout
 
-    def request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def request_with_headers(
+        self, path: str, payload: dict[str, Any] | None = None
+    ) -> HostedHttpResponse:
         body = None if payload is None else json.dumps(payload).encode("utf-8")
         request = Request(
             self.base_url + path,
@@ -97,6 +106,7 @@ class HostedHttpClient:
         try:
             with urlopen(request, timeout=self.timeout) as response:
                 result = json.loads(response.read().decode("utf-8"))
+                headers = {key.casefold(): value for key, value in response.headers.items()}
         except HTTPError as exc:
             detail = exc.read(2_000).decode("utf-8", errors="replace")
             raise RuntimeError(f"hosted API {path} returned HTTP {exc.code}: {detail}") from exc
@@ -104,7 +114,10 @@ class HostedHttpClient:
             raise RuntimeError(f"hosted API {path} is unreachable: {exc.reason}") from exc
         if not isinstance(result, dict):
             raise TypeError(f"hosted API {path} returned a non-object response")
-        return result
+        return HostedHttpResponse(result, headers)
+
+    def request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        return self.request_with_headers(path, payload).payload
 
 
 class RecallHostedAdapter(MemoryAdapter):
