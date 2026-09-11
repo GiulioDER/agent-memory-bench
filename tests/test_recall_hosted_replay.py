@@ -109,6 +109,24 @@ def test_replay_counts_request_local_search_fallback_headers(tmp_path):
     assert result["rows"][0]["reranker_fallback"] is True
 
 
+def test_replay_refuses_missing_search_fallback_telemetry(tmp_path):
+    """RED: interpreting absent headers as false silently under-counted degraded requests."""
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient()
+    client.request_with_headers = lambda path, payload=None: HostedHttpResponse(
+        client.request(path, payload), {}
+    )
+
+    with pytest.raises(RuntimeError, match="fallback telemetry"):
+        run_replay(
+            client,
+            variant_name="A0_raw",
+            corpus=corpus,
+            tasks=[task],
+            namespace="replay-a0",
+        )
+
+
 def test_replay_refuses_wrong_served_variant_before_mutating_corpus(tmp_path):
     """Removing the `/version` equality gate makes this test fail its refusal assertion."""
     corpus, task = _fixture(tmp_path)

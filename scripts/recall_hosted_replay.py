@@ -83,6 +83,13 @@ def _validated_items(response: dict[str, Any]) -> list[dict[str, Any]]:
     return items
 
 
+def _fallback_header(headers: dict[str, str], name: str) -> bool:
+    value = headers.get(name)
+    if value not in {"0", "1"}:
+        raise RuntimeError(f"hosted Search response has invalid or missing fallback telemetry: {name}")
+    return value == "1"
+
+
 def run_replay(
     client: Client,
     *,
@@ -140,8 +147,12 @@ def run_replay(
         response = http_response.payload
         latency_ms = (time.perf_counter() - started) * 1_000
         search_latencies.append(latency_ms)
-        facet_fallback = http_response.headers.get("x-recall-facet-fallback") == "1"
-        reranker_fallback = http_response.headers.get("x-recall-reranker-fallback") == "1"
+        facet_fallback = _fallback_header(
+            http_response.headers, "x-recall-facet-fallback"
+        )
+        reranker_fallback = _fallback_header(
+            http_response.headers, "x-recall-reranker-fallback"
+        )
         facet_fallbacks += int(facet_fallback)
         reranker_fallbacks += int(reranker_fallback)
         items = _validated_items(response)

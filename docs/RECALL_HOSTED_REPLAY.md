@@ -26,7 +26,9 @@ task digests embedded in every result before comparing arms.
 
 Every result also records compiler fallback counts from Add and request-local query planner and
 reranker fallback counts from the hosted Search response headers. This keeps provider degradation
-visible without changing the AML response body or placing benchmark content in logs.
+visible without changing the AML response body or placing benchmark content in logs. Missing or
+nonbinary fallback headers invalidate the replay instead of being counted as successful primary
+requests.
 
 The replay is a retrieval screen, not the executable outcome. After selecting the smallest A4
 context budget within the preregistered coverage margin, use `scripts.pilot` for the fixed

@@ -54,3 +54,17 @@ headers.
 Observed assertion failure: `facet_fallbacks` was zero instead of one.
 
 Green restoration: every task row and aggregate count reflects its Search response headers.
+
+## Mandatory Search fallback telemetry
+
+Test node:
+`tests/test_recall_hosted_replay.py::test_replay_refuses_missing_search_fallback_telemetry`
+
+Production symbol: `scripts.recall_hosted_replay._fallback_header`
+
+Baseline: interpret a missing fallback header as false.
+
+Observed assertion failure: replay completed instead of raising the expected `RuntimeError`.
+
+Green restoration: both fallback headers must exist and contain exactly `0` or `1` for every Search
+row, otherwise the replay is invalid.
