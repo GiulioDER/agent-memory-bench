@@ -39,7 +39,8 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness import sandbox
-from harness.claude_exec import ClaudeExecConfig, run_claude_case
+from harness.claude_exec import ClaudeExecConfig
+from harness.isolation import run_isolated_claude_case
 from harness.tasks import load_task
 
 TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
@@ -155,6 +156,8 @@ async def main() -> int:
         raise SystemExit(f"{out} exists; pass --force to re-record over it")
     if not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
+    if not os.environ.get("AMB_CAPABILITY_MODEL"):
+        raise SystemExit("AMB_CAPABILITY_MODEL is not set; start the trusted model broker first")
 
     with tempfile.TemporaryDirectory() as temp:
         workdir = Path(temp) / "project"
@@ -178,7 +181,13 @@ async def main() -> int:
             permission_mode="acceptEdits",
         )
         row = {"task_id": f"precursor-{args.task}-{args.precursor}", "user_input": prompt}
-        record = await run_claude_case(row, "precursor", config)
+        record = await asyncio.to_thread(
+            run_isolated_claude_case,
+            row,
+            "precursor",
+            config,
+            model_capability=os.environ["AMB_CAPABILITY_MODEL"],
+        )
 
     if record.error is not None:
         raise SystemExit(f"session failed, nothing recorded: {record.error}")

@@ -25,6 +25,7 @@ the arms no longer see an identical instant, only an unbiased sample of instants
 from __future__ import annotations
 
 import asyncio
+import os
 import random
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import replace
@@ -35,6 +36,19 @@ from .schema import SessionRecord
 Runner = Callable[
     [Mapping[str, Any], str], Awaitable[SessionRecord | Mapping[str, Any]]
 ]
+
+
+def cell_start_stagger_seconds() -> float:
+    """Delay cell starts to avoid burst failures at the upstream model gateway."""
+
+    raw = os.environ.get("AMB_CELL_START_STAGGER_SECONDS", "0").strip()
+    if not raw:
+        return 0.0
+    try:
+        value = float(raw)
+    except ValueError:
+        return 0.0
+    return max(0.0, value)
 
 
 def _error_record(row: Mapping[str, Any], arm: str, error: BaseException) -> SessionRecord:
@@ -121,7 +135,11 @@ async def run_grid(
 
     semaphore = asyncio.Semaphore(block_concurrency)
 
-    async def run_cell(row: Mapping[str, Any]) -> list[SessionRecord]:
+    stagger = cell_start_stagger_seconds()
+
+    async def run_cell(row: Mapping[str, Any], index: int) -> list[SessionRecord]:
+        if stagger and index:
+            await asyncio.sleep(stagger * index)
         async with semaphore:
             cell = (str(row.get("task_id", "")), int(row.get("seed", 0)))
             order = arm_order(arm_list, cell, order_seed) if arm_concurrency else list(arm_list)
@@ -150,5 +168,5 @@ async def run_grid(
                 for position, record in enumerate(records)
             ]
 
-    blocks = await asyncio.gather(*(run_cell(row) for row in materialized))
+    blocks = await asyncio.gather(*(run_cell(row, index) for index, row in enumerate(materialized)))
     return [record for block in blocks for record in block]

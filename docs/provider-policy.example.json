@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "data_classification": "synthetic-only",
+  "hosted_processing": {
+    "retention": "zero",
+    "training": false,
+    "reuse": false
+  },
+  "providers": ["openrouter"],
+  "policy_urls": ["https://replace-with-the-provider-contract"]
+}

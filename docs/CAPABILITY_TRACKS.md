@@ -1,7 +1,9 @@
 # Capability tracks
 
 These tracks add coverage without changing the official AMB task grid or its headline score. They
-are deliberately small, deterministic qualification checks for a memory adapter.
+are deliberately small, deterministic qualification checks for a memory adapter. The optional
+source replay capability is documented separately in `docs/LIFECYCLE_CAPABILITY.md` because the
+ordinary adapter contract does not promise incremental ingestion.
 
 ## Temporal selection
 

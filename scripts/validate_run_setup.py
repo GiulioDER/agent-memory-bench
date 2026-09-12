@@ -212,6 +212,42 @@ def check_recall_preflight(env: dict) -> Check:
     )
 
 
+def check_claude_mem_preflight(env: dict) -> Check:
+    """Require Claude-Mem's MCP server and one real search before model spend."""
+
+    if "claude_mem" not in (env.get("arms") or []):
+        return Check("claude_mem_preflight", None, "claude_mem arm not present")
+    preflight = env.get("claude_mem_preflight")
+    if not isinstance(preflight, dict):
+        return Check(
+            "claude_mem_preflight",
+            False,
+            "preflight field missing; new Claude-Mem runs must prove MCP search before spend",
+        )
+    status = preflight.get("status")
+    if status != "passed":
+        return Check(
+            "claude_mem_preflight",
+            False,
+            f"status={status!r}; {preflight.get('error', 'no successful MCP search recorded')}",
+        )
+    required = set(preflight.get("required_tools") or ())
+    observed = set(preflight.get("tools_observed") or ())
+    if not required.issubset(observed):
+        return Check(
+            "claude_mem_preflight",
+            False,
+            f"required tools missing from observed surface: {sorted(required - observed)}",
+        )
+    if preflight.get("search") != "tools/call search succeeded":
+        return Check("claude_mem_preflight", False, "no successful Claude-Mem search call recorded")
+    return Check(
+        "claude_mem_preflight",
+        True,
+        f"MCP up, {len(observed)} tool(s), and one search call succeeded",
+    )
+
+
 def validate(
     env: dict,
     *,
@@ -229,6 +265,7 @@ def validate(
         check_expected(env, "memory_instruction", expect_instruction, "expected_instruction"),
         check_sandbox_outside_repo(env),
         check_recall_preflight(env),
+        check_claude_mem_preflight(env),
     ]
 
 

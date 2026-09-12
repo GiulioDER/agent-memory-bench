@@ -128,6 +128,41 @@ def test_required_hook_missing_or_failing_is_discarded():
     assert any("integration error" in reason for reason in hook_error.reasons)
 
 
+def test_conditional_post_tool_hook_is_not_required_without_tool_calls():
+    signal = AdmissionSignal(
+        arm="claude_mem",
+        required_hooks=("SessionStart", "PostToolUse", "Stop"),
+        metadata={"conditional_hooks": {"PostToolUse": "tool_calls"}},
+    )
+    record = _record(
+        "claude_mem",
+        hook_ledger=(
+            {"event": "SessionStart", "exit_code": 0, "output_sha256": "start"},
+            {"event": "Stop", "exit_code": 0, "output_sha256": "stop"},
+        ),
+    )
+    assert check_session(record, signal).admitted
+
+
+def test_conditional_post_tool_hook_is_required_after_tool_call():
+    signal = AdmissionSignal(
+        arm="claude_mem",
+        required_hooks=("SessionStart", "PostToolUse", "Stop"),
+        metadata={"conditional_hooks": {"PostToolUse": "tool_calls"}},
+    )
+    record = _record(
+        "claude_mem",
+        tool_calls=({"name": "Read"},),
+        hook_ledger=(
+            {"event": "SessionStart", "exit_code": 0, "output_sha256": "start"},
+            {"event": "Stop", "exit_code": 0, "output_sha256": "stop"},
+        ),
+    )
+    verdict = check_session(record, signal)
+    assert not verdict.admitted
+    assert any("PostToolUse" in reason for reason in verdict.reasons)
+
+
 def test_sandbox_path_and_prompt_hash_checks():
     signal = AdmissionSignal(arm="fs_grep", sandbox_paths=("memory",))
     missing = check_session(_record("fs_grep"), signal)

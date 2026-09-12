@@ -83,8 +83,9 @@ measure something nobody ships.
 * System-prompt instruction of arbitrary length: **exercised**.
 * Hook and plugin integration: **supported and exercised**. `ClaudeExecConfig.config_dir`,
   `ArmSpec.config_dir`, the `hook_ledger` and the gate's `required_hooks` check all exist, and the
-  first qualified hook adapter has now run end to end. New hook integrations must still prove
-  their own lifecycle signals through the same admission gate.
+  Supermemory adapter has now run end to end. Claude-Mem is wired through the same path but must
+  still prove its own lifecycle signals through the admission gate before its first result is
+  eligible for review.
 
 ## How to add your arm
 

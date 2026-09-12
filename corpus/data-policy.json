@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "data_classification": "synthetic-only",
+  "contains_real_personal_data": false,
+  "contains_real_customer_data": false,
+  "contains_real_proprietary_data": false,
+  "source": "authored and generated fixtures only",
+  "reviewed_at": "2026-09-10"
+}
