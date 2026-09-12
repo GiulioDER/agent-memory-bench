@@ -738,13 +738,6 @@ async def main() -> int:
     assert_preregistered(REPO)
     if not args.dry_run and not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
-    provider_policy = None
-    if not args.dry_run:
-        try:
-            provider_policy = load_provider_policy(os.environ.get("AMB_DATA_POLICY_FILE"))
-        except ValueError as error:
-            raise SystemExit(str(error)) from error
-
     run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
@@ -935,6 +928,12 @@ async def main() -> int:
             flush=True,
         )
 
+    provider_policy = None
+    if not args.dry_run:
+        try:
+            provider_policy = load_provider_policy(os.environ.get("AMB_DATA_POLICY_FILE"))
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
     if not os.environ.get("AMB_BROKER_SIGNING_SECRET"):
         raise SystemExit(
             "AMB_BROKER_SIGNING_SECRET is not set; the controller cannot issue broker capabilities"
