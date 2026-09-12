@@ -738,10 +738,6 @@ async def main() -> int:
     assert_preregistered(REPO)
     if not args.dry_run and not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
-    if not args.dry_run and not os.environ.get("AMB_BROKER_SIGNING_SECRET"):
-        raise SystemExit(
-            "AMB_BROKER_SIGNING_SECRET is not set; the controller cannot issue broker capabilities"
-        )
     provider_policy = None
     if not args.dry_run:
         try:
@@ -787,7 +783,6 @@ async def main() -> int:
             missing.append(" or ".join(str(name) for name in GRAPHITI_CONFIG["llm_key_envs"]))
         if missing:
             raise SystemExit("Graphiti is not configured; set " + ", ".join(missing))
-    capability_issuer = session_capability_issuer() if not args.dry_run else None
     if "supermemory" in run_arms and not args.dry_run:
         missing = [
             name
@@ -939,6 +934,12 @@ async def main() -> int:
             f"[verify] recall: {report.notes[-1] if report.notes else 'generation verified'}",
             flush=True,
         )
+
+    if not os.environ.get("AMB_BROKER_SIGNING_SECRET"):
+        raise SystemExit(
+            "AMB_BROKER_SIGNING_SECRET is not set; the controller cannot issue broker capabilities"
+        )
+    capability_issuer = session_capability_issuer()
 
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
     # until 2026-08-28 it was inline code here instead, so `adapters/` was reviewable and not run.
