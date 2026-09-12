@@ -20,6 +20,86 @@ services:
       - ../.git:/bench/.git:ro
     depends_on:
       - recall-db
+    networks:
+      - default
+      - amb-broker-net
+
+  # These services only build and tag the trusted images. The controller creates one disposable
+  # participant and one disposable checker per session, so neither service is a participant
+  # workload and neither receives the repository as a runtime mount.
+  participant-image:
+    build:
+      context: ./participant
+      dockerfile: ../Dockerfile.participant
+    image: agent-memory-bench-participant:2.1.221
+    profiles: ["images"]
+    network_mode: none
+
+  checker-image:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.checker
+    image: agent-memory-bench-checker:trusted
+    profiles: ["images"]
+    network_mode: none
+
+  model-broker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    image: agent-memory-bench-model-broker:trusted
+    profiles: ["brokers"]
+    env_file:
+      - ../.env
+    environment:
+      AMB_BROKER_SERVICE: model
+      AMB_BROKER_PORT: 8080
+      AMB_BROKER_METHODS: messages
+      AMB_BROKER_RUN_ID: "*"
+      AMB_BROKER_ARM: "*"
+      AMB_BROKER_NAMESPACE: "*"
+      AMB_BROKER_UPSTREAM_URL: ${AMB_MODEL_BROKER_UPSTREAM_URL:?AMB_MODEL_BROKER_UPSTREAM_URL must be set}
+      AMB_BROKER_UPSTREAM_CREDENTIAL: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY must be set}
+      AMB_BROKER_UPSTREAM_ALLOWLIST: https://openrouter.ai/
+      AMB_EGRESS_PROXY_URL: http://egress-proxy:3128
+    networks:
+      - amb-broker-net
+      - amb-egress-net
+
+  memory-broker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    image: agent-memory-bench-memory-broker:trusted
+    profiles: ["brokers"]
+    env_file:
+      - ../.env
+    environment:
+      AMB_BROKER_SERVICE: memory
+      AMB_BROKER_PORT: 8080
+      AMB_BROKER_METHODS: initialize,tools/list,tools/call
+      AMB_BROKER_RUN_ID: "*"
+      AMB_BROKER_ARM: "*"
+      AMB_BROKER_NAMESPACE: "*"
+      AMB_BROKER_UPSTREAM_URL: ${AMB_MEMORY_BROKER_UPSTREAM_URL:?AMB_MEMORY_BROKER_UPSTREAM_URL must be set}
+      AMB_BROKER_UPSTREAM_ALLOWLIST: ${AMB_MEMORY_BROKER_UPSTREAM_ALLOWLIST:?AMB_MEMORY_BROKER_UPSTREAM_ALLOWLIST must be set}
+      AMB_EGRESS_PROXY_URL: http://egress-proxy:3128
+    networks:
+      - amb-broker-net
+      - amb-egress-net
+
+  egress-proxy:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.egress-proxy
+    image: agent-memory-bench-egress-proxy:trusted
+    profiles: ["brokers"]
+    env_file:
+      - ../.env
+    environment:
+      AMB_EGRESS_PORT: 3128
+    networks:
+      - amb-egress-net
 
   recall-db:
     image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
@@ -36,3 +116,16 @@ services:
 
 volumes:
   recall-db-data:
+
+networks:
+  # Participant sessions may reach only broker endpoints on this dedicated network. The
+  # controller must attach the egress proxy and brokers explicitly when deploying on Linux.
+  amb-broker-net:
+    name: amb-broker-net
+    internal: true
+  # The checker is created with Docker's network=none and is intentionally not attached here.
+  amb-checker-net:
+    name: amb-checker-net
+    internal: true
+  amb-egress-net:
+    name: amb-egress-net

@@ -54,7 +54,15 @@ if str(REPO) not in sys.path:
 from adapters.bare.adapter import BareAdapter
 from adapters.cachly.adapter import CachlyAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
+from adapters.claude_mem.adapter import ClaudeMemAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
+
+try:
+    from adapters.graphiti.adapter import GraphitiAdapter
+except ModuleNotFoundError as exc:
+    if exc.name not in {"adapters.graphiti", "adapters.graphiti.adapter"}:
+        raise
+    GraphitiAdapter = None
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
@@ -70,7 +78,17 @@ from harness.adapters.base import (
     namespace_path,
 )
 from harness.adapters.registry import AdapterRegistry
-from harness.claude_exec import ClaudeExecConfig, run_claude_case
+from harness.adjudication import (
+    RuntimeEventLog,
+    adjudicate_run,
+    admission_signal_snapshot,
+    issue_challenge,
+    json_digest,
+    load_private_signer,
+    tree_digest,
+)
+from harness.broker import SessionCapabilityIssuer, probe_jsonrpc_endpoint
+from harness.claude_exec import ClaudeExecConfig
 from harness.costs import (
     add_pricing_arguments,
     efficiency,
@@ -87,7 +105,7 @@ from harness.decision_trace import (
 )
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
-from harness.mcp_probe import probe
+from harness.isolation import default_participant_policy, run_isolated_claude_case
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
@@ -110,18 +128,23 @@ from scripts.validate_run_setup import validate as validate_setup
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
-    "mempalace", "recall_prefetch", "cachly", "supermemory",
+    "mempalace", "recall_prefetch", "cachly", "graphiti", "supermemory", "claude_mem",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
 MEMORY_ARMS = frozenset(
-    {"fs_grep", "recall", "recall_rerank", "mempalace", "cachly", "supermemory"}
+    {
+        "fs_grep", "recall", "recall_rerank", "mempalace", "cachly", "graphiti",
+        "supermemory", "claude_mem",
+    }
 )
 
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
-SELF_INGESTING_ARMS = ("fs_grep", "mempalace", "cachly", "supermemory")
+SELF_INGESTING_ARMS = (
+    "fs_grep", "mempalace", "cachly", "graphiti", "supermemory", "claude_mem"
+)
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -132,6 +155,17 @@ RECALL_CONFIG = json.loads(
     (REPO / "adapters" / "recall" / "config.frozen.json").read_text(encoding="utf-8")
 )
 RECALL_PREFIX = str(RECALL_CONFIG["tool_prefix"])
+CLAUDE_MEM_CONFIG = json.loads(
+    (REPO / "adapters" / "claude_mem" / "config.frozen.json").read_text(encoding="utf-8")
+)
+CLAUDE_MEM_PREFIX = str(CLAUDE_MEM_CONFIG["tool_prefix"])
+GRAPHITI_CONFIG_PATH = REPO / "adapters" / "graphiti" / "config.frozen.json"
+GRAPHITI_CONFIG = (
+    json.loads(GRAPHITI_CONFIG_PATH.read_text(encoding="utf-8"))
+    if GRAPHITI_CONFIG_PATH.is_file()
+    else {}
+)
+GRAPHITI_PREFIX = str(GRAPHITI_CONFIG.get("tool_prefix", "mcp__graphiti__"))
 GENERIC_RULES = (
     "# Project notes\n\n"
     "You are working in this repository. Keep changes small and leave the tree clean.\n\n"
@@ -190,6 +224,17 @@ def recall_instruction(variant: str, *, neutral: bool = False) -> str:
 SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
 
 
+def _graphiti_adapter():
+    """Return the optional Graphiti adapter or explain why a Graphiti run cannot start."""
+
+    if GraphitiAdapter is None or not GRAPHITI_CONFIG:
+        raise RuntimeError(
+            "Graphiti integration is unavailable; install or restore the complete "
+            "adapters/graphiti package before selecting the graphiti arm"
+        )
+    return GraphitiAdapter
+
+
 def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = False) -> dict[str, str]:
     """The instruction each arm carries, keyed by arm. Arms with no memory surface carry "".
 
@@ -228,8 +273,16 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts["cachly"] = CachlyAdapter.shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
+    if "graphiti" in texts:
+        texts["graphiti"] = _graphiti_adapter().shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
     if "supermemory" in texts:
         texts["supermemory"] = SupermemoryAdapter.shared_instruction(
+            neutral=neutral, variant=variant if shared else "protocol"
+        )
+    if "claude_mem" in texts:
+        texts["claude_mem"] = ClaudeMemAdapter.shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
     if "protocol" in texts:
@@ -320,8 +373,12 @@ def adapter_for(
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
     if arm == "cachly":
         return CachlyAdapter(staging, static, instruction=texts.get("cachly") or None)
+    if arm == "graphiti":
+        return _graphiti_adapter()(staging, static, instruction=texts.get("graphiti") or None)
     if arm == "supermemory":
         return SupermemoryAdapter(staging, static, instruction=texts.get("supermemory") or None)
+    if arm == "claude_mem":
+        return ClaudeMemAdapter(staging, static, instruction=texts.get("claude_mem") or None)
     if arm == "recall_prefetch":
         # Wraps a recall adapter and runs the same published search from the HARNESS side, so it
         # is condition-aware for free: it delegates to whichever tenant the condition serves. The
@@ -489,6 +546,54 @@ def diagnostic_metadata(spec: Any) -> dict[str, Any]:
     return {}
 
 
+def cell_namespace(base_namespace: str, task_id: str, seed: int, arm: str) -> str:
+    """Give Claude-Mem one live store per task and seed.
+
+    Its lifecycle hooks persist benchmark sessions, so sharing one live worker lets an earlier
+    cell inject its answer into a later cell's startup context. The imported corpus is cloned into
+    each cell without repeating the vendor import.
+    """
+
+    if arm == "claude_mem":
+        return f"{base_namespace}-{task_id}-s{seed}"
+    return base_namespace
+
+
+def session_capability_issuer() -> SessionCapabilityIssuer:
+    """Build the controller-side issuer used for every participant invocation."""
+
+    secret = os.environ.get("AMB_BROKER_SIGNING_SECRET", "").strip()
+    if not secret:
+        raise SystemExit(
+            "AMB_BROKER_SIGNING_SECRET is unset; the controller cannot issue broker capabilities"
+        )
+    try:
+        ttl_s = float(os.environ.get("AMB_BROKER_TOKEN_TTL_S", "3600"))
+    except ValueError as error:
+        raise SystemExit("AMB_BROKER_TOKEN_TTL_S must be a positive number") from error
+    return SessionCapabilityIssuer(secret, ttl_s=ttl_s)
+
+
+def issue_session_capabilities(
+    issuer: SessionCapabilityIssuer,
+    *,
+    run_id: str,
+    task_id: str,
+    seed: int,
+    arm: str,
+    namespace: str,
+    needs_memory: bool,
+) -> tuple[str, str | None]:
+    """Issue fresh model and optional memory grants for one exact session scope."""
+
+    return issuer.issue(
+        run_id=run_id,
+        arm=arm,
+        namespace=cell_namespace(namespace, task_id, seed, arm),
+        memory=needs_memory,
+    )
+
+
 def block_concurrency() -> int:
     """How many (task, seed) cells run at once. `AMB_BLOCK_CONCURRENCY`, default 1.
 
@@ -633,13 +738,6 @@ async def main() -> int:
     assert_preregistered(REPO)
     if not args.dry_run and not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
-    provider_policy = None
-    if not args.dry_run:
-        try:
-            provider_policy = load_provider_policy(os.environ.get("AMB_DATA_POLICY_FILE"))
-        except ValueError as error:
-            raise SystemExit(str(error)) from error
-
     run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
@@ -661,6 +759,23 @@ async def main() -> int:
     # already up, which is exactly where you most want to check a command line first.
     if "recall" in run_arms and not args.dry_run and not os.environ.get("RECALL_DSN"):
         raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
+    if "graphiti" in run_arms and not args.dry_run:
+        missing = []
+        if not os.environ.get(str(GRAPHITI_CONFIG["mcp_dir_env"])):
+            missing.append(str(GRAPHITI_CONFIG["mcp_dir_env"]))
+        graphiti_provider = os.environ.get(
+            str(GRAPHITI_CONFIG["database_provider_env"]),
+            str(GRAPHITI_CONFIG["database_provider_default"]),
+        ).strip().lower()
+        if (
+            graphiti_provider == "neo4j"
+            and not os.environ.get(str(GRAPHITI_CONFIG["neo4j_password_env"]))
+        ):
+            missing.append(str(GRAPHITI_CONFIG["neo4j_password_env"]))
+        if not any(os.environ.get(str(name)) for name in GRAPHITI_CONFIG["llm_key_envs"]):
+            missing.append(" or ".join(str(name) for name in GRAPHITI_CONFIG["llm_key_envs"]))
+        if missing:
+            raise SystemExit("Graphiti is not configured; set " + ", ".join(missing))
     if "supermemory" in run_arms and not args.dry_run:
         missing = [
             name
@@ -675,6 +790,21 @@ async def main() -> int:
         if missing:
             raise SystemExit(
                 "Supermemory is not configured; set " + ", ".join(missing)
+            )
+    if "claude_mem" in run_arms and not args.dry_run:
+        missing = [
+            name
+            for name in ("CLAUDE_MEM_PLUGIN_DIR",)
+            if not os.environ.get(name)
+        ]
+        if not (
+            os.environ.get("CLAUDE_MEM_OPENROUTER_API_KEY")
+            or os.environ.get("OPENROUTER_API_KEY")
+        ):
+            missing.append("CLAUDE_MEM_OPENROUTER_API_KEY or OPENROUTER_API_KEY")
+        if missing:
+            raise SystemExit(
+                "Claude-Mem is not configured; set " + ", ".join(missing)
             )
 
     # The default grid, and the wider set a --tasks subset may name. Keeping these apart is what
@@ -711,6 +841,14 @@ async def main() -> int:
         print(f"[dry-run] would run {sessions} session(s); nothing written, nothing executed")
         return 0
 
+    corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
+    if not (corpus_root / "manifest.json").is_file():
+        raise SystemExit(
+            f"{corpus_root} holds no manifest.json. A condition corpus is built by "
+            f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
+            f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
+        )
+
     run_dir = REPO / "results" / args.run_id
     if (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
@@ -718,6 +856,32 @@ async def main() -> int:
     (work_root / "private-streams").mkdir(parents=True, exist_ok=True)
     _refuse_a_dirty_work_root(work_root, args.run_id)
     staging = work_root / "staging"
+
+    # A live result is accepted only when a trusted controller can bind it to a fresh challenge,
+    # the measured runner and participant images, and the oracle tree used by the checker. The
+    # private signing key is read once here and never enters a participant environment.
+    runner_image_digest = os.environ.get("AMB_RUNNER_IMAGE_DIGEST", "").strip()
+    participant_agent_digest = os.environ.get("AMB_PARTICIPANT_AGENT_DIGEST", "").strip()
+    signing_key_file = os.environ.get("AMB_ADJUDICATOR_SIGNING_KEY_FILE", "").strip()
+    ledger_file = os.environ.get("AMB_ADJUDICATOR_LEDGER_FILE", "").strip()
+    if not runner_image_digest or not participant_agent_digest or not signing_key_file or not ledger_file:
+        raise SystemExit(
+            "trusted adjudication is required for live runs; set "
+            "AMB_RUNNER_IMAGE_DIGEST, AMB_PARTICIPANT_AGENT_DIGEST, and "
+            "AMB_ADJUDICATOR_SIGNING_KEY_FILE, and AMB_ADJUDICATOR_LEDGER_FILE"
+        )
+    challenge = issue_challenge(
+        run_dir,
+        run_id=args.run_id,
+        runner_image_digest=runner_image_digest,
+        participant_agent_digest=participant_agent_digest,
+        oracle_version=f"sha256:{tree_digest(REPO / 'oracles')}",
+    )
+    event_log = RuntimeEventLog(run_dir / "execution-events.jsonl", challenge)
+    event_log.append(
+        "run_started",
+        {"task_count": len(tasks), "seed_count": args.seeds, "arms": list(run_arms)},
+    )
 
     bundles = {
         task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, texts)
@@ -728,13 +892,6 @@ async def main() -> int:
     # Ingestion, for the arms whose store this runner owns. recall's tenant is indexed out of band
     # against the frozen corpus manifest; fs_grep's render is local, cheap and reproducible here.
     ingest_reports: list[IngestReport] = []
-    corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
-    if not (corpus_root / "manifest.json").is_file():
-        raise SystemExit(
-            f"{corpus_root} holds no manifest.json. A condition corpus is built by "
-            f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
-            f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
-        )
     corpus = CorpusManifest.load(corpus_root) if (
         "recall" in run_arms or any(arm in run_arms for arm in SELF_INGESTING_ARMS)
     ) else None
@@ -750,6 +907,15 @@ async def main() -> int:
                 flush=True,
             )
             ingest_reports.append(report)
+    if "claude_mem" in self_ingesting:
+        claude_mem_namespaces = tuple(
+            cell_namespace(args.namespace, task.task_id, seed, "claude_mem")
+            for task in tasks
+            for seed in range(args.seeds)
+        )
+        registry.get("claude_mem").isolate_cell_namespaces(
+            args.namespace, claude_mem_namespaces
+        )
     if "recall" in run_arms:
         # Recall is indexed out of band, but a run still has to prove here that its tenant serves
         # the active generation built from THIS frozen manifest. Previously pilot.py skipped this
@@ -764,18 +930,47 @@ async def main() -> int:
             flush=True,
         )
 
+    provider_policy = None
+    if not args.dry_run:
+        try:
+            provider_policy = load_provider_policy(os.environ.get("AMB_DATA_POLICY_FILE"))
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
+    if not os.environ.get("AMB_BROKER_SIGNING_SECRET"):
+        raise SystemExit(
+            "AMB_BROKER_SIGNING_SECRET is not set; the controller cannot issue broker capabilities"
+        )
+    capability_issuer = session_capability_issuer()
+
     # One ArmSpec per (task, arm), built by that arm's own adapter. This is the measured path, and
     # until 2026-08-28 it was inline code here instead, so `adapters/` was reviewable and not run.
     specs: dict[tuple[str, str], ArmSpec] = {}
+    cell_specs: dict[tuple[str, int, str], ArmSpec] = {}
     for task in tasks:
         for arm in run_arms:
             adapter = adapter_for(arm, bundles[task.task_id], staging, texts)
+            namespace = cell_namespace(args.namespace, task.task_id, 0, arm)
             specs[(task.task_id, arm)] = adapter.build_for_task(
                 run_dir / "cfg" / task.task_id / arm,
-                args.namespace,
+                namespace,
                 task.task_id,
                 task.prompt,
             )
+            # Claude Code mutates CLAUDE_CONFIG_DIR while a session runs. Seeds of one task can
+            # execute concurrently, so sharing the task/arm directory lets their settings,
+            # session state, or hook ledger race and can produce silent zero-token completions.
+            # Seed zero keeps the historical path; every additional seed gets its own identical
+            # config copy. Claude-Mem also gets a task-seed worker namespace with the same imported
+            # snapshot, preventing live lifecycle observations from crossing cell boundaries.
+            cell_specs[(task.task_id, 0, arm)] = specs[(task.task_id, arm)]
+            for seed in range(1, args.seeds):
+                namespace = cell_namespace(args.namespace, task.task_id, seed, arm)
+                cell_specs[(task.task_id, seed, arm)] = adapter.build_for_task(
+                    run_dir / "cfg" / task.task_id / f"s{seed}" / arm,
+                    namespace,
+                    task.task_id,
+                    task.prompt,
+                )
 
     prompt_hashes: dict[str, dict[str, str]] = {}
     for arm in run_arms:
@@ -796,10 +991,19 @@ async def main() -> int:
         spec = specs[(tasks[0].task_id, "recall")]
         required = [name.removeprefix(RECALL_PREFIX) for name in spec.extra_allowed_tools]
         try:
-            tools = probe(
-                spec.mcp_config,
-                str(RECALL_CONFIG["server_name"]),
-                required,
+            _, memory_capability = issue_session_capabilities(
+                capability_issuer,
+                run_id=args.run_id,
+                task_id=tasks[0].task_id,
+                seed=0,
+                arm="recall",
+                namespace=args.namespace,
+                needs_memory=True,
+            )
+            tools = probe_jsonrpc_endpoint(
+                os.environ.get("AMB_MEMORY_BROKER_URL", ""),
+                memory_capability or "",
+                tuple(required),
                 probe_tool="recall_search",
                 probe_arguments={"query": tasks[0].prompt, "limit": 1},
             )
@@ -824,6 +1028,93 @@ async def main() -> int:
                 flush=True,
             )
 
+    claude_mem_preflight: dict[str, Any] = {"status": "not_required"}
+    if "claude_mem" in run_arms:
+        # Claude-Mem is self-hosted and its MCP server reaches the per-cell worker over HTTP.
+        # Start the exact first cell worker for this probe, then stop it before the measured
+        # session. This proves the complete MCP path without turning the probe into a model call.
+        spec = specs[(tasks[0].task_id, "claude_mem")]
+        required = [name.removeprefix(CLAUDE_MEM_PREFIX) for name in spec.extra_allowed_tools]
+        try:
+            _, memory_capability = issue_session_capabilities(
+                capability_issuer,
+                run_id=args.run_id,
+                task_id=tasks[0].task_id,
+                seed=0,
+                arm="claude_mem",
+                namespace=args.namespace,
+                needs_memory=True,
+            )
+            tools = probe_jsonrpc_endpoint(
+                os.environ.get("AMB_MEMORY_BROKER_URL", ""),
+                memory_capability or "",
+                tuple(required),
+                probe_tool="search",
+                probe_arguments={"query": tasks[0].prompt},
+            )
+            claude_mem_preflight = {
+                "status": "passed",
+                "server": CLAUDE_MEM_CONFIG["server_name"],
+                "required_tools": required,
+                "tools_observed": tools,
+                "search": "tools/call search succeeded",
+            }
+            print(f"[preflight] claude_mem MCP and search up: {len(tools)} tool(s)", flush=True)
+        except Exception as exc:  # noqa: BLE001, setup validation records the refusal
+            claude_mem_preflight = {
+                "status": "failed",
+                "server": CLAUDE_MEM_CONFIG["server_name"],
+                "required_tools": required,
+                "error": str(exc)[-2000:],
+            }
+            print(
+                f"[preflight] claude_mem FAILED: {claude_mem_preflight['error']}",
+                file=sys.stderr,
+                flush=True,
+            )
+
+    graphiti_preflight: dict[str, Any] = {"status": "not_required"}
+    if "graphiti" in run_arms:
+        spec = specs[(tasks[0].task_id, "graphiti")]
+        required = [name.removeprefix(GRAPHITI_PREFIX) for name in spec.extra_allowed_tools]
+        try:
+            _, memory_capability = issue_session_capabilities(
+                capability_issuer,
+                run_id=args.run_id,
+                task_id=tasks[0].task_id,
+                seed=0,
+                arm="graphiti",
+                namespace=args.namespace,
+                needs_memory=True,
+            )
+            tools = probe_jsonrpc_endpoint(
+                os.environ.get("AMB_MEMORY_BROKER_URL", ""),
+                memory_capability or "",
+                tuple(required),
+                probe_tool="get_status",
+                probe_arguments={},
+            )
+            graphiti_preflight = {
+                "status": "passed",
+                "server": GRAPHITI_CONFIG["server_name"],
+                "required_tools": required,
+                "tools_observed": tools,
+                "search": "tools/call get_status succeeded",
+            }
+            print(f"[preflight] graphiti MCP and status up: {len(tools)} tool(s)", flush=True)
+        except Exception as exc:  # noqa: BLE001, setup validation records the refusal
+            graphiti_preflight = {
+                "status": "failed",
+                "server": GRAPHITI_CONFIG["server_name"],
+                "required_tools": required,
+                "error": str(exc)[-2000:],
+            }
+            print(
+                f"[preflight] graphiti FAILED: {graphiti_preflight['error']}",
+                file=sys.stderr,
+                flush=True,
+            )
+
     signals = with_forbidden_prefixes(
         {
             arm: replace(
@@ -840,12 +1131,31 @@ async def main() -> int:
             for arm in run_arms
         }
     )
+    signal_snapshot = admission_signal_snapshot(signals)
+    signal_digest = json_digest(signal_snapshot)
+    event_log.append(
+        "admission_signals",
+        {"signals_sha256": signal_digest, "arms": sorted(signal_snapshot)},
+    )
 
     (run_dir / "environment.json").write_text(
         json.dumps(
             {
                 "run_id": args.run_id,
                 "model": args.model,
+                "base_url": args.base_url,
+                "execution_mode": "rootless-docker",
+                "runtime_name": "docker",
+                "participant_image_digest": default_participant_policy().effective_image_digest,
+                "checker_image_digest": os.environ.get("AMB_CHECKER_IMAGE_DIGEST", ""),
+                "isolation_policy_digest": default_participant_policy().digest,
+                "network_policy_digest": default_participant_policy().network_policy_digest,
+                "participant_isolation_verified": bool(
+                    os.environ.get("AMB_PARTICIPANT_IMAGE_DIGEST")
+                    and os.environ.get("AMB_CHECKER_IMAGE_DIGEST")
+                    and os.environ.get("AMB_NETWORK_POLICY_DIGEST")
+                ),
+                "oracle_visible_to_participant": False,
                 "arms": list(run_arms),
                 "memory_instruction": args.memory_instruction,
                 "condition": args.condition,
@@ -893,6 +1203,10 @@ async def main() -> int:
                 },
                 "prompt_sha256_by_task": prompt_hashes,
                 "namespace": args.namespace,
+                "cell_namespace_policy": {
+                    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+                    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion",
+                },
                 "work_root": "external-disposable-storage",
                 "sandbox_inside_repo": False,
                 "adapters": {
@@ -902,7 +1216,22 @@ async def main() -> int:
                 },
                 "ingest": [report.to_dict() for report in ingest_reports],
                 "recall_preflight": recall_preflight,
+                "claude_mem_preflight": claude_mem_preflight,
+                "graphiti_preflight": graphiti_preflight,
                 "provider_data_policy": provider_policy_metadata(provider_policy),
+                "admission_signals": signal_snapshot,
+                "adjudication": {
+                    "schema": "amb-adjudication-receipt-v1",
+                    "required": True,
+                    "challenge_version": challenge.version,
+                    "challenge_id": challenge.challenge_id,
+                    "nonce": challenge.nonce,
+                    "runner_image_digest": challenge.runner_image_digest,
+                    "participant_agent_digest": challenge.participant_agent_digest,
+                    "oracle_version": challenge.oracle_version,
+                    "event_log": "execution-events.jsonl",
+                    "receipt": "adjudication.receipt.json",
+                },
             },
             indent=2,
         ),
@@ -946,7 +1275,7 @@ async def main() -> int:
 
     env = {
         "ANTHROPIC_BASE_URL": args.base_url,
-        "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"],
+        "ANTHROPIC_AUTH_TOKEN": "",
         "ANTHROPIC_API_KEY": "",
     }
 
@@ -958,18 +1287,20 @@ async def main() -> int:
         values are the four the adapter returned.
         """
 
-        spec = specs[(task_id, arm)]
+        spec = cell_specs[(task_id, seed, arm)]
         return ClaudeExecConfig(
             model=args.model,
             cwd=cwd,
             timeout_s=args.timeout,
             env={**env, **spec.env},
+            public_container_env=spec.public_container_env,
             bare=spec.bare,
             config_dir=spec.config_dir,
             mcp_config=spec.mcp_config,
             strict_mcp_config=bool(spec.mcp_config),
             allowed_tools=BASE_TOOLS + spec.extra_allowed_tools,
             disallowed_tools=DENIED_TOOLS,
+            extra_args=spec.extra_args,
             append_system_prompt_file=spec.append_system_prompt_file,
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
@@ -981,6 +1312,7 @@ async def main() -> int:
             ) if args.emit_decisions else None,
         )
 
+    # Raw records stay outside the repository. The result directory is a publication boundary.
     records_path = work_root / "records.private.jsonl"
     records_path.parent.mkdir(parents=True, exist_ok=True)
     # `--namespace` is a CLI argument and this path is handed to the fs_grep arm as its
@@ -995,9 +1327,80 @@ async def main() -> int:
         workdir = work_root / "work" / task_id / f"s{seed}" / arm
         overlay = fs_grep_memory if arm == "fs_grep" else None
         digest = sandbox.restore(task_id, workdir, overlay=overlay)
-        record = await run_claude_case(row, arm, config_for(task_id, seed, arm, workdir))
-        ok, verdict = run_checker(by_id[task_id], workdir)
-        spec = specs[(task_id, arm)]
+        session_config = config_for(task_id, seed, arm, workdir)
+        model_capability, memory_capability = issue_session_capabilities(
+            capability_issuer,
+            run_id=args.run_id,
+            task_id=task_id,
+            seed=seed,
+            arm=arm,
+            namespace=args.namespace,
+            needs_memory=session_config.mcp_config is not None,
+        )
+        silent_retries = 0
+        max_silent_retries = min(
+            5, max(0, int(os.environ.get("AMB_SILENT_COMPLETION_RETRIES", "1")))
+        )
+        while True:
+            event_log.append(
+                "participant_started",
+                {"task_id": task_id, "arm": arm, "seed": seed, "attempt": silent_retries},
+            )
+            record = await asyncio.to_thread(
+                run_isolated_claude_case,
+                row,
+                arm,
+                session_config,
+                workspace_digest=digest,
+                model_capability=model_capability,
+                memory_capability=memory_capability,
+            )
+            silent = not record.response and not record.tool_calls and record.error is None
+            if not silent or silent_retries >= max_silent_retries:
+                break
+            silent_retries += 1
+            await asyncio.sleep(2.0 * silent_retries)
+        event_log.append(
+            "participant_completed",
+            {
+                "task_id": task_id,
+                "arm": arm,
+                "seed": seed,
+                "attempt": silent_retries,
+                "final": True,
+                "success": record.success,
+                "error": bool(record.error),
+                "participant_isolation_verified": record.metadata.get(
+                    "participant_isolation_verified"
+                ),
+                "oracle_visible_to_participant": record.metadata.get(
+                    "oracle_visible_to_participant"
+                ),
+                "workspace_output_digest": record.metadata.get("workspace_output_digest"),
+            },
+        )
+        if silent_retries:
+            record = replace(
+                record,
+                metadata={
+                    **record.metadata,
+                    "silent_completion_retries": silent_retries,
+                },
+            )
+        ok, verdict = run_checker(by_id[task_id], workdir, isolated=True)
+        event_log.append(
+            "checker_completed",
+            {
+                "task_id": task_id,
+                "arm": arm,
+                "seed": seed,
+                "ok": bool(ok),
+                "verdict_sha256": hashlib.sha256(verdict.encode("utf-8")).hexdigest(),
+                "checker_network": "none",
+                "oracle_read_only": True,
+            },
+        )
+        spec = cell_specs[(task_id, seed, arm)]
         prompt_file = spec.append_system_prompt_file
 
         # ⛔ Carry the adapter's diagnostic metadata into the RECORD, or the admission gate
@@ -1045,12 +1448,13 @@ async def main() -> int:
         final = replace(
             record,
             success=ok and record.success,
-            config_dir_digest=specs[(task_id, arm)].config_dir_digest,
+            config_dir_digest=cell_specs[(task_id, seed, arm)].config_dir_digest,
             hook_ledger=(
-                registry.get("supermemory").read_hook_ledger(
-                    record.metadata.get("session_id"), specs[(task_id, arm)].config_dir
+                registry.get(arm).read_hook_ledger(
+                    record.metadata.get("session_id"), cell_specs[(task_id, seed, arm)].config_dir
                 )
-                if arm == "supermemory" and specs[(task_id, arm)].config_dir is not None
+                if arm in ("supermemory", "claude_mem")
+                and cell_specs[(task_id, seed, arm)].config_dir is not None
                 else record.hook_ledger
             ),
             metadata={**record.metadata, **extra},
@@ -1088,14 +1492,25 @@ async def main() -> int:
 
     write_public_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
+    admission_summary = report.summary()
+    admission_summary["runtime_signals_sha256"] = signal_digest
     (run_dir / "admission.json").write_text(
-        json.dumps(report.summary(), indent=2), encoding="utf-8"
+        json.dumps(admission_summary, indent=2), encoding="utf-8"
     )
     pricing = pricing_from_args(args, model=args.model, source="https://openrouter.ai/api/v1/models")
     costs = summarize(records, ingest_reports, pricing=pricing, model=args.model)
     admitted_cells = {record.cell: True for record in report.admitted}
     costs["efficiency"] = efficiency(records, admitted_cells=admitted_cells)
     (run_dir / "costs.json").write_text(json.dumps(costs, indent=2), encoding="utf-8")
+
+    adjudicate_run(
+        run_dir,
+        signer=load_private_signer(
+            signing_key_file,
+            key_id=os.environ.get("AMB_ADJUDICATOR_KEY_ID", "adjudicator"),
+        ),
+        ledger_path=ledger_file,
+    )
 
     by_arm: dict[str, list] = {arm: [] for arm in run_arms}
     for record in report.admitted:
@@ -1116,6 +1531,7 @@ async def main() -> int:
         search_rate = sum(1 for r in searches if r.memory_call_count > 0) / len(searches)
         print(f"  recall search rate: {search_rate:.3f}")
     print(f"  estimated spend: ${costs.get('estimated_usd')} ({costs['total_tokens']} tokens)")
+    print(f"  adjudication receipt: {run_dir / 'adjudication.receipt.json'}")
     print(f"  artifacts: {run_dir}")
     return 0
 

@@ -276,6 +276,15 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
     if signal.required_hooks:
         events = _ledger_events(record)
         for hook in signal.required_hooks:
+            conditional_hooks = signal.metadata.get("conditional_hooks", {})
+            if (
+                isinstance(conditional_hooks, Mapping)
+                and conditional_hooks.get(hook) == "tool_calls"
+                and not record.tool_calls
+            ):
+                # PostToolUse is only emitted after a tool invocation. Requiring it from a
+                # model turn that made no tool call would manufacture an integration discard.
+                continue
             entry = events.get(hook)
             if entry is None:
                 reasons.append(

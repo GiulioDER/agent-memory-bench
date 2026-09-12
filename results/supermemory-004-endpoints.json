@@ -1,0 +1,168 @@
+{
+  "reference_arm": "bare",
+  "arms": {
+    "supermemory": {
+      "1_net_harm_by_stratum": {
+        "TWO_SIDED": {
+          "n_paired_cells": 111,
+          "n_tasks": 7,
+          "harmed": 54,
+          "helped": 5,
+          "damage_rate": 0.4864864864864865,
+          "benefit_rate": 0.04504504504504504,
+          "net_harm": 0.44144144144144143,
+          "mean_task_delta": -0.33224637681159425,
+          "cluster_ci": [
+            -0.6,
+            -0.0906832298136646
+          ],
+          "underpowered": true,
+          "interpretable": true
+        },
+        "DAMAGE_ONLY": {
+          "n_paired_cells": 134,
+          "n_tasks": 7,
+          "harmed": 71,
+          "helped": 2,
+          "damage_rate": 0.5298507462686567,
+          "benefit_rate": 0.014925373134328358,
+          "net_harm": 0.5149253731343284,
+          "mean_task_delta": -0.5366666666666666,
+          "cluster_ci": [
+            -0.6485714285714286,
+            -0.3985714285714286
+          ],
+          "underpowered": true,
+          "interpretable": false
+        },
+        "BENEFIT_ONLY": {
+          "n_paired_cells": 69,
+          "n_tasks": 11,
+          "harmed": 0,
+          "helped": 0,
+          "damage_rate": 0.0,
+          "benefit_rate": 0.0,
+          "net_harm": 0.0,
+          "mean_task_delta": 0.0,
+          "cluster_ci": null,
+          "underpowered": false,
+          "interpretable": false
+        }
+      },
+      "2_damage_rate_by_condition": {
+        "absent": {
+          "n_paired_cells": 30,
+          "n_tasks": 6,
+          "harmed": 1,
+          "damage_rate": 0.03333333333333333,
+          "underpowered": true
+        },
+        "superseded": {
+          "n_paired_cells": 25,
+          "n_tasks": 5,
+          "harmed": 22,
+          "damage_rate": 0.88,
+          "underpowered": true
+        },
+        "contradictory": {
+          "n_paired_cells": 30,
+          "n_tasks": 6,
+          "harmed": 18,
+          "damage_rate": 0.6,
+          "underpowered": true
+        },
+        "adjacent": {
+          "n_paired_cells": 29,
+          "n_tasks": 6,
+          "harmed": 19,
+          "damage_rate": 0.6551724137931034,
+          "underpowered": true
+        }
+      },
+      "3_abstention_rate": {
+        "absent": {
+          "n_cells": 54,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        },
+        "contradictory": {
+          "n_cells": 49,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        }
+      },
+      "4_wrong_fact_applied": {
+        "absent": {
+          "n_cells": 54,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "superseded": {
+          "n_cells": 50,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "contradictory": {
+          "n_cells": 49,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "adjacent": {
+          "n_cells": 53,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        }
+      },
+      "5_usefulness_composite": {
+        "sensitivity": 0.0,
+        "sensitivity_n_cells": 71,
+        "missed_rate": 0.0,
+        "missed_n_cells": 0,
+        "missed_n_present_cells": 108,
+        "specificity_floor": 1.0,
+        "specificity_ceiling": 1.0,
+        "specificity_n_cells": 206,
+        "youden_j_floor": 0.0,
+        "youden_j_ceiling": 0.0,
+        "zero_means": "never searching (sensitivity 0, specificity 1) and always trusting (sensitivity 1, specificity 0) both score 0",
+        "sensitivity_n_tasks": 17,
+        "specificity_n_tasks": 11,
+        "underpowered": false,
+        "never_run": false
+      }
+    }
+  },
+  "conditions": [
+    "absent",
+    "adjacent",
+    "contradictory",
+    "present",
+    "superseded"
+  ],
+  "n_cells": 628,
+  "search_rates": {
+    "supermemory[absent]": 0.8148148148148148,
+    "supermemory[adjacent]": 0.8113207547169812,
+    "supermemory[contradictory]": 0.8979591836734694,
+    "supermemory[present]": 0.9444444444444444,
+    "supermemory[superseded]": 0.8
+  },
+  "search_rates_all_cells": {
+    "supermemory[absent]": 0.8181818181818182,
+    "supermemory[adjacent]": 0.8,
+    "supermemory[contradictory]": 0.9,
+    "supermemory[present]": 0.762962962962963,
+    "supermemory[superseded]": 0.8
+  },
+  "interpretable": {
+    "supermemory[absent]": true,
+    "supermemory[adjacent]": true,
+    "supermemory[contradictory]": true,
+    "supermemory[present]": true,
+    "supermemory[superseded]": true
+  }
+}

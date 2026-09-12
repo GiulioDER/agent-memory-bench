@@ -1,0 +1,547 @@
+{
+  "created_utc": "2026-09-10T11:42:54+00:00",
+  "commit": "0ca6cf3f7e8cbee6b0b307968ef8c552b2a89b5e",
+  "what_this_is": "sha256 and git blob id of every preregistration file at stamp time. Append-only; a later manifest supersedes, never replaces, this one. See docs/TIMESTAMPING.md for what an anchor on this file proves.",
+  "files": [
+    {
+      "path": "preregistration/000-pilot.md",
+      "sha256": "6d21bcd493475648f8679da4dbff102f1ac6bc02b6940525cf21026cdcd902b6",
+      "git_blob": "f568d10b21692652eb401cf09b959687abbd21cb",
+      "bytes": 9857
+    },
+    {
+      "path": "preregistration/001-skill-instruction.md",
+      "sha256": "401b5e5694a5199b5f2fbb31ce2dc53b24b677a76ae71e224e43740d265c1a55",
+      "git_blob": "18f3f4504a0cfda1368b9a17d0e6b3736062e778",
+      "bytes": 5984
+    },
+    {
+      "path": "preregistration/002-model-freeze.md",
+      "sha256": "ec1f401bf7dea0dd0e767d6db74f9061fc9e2af44eaacfc30369e3df9ad617b1",
+      "git_blob": "f28a477df214f714c394a6d8f75df6946d192fe4",
+      "bytes": 17622
+    },
+    {
+      "path": "preregistration/003-oracle-prefetch-diagnostic.md",
+      "sha256": "8766d847084f5822be2b63c4bece2f5f3a338c7f6951a68f51f409969de865d0",
+      "git_blob": "269fc3507d791d9ad55d5efaf40d632d7f7ec4fd",
+      "bytes": 2373
+    },
+    {
+      "path": "preregistration/004-claude-md-placebo.md",
+      "sha256": "c43925856c0fc2021aec4c67606a20c5cc27de6ce2ef790ef6c1f1557689d8f0",
+      "git_blob": "29d2e401e94278ef787762397aebbe6e161800d3",
+      "bytes": 7140
+    },
+    {
+      "path": "preregistration/005-abstention-suite.md",
+      "sha256": "68366109f528bf9fb04ae5b74ead8d71da2084af725d1be038b37eda24cf0fce",
+      "git_blob": "db2393e13356672ef2125998f830224a4f7ccda3",
+      "bytes": 8452
+    },
+    {
+      "path": "preregistration/006-longitudinal-suite.md",
+      "sha256": "1c06cb3eb8119a035ed7925aa8261bfa10ccd2a99e9df8257d5ac82367f6b589",
+      "git_blob": "f4e74280e06ddedb609fff795fd64f4361ae82e3",
+      "bytes": 9665
+    },
+    {
+      "path": "preregistration/007-abstention-task-selection.md",
+      "sha256": "69685ac28338ca83a8755e3b8bc1b04a2c35122f8156a5eff80a3055df4fa5cf",
+      "git_blob": "e91152c79baf52a7552971105041c517d4008cba",
+      "bytes": 12459
+    },
+    {
+      "path": "preregistration/008-midband-task-calibration.md",
+      "sha256": "6624f8a3dc000a940525558f2a0adc54169e54e8386d892cdd00e69b53b7f003",
+      "git_blob": "6a0d2c33d4940a188f9f1cbb47e45950ea9220b0",
+      "bytes": 11209
+    },
+    {
+      "path": "preregistration/009-bare-resolution-remeasure.md",
+      "sha256": "da70011d75736460a95ebc03086e35ae0ad71403c3ad2b44654de259ff6dcd62",
+      "git_blob": "69dac76d10a68a66472e4fb298e55e03cfc831f8",
+      "bytes": 15139
+    },
+    {
+      "path": "preregistration/010-abstention-partial-execution.md",
+      "sha256": "f43a04f01a98b399f292fe717be08aa86552b51c5ed067f50121a250303114ff",
+      "git_blob": "3dc1783a3077b2682277fe093b7296b7d91b01dc",
+      "bytes": 5223
+    },
+    {
+      "path": "preregistration/011-abstention-four-conditions.md",
+      "sha256": "2a8bd106913dd436458d068723a1318366ff49c8cbd7a132359eb13b0e910e04",
+      "git_blob": "a6937dd191396e41f7ab9b0b73dfc7338ffbc4fb",
+      "bytes": 13324
+    },
+    {
+      "path": "preregistration/011-cross-session-synthesis.md",
+      "sha256": "c417e3f966ae84271836c285ad4c8ba676d6bcae2fb9d270b86712254de6663e",
+      "git_blob": "39a519a4aba04757f3a79c890180b52028d52d05",
+      "bytes": 12165
+    },
+    {
+      "path": "preregistration/012-recall-arm-package-pin.md",
+      "sha256": "7803820e35c3613355bf2fe581c91dffc26e3c62cbecde479eb38dfb7fe3b145",
+      "git_blob": "a4c8e07bdfec0eecabfb8c389481a9dfe11145a2",
+      "bytes": 4139
+    },
+    {
+      "path": "preregistration/013-recall-arm-version-move.md",
+      "sha256": "9782b2de023478d89918085eb5a1851bc2312863798b49fa27e15a0d168ac19d",
+      "git_blob": "16aba3b87c3d9d065cc7717919b32da58e34e2ec",
+      "bytes": 7997
+    },
+    {
+      "path": "preregistration/014-official-run-recall-vs-mempalace.md",
+      "sha256": "9d8c6558eef504455a734525d9720230cbde3fe3f687c8b68cf7fcfd871ed3a6",
+      "git_blob": "462c401b20b028995f7d975ea7c93c5bcd4dae4b",
+      "bytes": 22564
+    },
+    {
+      "path": "preregistration/014-supermemory-adapter.md",
+      "sha256": "7d3bd9eb0f0354663a29a4b91da71024ef918f7fbdf2665549563636c03a04e8",
+      "git_blob": "ab8e4fda2bdc08736763f97d0662dc7d401225c6",
+      "bytes": 2634
+    },
+    {
+      "path": "preregistration/015-corpus-scale-retrieval-difficulty.md",
+      "sha256": "7e0d374888dbfb323cc46faec4082104765fc6d5ddb5b8e61a3e84bb25b073ff",
+      "git_blob": "c95ec18a205e7e564e25511ffbdb3f40ae6ca2b9",
+      "bytes": 19292
+    },
+    {
+      "path": "preregistration/015-supermemory-vps2-local-amendment.md",
+      "sha256": "3ee4cf84ca99ac9c8e5e3f0c6cd2893a74dfec4dee57183624deecc43cda1e78",
+      "git_blob": "2d3078ec226f0d26dd99c3413cc9179aea412d9f",
+      "bytes": 2680
+    },
+    {
+      "path": "preregistration/016-recall-vps2-table-isolation.md",
+      "sha256": "7b35c8acd82263d4e4f0bd8627f81b16d5341ff8ec5bb3bae31c3cd984b561bd",
+      "git_blob": "7105aefd81cfc3c7d4a02910f907cb21a1ff689b",
+      "bytes": 1844
+    },
+    {
+      "path": "preregistration/016-semantic-hard-negatives.md",
+      "sha256": "6e7ac6f247aec9706c31405b03422b5e4ff609d1340c1edebfa00d611cd764b6",
+      "git_blob": "86f8b243a121552d1b372e296f900e4701df97b1",
+      "bytes": 14473
+    },
+    {
+      "path": "preregistration/017-present-condition-and-usefulness.md",
+      "sha256": "8b2241a16cbdfccbe0c90f25e2443029b0f31f1eafd3575c43d4f911ef129971",
+      "git_blob": "12ad54f1313270329539e62fd894c273f35863b8",
+      "bytes": 6586
+    },
+    {
+      "path": "preregistration/017-supermemory-control-only-run.md",
+      "sha256": "90468f4b8bb79265eb8c5aff329e9c44d3906f1de610d1bea9cf885a5b50aecb",
+      "git_blob": "5965a8b80b66f4c1bd60980ca5b7ff7a79c9c285",
+      "bytes": 1156
+    },
+    {
+      "path": "preregistration/018-register-not-subject.md",
+      "sha256": "aefe1ad9b8b0f97426d7ffaee8a7d787e067a55b012e590844f1e4456ca4df24",
+      "git_blob": "8f69614fbadb1be20d7116429876255db61a7f92",
+      "bytes": 7983
+    },
+    {
+      "path": "preregistration/018-supermemory-smoke-relative-output.md",
+      "sha256": "686906a8ec700b91d6353af481fd905b994b16a7285ff49ea15cc10d66092bcd",
+      "git_blob": "5a783e184815e5151327cb31f00812ecb53c8f5a",
+      "bytes": 963
+    },
+    {
+      "path": "preregistration/019-instrument-validation.md",
+      "sha256": "c339c171b79813aa002abcff78dbfc6704198d23427271fdbd6650b1c2ec9ba2",
+      "git_blob": "8d32560ce8a05027c128653865a318765f1b7c89",
+      "bytes": 7076
+    },
+    {
+      "path": "preregistration/019-supermemory-smoke-write-verify.md",
+      "sha256": "35c1e6ca9be918d72518cc876d9072f32d013b0eee3ea2586737ff842db827dc",
+      "git_blob": "8507c8c7efe8c8ecf5715a427641bbc2fe975abd",
+      "bytes": 2094
+    },
+    {
+      "path": "preregistration/020-official-002.md",
+      "sha256": "80741eed96cbbaaf8db7feb6d7e04649487a83fd8d4f0a3e69b741b241077b8e",
+      "git_blob": "ddab6e7ffc02222ffc0e59b02ac41dafb7a420b1",
+      "bytes": 18180
+    },
+    {
+      "path": "preregistration/020-supermemory-pilot-config-dir.md",
+      "sha256": "e2fc17cc66b2e02cc603b21efbf79aae12f390fee4a4559afbf7d7a8df618dc7",
+      "git_blob": "7d0034c0867569f1125efd3696fa18e85120a987",
+      "bytes": 3575
+    },
+    {
+      "path": "preregistration/021-official-002-hard-corpus.md",
+      "sha256": "eae39f4f615eafe47eb75f176040a1c0f1f025244d5c0caa273f06f6bd721194",
+      "git_blob": "33134f7bf11616246f231fcb0a44c68ccd93492d",
+      "bytes": 13660
+    },
+    {
+      "path": "preregistration/023-corpus-lineage-tiers.md",
+      "sha256": "bfb8f9c23f5ef5bc652b3e8d11e60d13be5d71743b52211f4cd3a8c946306d40",
+      "git_blob": "9f4209d4e337f9f5bd028f87bcd3c2c8208fa7f7",
+      "bytes": 10745
+    },
+    {
+      "path": "preregistration/024-draft-query-formulation.md",
+      "sha256": "acb3b35f93e65e34f948d3179ebb97fcdf01abd0096c0bf6c2bb69c6870ac7bf",
+      "git_blob": "43453785a2de8693c611e7a4881696312768bf76",
+      "bytes": 9522
+    },
+    {
+      "path": "preregistration/026-official-003-fair-instruction.md",
+      "sha256": "58a0ccc7596b47c94cf4faf58a31fa2903c1227a73a74074bf6c8d9c14835cfd",
+      "git_blob": "94124c5db19cdb7cf36858bbdfdd19bb74c54873",
+      "bytes": 10983
+    },
+    {
+      "path": "preregistration/027-recall-rerank.md",
+      "sha256": "4ba23636d50c7ea1908cd81e0b5d3fc6d0d3d8031c6bb3e960c97640cd2820f2",
+      "git_blob": "a95f767a8aa737432fee9dc86ba7424050865962",
+      "bytes": 12483
+    },
+    {
+      "path": "preregistration/028-decision-emission-smoke.md",
+      "sha256": "40e8686137da12a23a1544c9b328ca0d376a610fac6664df5a2a33901765c5df",
+      "git_blob": "7fb5bf6861c5eabd47de9e4b4fb0514fa5d8fe09",
+      "bytes": 3886
+    },
+    {
+      "path": "preregistration/029-recall-decision-emission-smoke.md",
+      "sha256": "02d6ce1143e3569ea021771d7d25467859cb62d8102b94f27c7a603022ba15a7",
+      "git_blob": "4961a45ca4bd8dae035834c23dd6b148d19b592b",
+      "bytes": 3772
+    },
+    {
+      "path": "preregistration/030-recall-decision-emission-live-retry.md",
+      "sha256": "e98c2ca55a2612dc56d2ceedb8a6d81ef2f8df8edfb7cd218fdee3fa9e6528f0",
+      "git_blob": "30cfd564d9f6e0aa44a0c1b0147497eb49f5d025",
+      "bytes": 2451
+    },
+    {
+      "path": "preregistration/031-recall-decision-superseded-run.md",
+      "sha256": "243af9a9b1dacd175c145fcaa93dd81de9dcd21c8dedf42eca169f44dcfd4084",
+      "git_blob": "0afad012de9805518647e666f8a84ad37f5b2e61",
+      "bytes": 2031
+    },
+    {
+      "path": "preregistration/032-recall-decision-superseded-current-tenant.md",
+      "sha256": "5d6d2bab0028d40962d5e77bedc004d169cf3b3cfdc936aedd4d62b6eaece4c6",
+      "git_blob": "34a1ac097f81e05315ea633efc867c42b091e783",
+      "bytes": 4145
+    },
+    {
+      "path": "preregistration/033-recall-preflight-stage-smoke.md",
+      "sha256": "030e809f81ac5139cdcf8c614d670026d83418ce4e8c0b734c574f4fc494f67d",
+      "git_blob": "ec348d3bed4bf59b498af9e08022868680e1b720",
+      "bytes": 2339
+    },
+    {
+      "path": "preregistration/034-recall-preflight-stage-smoke-retry.md",
+      "sha256": "35a6033250c3eec6bf72e5f73442f59d87940038b315d72b95bfe15cdeb643af",
+      "git_blob": "03e6b13297491d6906c0869031ea37e55ee39504",
+      "bytes": 1953
+    },
+    {
+      "path": "preregistration/035-recall-preflight-stage-smoke-path-retry.md",
+      "sha256": "08b5a91ad48ee91cc8f934d92f38d2f7b8ed636963007f44f8838183aad86d88",
+      "git_blob": "47f2df1b04d6a7c5a17458a1c369f692543cc61f",
+      "bytes": 2111
+    },
+    {
+      "path": "preregistration/036-recall-decision-instrumentation-completion-smoke.md",
+      "sha256": "d53e5ca271e5aebf10a7578d4d379d624383b39407ab25c85f88fadd4f94f49a",
+      "git_blob": "82797d38c6ff311250737a18840e93b254ec3773",
+      "bytes": 2967
+    },
+    {
+      "path": "preregistration/037-capability-tracks.md",
+      "sha256": "29c72d9ba6f7f8f44945e664b0c43f8324ed899b37e53c686482e401aa234283",
+      "git_blob": "172558d7b40afb1d6b37040598a6c7324aa6cca9",
+      "bytes": 1889
+    },
+    {
+      "path": "preregistration/039-supermemory-official-leaderboard.md",
+      "sha256": "8cb7fdf0ae7d1ec3a5b6ff80fe79cc6fa208864a43f44006647164cd729c0a9d",
+      "git_blob": "7ece6767d64043695f228a749c215965d4036af6",
+      "bytes": 2534
+    },
+    {
+      "path": "preregistration/040-supermemory-corrected-official.md",
+      "sha256": "885b7f57365464b9aea062c1f3c3e3c196b0969eb491edb662739d053e113f4f",
+      "git_blob": "35d2e908f6e92c3041685f4603ed346a07b15389",
+      "bytes": 2630
+    },
+    {
+      "path": "preregistration/041-claude-mem-qualification.md",
+      "sha256": "a3a6076bd7656ace1f44f4eddc56b639ba15d304cd41860711144b811f513e7d",
+      "git_blob": "d2db9c9e2ce58becd861a25e85c57ba73d445b11",
+      "bytes": 4332
+    },
+    {
+      "path": "preregistration/042-claude-mem-official-additive.md",
+      "sha256": "ab935a7622e9399309cab593ff35a9d3986d2ed5ac49cd2ba4d9c1eb36d1f0d7",
+      "git_blob": "49c824f308a16b48c635c131e93524e7986727d5",
+      "bytes": 3900
+    },
+    {
+      "path": "preregistration/043-claude-mem-official-additive-hook-repair.md",
+      "sha256": "b479cf4fbfb610f54eb9a5f0dcb924dc30a6b0d376ec1a1a7ca68bb6bd2d971f",
+      "git_blob": "31d688f5893670847cc09f202a4e588dba769483",
+      "bytes": 2242
+    },
+    {
+      "path": "preregistration/044-claude-mem-official-additive-worker-cleanup.md",
+      "sha256": "aa93facd3b774ef168c82c33553500f91c239ed4e92def27095a188ac2af608c",
+      "git_blob": "64ca8ad2b3b17242b0843d337f025a9bb0950a39",
+      "bytes": 2186
+    },
+    {
+      "path": "preregistration/045-claude-mem-official-additive-observer-repair.md",
+      "sha256": "980ba7b76e52f4f3076b0f226b5c2ee53396675952e813618350273430bc4c4e",
+      "git_blob": "70ba6c113671e047ed35c1f4453a18d4c2c17d5d",
+      "bytes": 2600
+    },
+    {
+      "path": "preregistration/046-claude-mem-official-additive-staggered.md",
+      "sha256": "ea2eb20e9e93ebb4b55088446120d184dd4445d812efbf53a7c008f8d6897689",
+      "git_blob": "b9d7946d5943d96bab2ac85dca816d4add19a735",
+      "bytes": 2173
+    },
+    {
+      "path": "preregistration/047-claude-mem-official-additive-staggered.md",
+      "sha256": "8d7f5c50745848f7bfb122d23a34798fba9cbc2126573d613a2178cfb40f0880",
+      "git_blob": "685087c1522bf7c46c2b1af0b87d22658316b844",
+      "bytes": 2090
+    },
+    {
+      "path": "preregistration/048-claude-mem-official-additive-seed-isolation.md",
+      "sha256": "d62379ff2763a682d3c9a3f943211afa696a4ceaecf470fbf8d6996fa8aaf034",
+      "git_blob": "1512eef8625eb42899da90c8d85fe68fc45076c9",
+      "bytes": 2282
+    },
+    {
+      "path": "preregistration/049-claude-mem-official-additive-silent-retry.md",
+      "sha256": "e6ce915c0bc6fc01a12ecba6473be1f6af75f62c57fd83eb6c1f92879655bc7c",
+      "git_blob": "0ea971beec576eb393980d1a22212cba672b805b",
+      "bytes": 2399
+    },
+    {
+      "path": "preregistration/050-claude-mem-official-additive-silent-retry-2.md",
+      "sha256": "c690937cc3a475cb50a361b0231bd0fa7e179a5c6f3f3134b510b469ad1d262d",
+      "git_blob": "b540f81ac5efbfe7b8603eab97eb5f467dbcbb80",
+      "bytes": 2476
+    },
+    {
+      "path": "preregistration/051-claude-mem-official-additive-silent-retry-5.md",
+      "sha256": "97a824d1fa051f026dccdd778e97872c2090ed109a523be6e7ba1f3db7a190ed",
+      "git_blob": "62eab86e0c2570fbcc8a12669213de777bb8622c",
+      "bytes": 2672
+    },
+    {
+      "path": "preregistration/052-claude-mem-official-additive-cell-isolation.md",
+      "sha256": "ad62a1a8e8b8ad8cec322b017905283d5f3d526b6c74e50106330ee7c6219579",
+      "git_blob": "0bd06fc7d9b23616ba26ef6184d94eb8d704f7f9",
+      "bytes": 2947
+    },
+    {
+      "path": "preregistration/053-claude-mem-official-additive-hermetic-sessions.md",
+      "sha256": "7039c76995be6f00af97edd8caed35bb6bbac3b02d1d591a00640a95621a9feb",
+      "git_blob": "0033383eae24e68a335fb75da9e5e1b648f0046f",
+      "bytes": 3142
+    },
+    {
+      "path": "preregistration/054-claude-mem-official-additive-cell-isolation-final.md",
+      "sha256": "644cd8653ab46576464f36e94330382d7124b5c1278eaa9aeb01cce50a501cc4",
+      "git_blob": "83cfa32f5cedaf2ad1811e056b59fa2da1c7994e",
+      "bytes": 3056
+    },
+    {
+      "path": "preregistration/055-openrouter-gateway-deepseek-v4-flash-smoke.md",
+      "sha256": "f818163f6408957a14017f923097898e57a954832ba366db75810415d48a453d",
+      "git_blob": "9f61ac895573f15c03ca5b931dcda74637eedebb",
+      "bytes": 3577
+    },
+    {
+      "path": "preregistration/056-claude-mem-official-additive-pinned-gateway.md",
+      "sha256": "d6512cabfbe5184d062adbd062358ba89450f13601ea68570921f2760d123463",
+      "git_blob": "2688b9dbd5643ff3e09f7573058803462a384b14",
+      "bytes": 2625
+    },
+    {
+      "path": "preregistration/057-openrouter-nextbit-claude-code-smoke.md",
+      "sha256": "c00df54b9f35209dd70627a9b571a408ee9b61fb08318cd6a56de0c26fa24c91",
+      "git_blob": "eb2070192b7c15531a5dd47edd1cb230bbb6a1bc",
+      "bytes": 2937
+    },
+    {
+      "path": "preregistration/058-claude-mem-official-additive-nextbit.md",
+      "sha256": "4299af9cc82299bfe618581c9c2579fff434be696416781803b77a7e7fd815ae",
+      "git_blob": "414fb501fa7032809b02a917a9f6255379bd5ab7",
+      "bytes": 3783
+    },
+    {
+      "path": "preregistration/059-claude-mem-official-additive-nextbit-repaired.md",
+      "sha256": "8739ec0325d0a90b733525ea5a6194a952f363b3d3ab9bd63ed0e6b32f3da371",
+      "git_blob": "dec007b306f160632a96ac482eb23e5467de59aa",
+      "bytes": 4306
+    },
+    {
+      "path": "preregistration/060-claude-mem-absent-retry-explicit-search.md",
+      "sha256": "d8420b5cdb1e304515ff4f575ac220ba7d3add99feed074187d6187e0a29bc37",
+      "git_blob": "ebfe69fe8577df71a1b5d14829c4b4bf224dd879",
+      "bytes": 3402
+    },
+    {
+      "path": "preregistration/061-claude-mem-plugin-loader-smoke.md",
+      "sha256": "87eb58555843e19f321a7391baec44ce35fb290c870461cde0f6dfe6c958ae92",
+      "git_blob": "b5d159ded72a057c1b0f58443b8255b23194db81",
+      "bytes": 1767
+    },
+    {
+      "path": "preregistration/062-claude-mem-semantic-backfill-smoke.md",
+      "sha256": "cd17f424b223d46e84a4df2472b3c57fc4f84e065bbf7bbadcf39e7f0c0c7853",
+      "git_blob": "851535e77e6f3c4b4f9fa1da2a66592dde3067bd",
+      "bytes": 1778
+    },
+    {
+      "path": "preregistration/063-claude-mem-batched-semantic-cache-smoke.md",
+      "sha256": "648a4b5bcfd1f96c5b6b414e398354bf13211956ccf699d166a036b789996dc5",
+      "git_blob": "44c85e3cf91064584b72088626bd55f23c9d0a6e",
+      "bytes": 2054
+    },
+    {
+      "path": "preregistration/064-claude-mem-recency-window-smoke.md",
+      "sha256": "9924f30a93defc364d7772755d3286d2f70713923db01cbfe279644f01d7af20",
+      "git_blob": "51966fe0dcff4f3783d711ff1a1c0da4ed0e3773",
+      "bytes": 2086
+    },
+    {
+      "path": "preregistration/065-claude-mem-session-worker-smoke.md",
+      "sha256": "339e518e700c7aa61ec78fd2c7ef3e077b4a2c7649a27188091073fda6677fbb",
+      "git_blob": "da1c8df59e264524801d9a8be07cbf34505ab853",
+      "bytes": 2195
+    },
+    {
+      "path": "preregistration/066-claude-mem-mcp-preflight-smoke.md",
+      "sha256": "7665c5923f0dc291a41309f2d645ab6f728e2eed4f20d83c16f69699d910177e",
+      "git_blob": "febcaaf6586ffe59bbafc96b87d414d46a7ff01e",
+      "bytes": 2291
+    },
+    {
+      "path": "preregistration/067-claude-mem-bun-path-retry-smoke.md",
+      "sha256": "ac8605aedec7372e6e418c6837f552a545b14f36615f95dbda0f5d41c82d4857",
+      "git_blob": "24f66d2b8b837e47ad09462d9ca6b825c6e20ff3",
+      "bytes": 1817
+    },
+    {
+      "path": "preregistration/068-claude-mem-retrieval-telemetry-smoke.md",
+      "sha256": "db46c89bf65a98a7645791fd92b545a9b4bc7d0b886af62a4bd6021745c5f368",
+      "git_blob": "721e8583743b3da1897a36398f1dd14bb71a7b3c",
+      "bytes": 1944
+    },
+    {
+      "path": "preregistration/069-claude-mem-nextbit-gateway-retry.md",
+      "sha256": "7761d6ffd9aa7e0a1219a5be720d8e904c0b4883670ae201c9adb25e35c0d26a",
+      "git_blob": "5d1c73aef7fd78ef2d3644c1202f6ecd6047c452",
+      "bytes": 4563
+    },
+    {
+      "path": "preregistration/070-claude-mem-first-search-guard-smoke.md",
+      "sha256": "131df869f694212352281da7879252392d16c82c776c28beb3cf5614b5be8a29",
+      "git_blob": "2a55af58971f241df180a08f439b45a18019d4fe",
+      "bytes": 3211
+    },
+    {
+      "path": "preregistration/071-claude-mem-first-search-guard-retry.md",
+      "sha256": "0ffd839e336e1cf2197764dd9c7d33798cf0dd17c2816a1c4bab53317e1858d8",
+      "git_blob": "eb86d976411d9a9bfd3117ae9084cfc02f117c58",
+      "bytes": 3245
+    },
+    {
+      "path": "preregistration/072-claude-mem-first-search-guard-sync-retry.md",
+      "sha256": "c41a08e3cee859908563a4afec4bf52e6504b87d6c2fb25cb7a615ab643d38eb",
+      "git_blob": "fd1b2b5439ed90490da75883a929f85f20f1e804",
+      "bytes": 3999
+    },
+    {
+      "path": "preregistration/073-claude-mem-full-absent-first-guarded.md",
+      "sha256": "b525daa138560deed51f0527c4ed6bee5fa49cfb536f746aa6443c63a87bf120",
+      "git_blob": "f400c8bb962523f570459c380f37f1ad6c5ddb38",
+      "bytes": 3191
+    },
+    {
+      "path": "preregistration/074-claude-mem-full-absent-first-timeout-retry.md",
+      "sha256": "3ebbad9b3663b7e3f704a115bc096c92d86cb33569dcdf0167487f76c7e98955",
+      "git_blob": "97675939102b0d5e3cd89db9158589e94b87b19e",
+      "bytes": 2737
+    },
+    {
+      "path": "preregistration/075-claude-mem-present-three-worker-retry.md",
+      "sha256": "627cbf3a244710d861ff2238e9f8163f3df34e53e6a9db942c8a5d07549d6aae",
+      "git_blob": "1e6864feed0b9c84b92eb83b6960bd0c289fea86",
+      "bytes": 2777
+    },
+    {
+      "path": "preregistration/075-xerj-compatibility-smoke.md",
+      "sha256": "4de573fc8baa6dc9ca51e44288a5a1eac07ce36676d05699989d406b968e2173",
+      "git_blob": "80aec971b274cbf387455cb398a6c40941e23fc6",
+      "bytes": 3516
+    },
+    {
+      "path": "preregistration/076-claude-mem-present-one-worker-retry.md",
+      "sha256": "735caa87d27687a90aab2aea75e249f2dc1e7d1eaceaef04d51961df7a18e26d",
+      "git_blob": "b8b6a68fa686a732df06b1382c7026986040367f",
+      "bytes": 2377
+    },
+    {
+      "path": "preregistration/077-claude-mem-official-017-cache-retry.md",
+      "sha256": "8000837faec940713e0319a4950e968e91c0907e306aa6cd1a2ba73f65f9fab8",
+      "git_blob": "9a00480a7958e2d78158f6944be3f71d585e36ff",
+      "bytes": 4394
+    },
+    {
+      "path": "preregistration/078-claude-mem-official-018-cache-retry-corrected.md",
+      "sha256": "299d1faf1ab0cf8613e9f6ac35b5700d9b77aece12b9e8f3d2a9181bc58bf1ac",
+      "git_blob": "5057638606476312515c1a89f89f3c5e5a11cf5e",
+      "bytes": 5613
+    },
+    {
+      "path": "preregistration/079-claude-mem-official-019-cache-timeout-fixed.md",
+      "sha256": "874481ee775fa9af2dbd1c5204cad01a37480417161fa2281ab4418066079eaf",
+      "git_blob": "e0bb98231731733aebf182e25b632e5551f7825a",
+      "bytes": 5776
+    },
+    {
+      "path": "preregistration/080-graphiti-deepseek-v4-flash-vps2-smoke.md",
+      "sha256": "408189859b13d21e3bbbb54669dc2d18f7d45436f6454aa47c2f26e8a3104efa",
+      "git_blob": "df1bb7c7c65c03623934d100bd2c840c09aad085",
+      "bytes": 2461
+    },
+    {
+      "path": "preregistration/081-official-004-graphiti-vps2.md",
+      "sha256": "6bfc6a65363a6c29abcee29a64cb0b094d14d6bfe3dc5d29629f12f9c683adc6",
+      "git_blob": "1afb83fac24dfb968979703e6d8e771a999d12c4",
+      "bytes": 6309
+    },
+    {
+      "path": "preregistration/README.md",
+      "sha256": "79f607dc6ea54d8f4247c2c3852a9c258787533c8039f9c773bffdf648694065",
+      "git_blob": "c2f0309908d8cafcc5d0b329aea531eff39a41b7",
+      "bytes": 1062
+    },
+    {
+      "path": "preregistration/TEMPLATE.md",
+      "sha256": "2ce2296a403ed79b42787237c679b1889c56093c8f3607677bb5918c5bba8e6c",
+      "git_blob": "bb0b6004ac4bc8a9f0036554a76d7e0f602a4a78",
+      "bytes": 917
+    }
+  ]
+}

@@ -148,6 +148,16 @@ This checks the published records against the admission, cost and endpoint artif
 arithmetic and provenance, not whether the benchmark is fair. The method, preregistrations and
 vendor reviews are the evidence for that question.
 
+Live runs also carry a signed execution receipt. Verify it with the adjudicator public key:
+
+```bash
+python -m scripts.verify_run results/<run-condition> \
+  --adjudicator-public-key-file adjudicator.pub
+```
+
+The receipt binds a fresh challenge nonce, runner and participant digests, oracle version, runtime
+event log hash, checker outcomes, admission signals, timestamps, and the published artifacts.
+
 The broader `python -m scripts.verify_run --all` command is an archive audit. It also visits
 historical bring-up and incomplete runs whose missing streams are deliberately reported as
 failures, so a non-zero result there does not mean the current published run is broken.

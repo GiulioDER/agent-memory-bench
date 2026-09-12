@@ -9,6 +9,7 @@ It never treats prose as a hit or as a trust verdict.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -49,6 +50,18 @@ def _first(payload: Mapping[str, Any], keys: Sequence[str]) -> Any:
     return None
 
 
+_CLAUDE_MEM_RESULT_COUNT = re.compile(r"^\s*Found\s+(\d+)\s+result\(s\)\s+matching\b", re.MULTILINE)
+
+
+def _progressive_result_count(output: str, tool_name: str) -> int | None:
+    """Read Claude-Mem's progressive disclosure count without treating arbitrary prose as hits."""
+
+    if not tool_name.startswith("mcp__mcp-search__"):
+        return None
+    match = _CLAUDE_MEM_RESULT_COUNT.search(output)
+    return int(match.group(1)) if match else None
+
+
 def summarize_memory_calls(
     tool_calls: Sequence[Mapping[str, Any]], *, memory_tool_prefix: str
 ) -> dict[str, Any]:
@@ -68,8 +81,13 @@ def summarize_memory_calls(
         payloads = _json_objects(output) if isinstance(output, str) else []
         payload = payloads[0] if payloads else None
         items = _items(payload) if payload is not None else None
-        if items is not None:
-            hits_returned += len(items)
+        tool_name = str(call.get("name", ""))
+        progressive_hits = (
+            _progressive_result_count(output, tool_name) if isinstance(output, str) else None
+        )
+        hit_count = len(items) if items is not None else progressive_hits
+        if hit_count is not None:
+            hits_returned += hit_count
         trust = _first(payload, ("trust_state", "trust_verdict", "gating", "trust")) if payload else None
         if isinstance(trust, str) and trust not in trust_states:
             trust_states.append(trust)
@@ -91,10 +109,10 @@ def summarize_memory_calls(
         observations.append(
             {
                 "index": index,
-                "tool": str(call.get("name", "")),
+                "tool": tool_name,
                 "status": status,
                 "abstained": abstained,
-                "hits": len(items) if items is not None else None,
+                "hits": hit_count,
                 "trust_state": trust if isinstance(trust, str) else None,
                 "error_code": error if isinstance(error, str) else None,
                 "latency_ms": call.get("latency_ms"),

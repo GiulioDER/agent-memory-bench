@@ -105,5 +105,5 @@ def test_the_untested_hook_claim_expires_when_an_adapter_ships_hooks():
         for path in sorted((REPO / "adapters").glob("*/adapter.py"))
         if "config_dir=" in path.read_text(encoding="utf-8")
     ]
-    assert shipping == ["supermemory"]
+    assert shipping == ["claude_mem", "supermemory"]
     assert "supported and exercised" in TEXT

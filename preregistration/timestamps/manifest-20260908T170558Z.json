@@ -1,0 +1,16 @@
+{
+  "run_id": "claude-mem-present-076",
+  "preregistration": "preregistration/076-claude-mem-present-one-worker-retry.md",
+  "preregistration_sha256": "735caa87d27687a90aab2aea75e249f2dc1e7d1eaceaef04d51961df7a18e26d",
+  "git_commit": "ff6ed2016f89d021b334ccbccb18d67cb5449813",
+  "timestamp_utc": "2026-09-08T17:05:58Z",
+  "status": "timestamped_before_model_calls",
+  "scope": "diagnostic_one_worker_present_retry",
+  "vps": "vps2",
+  "workers": 1,
+  "model": "deepseek/deepseek-v4-flash",
+  "gateway_provider_order": ["nextbit"],
+  "gateway_allow_fallbacks": false,
+  "reuses_prepared_corpus": true,
+  "reingest_per_arm": false
+}

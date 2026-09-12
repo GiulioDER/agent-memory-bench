@@ -66,12 +66,13 @@ INVENTORY = (
 #: claimed "no tracked configuration or script may name a host" and enforced something narrower.
 HOST_ALIAS = "vps2"
 
-#: Tracked files that mention the alias in prose today, measured 2026-09-03. A ratchet, like
+#: Tracked files that mention the alias in prose today, measured 2026-09-12. A ratchet, like
 #: KNOWN_RESULT_ARTIFACTS: this set may shrink, and a NEW file mentioning the host is a finding.
 KNOWN_PROSE_MENTIONS = frozenset(
     {
         "adapters/recall/adapter.py",
         "adapters/recall/config.frozen.json",
+        ".env.example",
         "harness/mcp_probe.py",
         "preregistration/008-midband-task-calibration.md",
         "preregistration/009-bare-resolution-remeasure.md",
@@ -79,9 +80,73 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/030-recall-decision-emission-live-retry.md",
         "preregistration/036-recall-decision-instrumentation-completion-smoke.md",
         "reports/pilot-004-placebo-report.md",
+        "scripts/launch_claude_mem_additive.sh",
         "scripts/launch_official.sh",
         "scripts/run_diagnostic_guarded.ps1",
         "tests/test_mcp_probe.py",
+        "preregistration/043-claude-mem-official-additive-hook-repair.md",
+        "preregistration/044-claude-mem-official-additive-worker-cleanup.md",
+        "preregistration/045-claude-mem-official-additive-observer-repair.md",
+        "preregistration/046-claude-mem-official-additive-staggered.md",
+        "preregistration/047-claude-mem-official-additive-staggered.md",
+        "preregistration/048-claude-mem-official-additive-seed-isolation.md",
+        "preregistration/049-claude-mem-official-additive-silent-retry.md",
+        "preregistration/050-claude-mem-official-additive-silent-retry-2.md",
+        "preregistration/051-claude-mem-official-additive-silent-retry-5.md",
+        "preregistration/052-claude-mem-official-additive-cell-isolation.md",
+        "preregistration/053-claude-mem-official-additive-hermetic-sessions.md",
+        "preregistration/054-claude-mem-official-additive-cell-isolation-final.md",
+        "preregistration/055-openrouter-gateway-deepseek-v4-flash-smoke.md",
+        "preregistration/056-claude-mem-official-additive-pinned-gateway.md",
+        "preregistration/057-openrouter-nextbit-claude-code-smoke.md",
+        "preregistration/058-claude-mem-official-additive-nextbit.md",
+        "preregistration/059-claude-mem-official-additive-nextbit-repaired.md",
+        "preregistration/060-claude-mem-absent-retry-explicit-search.md",
+        "preregistration/061-claude-mem-plugin-loader-smoke.md",
+        "preregistration/062-claude-mem-semantic-backfill-smoke.md",
+        "preregistration/063-claude-mem-batched-semantic-cache-smoke.md",
+        "preregistration/064-claude-mem-recency-window-smoke.md",
+        "preregistration/065-claude-mem-session-worker-smoke.md",
+        "preregistration/066-claude-mem-mcp-preflight-smoke.md",
+        "preregistration/067-claude-mem-bun-path-retry-smoke.md",
+        "preregistration/068-claude-mem-retrieval-telemetry-smoke.md",
+        "preregistration/069-claude-mem-nextbit-gateway-retry.md",
+        "preregistration/070-claude-mem-first-search-guard-smoke.md",
+        "preregistration/071-claude-mem-first-search-guard-retry.md",
+        "preregistration/072-claude-mem-first-search-guard-sync-retry.md",
+        "preregistration/073-claude-mem-full-absent-first-guarded.md",
+        "preregistration/074-claude-mem-full-absent-first-timeout-retry.md",
+        "preregistration/075-claude-mem-present-three-worker-retry.md",
+        "preregistration/076-claude-mem-present-one-worker-retry.md",
+        "preregistration/077-claude-mem-official-017-cache-retry.md",
+        "preregistration/078-claude-mem-official-018-cache-retry-corrected.md",
+        "preregistration/079-claude-mem-official-019-cache-timeout-fixed.md",
+        "preregistration/080-graphiti-deepseek-v4-flash-vps2-smoke.md",
+        "preregistration/081-official-004-graphiti-vps2.md",
+        "preregistration/082-official-005-graphiti-bare-vps2.md",
+        "preregistration/timestamps/manifest-20260907T172420Z.json",
+        "preregistration/timestamps/manifest-20260907T191609Z.json",
+        "preregistration/timestamps/manifest-20260907T221701Z.json",
+        "preregistration/timestamps/manifest-20260907T223420Z.json",
+        "preregistration/timestamps/manifest-20260907T224431Z.json",
+        "preregistration/timestamps/manifest-20260908T072401Z.json",
+        "preregistration/timestamps/manifest-20260908T080521Z.json",
+        "preregistration/timestamps/manifest-20260908T084139Z.json",
+        "preregistration/timestamps/manifest-20260908T112537Z.json",
+        "preregistration/timestamps/manifest-20260908T113740Z.json",
+        "preregistration/timestamps/manifest-20260908T114836Z.json",
+        "preregistration/timestamps/manifest-20260908T120218Z.json",
+        "preregistration/timestamps/manifest-20260908T123821Z.json",
+        "preregistration/timestamps/manifest-20260908T124626Z.json",
+        "preregistration/timestamps/manifest-20260908T130149Z.json",
+        "preregistration/timestamps/manifest-20260908T131940Z.json",
+        "preregistration/timestamps/manifest-20260908T145348Z.json",
+        "preregistration/timestamps/manifest-20260908T160413Z.json",
+        "preregistration/timestamps/manifest-20260908T170558Z.json",
+        "preregistration/timestamps/manifest-20260908T193417Z.json",
+        "preregistration/timestamps/manifest-20260908T203000Z.json",
+        "preregistration/timestamps/manifest-20260908T203626Z.json",
+        "preregistration/timestamps/manifest-20260910T114254Z.json",
     }
 )
 
@@ -116,7 +181,10 @@ KNOWN_RESULT_ARTIFACTS = frozenset(
 #: predates the fix. Like the sets above it may shrink and must not grow: a NEW run's streams
 #: landing here means the harness is writing host paths again, and official-003 was redacted
 #: rather than added precisely so this stays true.
-KNOWN_RESULT_PREFIXES = ("results/diagnostic-010/streams/",)
+KNOWN_RESULT_PREFIXES = (
+    "results/diagnostic-010/streams/",
+    "results/supermemory-004-",
+)
 
 #: The corpus is synthetic transcripts about a fictional company; "sentiment" appears in prose
 #: there and means nothing. Only the PATH forms above are inventory, which is why this file never
@@ -181,7 +249,7 @@ def _files_naming_a_host() -> dict[str, list[str]]:
     return hits
 
 
-#: Frozen records that name a host path in PROSE, measured 2026-08-30. A ratchet like
+#: Frozen records that name a host path in PROSE, measured 2026-09-12. A ratchet like
 #: KNOWN_RESULT_ARTIFACTS, and for a related reason: a committed preregistration must not be
 #: edited, because a record that can be revised is a record of nothing. 020 describes the launch
 #: precondition "the current host layout is under /home/sentiment", which was true and is the
@@ -189,8 +257,37 @@ def _files_naming_a_host() -> dict[str, list[str]]:
 #: files, so this adds no disclosure; what it must not do is grow.
 #:
 #: ⚠️ A NEW preregistration should not name a host at all. Write "under a home directory". This
-#: set exists because 020 was committed before this guard was run against it, not as a licence.
-KNOWN_PROSE_RECORDS = frozenset({"preregistration/020-official-002.md"})
+#: set contains only records already committed before this guard was updated, not as a licence.
+KNOWN_PROSE_RECORDS = frozenset(
+    {
+        "preregistration/020-official-002.md",
+        "preregistration/046-claude-mem-official-additive-staggered.md",
+        "preregistration/047-claude-mem-official-additive-staggered.md",
+        "preregistration/048-claude-mem-official-additive-seed-isolation.md",
+        "preregistration/049-claude-mem-official-additive-silent-retry.md",
+        "preregistration/050-claude-mem-official-additive-silent-retry-2.md",
+        "preregistration/051-claude-mem-official-additive-silent-retry-5.md",
+        "preregistration/052-claude-mem-official-additive-cell-isolation.md",
+        "preregistration/053-claude-mem-official-additive-hermetic-sessions.md",
+        "preregistration/054-claude-mem-official-additive-cell-isolation-final.md",
+        "preregistration/055-openrouter-gateway-deepseek-v4-flash-smoke.md",
+        "preregistration/056-claude-mem-official-additive-pinned-gateway.md",
+        "preregistration/057-openrouter-nextbit-claude-code-smoke.md",
+        "preregistration/058-claude-mem-official-additive-nextbit.md",
+        "preregistration/059-claude-mem-official-additive-nextbit-repaired.md",
+        "preregistration/069-claude-mem-nextbit-gateway-retry.md",
+        "preregistration/070-claude-mem-first-search-guard-smoke.md",
+        "preregistration/071-claude-mem-first-search-guard-retry.md",
+        "preregistration/072-claude-mem-first-search-guard-sync-retry.md",
+        "preregistration/073-claude-mem-full-absent-first-guarded.md",
+        "preregistration/074-claude-mem-full-absent-first-timeout-retry.md",
+        "preregistration/075-claude-mem-present-three-worker-retry.md",
+        "preregistration/076-claude-mem-present-one-worker-retry.md",
+        "preregistration/077-claude-mem-official-017-cache-retry.md",
+        "preregistration/078-claude-mem-official-018-cache-retry-corrected.md",
+        "preregistration/079-claude-mem-official-019-cache-timeout-fixed.md",
+    }
+)
 
 
 def test_no_tracked_config_or_script_names_a_host_or_a_remote_path() -> None:

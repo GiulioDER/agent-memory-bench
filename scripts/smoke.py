@@ -35,15 +35,17 @@ if str(REPO) not in sys.path:
 
 from adapters.bare.adapter import BareAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
+from adapters.claude_mem.adapter import ClaudeMemAdapter
 from adapters.fs_grep.adapter import FsGrepAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import sandbox
 from harness.adapters.base import ArmSpec, CorpusManifest
 from harness.adapters.registry import AdapterRegistry
-from harness.claude_exec import ClaudeExecConfig, run_claude_case
+from harness.claude_exec import ClaudeExecConfig
 from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import admit_cells
+from harness.isolation import run_isolated_claude_case
 from harness.prereg import assert_preregistered
 from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
 from harness.runner import run_grid
@@ -57,7 +59,8 @@ PROMPT = (
     "Determine which TCP port this service is configured to listen on, and write it to "
     "the current repository root as ./RESULT.txt using a relative path. You must use Bash to "
     "write the number you found, then use Read to verify the file: just the number, one line, "
-    "nothing else."
+    "nothing else. Do not answer with the port alone. The task is incomplete until RESULT.txt "
+    "exists and has been verified with Read."
 )
 BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
 DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
@@ -86,7 +89,7 @@ async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
     parser.add_argument(
-        "--arms", default="bare,claude_md,fs_grep,recall,supermemory", help="comma-separated arm roster"
+        "--arms", default="bare,claude_md,fs_grep,recall,supermemory,claude_mem", help="comma-separated arm roster"
     )
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument(
@@ -136,6 +139,7 @@ async def main() -> int:
 
     registry = AdapterRegistry()
     registry.register(BareAdapter())
+    registry.register(ClaudeMemAdapter(staging, base_prompt))
     registry.register(ClaudeMdAdapter(base_prompt))
     registry.register(FsGrepAdapter(staging, base_prompt))
     registry.register(RecallAdapter(staging, base_prompt))
@@ -193,7 +197,14 @@ async def main() -> int:
         )
 
     async def runner(row, arm):
-        record = await run_claude_case(row, arm, config_for(arm))
+        record = await asyncio.to_thread(
+            run_isolated_claude_case,
+            row,
+            arm,
+            config_for(arm),
+            model_capability=os.environ.get("AMB_CAPABILITY_MODEL"),
+            memory_capability=os.environ.get("AMB_CAPABILITY_MEMORY"),
+        )
         spec = specs[arm]
         success, verdict = check_result(workdirs[arm])
         extra = {
@@ -213,6 +224,10 @@ async def main() -> int:
                     record.metadata.get("session_id"), spec.config_dir
                 )
                 if arm == "supermemory" and spec.config_dir is not None
+                else registry.get("claude_mem").read_hook_ledger(
+                    record.metadata.get("session_id"), spec.config_dir
+                )
+                if arm == "claude_mem" and spec.config_dir is not None
                 else record.hook_ledger
             ),
             metadata={**record.metadata, **extra},
