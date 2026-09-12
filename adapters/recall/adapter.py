@@ -17,6 +17,7 @@ Two paid-for environment facts are baked in rather than rediscovered:
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -26,6 +27,7 @@ import shutil
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -37,17 +39,125 @@ from harness.adapters.base import (
     RankedHit,
     RankedResult,
     namespace_path,
+    resolve_corpus_path,
     validate_namespace,
 )
 from harness.gate import AdmissionSignal
+from harness.lifecycle import LifecycleEvent, LifecycleIngestReport, source_sha256
 from harness.lineage import lineage_from_env
-from harness.transcripts import render_corpus
+from harness.transcripts import render_corpus, render_transcript
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 
 #: A POSIX environment variable name. See `RecallAdapter._extra_env` for why a name from a
 #: config file is validated rather than quoted.
 _ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+class _LifecycleMcpClient:
+    """Small line-oriented MCP client used only by the optional lifecycle fixture."""
+
+    def __init__(self, process: subprocess.Popen[str]) -> None:
+        self.process = process
+        self._next_id = 1
+
+    def start(self) -> None:
+        self._request(
+            "initialize",
+            {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "amb-lifecycle", "version": "1"},
+            },
+        )
+        self._notify("notifications/initialized", {})
+
+    def call(self, name: str, arguments: dict[str, Any]) -> Any:
+        response = self._request("tools/call", {"name": name, "arguments": arguments})
+        result = response.get("result")
+        if not isinstance(result, dict):
+            raise TypeError(f"MCP {name} returned no result")
+        if result.get("isError"):
+            raise RuntimeError(f"MCP {name} failed: {self._text(result)}")
+        return self._decode(self._text(result))
+
+    def wait_for_job(self, job_id: str) -> Any:
+        deadline = time.monotonic() + 600
+        while time.monotonic() < deadline:
+            payload = self.call("recall_job_status", {"job_id": job_id})
+            state = str(payload.get("status", payload.get("state", ""))).lower()
+            if state in {"complete", "completed", "done", "succeeded", "success"}:
+                return payload
+            if state in {"failed", "error", "cancelled", "canceled"}:
+                raise RuntimeError(f"RE-call ingest job {job_id} ended in {state}")
+            time.sleep(1)
+        raise TimeoutError(f"RE-call ingest job {job_id} did not complete within 600 seconds")
+
+    def close(self) -> None:
+        self.process.terminate()
+        try:
+            self.process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            self.process.wait(timeout=10)
+
+    def _request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        request_id = self._next_id
+        self._next_id += 1
+        if self.process.stdin is None or self.process.stdout is None:
+            raise RuntimeError("MCP lifecycle process has no stdio pipes")
+        self.process.stdin.write(
+            json.dumps(
+                {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
+            )
+            + "\n"
+        )
+        self.process.stdin.flush()
+        while True:
+            line = self.process.stdout.readline()
+            if not line:
+                stderr = self.process.stderr.read()[-1000:] if self.process.stderr else ""
+                raise RuntimeError(f"MCP process closed during {method}: {stderr}")
+            message = json.loads(line)
+            if message.get("id") != request_id:
+                continue
+            if "error" in message:
+                raise RuntimeError(f"MCP {method} failed: {message['error']}")
+            return message
+
+    def _notify(self, method: str, params: dict[str, Any]) -> None:
+        if self.process.stdin is None:
+            raise RuntimeError("MCP lifecycle process has no stdin")
+        self.process.stdin.write(
+            json.dumps({"jsonrpc": "2.0", "method": method, "params": params}) + "\n"
+        )
+        self.process.stdin.flush()
+
+    @staticmethod
+    def _text(result: dict[str, Any]) -> str:
+        for item in result.get("content", []):
+            if isinstance(item, dict) and item.get("type") == "text":
+                return str(item.get("text", ""))
+        return ""
+
+    @staticmethod
+    def _decode(value: str) -> Any:
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            match = re.search(
+                r"indexed\s+(?P<chunks>\d+)\s+chunks\s+from\s+(?P<files>\d+)\s+files"
+                r"(?:,\s+(?P<skipped>\d+)\s+unchanged)?",
+                value,
+                re.IGNORECASE,
+            )
+            if not match:
+                return {"_text": value}
+            return {
+                "chunks": int(match.group("chunks")),
+                "files": int(match.group("files")),
+                "skipped": int(match.group("skipped") or 0),
+            }
 
 
 
@@ -326,6 +436,7 @@ class RecallAdapter(MemoryAdapter):
         self.staging_root = Path(staging_root)
         self.base_prompt_file = Path(base_prompt_file)
         self.config = json.loads(self.config_path.read_text(encoding="utf-8"))
+        self._lifecycle_idempotency_keys: set[str] = set()
         #: Which instruction to put ABOVE the static bundle. None keeps the frozen
         #: one-liner. scripts/pilot.py has always chosen this per run and the pilots
         #: chose the shipped skill; the diagnostic could not, so its recall arm was a
@@ -724,6 +835,168 @@ class RecallAdapter(MemoryAdapter):
                 f"{count} file(s) rendered, {stored} row(s) stored",
             ),
         )
+
+    def ingest_event(
+        self, namespace: str, event: LifecycleEvent, content: bytes
+    ) -> LifecycleIngestReport:
+        """Ingest one lifecycle source through RE-call's production MCP write surface.
+
+        This is deliberately separate from :meth:`ingest`: the official benchmark arm is
+        whole-corpus and read-only after its prepared generation is promoted.  The optional
+        lifecycle fixture is the one place where source-level writes are allowed, and it uses
+        the hosted ``recall_ingest`` contract rather than the filesystem ``recall index`` path,
+        which production generations reject.  A fresh MCP process per event makes the receipt's
+        visibility boundary meaningful and prevents a client-side cache from masquerading as
+        serving visibility.
+        """
+
+        validate_namespace(namespace)
+        digest = source_sha256(content)
+        if digest != event.source_sha256:
+            raise ValueError(
+                f"{event.event_id}: content hash {digest} does not match the lifecycle manifest"
+            )
+        rendered = self._render_lifecycle_source(namespace, event, content)
+        file_name = (
+            Path(event.source_path).with_suffix(".md").as_posix().replace("/", "__")
+        )
+        idempotency_key = hashlib.sha256(
+            f"amb-lifecycle:{namespace}:{event.source_path}:{event.source_sha256}".encode()
+        ).hexdigest()
+        repeated_request = idempotency_key in self._lifecycle_idempotency_keys
+        self._lifecycle_idempotency_keys.add(idempotency_key)
+        request = {
+            "files": [
+                {
+                    "name": file_name,
+                    "content_b64": base64.b64encode(rendered.encode("utf-8")).decode("ascii"),
+                }
+            ],
+            "category": "memory",
+            "idempotency_key": idempotency_key,
+        }
+        with self._lifecycle_mcp(namespace) as client:
+            payload = client.call("recall_ingest", request)
+            job_id = payload.get("job_id") if isinstance(payload, dict) else None
+            if job_id:
+                payload = client.wait_for_job(str(job_id))
+        message = str(payload.get("message", "")).lower() if isinstance(payload, dict) else ""
+        if "not live" in message or "activated" not in message:
+            raise RuntimeError(
+                f"{event.event_id}: RE-call did not report an activated generation; lifecycle "
+                "visibility cannot be claimed"
+            )
+        indexed, deduplicated, chunks, detail = self._lifecycle_outcome(payload, event)
+        if repeated_request:
+            indexed, deduplicated = False, True
+            detail = "idempotency key replay returned the original ingest result"
+        if event.phase == "replay" and deduplicated:
+            outcome = "deduplicated"
+        elif indexed:
+            outcome = "updated" if event.phase == "replay" else "inserted"
+        else:
+            outcome = "unknown"
+        return LifecycleIngestReport(
+            event_id=event.event_id,
+            source_path=event.source_path,
+            source_sha256=digest,
+            event_order=event.event_order,
+            phase=event.phase,
+            outcome=outcome,
+            indexed=indexed,
+            deduplicated=deduplicated,
+            completion_boundary="recall_ingest returned after committed write or job completion",
+            visibility_boundary="fresh recall MCP process can query the serving tenant",
+            items_stored=chunks,
+            notes=(
+                "production MCP tool recall_ingest",
+                f"logical source identity {file_name}",
+                "hosted upload source identity is request scoped; no stable server source was claimed",
+                detail,
+            ),
+        )
+
+    @contextmanager
+    def _lifecycle_mcp(self, namespace: str):
+        """Start one isolated MCP client for one lifecycle event."""
+
+        transport = str(self.config.get("transport", "local"))
+        if transport in ("ssh", "host"):
+            command, args = self._remote_server_argv(namespace)
+            # OpenSSH on Windows needs the native process environment for its keychain,
+            # profile, and socket configuration.  The smaller build environment is sufficient
+            # for the ordinary launcher, but it made this long lived Popen transport exit 255
+            # before MCP initialization.  The remote command already carries the server
+            # settings, so do not pass local recall or provider credentials to the SSH child.
+            env = os.environ.copy()
+            for key in tuple(env):
+                if key.startswith("RECALL_") or key in {
+                    "VOYAGE_API_KEY",
+                    "OPENAI_API_KEY",
+                    "COHERE_API_KEY",
+                    "ANTHROPIC_API_KEY",
+                }:
+                    del env[key]
+        else:
+            command, args = self._server_command(), list(self.config["args"])
+            env = self._server_env(namespace)
+        process = subprocess.Popen(
+            [command, *args],
+            env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            bufsize=1,
+        )
+        client = _LifecycleMcpClient(process)
+        try:
+            client.start()
+            yield client
+        finally:
+            client.close()
+
+    def _render_lifecycle_source(
+        self, namespace: str, event: LifecycleEvent, content: bytes
+    ) -> str:
+        """Render raw JSONL as the same Markdown document used by the normal recall arm."""
+
+        raw_root = namespace_path(self.staging_root, namespace, "lifecycle-raw")
+        raw_path = resolve_corpus_path(raw_root, event.source_path)
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        raw_path.write_bytes(content)
+        body = render_transcript(raw_path)
+        return f"---\nvalid_from: {event.authored_at}\n---\n\n{body}"
+
+    @staticmethod
+    def _lifecycle_outcome(
+        payload: Any, event: LifecycleEvent
+    ) -> tuple[bool | None, bool | None, int | None, str]:
+        """Interpret the bounded ``recall_ingest`` result without guessing on missing counters."""
+
+        if not isinstance(payload, dict):
+            return None, None, None, "ingest response had no structured counters"
+        if "_text" in payload:
+            return None, None, None, "ingest response was not a bounded indexing result"
+        skipped = payload.get("skipped", payload.get("unchanged"))
+        indexed_count = payload.get("files", payload.get("indexed_files"))
+        chunks = payload.get("chunks", payload.get("indexed_chunks"))
+        try:
+            skipped = int(skipped) if skipped is not None else None
+            indexed_count = int(indexed_count) if indexed_count is not None else None
+            chunks = int(chunks) if chunks is not None else None
+        except (TypeError, ValueError):
+            return None, None, None, "ingest response counters were not numeric"
+        deduplicated = skipped is not None and skipped > 0 and (indexed_count or 0) == 0
+        indexed = indexed_count is not None and indexed_count > 0
+        if event.phase == "replay" and deduplicated:
+            detail = f"recall_ingest reported {skipped} unchanged source(s)"
+        elif indexed:
+            detail = f"recall_ingest indexed {indexed_count} source file(s)"
+        else:
+            detail = "recall_ingest returned without a positive indexed/unchanged count"
+        return indexed, deduplicated, chunks, detail
 
     def _rows_for_tenant(self, namespace: str) -> int:
         """How many chunk rows this tenant actually holds, verified after indexing.

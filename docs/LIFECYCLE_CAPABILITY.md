@@ -44,6 +44,21 @@ The report separates two outcomes:
 
 The lifecycle artifact is not accepted as an official leaderboard result.
 
+## RE-call production boundary
+
+`RecallAdapter` uses the production MCP `recall_ingest` surface for this optional capability. It
+requires the returned generation to be reported as activated and refuses a build that is merely
+validated or acknowledged but not live. This matters for a fresh tenant, where certification can
+reject a generation even though the upload itself completed.
+
+On the current hosted API, the unchanged `p01` repeat uses the same idempotency key and is therefore
+recorded as `deduplicated`. That demonstrates replay idempotence only. It does not claim that the
+source was newly indexed, so it cannot qualify `stale_candidate_resolution`. The adapter records
+the AMB logical source identity in the receipt; the server's current upload staging path is
+request scoped, so the receipt must not pretend that a logical filename is a stable server source
+identity. A future API with a stable source or job key can opt into the actual newly indexed replay
+branch.
+
 Verify an artifact with:
 
 ```text
