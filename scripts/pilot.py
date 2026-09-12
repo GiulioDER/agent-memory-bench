@@ -841,6 +841,14 @@ async def main() -> int:
         print(f"[dry-run] would run {sessions} session(s); nothing written, nothing executed")
         return 0
 
+    corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
+    if not (corpus_root / "manifest.json").is_file():
+        raise SystemExit(
+            f"{corpus_root} holds no manifest.json. A condition corpus is built by "
+            f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
+            f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
+        )
+
     run_dir = REPO / "results" / args.run_id
     if (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
@@ -883,13 +891,6 @@ async def main() -> int:
     # Ingestion, for the arms whose store this runner owns. recall's tenant is indexed out of band
     # against the frozen corpus manifest; fs_grep's render is local, cheap and reproducible here.
     ingest_reports: list[IngestReport] = []
-    corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
-    if not (corpus_root / "manifest.json").is_file():
-        raise SystemExit(
-            f"{corpus_root} holds no manifest.json. A condition corpus is built by "
-            f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
-            f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
-        )
     corpus = CorpusManifest.load(corpus_root) if (
         "recall" in run_arms or any(arm in run_arms for arm in SELF_INGESTING_ARMS)
     ) else None
