@@ -60,7 +60,7 @@ from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 try:
     from adapters.graphiti.adapter import GraphitiAdapter
 except ModuleNotFoundError as exc:
-    if exc.name != "adapters.graphiti.adapter":
+    if exc.name not in {"adapters.graphiti", "adapters.graphiti.adapter"}:
         raise
     GraphitiAdapter = None
 from adapters.mempalace.adapter import MemPalaceAdapter
