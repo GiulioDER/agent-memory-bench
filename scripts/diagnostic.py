@@ -30,8 +30,8 @@ from harness.claude_exec import (
 from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.host_memory import free_memory_mb, wait_for_headroom
-from harness.isolation import run_isolated_claude_case
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
+from harness.isolation import run_isolated_claude_case
 from harness.memory_bundles import MemoryBundleCatalog
 from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
 from harness.prereg import assert_preregistered

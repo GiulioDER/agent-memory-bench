@@ -14,8 +14,8 @@ from harness.lifecycle import (
     LifecycleIngestReport,
     load_lifecycle_artifact,
     load_lifecycle_manifest,
-    score_lifecycle_artifact,
     run_lifecycle_ingest,
+    score_lifecycle_artifact,
     source_sha256,
     supports_lifecycle_ingest,
 )
@@ -230,8 +230,8 @@ def _lifecycle_artifact(tmp_path, *, replay_outcome="deduplicated"):
                 event_order=event.event_order,
                 phase=event.phase,
                 outcome=replay_outcome if event.phase == "replay" else "inserted",
-                indexed=(False if event.phase == "replay" and replay_outcome == "deduplicated" else True),
-                deduplicated=(True if event.phase == "replay" and replay_outcome == "deduplicated" else False),
+                indexed=not (event.phase == "replay" and replay_outcome == "deduplicated"),
+                deduplicated=event.phase == "replay" and replay_outcome == "deduplicated",
                 completion_boundary="returned",
                 visibility_boundary="search_verified",
             ).to_dict()

@@ -15,11 +15,11 @@ import base64
 import hashlib
 import json
 import os
+import re
 import secrets
 import tempfile
 import threading
 import uuid
-import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -158,7 +158,7 @@ class Challenge:
         }
 
     @classmethod
-    def from_mapping(cls, value: Mapping[str, Any]) -> "Challenge":
+    def from_mapping(cls, value: Mapping[str, Any]) -> Challenge:
         if value.get("schema") != CHALLENGE_SCHEMA:
             raise AdjudicationError("challenge schema is unsupported")
         try:
@@ -416,7 +416,7 @@ def _load_private_key(path: str | Path):
         raise AdjudicationError(f"adjudicator key is not a raw or base64 Ed25519 key: {path}") from error
 
 
-def load_private_signer(path: str | Path, *, key_id: str = "adjudicator") -> "ReceiptSigner":
+def load_private_signer(path: str | Path, *, key_id: str = "adjudicator") -> ReceiptSigner:
     return ReceiptSigner(_load_private_key(path), key_id=key_id)
 
 

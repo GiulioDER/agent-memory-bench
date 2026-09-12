@@ -56,6 +56,7 @@ from adapters.cachly.adapter import CachlyAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.claude_mem.adapter import ClaudeMemAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
+
 try:
     from adapters.graphiti.adapter import GraphitiAdapter
 except ModuleNotFoundError as exc:
@@ -68,15 +69,6 @@ from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import instructions, sandbox
-from harness.adjudication import (
-    adjudicate_run,
-    admission_signal_snapshot,
-    issue_challenge,
-    json_digest,
-    load_private_signer,
-    tree_digest,
-    RuntimeEventLog,
-)
 from harness.abstention import declines
 from harness.adapters.base import (
     ArmSpec,
@@ -86,6 +78,15 @@ from harness.adapters.base import (
     namespace_path,
 )
 from harness.adapters.registry import AdapterRegistry
+from harness.adjudication import (
+    RuntimeEventLog,
+    adjudicate_run,
+    admission_signal_snapshot,
+    issue_challenge,
+    json_digest,
+    load_private_signer,
+    tree_digest,
+)
 from harness.broker import SessionCapabilityIssuer, probe_jsonrpc_endpoint
 from harness.claude_exec import ClaudeExecConfig
 from harness.costs import (
@@ -737,7 +738,7 @@ async def main() -> int:
     assert_preregistered(REPO)
     if not args.dry_run and not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
-    if not os.environ.get("AMB_BROKER_SIGNING_SECRET"):
+    if not args.dry_run and not os.environ.get("AMB_BROKER_SIGNING_SECRET"):
         raise SystemExit(
             "AMB_BROKER_SIGNING_SECRET is not set; the controller cannot issue broker capabilities"
         )

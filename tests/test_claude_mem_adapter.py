@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import shutil
-import base64
 import subprocess
 import time
 from pathlib import Path

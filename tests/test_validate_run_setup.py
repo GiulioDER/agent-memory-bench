@@ -18,8 +18,8 @@ import pytest
 from scripts.validate_run_setup import (
     DEFAULT_MAX_APPENDIX_FRACTION,
     check_appendix_proportion,
-    check_corpus_reached,
     check_claude_mem_preflight,
+    check_corpus_reached,
     check_shared_protocol_identical,
     main,
     validate,

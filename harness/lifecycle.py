@@ -17,8 +17,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal, Protocol, runtime_checkable
 
-from .capabilities import load_manifest, manifest_digest
 from .adapters.base import resolve_corpus_path
+from .capabilities import load_manifest, manifest_digest
 
 LIFECYCLE_SCHEMA_VERSION = 1
 LIFECYCLE_TRACK = "lifecycle-temporal"
@@ -130,9 +130,9 @@ class LifecycleIngestReport:
         if self.outcome not in LIFECYCLE_OUTCOMES:
             raise ValueError(f"{event.event_id}: unknown lifecycle outcome {self.outcome!r}")
         if not isinstance(self.indexed, bool | type(None)):
-            raise ValueError(f"{event.event_id}: indexed must be true, false, or null")
+            raise TypeError(f"{event.event_id}: indexed must be true, false, or null")
         if not isinstance(self.deduplicated, bool | type(None)):
-            raise ValueError(f"{event.event_id}: deduplicated must be true, false, or null")
+            raise TypeError(f"{event.event_id}: deduplicated must be true, false, or null")
         if not self.completion_boundary.strip():
             raise ValueError(f"{event.event_id}: completion_boundary is required")
         if not self.visibility_boundary.strip():
@@ -215,7 +215,7 @@ def load_lifecycle_manifest(
 
     corpus_sessions = json.loads((root / "corpus" / "manifest.json").read_text(encoding="utf-8"))["sessions"]
     if not isinstance(corpus_sessions, dict):
-        raise ValueError("corpus manifest sessions must be an object")
+        raise TypeError("corpus manifest sessions must be an object")
 
     raw_events = data.get("events")
     if not isinstance(raw_events, list) or not raw_events:
@@ -269,8 +269,7 @@ def load_lifecycle_artifact(
     """Load a JSONL lifecycle artifact and validate its event receipts and result rows."""
 
     _, events, probes = manifest
-    stream = Path(path).open(encoding="utf-8")
-    with stream:
+    with Path(path).open(encoding="utf-8") as stream:
         lines = [line for line in stream if line.strip()]
     if not lines:
         raise ValueError(f"{path}: lifecycle artifact is empty")
@@ -307,7 +306,7 @@ def load_lifecycle_artifact(
         if key in seen:
             raise ValueError(f"{path}:{line_number}: duplicate lifecycle result {key!r}")
         if not isinstance(row.get("ranked_source_paths", []), list):
-            raise ValueError(f"{path}:{line_number}: ranked_source_paths must be a list")
+            raise TypeError(f"{path}:{line_number}: ranked_source_paths must be a list")
         seen.add(key)
         rows.append(row)
     if seen != expected:
@@ -322,7 +321,7 @@ def score_lifecycle_artifact(
 ) -> dict[str, Any]:
     """Score initial temporal behavior, replay idempotence, and replay stability separately."""
 
-    _, events, probes = manifest
+    _, _events, probes = manifest
     probe_by_id = {str(probe["probe_id"]): probe for probe in probes}
     row_by_key = {(str(row["probe_id"]), str(row["phase"])): row for row in rows}
     phase_reports = {phase: _score_phase(probe_by_id, row_by_key, phase) for phase in _PHASES}

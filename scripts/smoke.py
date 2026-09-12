@@ -34,8 +34,8 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from adapters.bare.adapter import BareAdapter
-from adapters.claude_mem.adapter import ClaudeMemAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
+from adapters.claude_mem.adapter import ClaudeMemAdapter
 from adapters.fs_grep.adapter import FsGrepAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
@@ -43,9 +43,9 @@ from harness import sandbox
 from harness.adapters.base import ArmSpec, CorpusManifest
 from harness.adapters.registry import AdapterRegistry
 from harness.claude_exec import ClaudeExecConfig
-from harness.isolation import run_isolated_claude_case
 from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import admit_cells
+from harness.isolation import run_isolated_claude_case
 from harness.prereg import assert_preregistered
 from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
 from harness.runner import run_grid

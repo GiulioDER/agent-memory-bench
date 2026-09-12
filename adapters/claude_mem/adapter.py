@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import base64
+import hashlib
 import json
 import os
 import shutil
@@ -12,7 +12,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +23,6 @@ from harness.adapters.base import (
     MemoryAdapter,
     digest_tree,
     namespace_path,
-    resolve_corpus_path,
 )
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
@@ -600,7 +599,7 @@ class ClaudeMemAdapter(MemoryAdapter):
             content_session_id = f"{namespace}:{path.stem}"
             memory_session_id = hashlib.sha256(content_session_id.encode("utf-8")).hexdigest()
             epoch = base_epoch + index
-            created_at = datetime.fromtimestamp(epoch / 1000, tz=timezone.utc).isoformat()
+            created_at = datetime.fromtimestamp(epoch / 1000, tz=UTC).isoformat()
             text = path.read_text(encoding="utf-8")
             sessions.append(
                 {
