@@ -26,11 +26,11 @@ from harness import sandbox
 from harness.claude_exec import (
     ClaudeExecConfig,
     resolve_claude_executable,
-    run_claude_case,
 )
 from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.host_memory import free_memory_mb, wait_for_headroom
+from harness.isolation import run_isolated_claude_case
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.memory_bundles import MemoryBundleCatalog
 from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
@@ -504,10 +504,15 @@ async def main() -> int:
             made["attempts"] += 1
             workdir = _workdir(task_id, seed, arm, made["attempts"])
             digest = sandbox.restore(task_id, workdir)
-            record = await run_claude_case(
-                attempt_row, attempt_arm, config_for(task_id, arm, workdir)
+            record = await asyncio.to_thread(
+                run_isolated_claude_case,
+                attempt_row,
+                attempt_arm,
+                config_for(task_id, arm, workdir),
+                model_capability=os.environ.get("AMB_CAPABILITY_MODEL"),
+                memory_capability=os.environ.get("AMB_CAPABILITY_MEMORY"),
             )
-            ok, verdict = run_checker(by_id[task_id], workdir)
+            ok, verdict = run_checker(by_id[task_id], workdir, isolated=True)
             extra = {
                 "checker": verdict,
                 "sandbox_digest": digest,

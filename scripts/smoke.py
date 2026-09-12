@@ -42,7 +42,8 @@ from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import sandbox
 from harness.adapters.base import ArmSpec, CorpusManifest
 from harness.adapters.registry import AdapterRegistry
-from harness.claude_exec import ClaudeExecConfig, run_claude_case
+from harness.claude_exec import ClaudeExecConfig
+from harness.isolation import run_isolated_claude_case
 from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import admit_cells
 from harness.prereg import assert_preregistered
@@ -196,7 +197,14 @@ async def main() -> int:
         )
 
     async def runner(row, arm):
-        record = await run_claude_case(row, arm, config_for(arm))
+        record = await asyncio.to_thread(
+            run_isolated_claude_case,
+            row,
+            arm,
+            config_for(arm),
+            model_capability=os.environ.get("AMB_CAPABILITY_MODEL"),
+            memory_capability=os.environ.get("AMB_CAPABILITY_MEMORY"),
+        )
         spec = specs[arm]
         success, verdict = check_result(workdirs[arm])
         extra = {

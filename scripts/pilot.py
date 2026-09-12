@@ -56,7 +56,12 @@ from adapters.cachly.adapter import CachlyAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.claude_mem.adapter import ClaudeMemAdapter
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
-from adapters.graphiti.adapter import GraphitiAdapter
+try:
+    from adapters.graphiti.adapter import GraphitiAdapter
+except ModuleNotFoundError as exc:
+    if exc.name != "adapters.graphiti.adapter":
+        raise
+    GraphitiAdapter = None
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
@@ -153,10 +158,13 @@ CLAUDE_MEM_CONFIG = json.loads(
     (REPO / "adapters" / "claude_mem" / "config.frozen.json").read_text(encoding="utf-8")
 )
 CLAUDE_MEM_PREFIX = str(CLAUDE_MEM_CONFIG["tool_prefix"])
-GRAPHITI_CONFIG = json.loads(
-    (REPO / "adapters" / "graphiti" / "config.frozen.json").read_text(encoding="utf-8")
+GRAPHITI_CONFIG_PATH = REPO / "adapters" / "graphiti" / "config.frozen.json"
+GRAPHITI_CONFIG = (
+    json.loads(GRAPHITI_CONFIG_PATH.read_text(encoding="utf-8"))
+    if GRAPHITI_CONFIG_PATH.is_file()
+    else {}
 )
-GRAPHITI_PREFIX = str(GRAPHITI_CONFIG["tool_prefix"])
+GRAPHITI_PREFIX = str(GRAPHITI_CONFIG.get("tool_prefix", "mcp__graphiti__"))
 GENERIC_RULES = (
     "# Project notes\n\n"
     "You are working in this repository. Keep changes small and leave the tree clean.\n\n"
@@ -215,6 +223,17 @@ def recall_instruction(variant: str, *, neutral: bool = False) -> str:
 SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
 
 
+def _graphiti_adapter():
+    """Return the optional Graphiti adapter or explain why a Graphiti run cannot start."""
+
+    if GraphitiAdapter is None or not GRAPHITI_CONFIG:
+        raise RuntimeError(
+            "Graphiti integration is unavailable; install or restore the complete "
+            "adapters/graphiti package before selecting the graphiti arm"
+        )
+    return GraphitiAdapter
+
+
 def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = False) -> dict[str, str]:
     """The instruction each arm carries, keyed by arm. Arms with no memory surface carry "".
 
@@ -254,7 +273,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
             neutral=neutral, variant=variant if shared else "protocol"
         )
     if "graphiti" in texts:
-        texts["graphiti"] = GraphitiAdapter.shared_instruction(
+        texts["graphiti"] = _graphiti_adapter().shared_instruction(
             neutral=neutral, variant=variant if shared else "protocol"
         )
     if "supermemory" in texts:
@@ -354,7 +373,7 @@ def adapter_for(
     if arm == "cachly":
         return CachlyAdapter(staging, static, instruction=texts.get("cachly") or None)
     if arm == "graphiti":
-        return GraphitiAdapter(staging, static, instruction=texts.get("graphiti") or None)
+        return _graphiti_adapter()(staging, static, instruction=texts.get("graphiti") or None)
     if arm == "supermemory":
         return SupermemoryAdapter(staging, static, instruction=texts.get("supermemory") or None)
     if arm == "claude_mem":

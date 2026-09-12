@@ -162,8 +162,9 @@ def test_both_launchers_check_the_child_is_still_alive() -> None:
         'LOG=/dev/null\n'
         'REPO=$PWD\n'
         'RUN_ID=probe\n'
-        'mkdir -p "$REPO/results/logs"\n'
-        'touch "$REPO/results/logs/$RUN_ID.pid"\n'
+        'PRIVATE_LOG_DIR="$REPO/results/logs"\n'
+        'mkdir -p "$PRIVATE_LOG_DIR"\n'
+        'touch "$PRIVATE_LOG_DIR/$RUN_ID.pid"\n'
         + block
         + '\necho "REACHED THE SUCCESS PATH"\n'
     )
