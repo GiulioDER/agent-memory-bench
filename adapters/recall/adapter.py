@@ -43,9 +43,9 @@ from harness.adapters.base import (
     validate_namespace,
 )
 from harness.gate import AdmissionSignal
+from harness.lifecycle import LifecycleEvent, LifecycleIngestReport, source_sha256
 from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus, render_transcript
-from harness.lifecycle import LifecycleEvent, LifecycleIngestReport, source_sha256
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 
@@ -76,7 +76,7 @@ class _LifecycleMcpClient:
         response = self._request("tools/call", {"name": name, "arguments": arguments})
         result = response.get("result")
         if not isinstance(result, dict):
-            raise RuntimeError(f"MCP {name} returned no result")
+            raise TypeError(f"MCP {name} returned no result")
         if result.get("isError"):
             raise RuntimeError(f"MCP {name} failed: {self._text(result)}")
         return self._decode(self._text(result))
