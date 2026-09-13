@@ -37,7 +37,7 @@ GENERATOR = REPO_ROOT / "scripts" / "build_leaderboard.py"
 # Brand words that are not arm names and so cannot be derived from PRODUCT_ARMS: a backing
 # store, a neighbouring product, a baseline's originator. They appear legitimately in the
 # harness and the adapter docstrings, and must not appear on the site.
-ADJACENT_BRANDS = ("graphiti", "falkordb", "letta", "memgpt")
+ADJACENT_BRANDS = ("falkordb", "letta", "memgpt")
 
 
 def _generator():

@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; result numbers enter
    through the run summary and the generated analysis artifact. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-09-09",
+  "updated": "2026-09-13",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
@@ -174,6 +174,19 @@ window.AMB_LEADERBOARD = {
     {
       "name": "Claude Mem",
       "type": "official Claude Code lifecycle hooks and MCP search",
+      "success": null,
+      "delta": null,
+      "ci": null,
+      "discarded": null,
+      "tokensPerTask": null,
+      "costPerTask": null,
+      "pending": true,
+      "totalTokens": null,
+      "byCondition": null
+    },
+    {
+      "name": "Graphiti",
+      "type": "Graphiti MCP server",
       "success": null,
       "delta": null,
       "ci": null,

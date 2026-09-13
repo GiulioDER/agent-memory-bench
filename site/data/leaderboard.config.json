@@ -3,8 +3,9 @@
   "pending_arms": [
     "cognee",
     "supermemory",
-    "claude_mem"
+    "claude_mem",
+    "graphiti"
   ],
   "analysis_report": "reports/official-003-analysis.json",
-  "updated": "2026-09-09"
+  "updated": "2026-09-13"
 }
