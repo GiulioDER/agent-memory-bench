@@ -2,8 +2,20 @@
 
 Dear Zep and Graphiti team,
 
-I am writing to invite you to review Graphiti's preliminary entry in the Agent Memory Benchmark,
-or AMB.
+My name is Giulio D'Erme. I am researching and developing agent memory layers for coding agents,
+and I built the Agent Memory Benchmark, or AMB, to understand which approaches make a practical
+difference in real coding work.
+
+AMB tests the outcome of a complete coding session, not only whether a system retrieves a relevant
+memory. Each arm receives the same task and corpus, the agent works through the task with its own
+official integration, and an automated checker verifies whether the requested change actually
+works. I chose this design because a retrieved memory can be useful, irrelevant, or actively
+misleading. For an agent memory layer to be valuable, it should improve the final result reliably,
+not merely return a plausible document.
+
+I am particularly interested in Graphiti's approach to structured and temporal memory, and I would
+welcome any collaboration, technical feedback, or suggestions that could make this comparison more
+useful to the memory systems community.
 
 The Graphiti arm has completed the `official-007-graphiti-bare` measurement using Graphiti's MCP
 integration, the shared benchmark model, and the preregistered coding task protocol. The official
