@@ -1017,8 +1017,11 @@ def run_isolated_claude_case(
         command = list(config.command(str(row.get("user_input", "")).strip()))
         if not command:
             raise IsolationError("Claude command is empty")
-        command[0] = "/usr/local/bin/claude"
         for index, value in enumerate(command):
+            if index == 0:
+                # argv[0] is supplied by the participant image, not a host path from the
+                # adapter. Rewrite it after validating the remaining user/config arguments.
+                continue
             if value == str(config.mcp_config):
                 command[index] = _container_path(value, directory="session", name="mcp.json")
             elif value == str(config.append_system_prompt_file):
@@ -1027,6 +1030,7 @@ def run_isolated_claude_case(
                 command[index] = "/session/claude-config"
             else:
                 command[index] = _rewrite_workspace_argument(value, source_workspace)
+        command[0] = "/usr/local/bin/claude"
         public_env = {
             str(key): str(value)
             for key, value in config.env.items()
