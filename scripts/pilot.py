@@ -40,6 +40,7 @@ import asyncio
 import hashlib
 import json
 import os
+import shutil
 import sys
 import time
 from collections.abc import Mapping
@@ -1518,6 +1519,14 @@ async def main() -> int:
     admitted_cells = {record.cell: True for record in report.admitted}
     costs["efficiency"] = efficiency(records, admitted_cells=admitted_cells)
     (run_dir / "costs.json").write_text(json.dumps(costs, indent=2), encoding="utf-8")
+
+    # Raw streams are produced in disposable private storage while sessions run. Promote the
+    # completed evidence into the result boundary before adjudication hashes the run; otherwise
+    # a fully executed grid can be mistaken for an incomplete artifact set.
+    private_streams = work_root / "private-streams"
+    if not private_streams.is_dir():
+        raise SystemExit(f"private stream directory is missing: {private_streams}")
+    shutil.copytree(private_streams, run_dir / "streams", dirs_exist_ok=True)
 
     adjudicate_run(
         run_dir,

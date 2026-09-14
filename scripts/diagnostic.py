@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import shutil
 import os
 import sys
 import tempfile
@@ -569,6 +570,10 @@ async def main() -> int:
         json.dumps(summarize(records, pricing=pricing, model=args.model), indent=2),
         encoding="utf-8",
     )
+    private_streams = work_root / "private-streams"
+    if not private_streams.is_dir():
+        raise SystemExit(f"private stream directory is missing: {private_streams}")
+    shutil.copytree(private_streams, run_dir / "streams", dirs_exist_ok=True)
     # Appended to the artifact written before the first session; nothing above is rewritten.
     # Cells the pilot-004 protocol would have discarded are published here, never folded into
     # the discard count, because a recovered cell changes what that count means.
