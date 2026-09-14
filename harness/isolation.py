@@ -277,7 +277,6 @@ def archive_directory(
     if target.is_symlink() or (target.exists() and target.lstat().st_nlink > 1):
         raise ArchiveSafetyError(f"archive destination must not be a link: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    digest = hashlib.sha256()
     total_bytes = 0
     excluded = set(exclude_dirs)
     with tarfile.open(target, "w") as archive:
@@ -309,15 +308,25 @@ def archive_directory(
                     raise ArchiveSafetyError("directory contents exceed archive limit")
                 rel = _safe_member_name(path.relative_to(root).as_posix())
                 data = path.read_bytes()
-                digest.update(rel.encode("utf-8"))
-                digest.update(b"\0")
-                digest.update(data)
-                digest.update(b"\0")
                 info = tarfile.TarInfo(rel)
                 info.size = len(data)
                 info.mode = stat.st_mode & 0o777
                 info.mtime = 0
                 archive.addfile(info, io.BytesIO(data))
+    # Keep the returned digest byte-for-byte compatible with sandbox.tree_digest.  os.walk
+    # visits a directory's children before that directory's sibling files, while tree_digest
+    # sorts complete paths; the two orders differ for fixtures with both nested files and root
+    # files (notably ts-quote-shell), producing a false "workspace changed" refusal.
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        if any(part in excluded for part in relative.parts):
+            continue
+        if path.is_file():
+            digest.update(relative.as_posix().encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
     return target, digest.hexdigest()
 
 
