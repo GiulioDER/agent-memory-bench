@@ -985,8 +985,6 @@ def run_isolated_claude_case(
     """
 
     from .claude_exec import ClaudeExecConfig, build_record
-    from .sandbox import export_container_input, extract_container_output
-
     if config.cwd is None:
         raise IsolationError("an isolated Claude case requires a workspace cwd")
     model_token = model_capability or os.environ.get("AMB_CAPABILITY_MODEL", "")
@@ -1006,11 +1004,11 @@ def run_isolated_claude_case(
     work_parent.mkdir(parents=True, exist_ok=True)
     input_archive = workspace_archive or work_parent / f".amb-input-{arm}-{int(row.get('seed', 0))}.tar"
     if workspace_archive is None:
-        export_container_input(
-            source_workspace,
-            input_archive,
-            workspace_digest=workspace_digest,
-        )
+        _archive, input_digest = archive_directory(source_workspace, input_archive)
+        if workspace_digest and input_digest != workspace_digest:
+            raise IsolationError(
+                "workspace digest changed while preparing the participant archive"
+            )
 
     with tempfile.TemporaryDirectory(prefix="amb-config-") as config_temp:
         config_archive, _mcp_path, _prompt_path = _copy_config_archive(
@@ -1084,7 +1082,7 @@ def run_isolated_claude_case(
         result = run_isolated_session(spec)
         if result.output_archive is None:
             raise IsolationError("participant produced no workspace archive")
-        output_digest = extract_container_output(result.output_archive, source_workspace)
+        output_digest = extract_archive(result.output_archive, source_workspace, merge=True)
         stream = result.stdout
         if config.stream_dir is not None:
             stream_dir = Path(config.stream_dir)
