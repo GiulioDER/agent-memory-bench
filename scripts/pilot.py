@@ -1298,10 +1298,6 @@ async def main() -> int:
             cwd=cwd,
             timeout_s=args.timeout,
             env={**env, **spec.env},
-            # Older adapters do not need participant-visible container variables. Keep the
-            # runner compatible with those ArmSpec instances while allowing newer adapters to
-            # provide the optional mapping.
-            public_container_env=getattr(spec, "public_container_env", {}),
             bare=spec.bare,
             config_dir=spec.config_dir,
             mcp_config=spec.mcp_config,
