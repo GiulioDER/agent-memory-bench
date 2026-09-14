@@ -27,7 +27,9 @@ generation during measurement. The current profile fingerprint is recorded in th
 The RE-call participant surface is the existing frozen adapter: read/navigation tools only, no
 write tools, with the same `skill` memory instruction and host MCP transport used by the comparable
 official runs. The bare arm is the same benchmark control. No reranking or extra retrieval setting
-is introduced.
+is introduced. On VPS2, a dedicated signed capability relay fronts the RE-call stdio server; the
+controller's preflight uses its loopback listener while participant containers use its Docker DNS
+service name. Both endpoints terminate at the same relay process and enforce the same allow-list.
 
 ## Frozen grid
 

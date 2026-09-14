@@ -999,8 +999,14 @@ async def main() -> int:
                 namespace=args.namespace,
                 needs_memory=True,
             )
+            # The controller and participant run in different network namespaces on VPS2.  The
+            # participant-facing broker URL is a Docker DNS name; the controller preflight uses
+            # the explicit host-published endpoint when supplied.
             tools = probe_jsonrpc_endpoint(
-                os.environ.get("AMB_MEMORY_BROKER_URL", ""),
+                os.environ.get(
+                    "AMB_CONTROLLER_MEMORY_BROKER_URL",
+                    os.environ.get("AMB_MEMORY_BROKER_URL", ""),
+                ),
                 memory_capability or "",
                 tuple(required),
                 probe_tool="recall_search",
