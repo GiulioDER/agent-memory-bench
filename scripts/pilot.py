@@ -105,12 +105,16 @@ from harness.decision_trace import (
 )
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
-from harness.isolation import default_participant_policy, run_isolated_claude_case
+from harness.isolation import (
+    default_participant_policy,
+    run_isolated_checker,
+    run_isolated_claude_case,
+)
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
 from harness.runner import run_grid
-from harness.tasks import discover_tasks, run_checker
+from harness.tasks import discover_tasks
 from scripts.validate_run_setup import validate as validate_setup
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
@@ -1395,7 +1399,11 @@ async def main() -> int:
                     "silent_completion_retries": silent_retries,
                 },
             )
-        ok, verdict = run_checker(by_id[task_id], workdir, isolated=True)
+        ok, verdict = run_isolated_checker(
+            task_id,
+            by_id[task_id].oracle_dir,
+            workdir,
+        )
         event_log.append(
             "checker_completed",
             {
