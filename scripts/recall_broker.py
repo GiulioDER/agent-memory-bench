@@ -52,9 +52,27 @@ class RecallProcess:
         python = os.environ.get(
             "AMB_RECALL_PYTHON", "/home/sentiment/recall-repos/.venv/bin/python"
         )
+        # The shared VPS2 venv is created on the host and its launcher points at
+        # /usr/bin/python3.12.  The broker image has the same Python ABI under
+        # /usr/local/bin instead, so use the image interpreter while keeping the
+        # shared venv's dependencies on PYTHONPATH.
+        python_path = Path(python)
+        if not python_path.is_file():
+            for candidate in ("/usr/local/bin/python3.12", "/usr/local/bin/python"):
+                if Path(candidate).is_file():
+                    python = candidate
+                    break
+        site_packages = root.parent / ".venv" / "lib" / "python3.12" / "site-packages"
         if not (root / "recall_mcp" / "server.py").is_file() or not Path(python).is_file():
             raise BrokerError("RE-call serving checkout or Python runtime is unavailable")
         env = os.environ.copy()
+        if site_packages.is_dir():
+            existing_pythonpath = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = (
+                str(site_packages)
+                if not existing_pythonpath
+                else str(site_packages) + os.pathsep + existing_pythonpath
+            )
         env.update(
             {
                 "RECALL_ENV": "production",
