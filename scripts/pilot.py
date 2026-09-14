@@ -1294,6 +1294,10 @@ async def main() -> int:
 
         spec = cell_specs[(task_id, seed, arm)]
         return ClaudeExecConfig(
+            # The participant image supplies /usr/local/bin/claude. The controller only needs a
+            # local executable to satisfy command construction; isolation.py replaces argv[0]
+            # with the image path before starting the container.
+            executable="/bin/true",
             model=args.model,
             cwd=cwd,
             timeout_s=args.timeout,
