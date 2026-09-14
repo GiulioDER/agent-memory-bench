@@ -497,7 +497,8 @@ def _stream_workspace_from_container(runtime: str, name: str, destination: Path)
             name,
             "sh",
             "-c",
-            "cd /workspace && find . -mindepth 1 -print0 | tar --null --files-from=- --create --file=-",
+            r"cd /workspace && find . -mindepth 1 \( -type f -o -type l -o -type d -empty \) "
+            "-print0 | tar --null --files-from=- --create --file=-",
         ],
         stdout=destination.open("wb"),
         stderr=subprocess.PIPE,
