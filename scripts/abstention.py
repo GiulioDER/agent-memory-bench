@@ -534,6 +534,12 @@ def main() -> int:
     parser.add_argument("--run-id", default="abstention-001")
     parser.add_argument("--conditions", default="absent,superseded")
     parser.add_argument("--arms", default="bare,claude_md,recall")
+    parser.add_argument(
+        "--recall-only",
+        action="store_true",
+        help="run the five corpus conditions with only the recall arm; this is a standalone "
+        "RE-call evaluation and does not report bare-paired AMB harm/benefit endpoints",
+    )
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1, help="corpus assembly seed")
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
@@ -598,7 +604,9 @@ def main() -> int:
         raise SystemExit(f"unknown condition(s) {unknown}; choose from {CORPUS_CONDITIONS}")
 
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
-    if "bare" not in arms:
+    if args.recall_only and arms != ["recall"]:
+        raise SystemExit("--recall-only requires --arms recall")
+    if not args.recall_only and "bare" not in arms:
         raise SystemExit(
             "the `bare` arm is mandatory for this suite. Damage is defined as failing a cell "
             "bare solved, so without it the primary and secondary endpoints are undefined rather "
