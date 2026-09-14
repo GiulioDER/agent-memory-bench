@@ -25,9 +25,11 @@ building and promotion happen before the suite; the benchmark only verifies and 
 generation during measurement. The current profile fingerprint is recorded in the run artifacts.
 
 The RE-call participant surface is the existing frozen adapter: read/navigation tools only, no
-write tools, with the same `skill` memory instruction and host MCP transport used by the comparable
-official runs. The bare arm is the same benchmark control. No reranking or extra retrieval setting
-is introduced. On VPS2, a dedicated signed capability relay fronts the RE-call stdio server; the
+write tools, with the shared `protocol` memory instruction and host MCP transport used by
+`official-003`. This keeps the new result comparable to the published RE-call reference and
+prevents the product-specific `skill` appendix from becoming an uncontrolled treatment. The bare
+arm is the same benchmark control. No reranking or extra retrieval setting is introduced. On
+VPS2, a dedicated signed capability relay fronts the RE-call stdio server; the
 controller's preflight uses its loopback listener while participant containers use its Docker DNS
 service name. Both endpoints terminate at the same relay process and enforce the same allow-list.
 
@@ -54,7 +56,7 @@ The exact runner is:
   --arms bare,recall \
   --seeds 5 \
   --model deepseek/deepseek-v4-flash \
-  --memory-instruction skill \
+  --memory-instruction protocol \
   --resume \
   --price-in 0.0574 --price-out 0.1148 --price-as-of 2026-08-22
 ```
