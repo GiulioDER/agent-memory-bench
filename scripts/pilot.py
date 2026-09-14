@@ -853,6 +853,7 @@ async def main() -> int:
     if (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
     work_root = Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
+    (work_root / "private-streams").mkdir(parents=True, exist_ok=True)
     _refuse_a_dirty_work_root(work_root, args.run_id)
     staging = work_root / "staging"
 
