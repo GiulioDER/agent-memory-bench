@@ -121,7 +121,17 @@ class RecallProcess:
             if method.startswith("notifications/"):
                 self._notify(method)
                 return {"jsonrpc": "2.0", "id": request.get("id"), "result": {}}
-            reply = self._request(method, request.get("params") or {})
+            params = request.get("params") or {}
+            # AMB's broker admission probe intentionally uses an empty initialize params object.
+            # The current MCP SDK validates the standard initialize fields, so fill them only for
+            # that probe shape; real participant initialization already carries its own params.
+            if method == "initialize" and not params:
+                params = {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "amb-recall-broker", "version": "1"},
+                }
+            reply = self._request(method, params)
             reply["id"] = request.get("id")
             if method == "tools/list":
                 result = reply.get("result")
