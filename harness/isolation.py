@@ -1031,7 +1031,9 @@ def run_isolated_claude_case(
                 command[index] = "/session/claude-config"
             else:
                 command[index] = _rewrite_workspace_argument(value, source_workspace)
-        command[0] = "/usr/local/bin/claude"
+        # The pinned participant image installs Claude Code at /usr/bin/claude. Keep this
+        # image-owned path explicit so the controller never depends on a host executable.
+        command[0] = "/usr/bin/claude"
         public_env = {
             str(key): str(value)
             for key, value in config.env.items()
@@ -1066,6 +1068,7 @@ def run_isolated_claude_case(
         participant_config = ClaudeExecConfig(
             model=config.model,
             memory_tool_prefix=config.memory_tool_prefix,
+            mcp_config="/session/mcp.json" if config.mcp_config is not None else None,
             strict_mcp_config=config.strict_mcp_config,
             bare=config.bare,
         )
