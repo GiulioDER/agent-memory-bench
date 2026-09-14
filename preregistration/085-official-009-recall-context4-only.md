@@ -7,7 +7,8 @@ benefit, and usefulness endpoints are intentionally not interpreted.
 ## Frozen treatment
 
 - Run ID: `official-009-recall-context4-only`
-- Namespace prefix: `amb-recall-context4-only-official-009`
+- Namespace prefix: `amb-recall-context4-official-008` (the already verified `present` tenant is
+  reused read-only; the other conditions receive their own suffix tenants)
 - Arm: `recall` only
 - Conditions: `present`, `contradictory`, `adjacent`, `absent`, `superseded`
 - Seeds: 5
@@ -28,7 +29,7 @@ participant records, checker results, raw streams, and signed adjudication recei
 ```text
 python -m scripts.abstention \
   --run-id official-009-recall-context4-only \
-  --namespace amb-recall-context4-only-official-009 \
+  --namespace amb-recall-context4-official-008 \
   --conditions present,contradictory,adjacent,absent,superseded \
   --arms recall --recall-only --seeds 5 \
   --model deepseek/deepseek-v4-flash \
