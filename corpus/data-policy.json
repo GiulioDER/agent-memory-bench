@@ -5,5 +5,11 @@
   "contains_real_customer_data": false,
   "contains_real_proprietary_data": false,
   "source": "authored and generated fixtures only",
-  "reviewed_at": "2026-09-10"
+  "reviewed_at": "2026-09-10",
+  "hosted_processing": {
+    "retention": "zero",
+    "training": false,
+    "reuse": false
+  },
+  "providers": ["openrouter"]
 }
