@@ -91,6 +91,25 @@ DECISION_PROTOCOL_PAIRED_ARMS = [
 DECISION_PROTOCOL_TREATMENT_SHA256 = (
     "a3ccb2af267521cc71886d999abb81cf39a29d97e6aebfd1ed5672b8022cb907"
 )
+ORACLE_CEILING_PAIRED_VARIANT = "oracle_ceiling_paired"
+ORACLE_CEILING_PAIRED_ARMS = [
+    "recall_graph_fulltools_protocol",
+    "oracle_memory",
+]
+ORACLE_CEILING_CATALOG_SHA256 = (
+    "322cd2331c8b1c6ed0e01eb293f6dd562088a016c6b31c25d304efe46ef5dad6"
+)
+ORACLE_CEILING_TASKS = [
+    "ts-base36-id",
+    "ts-bom-merge",
+    "ts-golden-regen",
+    "ts-ignore-gen",
+    "ts-legacy-hash",
+    "ts-mig-name",
+    "ts-schema-additive",
+    "ts-semver-pin",
+    "ts-tz-utc",
+]
 
 _MARKS = {True: "PASS", False: "FAIL", None: "SKIP"}
 
@@ -133,11 +152,19 @@ def check_corpus_reached(env: dict, floor: int) -> Check:
 def check_shared_protocol_identical(env: dict) -> Check:
     """`bytes - excess` must be one number. Arithmetic on the manifest, trusting no flag."""
 
-    if env.get("memory_instruction") == DECISION_PROTOCOL_PAIRED_VARIANT:
+    if env.get("memory_instruction") in {
+        DECISION_PROTOCOL_PAIRED_VARIANT,
+        ORACLE_CEILING_PAIRED_VARIANT,
+    }:
+        detail = (
+            "official-016 compares a frozen skill with corpus-verified injected evidence"
+            if env.get("memory_instruction") == ORACLE_CEILING_PAIRED_VARIANT
+            else "official-015 compares two complete frozen skills rather than shared appendices"
+        )
         return Check(
             "shared_protocol_identical",
             None,
-            "official-015 compares two complete frozen skills rather than shared appendices",
+            detail,
         )
     excess = env.get("instruction_excess_bytes") or {}
     arms = _instruction_arms(env)
@@ -171,6 +198,12 @@ def check_arms_matched_flag(env: dict) -> Check:
             None,
             "official-015 intentionally compares two different complete frozen skills",
         )
+    if env.get("memory_instruction") == ORACLE_CEILING_PAIRED_VARIANT:
+        return Check(
+            "instruction_arms_matched",
+            None,
+            "official-016 intentionally compares a skill with injected oracle evidence",
+        )
     if env.get("memory_instruction") == "quality":
         return Check(
             "instruction_arms_matched",
@@ -195,6 +228,12 @@ def check_appendix_proportion(env: dict, max_fraction: float) -> Check:
             "appendix_proportion",
             None,
             "official-015 treatment is a complete skill, not a protocol appendix",
+        )
+    if env.get("memory_instruction") == ORACLE_CEILING_PAIRED_VARIANT:
+        return Check(
+            "appendix_proportion",
+            None,
+            "official-016 treatment is injected evidence, not a protocol appendix",
         )
     if env.get("memory_instruction") == "quality":
         return Check(
@@ -346,6 +385,44 @@ def check_decision_protocol_pair(env: dict) -> Check:
     )
 
 
+def check_oracle_ceiling_pair(env: dict) -> Check:
+    """Verify official-016's frozen control and selected oracle catalog."""
+
+    if env.get("memory_instruction") != ORACLE_CEILING_PAIRED_VARIANT:
+        return Check("oracle_ceiling_pair", None, "official-016 paired variant not selected")
+    block = env.get("oracle_ceiling_pair")
+    if not isinstance(block, dict):
+        return Check("oracle_ceiling_pair", False, "oracle_ceiling_pair metadata missing")
+    expected = {
+        "arms": ORACLE_CEILING_PAIRED_ARMS,
+        "control_bytes": 3924,
+        "control_sha256": QUALITY_GATE_CONTROL_SHA256,
+        "oracle_instruction_bytes": 0,
+        "catalog_sha256": ORACLE_CEILING_CATALOG_SHA256,
+        "bundle_count": 9,
+        "item_count": 9,
+        "task_ids": ORACLE_CEILING_TASKS,
+    }
+    wrong = {
+        key: (value, block.get(key))
+        for key, value in expected.items()
+        if block.get(key) != value
+    }
+    if wrong:
+        return Check("oracle_ceiling_pair", False, f"frozen ceiling mismatch: {wrong}")
+    if env.get("shared_tool_prefix_groups") != []:
+        return Check(
+            "oracle_ceiling_pair",
+            False,
+            "oracle arm has no tools, so no shared tool prefix group may be declared",
+        )
+    return Check(
+        "oracle_ceiling_pair",
+        True,
+        "control digest and nine-bundle oracle catalog match the preregistration",
+    )
+
+
 def check_claude_mem_preflight(env: dict) -> Check:
     """Require Claude-Mem's MCP server and one real search before model spend."""
 
@@ -401,6 +478,7 @@ def validate(
         check_recall_preflight(env),
         check_quality_gate_pair(env),
         check_decision_protocol_pair(env),
+        check_oracle_ceiling_pair(env),
         check_claude_mem_preflight(env),
     ]
 

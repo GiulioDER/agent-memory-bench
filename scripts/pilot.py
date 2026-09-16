@@ -65,6 +65,7 @@ except ModuleNotFoundError as exc:
         raise
     GraphitiAdapter = None
 from adapters.mempalace.adapter import MemPalaceAdapter
+from adapters.oracle_memory.adapter import OracleMemoryAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_graph_fulltools.adapter import (
     RecallGraphFullToolsAdapter,
@@ -120,6 +121,7 @@ from harness.isolation import (
     run_isolated_checker,
     run_isolated_claude_case,
 )
+from harness.memory_bundles import MemoryBundleCatalog
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
@@ -135,7 +137,8 @@ from scripts.validate_run_setup import validate as validate_setup
 #: than in a second run: paired inside one grid the corpus feed, the model, the suite and the
 #: admitted set are held constant by construction, where across two runs none of them are.
 #:
-#: ⚠️ `oracle_memory` has an adapter and has run, and is deliberately absent. Its bundles are
+#: ⚠️ `oracle_memory` has an adapter and has run, and is admitted only for the frozen
+#: official-016 superseded ceiling pair. Its bundles are
 #: keyed by task with NO condition, so it would supply verified evidence in `absent`, the
 #: condition whose whole purpose is that the corpus does not contain the answer. It is a coherent
 #: ceiling in `present` and in the single-corpus diagnostic where it ran. Admitting it here needs
@@ -144,7 +147,8 @@ ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
     "recall_graph_rerank", "recall_graph_fulltools", "recall_graph_fulltools_protocol",
     "recall_graph_fulltools_quality_gate", "recall_graph_fulltools_decision_protocol",
-    "mempalace", "recall_prefetch", "cachly", "graphiti", "supermemory", "claude_mem",
+    "mempalace", "recall_prefetch", "oracle_memory", "cachly", "graphiti", "supermemory",
+    "claude_mem",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM = "recall_graph_fulltools_protocol"
@@ -157,6 +161,29 @@ RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
 RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS = (
     RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
     RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM,
+)
+RECALL_ORACLE_CEILING_PAIRED_ARMS = (
+    RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
+    "oracle_memory",
+)
+RECALL_ORACLE_CEILING_TASKS = frozenset(
+    {
+        "ts-base36-id",
+        "ts-bom-merge",
+        "ts-golden-regen",
+        "ts-ignore-gen",
+        "ts-legacy-hash",
+        "ts-mig-name",
+        "ts-schema-additive",
+        "ts-semver-pin",
+        "ts-tz-utc",
+    }
+)
+RECALL_ORACLE_CEILING_CATALOG_SHA256 = (
+    "322cd2331c8b1c6ed0e01eb293f6dd562088a016c6b31c25d304efe46ef5dad6"
+)
+RECALL_ORACLE_SOURCE_SHA256 = (
+    "65592ceb95c07f00d5b4c9204b4b733875124034eff2fd4bdb903c32cf9629cb"
 )
 RECALL_GRAPH_FULLTOOLS_CONTROL_SHA256 = (
     "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
@@ -405,6 +432,7 @@ def decision_protocol_pair_metadata(texts: Mapping[str, str]) -> dict[str, Any]:
 SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
 QUALITY_GATE_PAIRED_VARIANT = "quality_gate_paired"
 DECISION_PROTOCOL_PAIRED_VARIANT = "decision_protocol_paired"
+ORACLE_CEILING_PAIRED_VARIANT = "oracle_ceiling_paired"
 
 
 def validate_quality_gate_pair(variant: str, arms: tuple[str, ...]) -> None:
@@ -429,6 +457,83 @@ def validate_decision_protocol_pair(variant: str, arms: tuple[str, ...]) -> None
             f"{DECISION_PROTOCOL_PAIRED_VARIANT!r} requires exactly "
             f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS}, got {arms}"
         )
+
+
+def validate_oracle_ceiling_pair(
+    variant: str,
+    arms: tuple[str, ...],
+    tasks: list[Any] | tuple[Any, ...] | None = None,
+    condition: str | None = None,
+) -> None:
+    """Keep official-016 inside its frozen superseded roster."""
+
+    if variant != ORACLE_CEILING_PAIRED_VARIANT:
+        return
+    if tuple(arms) != RECALL_ORACLE_CEILING_PAIRED_ARMS:
+        raise ValueError(
+            f"{ORACLE_CEILING_PAIRED_VARIANT!r} requires exactly "
+            f"{RECALL_ORACLE_CEILING_PAIRED_ARMS} in that order, got {arms}"
+        )
+    if condition is not None and condition != "superseded":
+        raise ValueError(
+            f"{ORACLE_CEILING_PAIRED_VARIANT!r} requires condition 'superseded', "
+            f"got {condition!r}"
+        )
+    if tasks is not None:
+        observed = [str(task.task_id) for task in tasks]
+        if len(observed) != len(RECALL_ORACLE_CEILING_TASKS) or set(observed) != set(
+            RECALL_ORACLE_CEILING_TASKS
+        ):
+            raise ValueError(
+                f"{ORACLE_CEILING_PAIRED_VARIANT!r} requires exactly the frozen nine tasks, "
+                f"got {observed}"
+            )
+
+
+def load_oracle_ceiling_catalog(
+    corpus_root: Path, tasks: list[Any] | tuple[Any, ...]
+) -> MemoryBundleCatalog:
+    """Load and validate only official-016's preregistered oracle bundles."""
+
+    source = REPO / "corpus" / "oracle_memory" / "bundles.jsonl"
+    source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    if source_sha256 != RECALL_ORACLE_SOURCE_SHA256:
+        raise ValueError(
+            "oracle bundle source differs from the official-016 preregistration: "
+            f"expected {RECALL_ORACLE_SOURCE_SHA256}, got {source_sha256}"
+        )
+    corpus = CorpusManifest.load(corpus_root)
+    catalog = MemoryBundleCatalog.load(
+        source.parent,
+        corpus,
+        tasks,
+        include_task_ids=RECALL_ORACLE_CEILING_TASKS,
+    )
+    if catalog.digest != RECALL_ORACLE_CEILING_CATALOG_SHA256:
+        raise ValueError(
+            "selected oracle catalog differs from the official-016 preregistration: "
+            f"expected {RECALL_ORACLE_CEILING_CATALOG_SHA256}, got {catalog.digest}"
+        )
+    return catalog
+
+
+def oracle_ceiling_pair_metadata(
+    texts: dict[str, str], catalog: MemoryBundleCatalog
+) -> dict[str, Any]:
+    """The frozen official-016 treatment identity recorded before the grid."""
+
+    control = texts.get(RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM, "")
+    oracle = texts.get("oracle_memory", "")
+    return {
+        "arms": list(RECALL_ORACLE_CEILING_PAIRED_ARMS),
+        "control_bytes": len(control.encode("utf-8")),
+        "control_sha256": hashlib.sha256(control.encode("utf-8")).hexdigest(),
+        "oracle_instruction_bytes": len(oracle.encode("utf-8")),
+        "catalog_sha256": catalog.digest,
+        "bundle_count": len(catalog.bundles),
+        "item_count": sum(len(bundle.items) for bundle in catalog.bundles.values()),
+        "task_ids": sorted(bundle.task_id for bundle in catalog.bundles.values()),
+    }
 
 
 def recall_preflight_request(arm: str, query: str) -> tuple[str, dict[str, Any]]:
@@ -470,6 +575,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
 
     validate_quality_gate_pair(variant, arms)
     validate_decision_protocol_pair(variant, arms)
+    validate_oracle_ceiling_pair(variant, arms)
     shared = variant in SHARED_PROTOCOL_VARIANTS
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
@@ -580,7 +686,11 @@ def build_bundles(task, out_dir: Path, texts: dict[str, str]) -> dict[str, Path]
 
 
 def adapter_for(
-    arm: str, task_bundle: dict[str, Path], staging: Path, texts: dict[str, str]
+    arm: str,
+    task_bundle: dict[str, Path],
+    staging: Path,
+    texts: dict[str, str],
+    oracle_catalog: MemoryBundleCatalog | None = None,
 ) -> MemoryAdapter:
     """The adapter instance that builds ONE arm for ONE task.
 
@@ -633,6 +743,10 @@ def adapter_for(
         return RecallGraphFullToolsDecisionProtocolAdapter(
             staging, static, instruction=texts.get(arm) or None
         )
+    if arm == "oracle_memory":
+        if oracle_catalog is None:
+            raise ValueError("oracle_memory requires a validated memory bundle catalog")
+        return OracleMemoryAdapter(staging, static, oracle_catalog)
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
     if arm == "cachly":
@@ -659,7 +773,11 @@ def adapter_for(
 
 
 def build_registry(
-    staging: Path, any_bundle: dict[str, Path], texts: dict[str, str], arms: tuple[str, ...]
+    staging: Path,
+    any_bundle: dict[str, Path],
+    texts: dict[str, str],
+    arms: tuple[str, ...],
+    oracle_catalog: MemoryBundleCatalog | None = None,
 ) -> AdapterRegistry:
     """A registry holding one instance per arm IN THIS RUN, for admission signals and `describe()`.
 
@@ -673,7 +791,9 @@ def build_registry(
     for arm in sorted(arms):
         if arm in ("placebo", "protocol") and arm not in any_bundle:
             continue
-        registry.register(adapter_for(arm, any_bundle, staging, texts))
+        registry.register(
+            adapter_for(arm, any_bundle, staging, texts, oracle_catalog)
+        )
     return registry
 
 
@@ -932,6 +1052,7 @@ async def main() -> int:
         choices=(
             "oneliner", "skill", "quality", "protocol", "draft",
             QUALITY_GATE_PAIRED_VARIANT, DECISION_PROTOCOL_PAIRED_VARIANT,
+            ORACLE_CEILING_PAIRED_VARIANT,
         ),
         default="oneliner",
         help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
@@ -1044,6 +1165,9 @@ async def main() -> int:
     try:
         validate_quality_gate_pair(args.memory_instruction, run_arms)
         validate_decision_protocol_pair(args.memory_instruction, run_arms)
+        validate_oracle_ceiling_pair(
+            args.memory_instruction, run_arms, condition=args.condition or None
+        )
     except ValueError as error:
         raise SystemExit(str(error)) from None
     if "protocol" in run_arms and args.memory_instruction not in SHARED_PROTOCOL_VARIANTS:
@@ -1125,6 +1249,26 @@ async def main() -> int:
     if not tasks:
         raise SystemExit("no tasks selected")
 
+    try:
+        validate_oracle_ceiling_pair(
+            args.memory_instruction,
+            run_arms,
+            tasks=tasks,
+            condition=args.condition or None,
+        )
+    except ValueError as error:
+        raise SystemExit(str(error)) from None
+
+    corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
+    oracle_catalog: MemoryBundleCatalog | None = None
+    if args.memory_instruction == ORACLE_CEILING_PAIRED_VARIANT:
+        if not (corpus_root / "manifest.json").is_file():
+            raise SystemExit(f"{corpus_root} holds no manifest.json")
+        try:
+            oracle_catalog = load_oracle_ceiling_catalog(corpus_root, tasks)
+        except (FileNotFoundError, OSError, TypeError, ValueError) as error:
+            raise SystemExit(str(error)) from None
+
     texts = memory_instructions(
         args.memory_instruction, run_arms, neutral=args.neutral_protocol
     )
@@ -1140,12 +1284,13 @@ async def main() -> int:
         print(f"[dry-run] structured decisions {args.emit_decisions}")
         for arm in run_arms:
             print(f"[dry-run]   {arm:<10} instruction {manifest[arm]['bytes']:>5} bytes")
+        if oracle_catalog is not None:
+            print(f"[dry-run] oracle catalog {oracle_catalog.digest}")
         print(f"[dry-run] tasks  {len(tasks)}: {', '.join(task.task_id for task in tasks)}")
         print(f"[dry-run] work root {args.work_root or sandbox.default_work_root()}")
         print(f"[dry-run] would run {sessions} session(s); nothing written, nothing executed")
         return 0
 
-    corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
     if not (corpus_root / "manifest.json").is_file():
         raise SystemExit(
             f"{corpus_root} holds no manifest.json. A condition corpus is built by "
@@ -1213,7 +1358,13 @@ async def main() -> int:
         task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, texts)
         for task in tasks
     }
-    registry = build_registry(staging, bundles[tasks[0].task_id], texts, run_arms)
+    registry = build_registry(
+        staging,
+        bundles[tasks[0].task_id],
+        texts,
+        run_arms,
+        oracle_catalog,
+    )
 
     # Ingestion, for the arms whose store this runner owns. recall's tenant is indexed out of band
     # against the frozen corpus manifest; fs_grep's render is local, cheap and reproducible here.
@@ -1275,7 +1426,13 @@ async def main() -> int:
     cell_specs: dict[tuple[str, int, str], ArmSpec] = {}
     for task in tasks:
         for arm in run_arms:
-            adapter = adapter_for(arm, bundles[task.task_id], staging, texts)
+            adapter = adapter_for(
+                arm,
+                bundles[task.task_id],
+                staging,
+                texts,
+                oracle_catalog,
+            )
             namespace = cell_namespace(args.namespace, task.task_id, 0, arm)
             specs[(task.task_id, arm)] = adapter.build_for_task(
                 run_dir / "cfg" / task.task_id / arm,
@@ -1544,6 +1701,12 @@ async def main() -> int:
                 "decision_protocol_pair": (
                     decision_protocol_pair_metadata(texts)
                     if args.memory_instruction == DECISION_PROTOCOL_PAIRED_VARIANT
+                    else None
+                ),
+                "oracle_ceiling_pair": (
+                    oracle_ceiling_pair_metadata(texts, oracle_catalog)
+                    if args.memory_instruction == ORACLE_CEILING_PAIRED_VARIANT
+                    and oracle_catalog is not None
                     else None
                 ),
                 "shared_tool_prefix_groups": [

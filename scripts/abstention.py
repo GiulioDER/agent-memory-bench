@@ -70,6 +70,10 @@ RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS = (
     "recall_graph_fulltools_protocol",
     "recall_graph_fulltools_decision_protocol",
 )
+RECALL_ORACLE_CEILING_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "oracle_memory",
+)
 RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
     {
         "recall_graph_fulltools",
@@ -674,13 +678,18 @@ def main() -> int:
     valid_single = len(arms) == 1 and arms[0] in recall_only_arms
     valid_official014_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS
     valid_official015_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS
+    valid_official016_pair = tuple(arms) == RECALL_ORACLE_CEILING_PAIRED_ARMS
     if args.recall_only and not (
-        valid_single or valid_official014_pair or valid_official015_pair
+        valid_single
+        or valid_official014_pair
+        or valid_official015_pair
+        or valid_official016_pair
     ):
         raise SystemExit(
             "--recall-only requires one standard RE-call arm or exactly one preregistered pair: "
             f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS} or "
-            f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS}"
+            f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS} or "
+            f"{RECALL_ORACLE_CEILING_PAIRED_ARMS}"
         )
     if not args.recall_only and "bare" not in arms:
         raise SystemExit(
