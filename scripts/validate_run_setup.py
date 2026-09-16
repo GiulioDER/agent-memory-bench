@@ -83,6 +83,14 @@ QUALITY_GATE_CONTROL_SHA256 = (
 QUALITY_GATE_APPENDIX_SHA256 = (
     "fb8295ddf00d2b4573c7f622cc2086688e418124d8cb294de972ae18cd1a5a07"
 )
+DECISION_PROTOCOL_PAIRED_VARIANT = "decision_protocol_paired"
+DECISION_PROTOCOL_PAIRED_ARMS = [
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_decision_protocol",
+]
+DECISION_PROTOCOL_TREATMENT_SHA256 = (
+    "a3ccb2af267521cc71886d999abb81cf39a29d97e6aebfd1ed5672b8022cb907"
+)
 
 _MARKS = {True: "PASS", False: "FAIL", None: "SKIP"}
 
@@ -125,6 +133,12 @@ def check_corpus_reached(env: dict, floor: int) -> Check:
 def check_shared_protocol_identical(env: dict) -> Check:
     """`bytes - excess` must be one number. Arithmetic on the manifest, trusting no flag."""
 
+    if env.get("memory_instruction") == DECISION_PROTOCOL_PAIRED_VARIANT:
+        return Check(
+            "shared_protocol_identical",
+            None,
+            "official-015 compares two complete frozen skills rather than shared appendices",
+        )
     excess = env.get("instruction_excess_bytes") or {}
     arms = _instruction_arms(env)
     if not arms or not excess:
@@ -151,6 +165,12 @@ def check_arms_matched_flag(env: dict) -> Check:
             None,
             "official-014 intentionally adds one frozen appendix to the treatment arm",
         )
+    if env.get("memory_instruction") == DECISION_PROTOCOL_PAIRED_VARIANT:
+        return Check(
+            "instruction_arms_matched",
+            None,
+            "official-015 intentionally compares two different complete frozen skills",
+        )
     if env.get("memory_instruction") == "quality":
         return Check(
             "instruction_arms_matched",
@@ -169,6 +189,12 @@ def check_appendix_proportion(env: dict, max_fraction: float) -> Check:
             "appendix_proportion",
             None,
             "official-014 uses its preregistered 1,257 byte appendix, checked by digest",
+        )
+    if env.get("memory_instruction") == DECISION_PROTOCOL_PAIRED_VARIANT:
+        return Check(
+            "appendix_proportion",
+            None,
+            "official-015 treatment is a complete skill, not a protocol appendix",
         )
     if env.get("memory_instruction") == "quality":
         return Check(
@@ -285,6 +311,41 @@ def check_quality_gate_pair(env: dict) -> Check:
     )
 
 
+def check_decision_protocol_pair(env: dict) -> Check:
+    """Verify official-015's two complete instructions and shared surface declaration."""
+
+    if env.get("memory_instruction") != DECISION_PROTOCOL_PAIRED_VARIANT:
+        return Check("decision_protocol_pair", None, "official-015 paired variant not selected")
+    block = env.get("decision_protocol_pair")
+    if not isinstance(block, dict):
+        return Check("decision_protocol_pair", False, "decision_protocol_pair metadata missing")
+    expected = {
+        "arms": DECISION_PROTOCOL_PAIRED_ARMS,
+        "control_bytes": 3924,
+        "control_sha256": QUALITY_GATE_CONTROL_SHA256,
+        "treatment_bytes": 1725,
+        "treatment_sha256": DECISION_PROTOCOL_TREATMENT_SHA256,
+    }
+    wrong = {
+        key: (value, block.get(key))
+        for key, value in expected.items()
+        if block.get(key) != value
+    }
+    if wrong:
+        return Check("decision_protocol_pair", False, f"frozen treatment mismatch: {wrong}")
+    if env.get("shared_tool_prefix_groups") != [DECISION_PROTOCOL_PAIRED_ARMS]:
+        return Check(
+            "decision_protocol_pair",
+            False,
+            "the paired aliases are not the sole declared shared tool prefix group",
+        )
+    return Check(
+        "decision_protocol_pair",
+        True,
+        "control and compact treatment digests match the official-015 preregistration",
+    )
+
+
 def check_claude_mem_preflight(env: dict) -> Check:
     """Require Claude-Mem's MCP server and one real search before model spend."""
 
@@ -339,6 +400,7 @@ def validate(
         check_sandbox_outside_repo(env),
         check_recall_preflight(env),
         check_quality_gate_pair(env),
+        check_decision_protocol_pair(env),
         check_claude_mem_preflight(env),
     ]
 

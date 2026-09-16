@@ -26,8 +26,15 @@ class RecallGraphFullToolsQualityGateAdapter(RecallGraphFullToolsAdapter):
     name = "recall_graph_fulltools_quality_gate"
 
 
+class RecallGraphFullToolsDecisionProtocolAdapter(RecallGraphFullToolsAdapter):
+    """Official-015's frozen compact search-first decision protocol."""
+
+    name = "recall_graph_fulltools_decision_protocol"
+
+
 __all__ = [
     "RecallGraphFullToolsAdapter",
+    "RecallGraphFullToolsDecisionProtocolAdapter",
     "RecallGraphFullToolsProtocolAdapter",
     "RecallGraphFullToolsQualityGateAdapter",
 ]

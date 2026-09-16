@@ -66,8 +66,16 @@ RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
     "recall_graph_fulltools_protocol",
     "recall_graph_fulltools_quality_gate",
 )
+RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_decision_protocol",
+)
 RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
-    {"recall_graph_fulltools", *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS}
+    {
+        "recall_graph_fulltools",
+        *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,
+        *RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,
+    }
 )
 
 # Tasks retired from the harm suite on 2026-08-30 because **no arm has ever failed them**, across
@@ -590,8 +598,8 @@ def main() -> int:
     parser.add_argument(
         "--recall-only",
         action="store_true",
-        help="run the corpus conditions with one RE-call arm or the preregistered official-014 "
-        "pair; this does not report bare-paired AMB harm/benefit endpoints",
+        help="run the corpus conditions with one RE-call arm or a preregistered paired RE-call "
+        "experiment; this does not report bare-paired AMB harm/benefit endpoints",
     )
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1, help="corpus assembly seed")
@@ -665,10 +673,14 @@ def main() -> int:
     }
     valid_single = len(arms) == 1 and arms[0] in recall_only_arms
     valid_official014_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS
-    if args.recall_only and not (valid_single or valid_official014_pair):
+    valid_official015_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS
+    if args.recall_only and not (
+        valid_single or valid_official014_pair or valid_official015_pair
+    ):
         raise SystemExit(
-            "--recall-only requires one standard RE-call arm or exactly the official-014 pair "
-            f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS}"
+            "--recall-only requires one standard RE-call arm or exactly one preregistered pair: "
+            f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS} or "
+            f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS}"
         )
     if not args.recall_only and "bare" not in arms:
         raise SystemExit(

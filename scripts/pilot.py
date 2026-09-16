@@ -68,6 +68,7 @@ from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
 from adapters.recall_graph_fulltools.adapter import (
     RecallGraphFullToolsAdapter,
+    RecallGraphFullToolsDecisionProtocolAdapter,
     RecallGraphFullToolsProtocolAdapter,
     RecallGraphFullToolsQualityGateAdapter,
 )
@@ -142,15 +143,20 @@ from scripts.validate_run_setup import validate as validate_setup
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
     "recall_graph_rerank", "recall_graph_fulltools", "recall_graph_fulltools_protocol",
-    "recall_graph_fulltools_quality_gate",
+    "recall_graph_fulltools_quality_gate", "recall_graph_fulltools_decision_protocol",
     "mempalace", "recall_prefetch", "cachly", "graphiti", "supermemory", "claude_mem",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM = "recall_graph_fulltools_protocol"
 RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM = "recall_graph_fulltools_quality_gate"
+RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM = "recall_graph_fulltools_decision_protocol"
 RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
     RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
     RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM,
+)
+RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS = (
+    RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
+    RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM,
 )
 RECALL_GRAPH_FULLTOOLS_CONTROL_SHA256 = (
     "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
@@ -158,8 +164,15 @@ RECALL_GRAPH_FULLTOOLS_CONTROL_SHA256 = (
 RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_SHA256 = (
     "fb8295ddf00d2b4573c7f622cc2086688e418124d8cb294de972ae18cd1a5a07"
 )
+RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_SHA256 = (
+    "a3ccb2af267521cc71886d999abb81cf39a29d97e6aebfd1ed5672b8022cb907"
+)
 RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
-    {"recall_graph_fulltools", *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS}
+    {
+        "recall_graph_fulltools",
+        *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,
+        *RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,
+    }
 )
 RECALL_ARMS = frozenset(
     {"recall", "recall_rerank", "recall_graph_rerank", *RECALL_GRAPH_FULLTOOLS_ARMS}
@@ -363,12 +376,35 @@ def quality_gate_pair_metadata(texts: Mapping[str, str]) -> dict[str, Any]:
     }
 
 
+def recall_decision_protocol_instruction() -> str:
+    """Return official-015's exact preregistered search-first protocol."""
+
+    return (REPO / "adapters" / "recall" / "skill-decision-protocol.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def decision_protocol_pair_metadata(texts: Mapping[str, str]) -> dict[str, Any]:
+    """Record both complete frozen instructions for official-015."""
+
+    control = texts.get(RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM, "")
+    treatment = texts.get(RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM, "")
+    return {
+        "arms": list(RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS),
+        "control_bytes": len(control.encode("utf-8")),
+        "control_sha256": hashlib.sha256(control.encode("utf-8")).hexdigest(),
+        "treatment_bytes": len(treatment.encode("utf-8")),
+        "treatment_sha256": hashlib.sha256(treatment.encode("utf-8")).hexdigest(),
+    }
+
+
 #: Variants where every memory arm carries one shared protocol byte for byte, so the fairness
 #: assertion is meaningful and a run is a comparison between PRODUCTS. `draft` is preregistration
 #: 024's variant and differs from `protocol` in exactly one section, generated rather than written.
 #: `skill` and `oneliner` are not here: they exist to reproduce runs that were never matched.
 SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
 QUALITY_GATE_PAIRED_VARIANT = "quality_gate_paired"
+DECISION_PROTOCOL_PAIRED_VARIANT = "decision_protocol_paired"
 
 
 def validate_quality_gate_pair(variant: str, arms: tuple[str, ...]) -> None:
@@ -383,9 +419,23 @@ def validate_quality_gate_pair(variant: str, arms: tuple[str, ...]) -> None:
         )
 
 
+def validate_decision_protocol_pair(variant: str, arms: tuple[str, ...]) -> None:
+    """Keep official-015's whole-skill treatment inside its frozen paired roster."""
+
+    if variant != DECISION_PROTOCOL_PAIRED_VARIANT:
+        return
+    if len(arms) != 2 or set(arms) != set(RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS):
+        raise ValueError(
+            f"{DECISION_PROTOCOL_PAIRED_VARIANT!r} requires exactly "
+            f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS}, got {arms}"
+        )
+
+
 def recall_preflight_request(arm: str, query: str) -> tuple[str, dict[str, Any]]:
     """Return the real read request that must pass before model spend."""
 
+    if arm == RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM:
+        return "recall_search", {"query": query, "limit": 1}
     if arm == "recall_graph_rerank" or arm in RECALL_GRAPH_FULLTOOLS_ARMS:
         return (
             "recall_reasoning_query",
@@ -419,6 +469,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     """
 
     validate_quality_gate_pair(variant, arms)
+    validate_decision_protocol_pair(variant, arms)
     shared = variant in SHARED_PROTOCOL_VARIANTS
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
@@ -444,6 +495,10 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     if RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM in texts:
         texts[RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM] = (
             recall_graph_quality_gate_instruction()
+        )
+    if RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM in texts:
+        texts[RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM] = (
+            recall_decision_protocol_instruction()
         )
     if "fs_grep" in texts:
         texts["fs_grep"] = (
@@ -572,6 +627,10 @@ def adapter_for(
         )
     if arm == RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM:
         return RecallGraphFullToolsQualityGateAdapter(
+            staging, static, instruction=texts.get(arm) or None
+        )
+    if arm == RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM:
+        return RecallGraphFullToolsDecisionProtocolAdapter(
             staging, static, instruction=texts.get(arm) or None
         )
     if arm == "mempalace":
@@ -872,7 +931,7 @@ async def main() -> int:
         dest="memory_instruction",
         choices=(
             "oneliner", "skill", "quality", "protocol", "draft",
-            QUALITY_GATE_PAIRED_VARIANT,
+            QUALITY_GATE_PAIRED_VARIANT, DECISION_PROTOCOL_PAIRED_VARIANT,
         ),
         default="oneliner",
         help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
@@ -984,6 +1043,7 @@ async def main() -> int:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
     try:
         validate_quality_gate_pair(args.memory_instruction, run_arms)
+        validate_decision_protocol_pair(args.memory_instruction, run_arms)
     except ValueError as error:
         raise SystemExit(str(error)) from None
     if "protocol" in run_arms and args.memory_instruction not in SHARED_PROTOCOL_VARIANTS:
@@ -1391,11 +1451,12 @@ async def main() -> int:
                 flush=True,
             )
 
-    shared_tool_prefix_groups = (
-        (RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,)
-        if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT
-        else ()
-    )
+    if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT:
+        shared_tool_prefix_groups = (RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,)
+    elif args.memory_instruction == DECISION_PROTOCOL_PAIRED_VARIANT:
+        shared_tool_prefix_groups = (RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,)
+    else:
+        shared_tool_prefix_groups = ()
     signals = with_forbidden_prefixes(
         {
             arm: replace(
@@ -1478,6 +1539,11 @@ async def main() -> int:
                 "quality_gate_pair": (
                     quality_gate_pair_metadata(texts)
                     if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT
+                    else None
+                ),
+                "decision_protocol_pair": (
+                    decision_protocol_pair_metadata(texts)
+                    if args.memory_instruction == DECISION_PROTOCOL_PAIRED_VARIANT
                     else None
                 ),
                 "shared_tool_prefix_groups": [
