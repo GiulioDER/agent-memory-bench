@@ -66,7 +66,11 @@ except ModuleNotFoundError as exc:
     GraphitiAdapter = None
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
-from adapters.recall_graph_fulltools.adapter import RecallGraphFullToolsAdapter
+from adapters.recall_graph_fulltools.adapter import (
+    RecallGraphFullToolsAdapter,
+    RecallGraphFullToolsProtocolAdapter,
+    RecallGraphFullToolsQualityGateAdapter,
+)
 from adapters.recall_graph_rerank.adapter import RecallGraphRerankAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
@@ -137,18 +141,35 @@ from scripts.validate_run_setup import validate as validate_setup
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
-    "recall_graph_rerank", "recall_graph_fulltools",
+    "recall_graph_rerank", "recall_graph_fulltools", "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_quality_gate",
     "mempalace", "recall_prefetch", "cachly", "graphiti", "supermemory", "claude_mem",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
+RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM = "recall_graph_fulltools_protocol"
+RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM = "recall_graph_fulltools_quality_gate"
+RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
+    RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
+    RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM,
+)
+RECALL_GRAPH_FULLTOOLS_CONTROL_SHA256 = (
+    "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
+)
+RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_SHA256 = (
+    "fb8295ddf00d2b4573c7f622cc2086688e418124d8cb294de972ae18cd1a5a07"
+)
+RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
+    {"recall_graph_fulltools", *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS}
+)
 RECALL_ARMS = frozenset(
-    {"recall", "recall_rerank", "recall_graph_rerank", "recall_graph_fulltools"}
+    {"recall", "recall_rerank", "recall_graph_rerank", *RECALL_GRAPH_FULLTOOLS_ARMS}
 )
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
 MEMORY_ARMS = frozenset(
     {
-        "fs_grep", "recall", "recall_rerank", "recall_graph_rerank", "recall_graph_fulltools",
+        "fs_grep", "recall", "recall_rerank", "recall_graph_rerank",
+        *RECALL_GRAPH_FULLTOOLS_ARMS,
         "mempalace", "cachly", "graphiti",
         "supermemory", "claude_mem",
     }
@@ -310,11 +331,71 @@ def recall_graph_fulltools_instruction(variant: str, *, neutral: bool = False) -
     raise ValueError(f"unknown recall instruction variant {variant!r}")
 
 
+def recall_graph_quality_gate_instruction() -> str:
+    """The exact official-012 control followed only by official-014's frozen appendix."""
+
+    control = recall_graph_fulltools_instruction("protocol")
+    appendix = (REPO / "adapters" / "recall" / "skill-quality-gate.md").read_text(
+        encoding="utf-8"
+    ).strip()
+    return control + "\n" + appendix
+
+
+def quality_gate_pair_metadata(texts: Mapping[str, str]) -> dict[str, Any]:
+    """Prove the treatment is exactly the frozen control plus one frozen appendix."""
+
+    control = texts.get(RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM, "")
+    treatment = texts.get(RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM, "")
+    # The control already ends with one newline. One additional newline creates the blank line
+    # before the appendix while preserving every control byte as the exact treatment prefix.
+    separator = "\n"
+    prefix_matches = treatment.startswith(control + separator)
+    appendix = treatment.removeprefix(control + separator) if prefix_matches else ""
+    return {
+        "arms": list(RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS),
+        "control_bytes": len(control.encode("utf-8")),
+        "control_sha256": hashlib.sha256(control.encode("utf-8")).hexdigest(),
+        "treatment_bytes": len(treatment.encode("utf-8")),
+        "treatment_sha256": hashlib.sha256(treatment.encode("utf-8")).hexdigest(),
+        "treatment_prefix_matches_control": prefix_matches,
+        "appendix_bytes": len(appendix.encode("utf-8")),
+        "appendix_sha256": hashlib.sha256(appendix.encode("utf-8")).hexdigest(),
+    }
+
+
 #: Variants where every memory arm carries one shared protocol byte for byte, so the fairness
 #: assertion is meaningful and a run is a comparison between PRODUCTS. `draft` is preregistration
 #: 024's variant and differs from `protocol` in exactly one section, generated rather than written.
 #: `skill` and `oneliner` are not here: they exist to reproduce runs that were never matched.
 SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
+QUALITY_GATE_PAIRED_VARIANT = "quality_gate_paired"
+
+
+def validate_quality_gate_pair(variant: str, arms: tuple[str, ...]) -> None:
+    """Keep the preregistered treatment from leaking into another roster."""
+
+    if variant != QUALITY_GATE_PAIRED_VARIANT:
+        return
+    if len(arms) != 2 or set(arms) != set(RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS):
+        raise ValueError(
+            f"{QUALITY_GATE_PAIRED_VARIANT!r} requires exactly "
+            f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS}, got {arms}"
+        )
+
+
+def recall_preflight_request(arm: str, query: str) -> tuple[str, dict[str, Any]]:
+    """Return the real read request that must pass before model spend."""
+
+    if arm == "recall_graph_rerank" or arm in RECALL_GRAPH_FULLTOOLS_ARMS:
+        return (
+            "recall_reasoning_query",
+            {
+                "query": query,
+                "graph_expansion": "one_hop",
+                "expand_retrieval": False,
+            },
+        )
+    return "recall_search", {"query": query, "limit": 1}
 
 
 def _graphiti_adapter():
@@ -337,6 +418,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     matched, and the assertion is skipped with that stated in the artifact.
     """
 
+    validate_quality_gate_pair(variant, arms)
     shared = variant in SHARED_PROTOCOL_VARIANTS
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
@@ -354,6 +436,14 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     if "recall_graph_fulltools" in texts:
         texts["recall_graph_fulltools"] = recall_graph_fulltools_instruction(
             variant, neutral=neutral
+        )
+    if RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM in texts:
+        texts[RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM] = recall_graph_fulltools_instruction(
+            "protocol"
+        )
+    if RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM in texts:
+        texts[RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM] = (
+            recall_graph_quality_gate_instruction()
         )
     if "fs_grep" in texts:
         texts["fs_grep"] = (
@@ -475,8 +565,14 @@ def adapter_for(
             staging, static, instruction=texts.get("recall_graph_rerank") or None
         )
     if arm == "recall_graph_fulltools":
-        return RecallGraphFullToolsAdapter(
-            staging, static, instruction=texts.get("recall_graph_fulltools") or None
+        return RecallGraphFullToolsAdapter(staging, static, instruction=texts.get(arm) or None)
+    if arm == RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM:
+        return RecallGraphFullToolsProtocolAdapter(
+            staging, static, instruction=texts.get(arm) or None
+        )
+    if arm == RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM:
+        return RecallGraphFullToolsQualityGateAdapter(
+            staging, static, instruction=texts.get(arm) or None
         )
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
@@ -774,7 +870,10 @@ async def main() -> int:
         "--memory-instruction",
         "--recall-instruction",
         dest="memory_instruction",
-        choices=("oneliner", "skill", "quality", "protocol", "draft"),
+        choices=(
+            "oneliner", "skill", "quality", "protocol", "draft",
+            QUALITY_GATE_PAIRED_VARIANT,
+        ),
         default="oneliner",
         help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
         "`draft` are the matched variants: each gives every memory arm one shared protocol plus "
@@ -883,6 +982,10 @@ async def main() -> int:
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
+    try:
+        validate_quality_gate_pair(args.memory_instruction, run_arms)
+    except ValueError as error:
+        raise SystemExit(str(error)) from None
     if "protocol" in run_arms and args.memory_instruction not in SHARED_PROTOCOL_VARIANTS:
         raise SystemExit(
             "the `protocol` arm is the instruction-only control for the shared memory protocol, "
@@ -1147,26 +1250,15 @@ async def main() -> int:
     refuse_shared_prompts(prompt_hashes)
 
     recall_preflight: dict[str, Any] = {"status": "not_required"}
-    if "recall" in run_arms:
+    if recall_arm is not None:
         # This is a real MCP tools/call, not only a process handshake. An empty result is valid,
         # because an empty corpus response is a successful retrieval; a transport or server error
         # is not. The result is written into environment.json before setup validation refuses a
         # broken run, so the refusal remains auditable.
         spec = specs[(tasks[0].task_id, recall_arm)]
         required = [name.removeprefix(RECALL_PREFIX) for name in spec.extra_allowed_tools]
-        probe_tool = (
-            "recall_reasoning_query"
-            if recall_arm in {"recall_graph_rerank", "recall_graph_fulltools"}
-            else "recall_search"
-        )
-        probe_arguments = (
-            {
-                "query": tasks[0].prompt,
-                "graph_expansion": "one_hop",
-                "expand_retrieval": False,
-            }
-            if recall_arm in {"recall_graph_rerank", "recall_graph_fulltools"}
-            else {"query": tasks[0].prompt, "limit": 1}
+        probe_tool, probe_arguments = recall_preflight_request(
+            recall_arm, tasks[0].prompt
         )
         try:
             _, memory_capability = issue_session_capabilities(
@@ -1377,6 +1469,11 @@ async def main() -> int:
                     texts, neutral=args.neutral_protocol
                 ),
                 "instruction_arms_matched": args.memory_instruction == "protocol",
+                "quality_gate_pair": (
+                    quality_gate_pair_metadata(texts)
+                    if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT
+                    else None
+                ),
                 "placebo_length_metric": "whitespace_tokens_and_lines",
                 "placebo_length_match": {
                     task_id: length_metadata(

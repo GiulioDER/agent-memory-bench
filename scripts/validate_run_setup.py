@@ -72,6 +72,17 @@ DEFAULT_CORPUS_FLOOR = 4000
 
 #: See the module docstring: 0.33 sits between the confounded run (0.56) and the fair one (0.25).
 DEFAULT_MAX_APPENDIX_FRACTION = 0.33
+QUALITY_GATE_PAIRED_VARIANT = "quality_gate_paired"
+QUALITY_GATE_PAIRED_ARMS = [
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_quality_gate",
+]
+QUALITY_GATE_CONTROL_SHA256 = (
+    "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
+)
+QUALITY_GATE_APPENDIX_SHA256 = (
+    "fb8295ddf00d2b4573c7f622cc2086688e418124d8cb294de972ae18cd1a5a07"
+)
 
 _MARKS = {True: "PASS", False: "FAIL", None: "SKIP"}
 
@@ -134,6 +145,12 @@ def check_shared_protocol_identical(env: dict) -> Check:
 
 
 def check_arms_matched_flag(env: dict) -> Check:
+    if env.get("memory_instruction") == QUALITY_GATE_PAIRED_VARIANT:
+        return Check(
+            "instruction_arms_matched",
+            None,
+            "official-014 intentionally adds one frozen appendix to the treatment arm",
+        )
     if env.get("memory_instruction") == "quality":
         return Check(
             "instruction_arms_matched",
@@ -147,6 +164,12 @@ def check_arms_matched_flag(env: dict) -> Check:
 
 
 def check_appendix_proportion(env: dict, max_fraction: float) -> Check:
+    if env.get("memory_instruction") == QUALITY_GATE_PAIRED_VARIANT:
+        return Check(
+            "appendix_proportion",
+            None,
+            "official-014 uses its preregistered 1,257 byte appendix, checked by digest",
+        )
     if env.get("memory_instruction") == "quality":
         return Check(
             "appendix_proportion",
@@ -193,7 +216,9 @@ def check_sandbox_outside_repo(env: dict) -> Check:
 def check_recall_preflight(env: dict) -> Check:
     """Require direct pilot runs to prove generation, MCP startup, and one real search."""
 
-    if "recall" not in (env.get("arms") or []):
+    arms = env.get("arms") or []
+    recall_arms = [arm for arm in arms if str(arm).startswith("recall")]
+    if not recall_arms:
         return Check("recall_preflight", None, "recall arm not present")
     preflight = env.get("recall_preflight")
     if not isinstance(preflight, dict):
@@ -215,12 +240,42 @@ def check_recall_preflight(env: dict) -> Check:
             False,
             f"required tools missing from observed surface: {sorted(required - observed)}",
         )
-    if preflight.get("search") != "tools/call recall_search succeeded":
-        return Check("recall_preflight", False, "no successful recall_search call recorded")
+    graph = any("graph" in str(arm) for arm in recall_arms)
+    tool = "recall_reasoning_query" if graph else "recall_search"
+    expected = f"tools/call {tool} succeeded"
+    observed_probe = preflight.get("probe") or preflight.get("search")
+    if observed_probe != expected:
+        return Check("recall_preflight", False, f"expected {expected!r}, got {observed_probe!r}")
     return Check(
         "recall_preflight",
         True,
-        f"MCP up, {len(observed)} tool(s), and one recall_search call succeeded",
+        f"MCP up, {len(observed)} tool(s), and one {tool} call succeeded",
+    )
+
+
+def check_quality_gate_pair(env: dict) -> Check:
+    """Verify the official-014 treatment is exactly the frozen control plus appendix."""
+
+    if env.get("memory_instruction") != QUALITY_GATE_PAIRED_VARIANT:
+        return Check("quality_gate_pair", None, "official-014 paired variant not selected")
+    block = env.get("quality_gate_pair")
+    if not isinstance(block, dict):
+        return Check("quality_gate_pair", False, "quality_gate_pair metadata missing")
+    expected = {
+        "arms": QUALITY_GATE_PAIRED_ARMS,
+        "control_bytes": 3924,
+        "control_sha256": QUALITY_GATE_CONTROL_SHA256,
+        "treatment_prefix_matches_control": True,
+        "appendix_bytes": 1257,
+        "appendix_sha256": QUALITY_GATE_APPENDIX_SHA256,
+    }
+    wrong = {key: (value, block.get(key)) for key, value in expected.items() if block.get(key) != value}
+    if wrong:
+        return Check("quality_gate_pair", False, f"frozen treatment mismatch: {wrong}")
+    return Check(
+        "quality_gate_pair",
+        True,
+        "control digest, exact prefix and 1,257 byte appendix match the preregistration",
     )
 
 
@@ -277,6 +332,7 @@ def validate(
         check_expected(env, "memory_instruction", expect_instruction, "expected_instruction"),
         check_sandbox_outside_repo(env),
         check_recall_preflight(env),
+        check_quality_gate_pair(env),
         check_claude_mem_preflight(env),
     ]
 

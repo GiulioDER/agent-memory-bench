@@ -62,6 +62,13 @@ from scripts.assemble_condition_corpus import (
 )
 
 CORPUS = REPO / "corpus"
+RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_quality_gate",
+)
+RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
+    {"recall_graph_fulltools", *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS}
+)
 
 # Tasks retired from the harm suite on 2026-08-30 because **no arm has ever failed them**, across
 # every run in this repository plus official-001. A task nobody fails can record neither damage
@@ -154,7 +161,7 @@ def ingest_recall(
     if dry_run:
         print(f"[dry-run] would ingest {corpus_root} into tenant {namespace}")
         return None
-    if arm == "recall_graph_fulltools":
+    if arm in RECALL_GRAPH_FULLTOOLS_ARMS:
         from adapters.recall_graph_fulltools.adapter import RecallGraphFullToolsAdapter as Adapter
     elif arm == "recall_graph_rerank":
         from adapters.recall_graph_rerank.adapter import RecallGraphRerankAdapter as Adapter
@@ -194,7 +201,7 @@ def preflight_recall(
     if dry_run:
         print(f"[dry-run] would preflight the recall MCP server for {namespace}")
         return
-    if arm == "recall_graph_fulltools":
+    if arm in RECALL_GRAPH_FULLTOOLS_ARMS:
         from adapters.recall_graph_fulltools.adapter import RecallGraphFullToolsAdapter as Adapter
     elif arm == "recall_graph_rerank":
         from adapters.recall_graph_rerank.adapter import RecallGraphRerankAdapter as Adapter
@@ -300,8 +307,8 @@ def run_condition(args, condition: str) -> Path:
     namespace = f"{args.namespace}-{condition}"
     recall_arms = args.arms.split(",")
     ingest_arm = (
-        "recall_graph_fulltools"
-        if "recall_graph_fulltools" in recall_arms
+        next(arm for arm in recall_arms if arm in RECALL_GRAPH_FULLTOOLS_ARMS)
+        if any(arm in RECALL_GRAPH_FULLTOOLS_ARMS for arm in recall_arms)
         else "recall_graph_rerank"
         if "recall_graph_rerank" in recall_arms
         else "recall_rerank"
@@ -313,7 +320,7 @@ def run_condition(args, condition: str) -> Path:
             "recall",
             "recall_rerank",
             "recall_graph_rerank",
-            "recall_graph_fulltools",
+            *RECALL_GRAPH_FULLTOOLS_ARMS,
         }
         for arm in recall_arms
     ):
@@ -382,7 +389,7 @@ MEMORY_ARMS = frozenset(
         "recall",
         "recall_rerank",
         "recall_graph_rerank",
-        "recall_graph_fulltools",
+        *RECALL_GRAPH_FULLTOOLS_ARMS,
         "mempalace",
         "fs_grep",
         "cachly",
@@ -583,8 +590,8 @@ def main() -> int:
     parser.add_argument(
         "--recall-only",
         action="store_true",
-        help="run the five corpus conditions with one RE-call arm; this is a standalone "
-        "RE-call evaluation and does not report bare-paired AMB harm/benefit endpoints",
+        help="run the corpus conditions with one RE-call arm or the preregistered official-014 "
+        "pair; this does not report bare-paired AMB harm/benefit endpoints",
     )
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1, help="corpus assembly seed")
@@ -656,10 +663,12 @@ def main() -> int:
         "recall_graph_rerank",
         "recall_graph_fulltools",
     }
-    if args.recall_only and (len(arms) != 1 or arms[0] not in recall_only_arms):
+    valid_single = len(arms) == 1 and arms[0] in recall_only_arms
+    valid_official014_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS
+    if args.recall_only and not (valid_single or valid_official014_pair):
         raise SystemExit(
-            "--recall-only requires exactly one RE-call arm: recall, recall_rerank, "
-            "or recall_graph_rerank or recall_graph_fulltools"
+            "--recall-only requires one standard RE-call arm or exactly the official-014 pair "
+            f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS}"
         )
     if not args.recall_only and "bare" not in arms:
         raise SystemExit(

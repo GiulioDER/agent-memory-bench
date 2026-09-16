@@ -14,5 +14,20 @@ class RecallGraphFullToolsAdapter(RecallAdapter):
     config_path = Path(__file__).with_name("config.frozen.json")
 
 
-__all__ = ["RecallGraphFullToolsAdapter"]
+class RecallGraphFullToolsProtocolAdapter(RecallGraphFullToolsAdapter):
+    """Official-014's contemporaneous protocol control."""
 
+    name = "recall_graph_fulltools_protocol"
+
+
+class RecallGraphFullToolsQualityGateAdapter(RecallGraphFullToolsAdapter):
+    """Official-014's protocol plus the frozen quality gate."""
+
+    name = "recall_graph_fulltools_quality_gate"
+
+
+__all__ = [
+    "RecallGraphFullToolsAdapter",
+    "RecallGraphFullToolsProtocolAdapter",
+    "RecallGraphFullToolsQualityGateAdapter",
+]
