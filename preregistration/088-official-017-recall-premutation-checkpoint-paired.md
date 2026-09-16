@@ -205,3 +205,8 @@ of misreporting an empty tool surface.
 The failed smoke attempts stopped at generation, policy or broker setup gates and spent no model
 session. This correction changes neither arm, prompt, query, retrieval limit, evidence payload,
 task, seed, checker, corpus nor prediction above.
+
+The first completed one-cell smoke then confirmed exactly one private checkpoint marker and an
+admitted session, but showed that the existing publication minimizer omitted the new bounded
+checkpoint fields. The public allowlist now retains only the preregistered diagnostic object and
+its counts; raw permission denials, queries, evidence text and mutation inputs remain private.
