@@ -296,6 +296,10 @@ def recall_graph_fulltools_instruction(variant: str, *, neutral: bool = False) -
         if text.startswith("---"):
             text = text.split("---", 2)[2]
         return text.strip() + "\n\n" + RECALL_GRAPH_FULLTOOLS_SENTENCE + "\n"
+    if variant == "quality":
+        return (REPO / "adapters" / "recall" / "skill-quality.md").read_text(
+            encoding="utf-8"
+        ).strip()
     if variant in SHARED_PROTOCOL_VARIANTS:
         return instructions.compose(
             "recall_graph_fulltools",
@@ -770,7 +774,7 @@ async def main() -> int:
         "--memory-instruction",
         "--recall-instruction",
         dest="memory_instruction",
-        choices=("oneliner", "skill", "protocol", "draft"),
+        choices=("oneliner", "skill", "quality", "protocol", "draft"),
         default="oneliner",
         help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
         "`draft` are the matched variants: each gives every memory arm one shared protocol plus "
