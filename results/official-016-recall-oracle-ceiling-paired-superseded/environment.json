@@ -1,0 +1,340 @@
+{
+  "run_id": "official-016-recall-oracle-ceiling-paired-superseded",
+  "model": "deepseek/deepseek-v4-flash",
+  "base_url": "https://openrouter.ai/api",
+  "execution_mode": "rootless-docker",
+  "runtime_name": "docker",
+  "participant_image_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+  "checker_image_digest": "sha256:d993e22e1453f05dd02d56fa29289f50be778c27d463857fa141348335274f07",
+  "isolation_policy_digest": "0b4ea4ffb04738200c6af182e688670ce4befb2ff5960a250e77a41f0df69dd9",
+  "network_policy_digest": "sha256:1c525e95987ba6d234eeeac53c355b7114ec1b48a4e41d37275e4b8d8db8e0ef",
+  "participant_isolation_verified": true,
+  "oracle_visible_to_participant": false,
+  "arms": [
+    "recall_graph_fulltools_protocol",
+    "oracle_memory"
+  ],
+  "memory_instruction": "oracle_ceiling_paired",
+  "condition": "superseded",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "oracle_memory": {
+      "bytes": 0,
+      "chars": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "recall_graph_fulltools_protocol": {
+      "bytes": 3924,
+      "chars": 3924,
+      "sha256": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
+    }
+  },
+  "instruction_excess_bytes": {
+    "oracle_memory": 0,
+    "recall_graph_fulltools_protocol": 452
+  },
+  "instruction_arms_matched": false,
+  "quality_gate_pair": null,
+  "decision_protocol_pair": null,
+  "oracle_ceiling_pair": {
+    "arms": [
+      "recall_graph_fulltools_protocol",
+      "oracle_memory"
+    ],
+    "control_bytes": 3924,
+    "control_sha256": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8",
+    "oracle_instruction_bytes": 0,
+    "catalog_sha256": "322cd2331c8b1c6ed0e01eb293f6dd562088a016c6b31c25d304efe46ef5dad6",
+    "bundle_count": 9,
+    "item_count": 9,
+    "task_ids": [
+      "ts-base36-id",
+      "ts-bom-merge",
+      "ts-golden-regen",
+      "ts-ignore-gen",
+      "ts-legacy-hash",
+      "ts-mig-name",
+      "ts-schema-additive",
+      "ts-semver-pin",
+      "ts-tz-utc"
+    ]
+  },
+  "shared_tool_prefix_groups": [],
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "recall_graph_fulltools_protocol": {
+      "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+      "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+      "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+      "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+      "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+      "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+      "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+      "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+      "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+    },
+    "oracle_memory": {
+      "ts-base36-id": "bb16ecc1922d484da5c601a2bc346809c55b6e0ba1c80f9ce329392b0a2d5661",
+      "ts-bom-merge": "70d97ad81fb72479d74b90c3ff5503b9095d792a5a83949f92b5b6c17a47c223",
+      "ts-golden-regen": "288a7b65119bb86fac826cdf66d0e608bb392fbd11a3e77e922b0e1f1095bb35",
+      "ts-ignore-gen": "c8b7d880dfae9cb45e15d5cc913fa8edcded7fe975b3c14ff7473a1a83b6a3f5",
+      "ts-legacy-hash": "1a1923beefeb0adfcaed35e0ad9159282c87b2d7ba4bf143b5b147223188e0ed",
+      "ts-mig-name": "c69cfb7e95c2190a3d553b598cf8d3719879ca352609789dbb802f0d0f956704",
+      "ts-schema-additive": "c66437bbd1370db40607d67970a0bf9b3d8c435e2000fc735ccd7672de73aeeb",
+      "ts-semver-pin": "ad4d8f0d091b358198eb2e6a6afc6a69980792892019a38bb67489933d26ff71",
+      "ts-tz-utc": "e9820d33efa14f0e3368287d14bc1bce6e63731fada52359a2e9f0f5fe35aef9"
+    }
+  },
+  "namespace": "amb-graph-rerank-official-010-superseded",
+  "cell_namespace_policy": {
+    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion"
+  },
+  "work_root": "external-disposable-storage",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "recall_graph_fulltools_protocol": {
+      "arm": "recall_graph_fulltools_protocol",
+      "memory": "static+retrieved",
+      "config_sha256": "60ca046979be796dc342f6d5e89c53b1b975cb8add1d1ded6a19ec6d65a93519",
+      "package_pin": "recall-rag[fastembed,mcp,voyage]==0.13.0"
+    },
+    "oracle_memory": {
+      "arm": "oracle_memory",
+      "memory": "corpus backed ceiling control",
+      "catalog_sha256": "322cd2331c8b1c6ed0e01eb293f6dd562088a016c6b31c25d304efe46ef5dad6"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "recall_graph_fulltools_protocol",
+      "namespace": "amb-graph-rerank-official-010-superseded",
+      "sessions_offered": 206,
+      "items_stored": 1219,
+      "wall_time_ms": 0.0,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": null,
+      "notes": [
+        "verified remote generation gen_80e1dc8089054da4a816da333a0c998c active             pipeline=ea1f10610e645de",
+        "corpus fingerprint 5a090d3c0809f751b2b3f62a2eda5b666a50413e902594d7d7c983af0e0f3766"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "passed",
+    "server": "recall",
+    "required_tools": [
+      "recall_apply_fact",
+      "recall_calibration_publish",
+      "recall_calibration_run",
+      "recall_calibration_status",
+      "recall_current_facts",
+      "recall_current_state",
+      "recall_evidence",
+      "recall_forget",
+      "recall_index",
+      "recall_ingest",
+      "recall_inventory",
+      "recall_job_status",
+      "recall_query_construction_challenge",
+      "recall_reasoning_audit",
+      "recall_reasoning_projection",
+      "recall_reasoning_proposals",
+      "recall_reasoning_query",
+      "recall_related",
+      "recall_rewrite_plan",
+      "recall_search",
+      "recall_stats",
+      "recall_tenants"
+    ],
+    "tools_observed": [
+      "recall_search",
+      "recall_evidence",
+      "recall_current_facts",
+      "recall_apply_fact",
+      "recall_related",
+      "recall_current_state",
+      "recall_reasoning_query",
+      "recall_query_construction_challenge",
+      "recall_reasoning_projection",
+      "recall_reasoning_proposals",
+      "recall_rewrite_plan",
+      "recall_reasoning_audit",
+      "recall_index",
+      "recall_tenants",
+      "recall_ingest",
+      "recall_job_status",
+      "recall_calibration_status",
+      "recall_calibration_run",
+      "recall_calibration_publish",
+      "recall_forget",
+      "recall_inventory",
+      "recall_stats"
+    ],
+    "probe": "tools/call recall_reasoning_query succeeded"
+  },
+  "claude_mem_preflight": {
+    "status": "not_required"
+  },
+  "graphiti_preflight": {
+    "status": "not_required"
+  },
+  "provider_data_policy": {
+    "schema_version": 1,
+    "data_classification": "synthetic-only",
+    "providers": [
+      "openrouter",
+      "voyage"
+    ],
+    "retention": "zero",
+    "training": false,
+    "reuse": false,
+    "policy_sha256": "fd60146f31351062e9b499c8219657087739dde6702cc8f61c5a31085df81342"
+  },
+  "admission_signals": {
+    "oracle_memory": {
+      "arm": "oracle_memory",
+      "mcp_tool_prefixes": [],
+      "required_hooks": [],
+      "sandbox_paths": [],
+      "prompt_sha256": null,
+      "forbidden_prefixes": [
+        "mcp__recall__"
+      ],
+      "metadata": {
+        "diagnostic_kind": "oracle_memory",
+        "catalog_sha256": "322cd2331c8b1c6ed0e01eb293f6dd562088a016c6b31c25d304efe46ef5dad6",
+        "bundle_digests": {
+          "bundle_ts-base36-id": "8841033dd8c8fed5546ae93bf66b7599afc24845bf48c26640718ebd6ddf999f",
+          "bundle_ts-bom-merge": "32b73388a0a16965a101ecfd6bfc27baa329fb237581ad977ec5e0e555920a38",
+          "bundle_ts-golden-regen": "f46d24924e423220a38259ada658b16364f8392ffa897d71388619271a2c0aaa",
+          "bundle_ts-ignore-gen": "a86cd303e3dfa25bdc10ab317fdbe4a2e87b2be509b2cc9233f9b5acf1ea4b04",
+          "bundle_ts-legacy-hash": "320ca6a6e6c8de59f00d7c7545d36a1b78b096b573f41f8db1982a7bea3a026d",
+          "bundle_ts-mig-name": "9a64ef2583bb6bd8ab1935a2d657120b8ff356f4d9626d93211aed3cac61d751",
+          "bundle_ts-schema-additive": "56a97a86d2329ef29aea0f4a1c00284df5ea61aea45cd4f5ab2ef21ba4d00071",
+          "bundle_ts-semver-pin": "42df6e54a9df9d0dc4fbfbf1e6dab836c851a083d985691264a5a34f97561bd6",
+          "bundle_ts-tz-utc": "fe7eee1a61d46320cd00cfe692c2a4aa7c35c9572e6164837aa6ac0f4b652174"
+        },
+        "prompt_sha256_by_task": {
+          "ts-base36-id": "bb16ecc1922d484da5c601a2bc346809c55b6e0ba1c80f9ce329392b0a2d5661",
+          "ts-bom-merge": "70d97ad81fb72479d74b90c3ff5503b9095d792a5a83949f92b5b6c17a47c223",
+          "ts-golden-regen": "288a7b65119bb86fac826cdf66d0e608bb392fbd11a3e77e922b0e1f1095bb35",
+          "ts-ignore-gen": "c8b7d880dfae9cb45e15d5cc913fa8edcded7fe975b3c14ff7473a1a83b6a3f5",
+          "ts-legacy-hash": "1a1923beefeb0adfcaed35e0ad9159282c87b2d7ba4bf143b5b147223188e0ed",
+          "ts-mig-name": "c69cfb7e95c2190a3d553b598cf8d3719879ca352609789dbb802f0d0f956704",
+          "ts-schema-additive": "c66437bbd1370db40607d67970a0bf9b3d8c435e2000fc735ccd7672de73aeeb",
+          "ts-semver-pin": "ad4d8f0d091b358198eb2e6a6afc6a69980792892019a38bb67489933d26ff71",
+          "ts-tz-utc": "e9820d33efa14f0e3368287d14bc1bce6e63731fada52359a2e9f0f5fe35aef9"
+        }
+      }
+    },
+    "recall_graph_fulltools_protocol": {
+      "arm": "recall_graph_fulltools_protocol",
+      "mcp_tool_prefixes": [
+        "mcp__recall__"
+      ],
+      "required_hooks": [],
+      "sandbox_paths": [],
+      "prompt_sha256": null,
+      "forbidden_prefixes": [],
+      "metadata": {
+        "prompt_sha256_by_task": {
+          "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+          "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+          "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+          "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+          "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+          "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+          "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+          "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+          "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+        }
+      }
+    }
+  },
+  "adjudication": {
+    "schema": "amb-adjudication-receipt-v1",
+    "required": true,
+    "challenge_version": 1,
+    "challenge_id": "74981986-ee06-4b4f-b1c9-8679b1605876",
+    "nonce": "whyduad3XToyVxbRdgxsL63KBgujQJVAUA6UyiFMrCs",
+    "runner_image_digest": "sha256:fe029bc864585bc2d453757d293eff168047151a093b79a63a3a6d2169c0e34f",
+    "participant_agent_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+    "oracle_version": "sha256:abb63a2e9259db22927b0c4c55c9db9bb9a7d691543bf69671daf2dc5fb3c83b",
+    "event_log": "execution-events.jsonl",
+    "receipt": "adjudication.receipt.json"
+  }
+}

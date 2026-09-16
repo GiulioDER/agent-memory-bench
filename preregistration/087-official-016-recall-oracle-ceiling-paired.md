@@ -116,3 +116,73 @@ The ceiling is considered absent for this task set if the oracle has fewer than 
 initial-skill lane remains stopped in that case even if the oracle reduces cost or wrong-fact rate.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Results (2026-09-16)
+
+The preregistered run completed all 90 participant sessions and all 90 checker evaluations. The
+trusted setup and receipt verification passed. Of the 45 possible paired cells, 43 were admitted.
+Two cells were discarded symmetrically from the paired endpoint because one participant record was
+missing or unusable: `ts-base36-id` seed 4 in the oracle arm and `ts-tz-utc` seed 1 in the control
+arm. The 43 admitted oracle records all carried one validated task bundle with the same frozen
+catalog digest. The oracle exposed no memory tools and made no memory calls.
+
+Two pre-measurement corrections were required. The first launch was refused before any participant
+session because host location values contained literal quote characters. The next preflight exposed
+that `--tasks` incorrectly reduced corpus construction from 206 to 205 session files. The harness
+was corrected so task selection limits only the measured grid, while corpus construction continues
+to use all 206 frozen session files. No participant session ran before either correction. The final
+corpus fingerprint was
+`5a090d3c0809f751b2b3f62a2eda5b666a50413e902594d7d7c983af0e0f3766`, identical to the frozen
+comparison corpus.
+
+### Primary paired outcome
+
+| Outcome | Cells |
+|---|---:|
+| Both succeed | 27 |
+| Oracle only succeeds | 15 |
+| Control only succeeds | 1 |
+| Both fail | 0 |
+| Net oracle wins | +14 |
+
+The control succeeded on 28 of 43 admitted cells, 65.1 percent. The oracle succeeded on 42 of 43,
+97.7 percent. The paired success difference was +0.3256, or +32.6 percentage points. This exceeds
+the preregistered minimum of three net wins by a wide margin.
+
+Task-level oracle-only wins were distributed across seven tasks: four on `ts-base36-id`, three on
+`ts-golden-regen`, one on `ts-ignore-gen`, two on `ts-legacy-hash`, two on `ts-mig-name`, two on
+`ts-semver-pin`, and one on `ts-tz-utc`. The sole control-only result was on `ts-golden-regen`.
+
+### Safety, exposure, cost and reliability
+
+The oracle applied zero wrong facts. The control applied a wrong fact in 3 of 43 admitted cells,
+7.0 percent. Control searched in 39 of 43 admitted cells, 90.7 percent, and in 41 of all 45 control
+sessions, 91.1 percent. Its maximum observed memory call count was three. The oracle made zero
+memory calls by construction.
+
+The full run consumed 6,435,745 tokens and an estimated $0.3813. The oracle used 1,077,566 tokens
+and $0.0669, versus 5,358,179 tokens and $0.3144 for the control. Across all sessions, mean input
+tokens were 21,973.7 for oracle and 116,427.7 for control; mean wall time was 65.7 seconds for oracle
+and 95.7 seconds for control. Each arm had one participant error, so the oracle was not less
+reliable than the control on the preregistered criterion.
+
+### Frozen prediction disposition
+
+| Prediction | Result |
+|---|---|
+| At least three net paired oracle wins | Passed: +14 |
+| Oracle success advantage at least 0.067 | Passed: +0.3256 |
+| Zero oracle superseded-fact applications | Passed: zero wrong facts |
+| Validated bundle, no oracle tools, frozen control surface | Passed |
+| Control search rate at least 0.80 | Passed: 0.907 admitted |
+| Oracle participant errors or timeouts no greater than control | Passed: one participant error per arm |
+| Oracle token and wall-time ceilings | Passed |
+
+### Decision
+
+The ceiling is present and large. Correct task-specific memory materially improves task success,
+eliminates observed wrong-fact application, and reduces cost when delivered outside the autonomous
+search path. The next experiment should therefore leave the general initial-skill lane stopped and
+test an architectural bridge that retrieves and injects context-rich evidence before the first
+repository mutation. It should isolate whether a pre-mutation checkpoint can recover a meaningful
+fraction of the oracle gain without granting the treatment oracle bundle selection.
