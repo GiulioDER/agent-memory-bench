@@ -2,8 +2,9 @@
 
 The official AMB broker is shared with Graphiti on VPS2.  RE-call exposes MCP over stdio, so this
 small controller-side bridge keeps the participant-facing broker boundary while maintaining one
-RE-call process per signed namespace.  It is deliberately read-only and filters the advertised
-surface to the frozen adapter allow-list.
+RE-call process per signed namespace. The full-tools benchmark surface is filtered to the frozen
+adapter allow-list; task instructions, capability scopes and the store's own authorization remain
+the mutation boundary.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from harness.broker import (  # noqa: E402
+from harness.broker import (
     BrokerApplication,
     BrokerError,
     BrokerHTTPServer,
@@ -31,11 +32,24 @@ from harness.broker import (  # noqa: E402
     SignedCapabilityAuthority,
 )
 
-
 TOOLS = frozenset(
     {
+        "recall_apply_fact",
+        "recall_calibration_publish",
+        "recall_calibration_run",
+        "recall_calibration_status",
+        "recall_current_facts",
+        "recall_current_state",
         "recall_search",
         "recall_evidence",
+        "recall_forget",
+        "recall_index",
+        "recall_ingest",
+        "recall_inventory",
+        "recall_job_status",
+        "recall_related",
+        "recall_rewrite_plan",
+        "recall_query_construction_challenge",
         "recall_reasoning_query",
         "recall_reasoning_projection",
         "recall_reasoning_proposals",
@@ -113,9 +127,18 @@ class RecallProcess:
             raise BrokerError("RE-call process exited")
         request_id = self._next_id
         self._next_id += 1
+        request: dict[str, Any] = {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": method,
+        }
+        # The current MCP SDK treats `tools/list` with an explicit empty params object as an
+        # unknown method. Omit the optional field when it carries nothing, matching the direct
+        # preflight client and the protocol examples.
+        if params:
+            request["params"] = params
         self.proc.stdin.write(
-            json.dumps({"jsonrpc": "2.0", "id": request_id, "method": method, "params": params})
-            + "\n"
+            json.dumps(request) + "\n"
         )
         self.proc.stdin.flush()
         deadline = time.monotonic() + 180.0
@@ -130,6 +153,10 @@ class RecallProcess:
             except json.JSONDecodeError as error:
                 raise BrokerError("RE-call emitted malformed JSON") from error
             if isinstance(reply, dict) and reply.get("id") == request_id:
+                if "error" in reply:
+                    error = reply.get("error")
+                    message = error.get("message") if isinstance(error, dict) else error
+                    raise BrokerError(f"RE-call rejected {method}: {message}")
                 return reply
         raise BrokerError(f"RE-call timed out on {method}")
 

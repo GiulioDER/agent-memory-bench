@@ -191,3 +191,17 @@ placebo while preserving the safety bound, the next step is to simplify and prod
 before widening the task set.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Pre-run wiring correction, 2026-09-16
+
+No measured participant session had started when the smoke gate found two broker compatibility
+defects. The publishable checkout still carried the old eight-tool broker allowlist even though the
+live full-tools broker and frozen adapter declared 22 tools. The source allowlist was restored to
+those exact 22 names and is now tested against `config.frozen.json`. Separately, the current MCP
+SDK rejects `tools/list` when the optional `params` field is present as an empty object. The bridge
+now omits empty parameters and turns upstream JSON-RPC errors into explicit broker failures instead
+of misreporting an empty tool surface.
+
+The failed smoke attempts stopped at generation, policy or broker setup gates and spent no model
+session. This correction changes neither arm, prompt, query, retrieval limit, evidence payload,
+task, seed, checker, corpus nor prediction above.
