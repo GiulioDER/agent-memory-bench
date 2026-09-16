@@ -40,6 +40,7 @@ import asyncio
 import hashlib
 import json
 import os
+import shutil
 import sys
 import time
 from collections.abc import Mapping
@@ -65,6 +66,8 @@ except ModuleNotFoundError as exc:
     GraphitiAdapter = None
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.recall_graph_fulltools.adapter import RecallGraphFullToolsAdapter
+from adapters.recall_graph_rerank.adapter import RecallGraphRerankAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
@@ -79,6 +82,7 @@ from harness.adapters.base import (
 )
 from harness.adapters.registry import AdapterRegistry
 from harness.adjudication import (
+    Challenge,
     RuntimeEventLog,
     adjudicate_run,
     admission_signal_snapshot,
@@ -105,12 +109,17 @@ from harness.decision_trace import (
 )
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
-from harness.isolation import default_participant_policy, run_isolated_claude_case
+from harness.io import read_jsonl
+from harness.isolation import (
+    default_participant_policy,
+    run_isolated_checker,
+    run_isolated_claude_case,
+)
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
 from harness.runner import run_grid
-from harness.tasks import discover_tasks, run_checker
+from harness.tasks import discover_tasks
 from scripts.validate_run_setup import validate as validate_setup
 
 #: Every arm this runner knows how to build. `protocol` and `fs_grep` joined on 2026-08-28,
@@ -128,14 +137,19 @@ from scripts.validate_run_setup import validate as validate_setup
 #: condition-aware bundles, which is corpus work rather than wiring.
 ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
+    "recall_graph_rerank", "recall_graph_fulltools",
     "mempalace", "recall_prefetch", "cachly", "graphiti", "supermemory", "claude_mem",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
+RECALL_ARMS = frozenset(
+    {"recall", "recall_rerank", "recall_graph_rerank", "recall_graph_fulltools"}
+)
 
 #: Arms whose treatment is a memory surface, and which therefore share the memory protocol.
 MEMORY_ARMS = frozenset(
     {
-        "fs_grep", "recall", "recall_rerank", "mempalace", "cachly", "graphiti",
+        "fs_grep", "recall", "recall_rerank", "recall_graph_rerank", "recall_graph_fulltools",
+        "mempalace", "cachly", "graphiti",
         "supermemory", "claude_mem",
     }
 )
@@ -153,6 +167,16 @@ BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
 DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
 RECALL_CONFIG = json.loads(
     (REPO / "adapters" / "recall" / "config.frozen.json").read_text(encoding="utf-8")
+)
+RECALL_GRAPH_CONFIG = json.loads(
+    (REPO / "adapters" / "recall_graph_rerank" / "config.frozen.json").read_text(
+        encoding="utf-8"
+    )
+)
+RECALL_GRAPH_FULLTOOLS_CONFIG = json.loads(
+    (REPO / "adapters" / "recall_graph_fulltools" / "config.frozen.json").read_text(
+        encoding="utf-8"
+    )
 )
 RECALL_PREFIX = str(RECALL_CONFIG["tool_prefix"])
 CLAUDE_MEM_CONFIG = json.loads(
@@ -175,6 +199,22 @@ GENERIC_RULES = (
 RECALL_SEARCH_SENTENCE = (
     "This project keeps a searchable memory of past work sessions; search it with the "
     f"`{RECALL_PREFIX}recall_search` tool before acting."
+)
+
+RECALL_GRAPH_SENTENCE = (
+    "This arm measures RE-call graph retrieval; when memory is relevant, call the "
+    f"`{RECALL_PREFIX}recall_reasoning_query` tool with `graph_expansion=one_hop` and "
+    "`expand_retrieval=false` before acting. The ordinary recall_search tool does not exercise "
+    "the graph path."
+)
+
+RECALL_GRAPH_FULLTOOLS_SENTENCE = (
+    "This arm measures RE-call graph retrieval. Before acting in every session, call the "
+    f"`{RECALL_PREFIX}recall_reasoning_query` tool with `graph_expansion=one_hop` and "
+    "`expand_retrieval=false`, even if the task appears straightforward or memory seems "
+    "irrelevant. This graph call is the required first memory operation. After it returns, use "
+    "the available read and navigation tools when useful; do not mutate or ingest the memory "
+    "store during the coding task."
 )
 
 #: The instruction-only control arm's slot. It has no memory layer, so it is pointed at the only
@@ -217,6 +257,55 @@ def recall_instruction(variant: str, *, neutral: bool = False) -> str:
     raise ValueError(f"unknown recall instruction variant {variant!r}")
 
 
+def recall_graph_instruction(variant: str, *, neutral: bool = False) -> str:
+    """The graph arm's route-specific instruction.
+
+    A normal ``recall_search`` call cannot exercise graph expansion. The route is therefore named
+    explicitly and its two frozen arguments are stated in the arm instruction. This is an intended
+    treatment difference, recorded in the graph arm config and preregistration, rather than a
+    hidden prompt drift.
+    """
+
+    if variant == "oneliner":
+        return str(RECALL_GRAPH_CONFIG["instruction"]).format(
+            server=RECALL_GRAPH_CONFIG["server_name"],
+            tool=f"{RECALL_PREFIX}recall_reasoning_query",
+        )
+    if variant == "skill":
+        text = (REPO / "adapters" / "recall" / "skill.md").read_text(encoding="utf-8")
+        if text.startswith("---"):
+            text = text.split("---", 2)[2]
+        return text.replace("recall_search", "recall_reasoning_query").strip() + "\n\n" + RECALL_GRAPH_SENTENCE
+    if variant in SHARED_PROTOCOL_VARIANTS:
+        return instructions.compose(
+            "recall_graph_rerank", RECALL_GRAPH_SENTENCE, neutral=neutral, variant=variant
+        )
+    raise ValueError(f"unknown recall instruction variant {variant!r}")
+
+
+def recall_graph_fulltools_instruction(variant: str, *, neutral: bool = False) -> str:
+    """The tested skill prompt plus an unconditional graph-first requirement."""
+
+    if variant == "oneliner":
+        return str(RECALL_GRAPH_FULLTOOLS_CONFIG["instruction"]).format(
+            server=RECALL_GRAPH_FULLTOOLS_CONFIG["server_name"],
+            tool=f"{RECALL_PREFIX}recall_reasoning_query",
+        )
+    if variant == "skill":
+        text = (REPO / "adapters" / "recall" / "skill.md").read_text(encoding="utf-8")
+        if text.startswith("---"):
+            text = text.split("---", 2)[2]
+        return text.strip() + "\n\n" + RECALL_GRAPH_FULLTOOLS_SENTENCE + "\n"
+    if variant in SHARED_PROTOCOL_VARIANTS:
+        return instructions.compose(
+            "recall_graph_fulltools",
+            RECALL_GRAPH_FULLTOOLS_SENTENCE,
+            neutral=neutral,
+            variant=variant,
+        )
+    raise ValueError(f"unknown recall instruction variant {variant!r}")
+
+
 #: Variants where every memory arm carries one shared protocol byte for byte, so the fairness
 #: assertion is meaningful and a run is a comparison between PRODUCTS. `draft` is preregistration
 #: 024's variant and differs from `protocol` in exactly one section, generated rather than written.
@@ -254,6 +343,14 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         # function makes that true by construction, where a second appendix file could drift and
         # the drift would show up as a reranker effect.
         texts["recall_rerank"] = recall_instruction(variant, neutral=neutral)
+    if "recall_graph_rerank" in texts:
+        # Graph retrieval has a distinct MCP route. If this arm received the ordinary search
+        # sentence, its graph would be ingested but never queried by the measured agent.
+        texts["recall_graph_rerank"] = recall_graph_instruction(variant, neutral=neutral)
+    if "recall_graph_fulltools" in texts:
+        texts["recall_graph_fulltools"] = recall_graph_fulltools_instruction(
+            variant, neutral=neutral
+        )
     if "fs_grep" in texts:
         texts["fs_grep"] = (
             FsGrepAdapter.shared_instruction(neutral=neutral, variant=variant)
@@ -368,6 +465,14 @@ def adapter_for(
     if arm == "recall_rerank":
         return RecallRerankAdapter(
             staging, static, instruction=texts.get("recall_rerank") or None
+        )
+    if arm == "recall_graph_rerank":
+        return RecallGraphRerankAdapter(
+            staging, static, instruction=texts.get("recall_graph_rerank") or None
+        )
+    if arm == "recall_graph_fulltools":
+        return RecallGraphFullToolsAdapter(
+            staging, static, instruction=texts.get("recall_graph_fulltools") or None
         )
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
@@ -644,6 +749,21 @@ async def main() -> int:
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
     parser.add_argument("--base-url", default="https://openrouter.ai/api")
     parser.add_argument("--seeds", type=int, default=3)
+    parser.add_argument(
+        "--seed-values",
+        default="",
+        help="exact comma-separated seed values to run; useful only for a controlled continuation",
+    )
+    parser.add_argument(
+        "--continue-existing",
+        action="store_true",
+        help="continue an existing partial run using its challenge and runtime event log",
+    )
+    parser.add_argument(
+        "--finalize-existing",
+        action="store_true",
+        help="rebuild signals and artifacts for an existing completed grid without running cells",
+    )
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--namespace", default="bench-recall-pilot")
     parser.add_argument(
@@ -727,6 +847,23 @@ async def main() -> int:
     add_pricing_arguments(parser)
     args = parser.parse_args()
 
+    if args.seed_values:
+        try:
+            seed_values = [int(value.strip()) for value in args.seed_values.split(",") if value.strip()]
+        except ValueError as error:
+            raise SystemExit("--seed-values must be comma-separated integers") from error
+        if not seed_values or len(seed_values) != len(set(seed_values)):
+            raise SystemExit("--seed-values must contain at least one unique seed")
+        if any(seed < 0 or seed >= args.seeds for seed in seed_values):
+            raise SystemExit("--seed-values must be within 0..seeds-1")
+    else:
+        seed_values = list(range(args.seeds))
+    if args.finalize_existing and args.continue_existing:
+        raise SystemExit("--finalize-existing already implies --continue-existing")
+    continuation = args.continue_existing or args.finalize_existing
+    if continuation and args.dry_run:
+        raise SystemExit("continuation modes cannot be combined with --dry-run")
+
     if args.emit_decision_stages and not args.emit_decisions:
         raise SystemExit("--emit-decision-stages requires --emit-decisions")
 
@@ -757,7 +894,7 @@ async def main() -> int:
     # any session or query, so requiring a database there defeats the point of having a cheap
     # check: it made `--dry-run --arms bare,recall` impossible anywhere the database was not
     # already up, which is exactly where you most want to check a command line first.
-    if "recall" in run_arms and not args.dry_run and not os.environ.get("RECALL_DSN"):
+    if RECALL_ARMS.intersection(run_arms) and not args.dry_run and not os.environ.get("RECALL_DSN"):
         raise SystemExit("RECALL_DSN is not set; the recall arm has no corpus")
     if "graphiti" in run_arms and not args.dry_run:
         missing = []
@@ -827,9 +964,9 @@ async def main() -> int:
 
     if args.dry_run:
         # Placed BEFORE the run directory is created, so a dry run touches nothing at all.
-        sessions = len(tasks) * args.seeds * len(run_arms)
+        sessions = len(tasks) * len(seed_values) * len(run_arms)
         manifest = instructions.instruction_manifest(texts)
-        print(f"[dry-run] run-id {args.run_id}, model {args.model}, seeds {args.seeds}")
+        print(f"[dry-run] run-id {args.run_id}, model {args.model}, seeds {seed_values}")
         print(f"[dry-run] arms   {list(run_arms)}")
         print(f"[dry-run] instruction variant {args.memory_instruction!r}, "
               f"neutral={args.neutral_protocol}")
@@ -850,10 +987,21 @@ async def main() -> int:
         )
 
     run_dir = REPO / "results" / args.run_id
-    if (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
+    existing_records = []
+    if continuation:
+        required = ("challenge.json", "execution-events.jsonl", "records.final.jsonl")
+        missing = [name for name in required if not (run_dir / name).is_file()]
+        if missing:
+            raise SystemExit(f"cannot continue {run_dir}; missing {missing}")
+        existing_records = read_jsonl(run_dir / "records.final.jsonl")
+        if args.continue_existing:
+            repair_cells = {(task.task_id, seed) for task in tasks for seed in seed_values}
+            existing_records = [
+                record for record in existing_records if record.cell not in repair_cells
+            ]
+    elif (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
     work_root = Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
-    (work_root / "private-streams").mkdir(parents=True, exist_ok=True)
     _refuse_a_dirty_work_root(work_root, args.run_id)
     staging = work_root / "staging"
 
@@ -870,18 +1018,29 @@ async def main() -> int:
             "AMB_RUNNER_IMAGE_DIGEST, AMB_PARTICIPANT_AGENT_DIGEST, and "
             "AMB_ADJUDICATOR_SIGNING_KEY_FILE, and AMB_ADJUDICATOR_LEDGER_FILE"
         )
-    challenge = issue_challenge(
-        run_dir,
-        run_id=args.run_id,
-        runner_image_digest=runner_image_digest,
-        participant_agent_digest=participant_agent_digest,
-        oracle_version=f"sha256:{tree_digest(REPO / 'oracles')}",
-    )
+    if continuation:
+        try:
+            challenge = Challenge.from_mapping(
+                json.loads((run_dir / "challenge.json").read_text(encoding="utf-8"))
+            )
+        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+            raise SystemExit(f"existing challenge is unreadable: {run_dir / 'challenge.json'}") from error
+        if challenge.run_id != args.run_id:
+            raise SystemExit("existing challenge belongs to a different run id")
+    else:
+        challenge = issue_challenge(
+            run_dir,
+            run_id=args.run_id,
+            runner_image_digest=runner_image_digest,
+            participant_agent_digest=participant_agent_digest,
+            oracle_version=f"sha256:{tree_digest(REPO / 'oracles')}",
+        )
     event_log = RuntimeEventLog(run_dir / "execution-events.jsonl", challenge)
-    event_log.append(
-        "run_started",
-        {"task_count": len(tasks), "seed_count": args.seeds, "arms": list(run_arms)},
-    )
+    if not continuation:
+        event_log.append(
+            "run_started",
+            {"task_count": len(tasks), "seed_count": args.seeds, "arms": list(run_arms)},
+        )
 
     bundles = {
         task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, texts)
@@ -893,10 +1052,10 @@ async def main() -> int:
     # against the frozen corpus manifest; fs_grep's render is local, cheap and reproducible here.
     ingest_reports: list[IngestReport] = []
     corpus = CorpusManifest.load(corpus_root) if (
-        "recall" in run_arms or any(arm in run_arms for arm in SELF_INGESTING_ARMS)
+        RECALL_ARMS.intersection(run_arms) or any(arm in run_arms for arm in SELF_INGESTING_ARMS)
     ) else None
     self_ingesting = [arm for arm in SELF_INGESTING_ARMS if arm in run_arms]
-    if self_ingesting:
+    if not args.finalize_existing and self_ingesting:
         assert corpus is not None
         for arm in self_ingesting:
             print(f"[ingest] {arm} from {corpus_root}", flush=True)
@@ -907,7 +1066,7 @@ async def main() -> int:
                 flush=True,
             )
             ingest_reports.append(report)
-    if "claude_mem" in self_ingesting:
+    if not args.finalize_existing and "claude_mem" in self_ingesting:
         claude_mem_namespaces = tuple(
             cell_namespace(args.namespace, task.task_id, seed, "claude_mem")
             for task in tasks
@@ -916,14 +1075,15 @@ async def main() -> int:
         registry.get("claude_mem").isolate_cell_namespaces(
             args.namespace, claude_mem_namespaces
         )
-    if "recall" in run_arms:
+    recall_arm = next((arm for arm in run_arms if arm in RECALL_ARMS), None)
+    if not args.finalize_existing and recall_arm is not None:
         # Recall is indexed out of band, but a run still has to prove here that its tenant serves
         # the active generation built from THIS frozen manifest. Previously pilot.py skipped this
         # check because the abstention wrapper happened to perform it, leaving direct pilot runs
         # able to spend against a missing or stale tenant.
         assert corpus is not None
         print(f"[verify] recall generation for {args.namespace}", flush=True)
-        report = registry.get("recall").ingest(corpus, args.namespace)
+        report = registry.get(recall_arm).ingest(corpus, args.namespace)
         ingest_reports.append(report)
         print(
             f"[verify] recall: {report.notes[-1] if report.notes else 'generation verified'}",
@@ -988,31 +1148,51 @@ async def main() -> int:
         # because an empty corpus response is a successful retrieval; a transport or server error
         # is not. The result is written into environment.json before setup validation refuses a
         # broken run, so the refusal remains auditable.
-        spec = specs[(tasks[0].task_id, "recall")]
+        spec = specs[(tasks[0].task_id, recall_arm)]
         required = [name.removeprefix(RECALL_PREFIX) for name in spec.extra_allowed_tools]
+        probe_tool = (
+            "recall_reasoning_query"
+            if recall_arm in {"recall_graph_rerank", "recall_graph_fulltools"}
+            else "recall_search"
+        )
+        probe_arguments = (
+            {
+                "query": tasks[0].prompt,
+                "graph_expansion": "one_hop",
+                "expand_retrieval": False,
+            }
+            if recall_arm in {"recall_graph_rerank", "recall_graph_fulltools"}
+            else {"query": tasks[0].prompt, "limit": 1}
+        )
         try:
             _, memory_capability = issue_session_capabilities(
                 capability_issuer,
                 run_id=args.run_id,
                 task_id=tasks[0].task_id,
                 seed=0,
-                arm="recall",
+                arm=recall_arm,
                 namespace=args.namespace,
                 needs_memory=True,
             )
+            # The controller and participant run in different network namespaces on VPS2.  The
+            # participant-facing broker URL is a Docker DNS name; the controller preflight uses
+            # the explicit host-published endpoint when supplied.
             tools = probe_jsonrpc_endpoint(
-                os.environ.get("AMB_MEMORY_BROKER_URL", ""),
+                os.environ.get(
+                    "AMB_CONTROLLER_MEMORY_BROKER_URL",
+                    os.environ.get("AMB_MEMORY_BROKER_URL", ""),
+                ),
                 memory_capability or "",
                 tuple(required),
-                probe_tool="recall_search",
-                probe_arguments={"query": tasks[0].prompt, "limit": 1},
+                probe_tool=probe_tool,
+                probe_arguments=probe_arguments,
             )
             recall_preflight = {
                 "status": "passed",
                 "server": RECALL_CONFIG["server_name"],
                 "required_tools": required,
                 "tools_observed": tools,
-                "search": "tools/call recall_search succeeded",
+                "probe": f"tools/call {probe_tool} succeeded",
             }
             print(f"[preflight] recall MCP and search up: {len(tools)} tool(s)", flush=True)
         except Exception as exc:  # noqa: BLE001, the setup gate records the concrete refusal
@@ -1133,10 +1313,11 @@ async def main() -> int:
     )
     signal_snapshot = admission_signal_snapshot(signals)
     signal_digest = json_digest(signal_snapshot)
-    event_log.append(
-        "admission_signals",
-        {"signals_sha256": signal_digest, "arms": sorted(signal_snapshot)},
-    )
+    if not continuation:
+        event_log.append(
+            "admission_signals",
+            {"signals_sha256": signal_digest, "arms": sorted(signal_snapshot)},
+        )
 
     (run_dir / "environment.json").write_text(
         json.dumps(
@@ -1289,11 +1470,14 @@ async def main() -> int:
 
         spec = cell_specs[(task_id, seed, arm)]
         return ClaudeExecConfig(
+            # The participant image supplies /usr/local/bin/claude. The controller only needs a
+            # local executable to satisfy command construction; isolation.py replaces argv[0]
+            # with the image path before starting the container.
+            executable="/bin/true",
             model=args.model,
             cwd=cwd,
             timeout_s=args.timeout,
             env={**env, **spec.env},
-            public_container_env=spec.public_container_env,
             bare=spec.bare,
             config_dir=spec.config_dir,
             mcp_config=spec.mcp_config,
@@ -1387,7 +1571,11 @@ async def main() -> int:
                     "silent_completion_retries": silent_retries,
                 },
             )
-        ok, verdict = run_checker(by_id[task_id], workdir, isolated=True)
+        ok, verdict = run_isolated_checker(
+            task_id,
+            by_id[task_id].oracle_dir.parent,
+            workdir,
+        )
         event_log.append(
             "checker_completed",
             {
@@ -1466,29 +1654,36 @@ async def main() -> int:
             os.fsync(sink.fileno())
         return final
 
-    rows = [
-        {
-            "task_id": task.task_id,
-            "seed": seed,
-            "user_input": (
-                with_decision_output_instruction(
-                    task.prompt, staged=args.emit_decision_stages
-                )
-                if args.emit_decisions
-                else task.prompt
-            ),
-        }
-        for task in tasks
-        for seed in range(args.seeds)
-    ]
-    print(
-        f"[pilot] {len(rows)} cells x {len(run_arms)} arms = {len(rows) * len(run_arms)} sessions, "
-        f"model {args.model}",
-        flush=True,
-    )
-    started = time.monotonic()
-    records = await run_grid(rows, run_arms, runner, block_concurrency=block_concurrency())
-    wall_min = (time.monotonic() - started) / 60
+    if args.finalize_existing:
+        records = existing_records
+        wall_min = 0.0
+        print(f"[finalize] reusing {len(records)} existing records; no sessions executed", flush=True)
+    else:
+        rows = [
+            {
+                "task_id": task.task_id,
+                "seed": seed,
+                "user_input": (
+                    with_decision_output_instruction(
+                        task.prompt, staged=args.emit_decision_stages
+                    )
+                    if args.emit_decisions
+                    else task.prompt
+                ),
+            }
+            for task in tasks
+            for seed in seed_values
+        ]
+        print(
+            f"[pilot] {len(rows)} cells x {len(run_arms)} arms = {len(rows) * len(run_arms)} sessions, "
+            f"model {args.model}",
+            flush=True,
+        )
+        started = time.monotonic()
+        records = await run_grid(rows, run_arms, runner, block_concurrency=block_concurrency())
+        if existing_records:
+            records = [*existing_records, *records]
+        wall_min = (time.monotonic() - started) / 60
 
     write_public_jsonl(run_dir / "records.final.jsonl", records)
     report = admit_cells(records, signals, required_arms=run_arms)
@@ -1502,6 +1697,15 @@ async def main() -> int:
     admitted_cells = {record.cell: True for record in report.admitted}
     costs["efficiency"] = efficiency(records, admitted_cells=admitted_cells)
     (run_dir / "costs.json").write_text(json.dumps(costs, indent=2), encoding="utf-8")
+
+    # Raw streams are produced in disposable private storage while sessions run. Promote the
+    # completed evidence into the result boundary before adjudication hashes the run; otherwise
+    # a fully executed grid can be mistaken for an incomplete artifact set.
+    private_streams = work_root / "private-streams"
+    if not private_streams.is_dir() and not continuation:
+        raise SystemExit(f"private stream directory is missing: {private_streams}")
+    if private_streams.is_dir():
+        shutil.copytree(private_streams, run_dir / "streams", dirs_exist_ok=True)
 
     adjudicate_run(
         run_dir,
@@ -1526,10 +1730,12 @@ async def main() -> int:
             f"   {eff.get('mean_input_tokens_per_session', 0):>9.0f} in-tok/session"
             f"   {eff.get('successes_per_mtok_input') or 0:>6.1f} wins/Mtok"
         )
-    searches = [r for r in report.admitted if r.arm == "recall"]
+    searches = [r for r in report.admitted if r.arm in RECALL_ARMS]
     if searches:
-        search_rate = sum(1 for r in searches if r.memory_call_count > 0) / len(searches)
-        print(f"  recall search rate: {search_rate:.3f}")
+        for arm in sorted({r.arm for r in searches}):
+            arm_searches = [r for r in searches if r.arm == arm]
+            search_rate = sum(1 for r in arm_searches if r.memory_call_count > 0) / len(arm_searches)
+            print(f"  {arm} memory search rate: {search_rate:.3f}")
     print(f"  estimated spend: ${costs.get('estimated_usd')} ({costs['total_tokens']} tokens)")
     print(f"  adjudication receipt: {run_dir / 'adjudication.receipt.json'}")
     print(f"  artifacts: {run_dir}")

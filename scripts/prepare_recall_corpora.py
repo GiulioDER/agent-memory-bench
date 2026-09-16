@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shlex
 import shutil
@@ -43,6 +44,7 @@ if str(REPO) not in sys.path:
 from adapters.recall.adapter import corpus_fingerprint, resolve_location
 from harness.adapters.base import CorpusManifest, namespace_path, validate_namespace
 from harness.damage import CORPUS_CONDITIONS
+from harness.graph_metadata import GRAPH_METADATA_MODE, structural_graph_metadata
 from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus
 from scripts.abstention import selection_for
@@ -184,7 +186,8 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
     assemble(condition, seed, selection, corpus_root, haystack=haystack_root())
     corpus = CorpusManifest.load(corpus_root)
     corpus.verify()
-    fingerprint = corpus_fingerprint(corpus)
+    graph_mode = os.environ.get("AMB_RECALL_GRAPH_METADATA", "off").strip() or "off"
+    fingerprint = corpus_fingerprint(corpus, graph_mode=graph_mode)
     print(f"  corpus fingerprint {fingerprint[:16]}  ({len(corpus.sessions)} sessions)")
 
     stamp = ssh(f"cat {shlex.quote(_location('remote_root'))}/{shlex.quote(tenant)}.corpus")
@@ -202,8 +205,17 @@ def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
 
         shutil.rmtree(feed)
     _paths = [corpus_root / rel for rel in corpus.sessions]
+    graph = (
+        structural_graph_metadata(_paths, corpus_root)
+        if graph_mode == GRAPH_METADATA_MODE
+        else None
+    )
     written = render_corpus(
-        _paths, feed, root=corpus_root, lineage=lineage_from_env(_paths, corpus_root)
+        _paths,
+        feed,
+        root=corpus_root,
+        lineage=lineage_from_env(_paths, corpus_root),
+        graph=graph,
     )
     print(f"  rendered {written} file(s)")
 

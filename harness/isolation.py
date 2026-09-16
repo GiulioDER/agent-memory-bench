@@ -277,7 +277,6 @@ def archive_directory(
     if target.is_symlink() or (target.exists() and target.lstat().st_nlink > 1):
         raise ArchiveSafetyError(f"archive destination must not be a link: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    digest = hashlib.sha256()
     total_bytes = 0
     excluded = set(exclude_dirs)
     with tarfile.open(target, "w") as archive:
@@ -309,15 +308,25 @@ def archive_directory(
                     raise ArchiveSafetyError("directory contents exceed archive limit")
                 rel = _safe_member_name(path.relative_to(root).as_posix())
                 data = path.read_bytes()
-                digest.update(rel.encode("utf-8"))
-                digest.update(b"\0")
-                digest.update(data)
-                digest.update(b"\0")
                 info = tarfile.TarInfo(rel)
                 info.size = len(data)
                 info.mode = stat.st_mode & 0o777
                 info.mtime = 0
                 archive.addfile(info, io.BytesIO(data))
+    # Keep the returned digest byte-for-byte compatible with sandbox.tree_digest.  os.walk
+    # visits a directory's children before that directory's sibling files, while tree_digest
+    # sorts complete paths; the two orders differ for fixtures with both nested files and root
+    # files (notably ts-quote-shell), producing a false "workspace changed" refusal.
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        if any(part in excluded for part in relative.parts):
+            continue
+        if path.is_file():
+            digest.update(relative.as_posix().encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
     return target, digest.hexdigest()
 
 
@@ -497,7 +506,8 @@ def _stream_workspace_from_container(runtime: str, name: str, destination: Path)
             name,
             "sh",
             "-c",
-            "cd /workspace && find . -mindepth 1 -print0 | tar --null --files-from=- --create --file=-",
+            r"cd /workspace && find . -mindepth 1 \( -type f -o -type l -o -type d -empty \) "
+            "-print0 | tar --null --files-from=- --create --file=-",
         ],
         stdout=destination.open("wb"),
         stderr=subprocess.PIPE,
@@ -985,8 +995,6 @@ def run_isolated_claude_case(
     """
 
     from .claude_exec import ClaudeExecConfig, build_record
-    from .sandbox import export_container_input, extract_container_output
-
     if config.cwd is None:
         raise IsolationError("an isolated Claude case requires a workspace cwd")
     model_token = model_capability or os.environ.get("AMB_CAPABILITY_MODEL", "")
@@ -1006,11 +1014,11 @@ def run_isolated_claude_case(
     work_parent.mkdir(parents=True, exist_ok=True)
     input_archive = workspace_archive or work_parent / f".amb-input-{arm}-{int(row.get('seed', 0))}.tar"
     if workspace_archive is None:
-        export_container_input(
-            source_workspace,
-            input_archive,
-            workspace_digest=workspace_digest,
-        )
+        _archive, input_digest = archive_directory(source_workspace, input_archive)
+        if workspace_digest and input_digest != workspace_digest:
+            raise IsolationError(
+                "workspace digest changed while preparing the participant archive"
+            )
 
     with tempfile.TemporaryDirectory(prefix="amb-config-") as config_temp:
         config_archive, _mcp_path, _prompt_path = _copy_config_archive(
@@ -1019,8 +1027,11 @@ def run_isolated_claude_case(
         command = list(config.command(str(row.get("user_input", "")).strip()))
         if not command:
             raise IsolationError("Claude command is empty")
-        command[0] = "/usr/local/bin/claude"
         for index, value in enumerate(command):
+            if index == 0:
+                # argv[0] is supplied by the participant image, not a host path from the
+                # adapter. Rewrite it after validating the remaining user/config arguments.
+                continue
             if value == str(config.mcp_config):
                 command[index] = _container_path(value, directory="session", name="mcp.json")
             elif value == str(config.append_system_prompt_file):
@@ -1029,6 +1040,9 @@ def run_isolated_claude_case(
                 command[index] = "/session/claude-config"
             else:
                 command[index] = _rewrite_workspace_argument(value, source_workspace)
+        # The pinned participant image installs Claude Code at /usr/bin/claude. Keep this
+        # image-owned path explicit so the controller never depends on a host executable.
+        command[0] = "/usr/bin/claude"
         public_env = {
             str(key): str(value)
             for key, value in config.env.items()
@@ -1063,6 +1077,7 @@ def run_isolated_claude_case(
         participant_config = ClaudeExecConfig(
             model=config.model,
             memory_tool_prefix=config.memory_tool_prefix,
+            mcp_config="/session/mcp.json" if config.mcp_config is not None else None,
             strict_mcp_config=config.strict_mcp_config,
             bare=config.bare,
         )
@@ -1084,7 +1099,7 @@ def run_isolated_claude_case(
         result = run_isolated_session(spec)
         if result.output_archive is None:
             raise IsolationError("participant produced no workspace archive")
-        output_digest = extract_container_output(result.output_archive, source_workspace)
+        output_digest = extract_archive(result.output_archive, source_workspace, merge=True)
         stream = result.stdout
         if config.stream_dir is not None:
             stream_dir = Path(config.stream_dir)

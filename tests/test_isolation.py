@@ -22,6 +22,7 @@ from harness.isolation import (
     archive_directory,
     validate_archive,
 )
+from harness.sandbox import tree_digest
 
 
 def test_participant_policy_contains_the_nonnegotiable_controls(tmp_path: Path) -> None:
@@ -237,6 +238,17 @@ def test_archive_directory_rejects_host_links_and_special_files(tmp_path: Path) 
         pytest.skip("fifos are unavailable on this test host")
     with pytest.raises(ArchiveSafetyError):
         archive_directory(root, tmp_path / "fifo.tar")
+
+
+def test_archive_digest_matches_sandbox_tree_digest_for_nested_files(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    (root / "app").mkdir(parents=True)
+    (root / "README.md").write_text("readme", encoding="utf-8")
+    (root / "app" / "main.py").write_text("print('ok')", encoding="utf-8")
+
+    _archive, archive_digest = archive_directory(root, tmp_path / "workspace.tar")
+
+    assert archive_digest == tree_digest(root)
 
 
 def test_non_rootless_runtime_is_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:

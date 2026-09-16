@@ -97,6 +97,11 @@ async def _run_one(row: Mapping[str, Any], arm: str, runner: Runner) -> SessionR
         return record
     except Exception as error:  # noqa: BLE001 - any runner failure must become an error
         # record rather than a lost row; the gate decides what an error means.
+        print(
+            f"[runner-error] task={row.get('task_id')} seed={row.get('seed', 0)} "
+            f"arm={arm}: {type(error).__name__}: {error}",
+            flush=True,
+        )
         return _error_record(row, arm, error)
 
 
