@@ -31,6 +31,11 @@ The prompt digest and skill digest must be recorded for every task. The full 22-
 must be recorded before the first session. A preflight must verify graph readiness, positive
 one-hop relations and absence of reranker configuration, as in `official-012`.
 
+This is a standalone single-arm quality treatment, so shared-protocol fairness checks that are
+defined for cross-arm product comparisons are recorded as `NA` for this run. The quality skill is
+intentionally a full coaching treatment rather than a capped vendor appendix; its size and digest
+remain primary provenance and are compared descriptively with `official-012`.
+
 ## Endpoints
 
 1. Primary quality outcome: admitted checker success rate on the same task and seed cells as

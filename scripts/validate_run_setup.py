@@ -134,6 +134,12 @@ def check_shared_protocol_identical(env: dict) -> Check:
 
 
 def check_arms_matched_flag(env: dict) -> Check:
+    if env.get("memory_instruction") == "quality":
+        return Check(
+            "instruction_arms_matched",
+            None,
+            "quality is a standalone full coaching treatment; cross-arm matching is not claimed",
+        )
     flag = env.get("instruction_arms_matched")
     if flag is None:
         return Check("instruction_arms_matched", None, "flag not recorded")
@@ -141,6 +147,12 @@ def check_arms_matched_flag(env: dict) -> Check:
 
 
 def check_appendix_proportion(env: dict, max_fraction: float) -> Check:
+    if env.get("memory_instruction") == "quality":
+        return Check(
+            "appendix_proportion",
+            None,
+            "quality is intentionally a full coaching treatment, not a capped protocol appendix",
+        )
     excess = env.get("instruction_excess_bytes") or {}
     arms = _instruction_arms(env)
     if not arms or not excess:
