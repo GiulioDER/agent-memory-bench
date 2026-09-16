@@ -58,6 +58,11 @@ TOOLS = frozenset(
         "recall_tenants",
     }
 )
+INITIALIZE_PARAMS = {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {},
+    "clientInfo": {"name": "amb-recall-broker", "version": "1"},
+}
 
 
 class RecallProcess:
@@ -113,7 +118,7 @@ class RecallProcess:
             raise BrokerError("RE-call process did not expose stdio")
         self._next_id = 1
         self._lock = threading.RLock()
-        self._request("initialize", {"protocolVersion": "2024-11-05", "capabilities": {}})
+        self._request("initialize", dict(INITIALIZE_PARAMS))
         self._notify("notifications/initialized")
         self._request("tools/list", {})
 
@@ -171,11 +176,7 @@ class RecallProcess:
             # The current MCP SDK validates the standard initialize fields, so fill them only for
             # that probe shape; real participant initialization already carries its own params.
             if method == "initialize" and not params:
-                params = {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {},
-                    "clientInfo": {"name": "amb-recall-broker", "version": "1"},
-                }
+                params = dict(INITIALIZE_PARAMS)
             reply = self._request(method, params)
             reply["id"] = request.get("id")
             if method == "tools/list":

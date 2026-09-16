@@ -41,6 +41,14 @@ def test_broker_allowlist_matches_the_frozen_fulltools_adapter() -> None:
     assert len(recall_broker.TOOLS) == 22
 
 
+def test_initialize_contract_identifies_the_broker_client() -> None:
+    assert recall_broker.INITIALIZE_PARAMS == {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {},
+        "clientInfo": {"name": "amb-recall-broker", "version": "1"},
+    }
+
+
 def test_empty_params_are_omitted_for_current_mcp_sdk(monkeypatch) -> None:
     process = _process({"jsonrpc": "2.0", "id": 1, "result": {"tools": []}})
     monkeypatch.setattr(recall_broker.select, "select", lambda *_args, **_kwargs: ([1], [], []))
