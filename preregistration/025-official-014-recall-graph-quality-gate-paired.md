@@ -196,3 +196,23 @@ alternate endpoint may be introduced after the preregistration commit. Correctio
 below the marker without changing frozen text.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Append-only provenance correction before implementation, 2026-09-16
+
+The frozen text labels
+`2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e` as the SHA-256 of
+the 3,924 byte control instruction. Direct recomputation before implementation showed that this is
+the first published `official-012` record's complete task prompt digest. The 3,924 byte output of
+`recall_graph_fulltools_instruction("protocol")` has SHA-256
+`aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8`.
+
+The intended invariant is therefore checked against `aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8`:
+the treatment instruction must begin with those exact 3,924 bytes and append only the frozen quality
+gate. The complete task prompt continues to vary by task because the shared static task bundle is
+added after the instruction. The incorrect frozen value remains unchanged above.
+
+Remeasure from the preregistration commit with:
+
+```text
+PYTHONUTF8=1 python -c "import hashlib; from scripts.pilot import recall_graph_fulltools_instruction as f; x=f('protocol'); print(len(x.encode('utf-8')), hashlib.sha256(x.encode('utf-8')).hexdigest())"
+```
