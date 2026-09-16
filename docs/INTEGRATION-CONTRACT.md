@@ -85,7 +85,8 @@ measure something nobody ships.
   `ArmSpec.config_dir`, the `hook_ledger` and the gate's `required_hooks` check all exist, and the
   Supermemory adapter has now run end to end. Claude-Mem is wired through the same path but must
   still prove its own lifecycle signals through the admission gate before its first result is
-  eligible for review.
+  eligible for review. The harness-owned RE-call checkpoint also uses an isolated configuration
+  directory and proves its deny-once intervention through a bounded receipt in the session record.
 
 ## How to add your arm
 

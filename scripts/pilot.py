@@ -67,6 +67,30 @@ except ModuleNotFoundError as exc:
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.oracle_memory.adapter import OracleMemoryAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.recall_checkpoint.adapter import (
+    RecallGraphFullToolsCheckpointAdapter,
+    RecallGraphFullToolsCheckpointPlaceboAdapter,
+)
+from adapters.recall_checkpoint.hook import (
+    HIT_TEXT_LIMIT as CHECKPOINT_HIT_TEXT_LIMIT,
+)
+from adapters.recall_checkpoint.hook import (
+    MARKER as CHECKPOINT_MARKER,
+)
+from adapters.recall_checkpoint.hook import (
+    MAX_HITS as CHECKPOINT_MAX_HITS,
+)
+from adapters.recall_checkpoint.hook import (
+    QUERY_LIMIT as CHECKPOINT_QUERY_LIMIT,
+)
+from adapters.recall_checkpoint.hook import (
+    REASON_LIMIT as CHECKPOINT_REASON_LIMIT,
+)
+from adapters.recall_checkpoint.hook import (
+    CheckpointError,
+    is_mutation_candidate,
+    parse_checkpoint_marker,
+)
 from adapters.recall_graph_fulltools.adapter import (
     RecallGraphFullToolsAdapter,
     RecallGraphFullToolsDecisionProtocolAdapter,
@@ -147,6 +171,7 @@ ARMS = (
     "bare", "placebo", "claude_md", "protocol", "fs_grep", "recall", "recall_rerank",
     "recall_graph_rerank", "recall_graph_fulltools", "recall_graph_fulltools_protocol",
     "recall_graph_fulltools_quality_gate", "recall_graph_fulltools_decision_protocol",
+    "recall_graph_fulltools_checkpoint_placebo", "recall_graph_fulltools_checkpoint",
     "mempalace", "recall_prefetch", "oracle_memory", "cachly", "graphiti", "supermemory",
     "claude_mem",
 )
@@ -154,6 +179,8 @@ DEFAULT_ARMS = ("bare", "claude_md", "recall")
 RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM = "recall_graph_fulltools_protocol"
 RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM = "recall_graph_fulltools_quality_gate"
 RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM = "recall_graph_fulltools_decision_protocol"
+RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM = "recall_graph_fulltools_checkpoint_placebo"
+RECALL_GRAPH_FULLTOOLS_CHECKPOINT_ARM = "recall_graph_fulltools_checkpoint"
 RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
     RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
     RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM,
@@ -165,6 +192,11 @@ RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS = (
 RECALL_ORACLE_CEILING_PAIRED_ARMS = (
     RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
     "oracle_memory",
+)
+RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS = (
+    RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
+    RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM,
+    RECALL_GRAPH_FULLTOOLS_CHECKPOINT_ARM,
 )
 RECALL_ORACLE_CEILING_TASKS = frozenset(
     {
@@ -199,6 +231,7 @@ RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
         "recall_graph_fulltools",
         *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,
         *RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,
+        *RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS,
     }
 )
 RECALL_ARMS = frozenset(
@@ -433,6 +466,7 @@ SHARED_PROTOCOL_VARIANTS = ("protocol", "draft")
 QUALITY_GATE_PAIRED_VARIANT = "quality_gate_paired"
 DECISION_PROTOCOL_PAIRED_VARIANT = "decision_protocol_paired"
 ORACLE_CEILING_PAIRED_VARIANT = "oracle_ceiling_paired"
+PREMUTATION_CHECKPOINT_PAIRED_VARIANT = "premutation_checkpoint_paired"
 
 
 def validate_quality_gate_pair(variant: str, arms: tuple[str, ...]) -> None:
@@ -490,6 +524,37 @@ def validate_oracle_ceiling_pair(
             )
 
 
+def validate_premutation_checkpoint_pair(
+    variant: str,
+    arms: tuple[str, ...],
+    tasks: list[Any] | tuple[Any, ...] | None = None,
+    condition: str | None = None,
+) -> None:
+    """Keep official-017 inside its frozen three-arm superseded roster."""
+
+    if variant != PREMUTATION_CHECKPOINT_PAIRED_VARIANT:
+        return
+    if tuple(arms) != RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS:
+        raise ValueError(
+            f"{PREMUTATION_CHECKPOINT_PAIRED_VARIANT!r} requires exactly "
+            f"{RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS} in that order, got {arms}"
+        )
+    if condition is not None and condition != "superseded":
+        raise ValueError(
+            f"{PREMUTATION_CHECKPOINT_PAIRED_VARIANT!r} requires condition 'superseded', "
+            f"got {condition!r}"
+        )
+    if tasks is not None:
+        observed = [str(task.task_id) for task in tasks]
+        if len(observed) != len(RECALL_ORACLE_CEILING_TASKS) or set(observed) != set(
+            RECALL_ORACLE_CEILING_TASKS
+        ):
+            raise ValueError(
+                f"{PREMUTATION_CHECKPOINT_PAIRED_VARIANT!r} requires exactly the frozen nine "
+                f"tasks, got {observed}"
+            )
+
+
 def load_oracle_ceiling_catalog(
     corpus_root: Path, tasks: list[Any] | tuple[Any, ...]
 ) -> MemoryBundleCatalog:
@@ -536,6 +601,27 @@ def oracle_ceiling_pair_metadata(
     }
 
 
+def premutation_checkpoint_pair_metadata(texts: Mapping[str, str]) -> dict[str, Any]:
+    """Record official-017's matched instruction and bounded checkpoint contract."""
+
+    return {
+        "arms": list(RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS),
+        "instruction_bytes_by_arm": {
+            arm: len(texts.get(arm, "").encode("utf-8"))
+            for arm in RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS
+        },
+        "instruction_sha256_by_arm": {
+            arm: hashlib.sha256(texts.get(arm, "").encode("utf-8")).hexdigest()
+            for arm in RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS
+        },
+        "checkpoint_k": 5,
+        "query_limit_chars": CHECKPOINT_QUERY_LIMIT,
+        "reason_limit_chars": CHECKPOINT_REASON_LIMIT,
+        "max_injected_hits": CHECKPOINT_MAX_HITS,
+        "hit_text_limit_chars": CHECKPOINT_HIT_TEXT_LIMIT,
+    }
+
+
 def recall_preflight_request(arm: str, query: str) -> tuple[str, dict[str, Any]]:
     """Return the real read request that must pass before model spend."""
 
@@ -576,6 +662,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     validate_quality_gate_pair(variant, arms)
     validate_decision_protocol_pair(variant, arms)
     validate_oracle_ceiling_pair(variant, arms)
+    validate_premutation_checkpoint_pair(variant, arms)
     shared = variant in SHARED_PROTOCOL_VARIANTS
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
@@ -606,6 +693,12 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
         texts[RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM] = (
             recall_decision_protocol_instruction()
         )
+    for checkpoint_arm in (
+        RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM,
+        RECALL_GRAPH_FULLTOOLS_CHECKPOINT_ARM,
+    ):
+        if checkpoint_arm in texts:
+            texts[checkpoint_arm] = recall_graph_fulltools_instruction("protocol")
     if "fs_grep" in texts:
         texts["fs_grep"] = (
             FsGrepAdapter.shared_instruction(neutral=neutral, variant=variant)
@@ -741,6 +834,14 @@ def adapter_for(
         )
     if arm == RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM:
         return RecallGraphFullToolsDecisionProtocolAdapter(
+            staging, static, instruction=texts.get(arm) or None
+        )
+    if arm == RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM:
+        return RecallGraphFullToolsCheckpointPlaceboAdapter(
+            staging, static, instruction=texts.get(arm) or None
+        )
+    if arm == RECALL_GRAPH_FULLTOOLS_CHECKPOINT_ARM:
+        return RecallGraphFullToolsCheckpointAdapter(
             staging, static, instruction=texts.get(arm) or None
         )
     if arm == "oracle_memory":
@@ -930,6 +1031,65 @@ def diagnostic_metadata(spec: Any) -> dict[str, Any]:
     return {}
 
 
+def checkpoint_metadata(record: Any, spec: ArmSpec) -> dict[str, Any]:
+    """Recover the deny-once checkpoint receipt from the private participant record."""
+
+    mode = spec.metadata.get("checkpoint_mode") if isinstance(spec.metadata, Mapping) else None
+    if mode not in {"placebo", "treatment"}:
+        return {}
+    texts: list[str] = []
+    calls = list(getattr(record, "tool_calls", ()))
+    marker_call_index: int | None = None
+    mutation_indices: list[int] = []
+    for index, call in enumerate(calls):
+        if isinstance(call, Mapping) and call.get("output") is not None:
+            output = str(call.get("output"))
+            texts.append(output)
+            if marker_call_index is None and CHECKPOINT_MARKER in output:
+                marker_call_index = index
+        if not isinstance(call, Mapping) or call.get("is_error") is not False:
+            continue
+        args = call.get("args")
+        if isinstance(args, Mapping) and is_mutation_candidate(str(call.get("name", "")), args):
+            mutation_indices.append(index)
+    denials = record.metadata.get("permission_denials", ())
+    if isinstance(denials, (list, tuple)):
+        texts.extend(str(item) for item in denials)
+    marker_count = sum(text.count(CHECKPOINT_MARKER) for text in texts)
+    parsed: dict[str, Any] | None = None
+    for text in texts:
+        if CHECKPOINT_MARKER not in text:
+            continue
+        try:
+            parsed = parse_checkpoint_marker(text)
+        except CheckpointError as error:  # malformed evidence is recorded and refused by admission
+            parsed = {
+                "mode": mode,
+                "status": "error",
+                "parse_error": type(error).__name__,
+            }
+        break
+    diagnostic = {
+        **(parsed or {}),
+        "mode": (parsed or {}).get("mode", mode),
+        "marker_count": marker_count,
+        "triggered": marker_count > 0,
+    }
+    failed = int(record.metadata.get("failed_tool_calls", 0) or 0)
+    unguarded = [
+        index
+        for index in mutation_indices
+        if marker_call_index is None or index < marker_call_index
+    ]
+    return {
+        "memory_checkpoint": diagnostic,
+        "failed_tool_calls": max(0, failed - (1 if marker_count else 0)),
+        "checkpoint_denials": 1 if marker_count else 0,
+        "mutation_candidate_count": len(mutation_indices),
+        "unguarded_mutation_count": len(unguarded),
+    }
+
+
 def cell_namespace(base_namespace: str, task_id: str, seed: int, arm: str) -> str:
     """Give Claude-Mem one live store per task and seed.
 
@@ -1052,7 +1212,7 @@ async def main() -> int:
         choices=(
             "oneliner", "skill", "quality", "protocol", "draft",
             QUALITY_GATE_PAIRED_VARIANT, DECISION_PROTOCOL_PAIRED_VARIANT,
-            ORACLE_CEILING_PAIRED_VARIANT,
+            ORACLE_CEILING_PAIRED_VARIANT, PREMUTATION_CHECKPOINT_PAIRED_VARIANT,
         ),
         default="oneliner",
         help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
@@ -1168,6 +1328,9 @@ async def main() -> int:
         validate_oracle_ceiling_pair(
             args.memory_instruction, run_arms, condition=args.condition or None
         )
+        validate_premutation_checkpoint_pair(
+            args.memory_instruction, run_arms, condition=args.condition or None
+        )
     except ValueError as error:
         raise SystemExit(str(error)) from None
     if "protocol" in run_arms and args.memory_instruction not in SHARED_PROTOCOL_VARIANTS:
@@ -1251,6 +1414,12 @@ async def main() -> int:
 
     try:
         validate_oracle_ceiling_pair(
+            args.memory_instruction,
+            run_arms,
+            tasks=tasks,
+            condition=args.condition or None,
+        )
+        validate_premutation_checkpoint_pair(
             args.memory_instruction,
             run_arms,
             tasks=tasks,
@@ -1612,6 +1781,8 @@ async def main() -> int:
         shared_tool_prefix_groups = (RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,)
     elif args.memory_instruction == DECISION_PROTOCOL_PAIRED_VARIANT:
         shared_tool_prefix_groups = (RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,)
+    elif args.memory_instruction == PREMUTATION_CHECKPOINT_PAIRED_VARIANT:
+        shared_tool_prefix_groups = (RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS,)
     else:
         shared_tool_prefix_groups = ()
     signals = with_forbidden_prefixes(
@@ -1692,7 +1863,9 @@ async def main() -> int:
                 "instruction_excess_bytes": instructions.excess_over_protocol(
                     texts, neutral=args.neutral_protocol
                 ),
-                "instruction_arms_matched": args.memory_instruction == "protocol",
+                "instruction_arms_matched": args.memory_instruction in {
+                    "protocol", PREMUTATION_CHECKPOINT_PAIRED_VARIANT
+                },
                 "quality_gate_pair": (
                     quality_gate_pair_metadata(texts)
                     if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT
@@ -1707,6 +1880,11 @@ async def main() -> int:
                     oracle_ceiling_pair_metadata(texts, oracle_catalog)
                     if args.memory_instruction == ORACLE_CEILING_PAIRED_VARIANT
                     and oracle_catalog is not None
+                    else None
+                ),
+                "premutation_checkpoint_pair": (
+                    premutation_checkpoint_pair_metadata(texts)
+                    if args.memory_instruction == PREMUTATION_CHECKPOINT_PAIRED_VARIANT
                     else None
                 ),
                 "shared_tool_prefix_groups": [
@@ -1947,6 +2125,7 @@ async def main() -> int:
         # sets `prompt_sha256`, which this runner computes itself from the file it actually used,
         # and a blanket merge would let the adapter's value win.
         diagnostic_extra = diagnostic_metadata(spec)
+        checkpoint_extra = checkpoint_metadata(record, spec)
 
         # Classify HERE, not in the analysis. A damage detector needs the finished working tree,
         # and by the time anything reads records.jsonl the sandbox is gone. Without this the
@@ -1959,6 +2138,7 @@ async def main() -> int:
             "checker": verdict,
             **condition_extra,
             **diagnostic_extra,
+            **checkpoint_extra,
             # Compared ACROSS a cell's arms by harness.gate.admit_cells. Recorded since the first
             # commit and, until 2026-08-28, read by nothing.
             "sandbox_digest": digest,

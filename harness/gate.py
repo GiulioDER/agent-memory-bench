@@ -218,6 +218,54 @@ def _check_diagnostic(record: SessionRecord, signal: AdmissionSignal, reasons: l
             reasons.append("prefetch record is malformed")
 
 
+def _check_checkpoint(
+    record: SessionRecord,
+    signal: AdmissionSignal,
+    reasons: list[str],
+    notes: list[str],
+) -> None:
+    expected = signal.metadata.get("checkpoint_mode")
+    diagnostic = record.metadata.get("memory_checkpoint")
+    if expected is None:
+        if diagnostic is not None:
+            reasons.append("non checkpoint arm contains pre-mutation checkpoint metadata")
+        return
+    if diagnostic is not None and not isinstance(diagnostic, Mapping):
+        reasons.append("pre-mutation checkpoint metadata is malformed")
+        return
+    if int(record.metadata.get("unguarded_mutation_count", 0) or 0) > 0:
+        reasons.append("a repository mutation completed before the first checkpoint marker")
+    if diagnostic is None or not diagnostic.get("triggered"):
+        if record.success:
+            reasons.append(
+                "task succeeded without a pre-mutation checkpoint, so the hook did not guard "
+                "the successful repository mutation"
+            )
+        else:
+            notes.append("session failed before reaching a detected repository mutation")
+        return
+    if diagnostic.get("mode") != expected:
+        reasons.append(
+            f"checkpoint arm expected mode {expected!r}, got {diagnostic.get('mode')!r}"
+        )
+    if diagnostic.get("marker_count") != 1:
+        reasons.append(
+            f"checkpoint emitted {diagnostic.get('marker_count')!r} markers instead of one"
+        )
+    status = diagnostic.get("status")
+    if status == "error":
+        reasons.append("pre-mutation checkpoint retrieval or receipt failed")
+    if expected == "placebo" and status != "placebo":
+        reasons.append(f"placebo checkpoint has unexpected status {status!r}")
+    if expected == "treatment":
+        if status not in {"ok", "abstained"}:
+            reasons.append(f"treatment checkpoint has unexpected status {status!r}")
+        if not diagnostic.get("query_sha256") or not diagnostic.get("result_sha256"):
+            reasons.append("treatment checkpoint is missing query or result identity")
+        if diagnostic.get("injected_bytes", 0) <= 0 or not diagnostic.get("injected_sha256"):
+            reasons.append("treatment checkpoint is missing injected-context identity")
+
+
 def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVerdict:
     """Decide whether one session is admissible evidence for its arm."""
 
@@ -230,6 +278,7 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
     notes: list[str] = []
 
     _check_diagnostic(record, signal, reasons)
+    _check_checkpoint(record, signal, reasons, notes)
 
     if not record.metadata.get("init_present", True):
         reasons.append(

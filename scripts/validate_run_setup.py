@@ -110,6 +110,12 @@ ORACLE_CEILING_TASKS = [
     "ts-semver-pin",
     "ts-tz-utc",
 ]
+PREMUTATION_CHECKPOINT_PAIRED_VARIANT = "premutation_checkpoint_paired"
+PREMUTATION_CHECKPOINT_PAIRED_ARMS = [
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_checkpoint_placebo",
+    "recall_graph_fulltools_checkpoint",
+]
 
 _MARKS = {True: "PASS", False: "FAIL", None: "SKIP"}
 
@@ -423,6 +429,79 @@ def check_oracle_ceiling_pair(env: dict) -> Check:
     )
 
 
+def check_premutation_checkpoint_pair(env: dict) -> Check:
+    """Verify official-017's matched prompt, hook roles and bounded retrieval contract."""
+
+    if env.get("memory_instruction") != PREMUTATION_CHECKPOINT_PAIRED_VARIANT:
+        return Check(
+            "premutation_checkpoint_pair",
+            None,
+            "official-017 paired variant not selected",
+        )
+    block = env.get("premutation_checkpoint_pair")
+    if not isinstance(block, dict):
+        return Check(
+            "premutation_checkpoint_pair",
+            False,
+            "premutation_checkpoint_pair metadata missing",
+        )
+    expected_instruction_bytes = {
+        arm: 3924 for arm in PREMUTATION_CHECKPOINT_PAIRED_ARMS
+    }
+    expected_instruction_hashes = {
+        arm: QUALITY_GATE_CONTROL_SHA256 for arm in PREMUTATION_CHECKPOINT_PAIRED_ARMS
+    }
+    expected = {
+        "arms": PREMUTATION_CHECKPOINT_PAIRED_ARMS,
+        "instruction_bytes_by_arm": expected_instruction_bytes,
+        "instruction_sha256_by_arm": expected_instruction_hashes,
+        "checkpoint_k": 5,
+        "query_limit_chars": 4096,
+        "reason_limit_chars": 4800,
+        "max_injected_hits": 3,
+        "hit_text_limit_chars": 1200,
+    }
+    wrong = {
+        key: (value, block.get(key))
+        for key, value in expected.items()
+        if block.get(key) != value
+    }
+    if wrong:
+        return Check(
+            "premutation_checkpoint_pair",
+            False,
+            f"frozen checkpoint contract mismatch: {wrong}",
+        )
+    if env.get("shared_tool_prefix_groups") != [PREMUTATION_CHECKPOINT_PAIRED_ARMS]:
+        return Check(
+            "premutation_checkpoint_pair",
+            False,
+            "the three aliases are not the sole declared shared tool prefix group",
+        )
+    adapters = env.get("adapters") or {}
+    placebo = adapters.get("recall_graph_fulltools_checkpoint_placebo") or {}
+    treatment = adapters.get("recall_graph_fulltools_checkpoint") or {}
+    if placebo.get("checkpoint_mode") != "placebo" or treatment.get("checkpoint_mode") != "treatment":
+        return Check(
+            "premutation_checkpoint_pair",
+            False,
+            "checkpoint adapter modes do not match the frozen placebo and treatment roles",
+        )
+    placebo_hook = placebo.get("checkpoint_hook_sha256")
+    treatment_hook = treatment.get("checkpoint_hook_sha256")
+    if not placebo_hook or placebo_hook != treatment_hook:
+        return Check(
+            "premutation_checkpoint_pair",
+            False,
+            "placebo and treatment do not identify one byte-identical checkpoint hook",
+        )
+    return Check(
+        "premutation_checkpoint_pair",
+        True,
+        "matched prompt and hook with frozen retrieval and injection limits",
+    )
+
+
 def check_claude_mem_preflight(env: dict) -> Check:
     """Require Claude-Mem's MCP server and one real search before model spend."""
 
@@ -479,6 +558,7 @@ def validate(
         check_quality_gate_pair(env),
         check_decision_protocol_pair(env),
         check_oracle_ceiling_pair(env),
+        check_premutation_checkpoint_pair(env),
         check_claude_mem_preflight(env),
     ]
 

@@ -74,11 +74,17 @@ RECALL_ORACLE_CEILING_PAIRED_ARMS = (
     "recall_graph_fulltools_protocol",
     "oracle_memory",
 )
+RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_checkpoint_placebo",
+    "recall_graph_fulltools_checkpoint",
+)
 RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
     {
         "recall_graph_fulltools",
         *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,
         *RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,
+        *RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS,
     }
 )
 
@@ -491,6 +497,10 @@ def search_rate_for(run_dir: Path, *, admitted_only: bool = True) -> dict[str, f
 
     def searched(record: dict[str, Any]) -> bool:
         arm = str(record["arm"])
+        if arm == "recall_graph_fulltools_checkpoint":
+            checkpoint = (record.get("metadata") or {}).get("memory_checkpoint")
+            if isinstance(checkpoint, dict) and checkpoint.get("status") in {"ok", "abstained"}:
+                return True
         if arm == "supermemory":
             # Supermemory's official integration retrieves through lifecycle hooks rather than
             # an MCP tool. The generic memory_call_count is therefore always zero for this arm.
@@ -684,17 +694,20 @@ def main() -> int:
     valid_official014_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS
     valid_official015_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS
     valid_official016_pair = tuple(arms) == RECALL_ORACLE_CEILING_PAIRED_ARMS
+    valid_official017_grid = tuple(arms) == RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS
     if args.recall_only and not (
         valid_single
         or valid_official014_pair
         or valid_official015_pair
         or valid_official016_pair
+        or valid_official017_grid
     ):
         raise SystemExit(
-            "--recall-only requires one standard RE-call arm or exactly one preregistered pair: "
+            "--recall-only requires one standard RE-call arm or one preregistered comparison: "
             f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS} or "
             f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS} or "
-            f"{RECALL_ORACLE_CEILING_PAIRED_ARMS}"
+            f"{RECALL_ORACLE_CEILING_PAIRED_ARMS} or "
+            f"{RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS}"
         )
     if not args.recall_only and "bare" not in arms:
         raise SystemExit(
