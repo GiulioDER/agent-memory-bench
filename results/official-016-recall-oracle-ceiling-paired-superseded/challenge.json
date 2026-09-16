@@ -1,0 +1,12 @@
+{
+  "challenge_id": "74981986-ee06-4b4f-b1c9-8679b1605876",
+  "challenge_version": 1,
+  "expires_at": "2026-09-17T18:42:13.829Z",
+  "issued_at": "2026-09-16T18:42:13.829Z",
+  "nonce": "whyduad3XToyVxbRdgxsL63KBgujQJVAUA6UyiFMrCs",
+  "oracle_version": "sha256:abb63a2e9259db22927b0c4c55c9db9bb9a7d691543bf69671daf2dc5fb3c83b",
+  "participant_agent_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+  "run_id": "official-016-recall-oracle-ceiling-paired-superseded",
+  "runner_image_digest": "sha256:fe029bc864585bc2d453757d293eff168047151a093b79a63a3a6d2169c0e34f",
+  "schema": "amb-execution-challenge-v1"
+}

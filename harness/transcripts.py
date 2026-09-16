@@ -56,6 +56,7 @@ def render_corpus(
     *,
     root: Path | None = None,
     lineage: Mapping[Path, Mapping[str, str]] | None = None,
+    graph: Mapping[Path, Mapping[str, str]] | None = None,
 ) -> int:
     """Render transcripts into ``target_dir``; returns the count written.
 
@@ -89,9 +90,12 @@ def render_corpus(
                 f"{name!r}; pass root= so names mirror their paths"
             )
         seen[name] = source
-        meta = (lineage or {}).get(source)
+        meta = {
+            **(lineage or {}).get(source, {}),
+            **(graph or {}).get(source, {}),
+        }
         (target_dir / name).write_text(
-            render_transcript(source, meta), encoding="utf-8"
+            render_transcript(source, meta or None), encoding="utf-8"
         )
         written += 1
     return written

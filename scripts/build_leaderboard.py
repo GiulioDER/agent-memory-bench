@@ -75,7 +75,6 @@ PENDING_ARM_DEFINITIONS = {
     "cognee": ("MCP server", None, "cognee"),
     "supermemory": ("official Claude Code lifecycle hooks", None, "supermemory"),
     "claude_mem": ("official Claude Code lifecycle hooks and MCP search", None, "Claude Mem"),
-    "graphiti": ("Graphiti MCP server", None, "Graphiti"),
 }
 
 # Arms that may be added by an independently validated submission.  They are deliberately kept
