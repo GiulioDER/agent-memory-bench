@@ -68,6 +68,45 @@ def test_official016_dry_run_builds_the_frozen_oracle_pair() -> None:
     assert "would run 90 session(s)" in output
 
 
+def test_official016_task_subset_does_not_shrink_the_frozen_corpus() -> None:
+    """Red proof: the live preflight saw 205 documents and rejected the changed fingerprint."""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "scripts.abstention",
+            "--dry-run",
+            "--run-id",
+            "official-016-recall-oracle-ceiling-paired",
+            "--conditions",
+            "superseded",
+            "--arms",
+            ",".join(PAIRED_ARMS),
+            "--recall-only",
+            "--tasks",
+            TASKS,
+            "--seeds",
+            "5",
+            "--model",
+            "deepseek/deepseek-v4-flash",
+            "--namespace",
+            "amb-graph-rerank-official-010",
+            "--memory-instruction",
+            "oracle_ceiling_paired",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    output = result.stdout + result.stderr
+    assert result.returncode == 0, output
+    assert "[superseded] 9 task(s), 206 session file(s) in the feed" in output
+    assert "would run 90 session(s)" in output
+
+
 def test_official016_roster_guard_rejects_reordering_and_task_drift() -> None:
     frozen_tasks = [SimpleNamespace(task_id=task_id) for task_id in TASKS.split(",")]
 

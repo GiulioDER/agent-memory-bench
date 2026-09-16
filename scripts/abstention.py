@@ -291,10 +291,11 @@ def plan_conditions(run_id: str, conditions: list[str], *, resume: bool) -> list
 def run_condition(args, condition: str) -> Path:
     """Assemble, ingest and run one condition. Returns its run directory."""
 
-    selection = selection_for(condition)
+    corpus_selection = selection_for(condition)
+    selection = list(corpus_selection)
     if args.tasks:
         wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
-        missing = [task_id for task_id in wanted if task_id not in selection]
+        missing = [task_id for task_id in wanted if task_id not in corpus_selection]
         if missing:
             raise SystemExit(
                 f"{missing} do not declare the {condition!r} condition, so they cannot be run "
@@ -309,7 +310,11 @@ def run_condition(args, condition: str) -> Path:
 
     corpus_root = REPO / "corpus" / "conditions" / condition / f"seed-{args.seed}"
     provenance = assemble(
-        condition, args.seed, selection, corpus_root, haystack=haystack_root()
+        condition,
+        args.seed,
+        corpus_selection,
+        corpus_root,
+        haystack=haystack_root(),
     )
     print(
         f"[{condition}] {len(selection)} task(s), "
