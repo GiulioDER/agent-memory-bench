@@ -7,6 +7,7 @@ import hashlib
 import pytest
 
 from adapters.recall_graph_fulltools.adapter import RecallGraphFullToolsAdapter
+from harness.gate import AdmissionSignal, with_forbidden_prefixes
 from scripts import abstention, pilot
 from scripts.validate_run_setup import check_quality_gate_pair
 
@@ -107,8 +108,21 @@ def test_setup_gate_verifies_the_frozen_prefix_and_appendix() -> None:
     env = {
         "memory_instruction": "quality_gate_paired",
         "quality_gate_pair": pilot.quality_gate_pair_metadata(texts),
+        "shared_tool_prefix_groups": [list(PAIRED_ARMS)],
     }
 
     assert check_quality_gate_pair(env).ok is True
     env["quality_gate_pair"]["treatment_prefix_matches_control"] = False
     assert check_quality_gate_pair(env).ok is False
+
+
+def test_preregistered_pair_may_share_only_its_recall_tool_prefix() -> None:
+    signals = {
+        arm: AdmissionSignal(arm=arm, mcp_tool_prefixes=("mcp__recall__",))
+        for arm in PAIRED_ARMS
+    }
+
+    filled = with_forbidden_prefixes(signals, shared_prefix_groups=(PAIRED_ARMS,))
+
+    assert set(filled) == set(PAIRED_ARMS)
+    assert all(signal.forbidden_prefixes == () for signal in filled.values())

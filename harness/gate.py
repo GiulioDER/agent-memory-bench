@@ -83,25 +83,39 @@ class AdmissionSignal:
 
 def with_forbidden_prefixes(
     signals: Mapping[str, AdmissionSignal],
+    *,
+    shared_prefix_groups: Iterable[Iterable[str]] = (),
 ) -> dict[str, AdmissionSignal]:
     """Fill each arm's ``forbidden_prefixes`` with every other arm's tool prefixes.
 
-    A prefix an arm claims for itself is never forbidden to it, even if another arm also claims
-    it; two arms claiming the same prefix is a roster error and is refused outright, because a
-    shared prefix would make the two arms indistinguishable to the gate.
+    Two product arms claiming the same prefix is normally a roster error because the gate cannot
+    distinguish cross-product contamination. A preregistered instruction-only comparison may
+    explicitly declare a group that intentionally shares one product surface. The shared prefix
+    remains allowed only inside that exact group and is never forbidden to one of its members.
     """
 
-    claimed: dict[str, str] = {}
+    groups = tuple(frozenset(str(name) for name in group) for group in shared_prefix_groups)
+    if any(len(group) < 2 for group in groups):
+        raise ValueError("a shared prefix group must contain at least two arms")
+    grouped = [name for group in groups for name in group]
+    if len(grouped) != len(set(grouped)):
+        raise ValueError("an arm may belong to only one shared prefix group")
+    unknown = sorted(set(grouped) - set(signals))
+    if unknown:
+        raise ValueError(f"shared prefix group names unknown arms {unknown}")
+
+    claimed: dict[str, set[str]] = defaultdict(set)
     for name, signal in signals.items():
         if name != signal.arm:
             raise ValueError(f"signal for {name!r} names arm {signal.arm!r}")
         for prefix in signal.mcp_tool_prefixes:
-            if prefix in claimed and claimed[prefix] != name:
-                raise ValueError(
-                    f"tool prefix {prefix!r} is claimed by both {claimed[prefix]!r} and "
-                    f"{name!r}; the gate cannot tell those arms apart"
-                )
-            claimed[prefix] = name
+            claimed[prefix].add(name)
+    for prefix, claimants in claimed.items():
+        if len(claimants) > 1 and not any(claimants <= group for group in groups):
+            raise ValueError(
+                f"tool prefix {prefix!r} is claimed by {sorted(claimants)!r}; "
+                "the gate cannot tell those arms apart"
+            )
 
     filled: dict[str, AdmissionSignal] = {}
     for name, signal in signals.items():
@@ -111,6 +125,7 @@ def with_forbidden_prefixes(
                 for other, other_signal in signals.items()
                 if other != name
                 for prefix in other_signal.mcp_tool_prefixes
+                if prefix not in signal.mcp_tool_prefixes
             )
         )
         filled[name] = replace(signal, forbidden_prefixes=others)

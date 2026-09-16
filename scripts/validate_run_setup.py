@@ -272,6 +272,12 @@ def check_quality_gate_pair(env: dict) -> Check:
     wrong = {key: (value, block.get(key)) for key, value in expected.items() if block.get(key) != value}
     if wrong:
         return Check("quality_gate_pair", False, f"frozen treatment mismatch: {wrong}")
+    if env.get("shared_tool_prefix_groups") != [QUALITY_GATE_PAIRED_ARMS]:
+        return Check(
+            "quality_gate_pair",
+            False,
+            "the paired aliases are not the sole declared shared tool prefix group",
+        )
     return Check(
         "quality_gate_pair",
         True,

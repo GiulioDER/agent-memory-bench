@@ -1391,6 +1391,11 @@ async def main() -> int:
                 flush=True,
             )
 
+    shared_tool_prefix_groups = (
+        (RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,)
+        if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT
+        else ()
+    )
     signals = with_forbidden_prefixes(
         {
             arm: replace(
@@ -1405,7 +1410,8 @@ async def main() -> int:
                 },
             )
             for arm in run_arms
-        }
+        },
+        shared_prefix_groups=shared_tool_prefix_groups,
     )
     signal_snapshot = admission_signal_snapshot(signals)
     signal_digest = json_digest(signal_snapshot)
@@ -1474,6 +1480,9 @@ async def main() -> int:
                     if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT
                     else None
                 ),
+                "shared_tool_prefix_groups": [
+                    list(group) for group in shared_tool_prefix_groups
+                ],
                 "placebo_length_metric": "whitespace_tokens_and_lines",
                 "placebo_length_match": {
                     task_id: length_metadata(
