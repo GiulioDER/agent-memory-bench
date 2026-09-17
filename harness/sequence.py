@@ -139,6 +139,23 @@ def _optional_sum(values: list[Any]) -> int | None:
     return sum(values)
 
 
+def _optional_number_sum(values: list[Any]) -> int | float | None:
+    if not values or any(value is None for value in values):
+        return None
+    if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in values):
+        raise ValueError("duration and cost values must be numbers")
+    return sum(values)
+
+
+def _tool_call_count(record: SessionRecord | Mapping[str, Any]) -> int | None:
+    value = _record_value(record, "tool_calls")
+    if value is None:
+        return None
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise TypeError("tool_calls must be a sequence")
+    return len(value)
+
+
 @dataclass(frozen=True)
 class _Chain:
     chain_id: str
@@ -325,7 +342,9 @@ def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mappi
     )
 
 
-def _chain_overhead(records: Sequence[SessionRecord | Mapping[str, Any]]) -> dict[str, int | None]:
+def _chain_overhead(
+    records: Sequence[SessionRecord | Mapping[str, Any]],
+) -> dict[str, int | float | None]:
     metadata = [_mapping(record) for record in records]
     return {
         "input_tokens": _optional_sum([_record_value(record, "input_tokens") for record in records]),
@@ -349,6 +368,10 @@ def _chain_overhead(records: Sequence[SessionRecord | Mapping[str, Any]]) -> dic
         ),
         "memory_storage_bytes": _optional_sum(
             [metadata_item.get("memory_storage_bytes") for metadata_item in metadata]
+        ),
+        "tool_calls": _optional_sum([_tool_call_count(record) for record in records]),
+        "wall_time_ms": _optional_number_sum(
+            [_record_value(record, "wall_time_ms") for record in records]
         ),
     }
 
@@ -394,9 +417,15 @@ def score_sequences(
                     "memory_input_tokens": None,
                     "memory_output_tokens": None,
                     "memory_storage_bytes": None,
+                    "tool_calls": None,
+                    "wall_time_ms": None,
                     "chains_metered": 0,
                     "mean_total_token_delta_vs_baseline": None,
                     "token_delta_pairs": 0,
+                    "mean_tool_call_delta_vs_baseline": None,
+                    "tool_call_delta_pairs": 0,
+                    "mean_wall_time_delta_vs_baseline": None,
+                    "wall_time_delta_pairs": 0,
                 },
                 "selectivity": _empty_event_metrics(),
                 "funnel": _empty_funnel_metrics(),
@@ -430,6 +459,8 @@ def score_sequences(
                 "memory_input_tokens",
                 "memory_output_tokens",
                 "memory_storage_bytes",
+                "tool_calls",
+                "wall_time_ms",
             )
             for field in metered_fields:
                 if overhead[field] is not None:
@@ -449,6 +480,26 @@ def score_sequences(
                             current_delta * current_pairs + overhead["total_tokens"] - baseline_total
                         ) / (current_pairs + 1)
                         overhead_row["token_delta_pairs"] += 1
+                    baseline_tools = _chain_overhead(chain.for_arm(baseline_arm))["tool_calls"]
+                    if baseline_tools is not None and overhead["tool_calls"] is not None:
+                        current_pairs = overhead_row["tool_call_delta_pairs"]
+                        current_delta = overhead_row["mean_tool_call_delta_vs_baseline"] or 0
+                        overhead_row["mean_tool_call_delta_vs_baseline"] = (
+                            current_delta * current_pairs
+                            + overhead["tool_calls"]
+                            - baseline_tools
+                        ) / (current_pairs + 1)
+                        overhead_row["tool_call_delta_pairs"] += 1
+                    baseline_wall = _chain_overhead(chain.for_arm(baseline_arm))["wall_time_ms"]
+                    if baseline_wall is not None and overhead["wall_time_ms"] is not None:
+                        current_pairs = overhead_row["wall_time_delta_pairs"]
+                        current_delta = overhead_row["mean_wall_time_delta_vs_baseline"] or 0
+                        overhead_row["mean_wall_time_delta_vs_baseline"] = (
+                            current_delta * current_pairs
+                            + overhead["wall_time_ms"]
+                            - baseline_wall
+                        ) / (current_pairs + 1)
+                        overhead_row["wall_time_delta_pairs"] += 1
 
     for row in by_arm_length.values():
         admitted = row["admitted_chains"]
