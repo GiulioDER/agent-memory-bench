@@ -99,6 +99,7 @@ from adapters.recall_graph_fulltools.adapter import (
 )
 from adapters.recall_graph_rerank.adapter import RecallGraphRerankAdapter
 from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
+from adapters.recall_prompt_time.adapter import RecallGraphFullToolsPromptTimeAdapter
 from adapters.recall_rerank.adapter import RecallRerankAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
 from harness import instructions, sandbox
@@ -176,6 +177,7 @@ ARMS = (
     "recall_graph_rerank", "recall_graph_fulltools", "recall_graph_fulltools_protocol",
     "recall_graph_fulltools_quality_gate", "recall_graph_fulltools_decision_protocol",
     "recall_graph_fulltools_checkpoint_placebo", "recall_graph_fulltools_checkpoint",
+    "recall_graph_fulltools_prompt_time",
     "mempalace", "recall_prefetch", "oracle_memory", "cachly", "graphiti", "supermemory",
     "claude_mem",
 )
@@ -185,6 +187,7 @@ RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM = "recall_graph_fulltools_quality_gate"
 RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM = "recall_graph_fulltools_decision_protocol"
 RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM = "recall_graph_fulltools_checkpoint_placebo"
 RECALL_GRAPH_FULLTOOLS_CHECKPOINT_ARM = "recall_graph_fulltools_checkpoint"
+RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM = "recall_graph_fulltools_prompt_time"
 RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
     RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
     RECALL_GRAPH_FULLTOOLS_QUALITY_GATE_ARM,
@@ -201,6 +204,10 @@ RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS = (
     RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
     RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM,
     RECALL_GRAPH_FULLTOOLS_CHECKPOINT_ARM,
+)
+RECALL_PROMPT_TIME_PAIRED_ARMS = (
+    RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM,
+    RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM,
 )
 RECALL_ORACLE_CEILING_TASKS = frozenset(
     {
@@ -236,6 +243,7 @@ RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
         *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,
         *RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,
         *RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS,
+        *RECALL_PROMPT_TIME_PAIRED_ARMS,
     }
 )
 RECALL_ARMS = frozenset(
@@ -471,6 +479,7 @@ QUALITY_GATE_PAIRED_VARIANT = "quality_gate_paired"
 DECISION_PROTOCOL_PAIRED_VARIANT = "decision_protocol_paired"
 ORACLE_CEILING_PAIRED_VARIANT = "oracle_ceiling_paired"
 PREMUTATION_CHECKPOINT_PAIRED_VARIANT = "premutation_checkpoint_paired"
+PROMPT_TIME_PAIRED_VARIANT = "prompt_time_auto_retrieval"
 
 
 def validate_quality_gate_pair(variant: str, arms: tuple[str, ...]) -> None:
@@ -559,6 +568,18 @@ def validate_premutation_checkpoint_pair(
             )
 
 
+def validate_prompt_time_pair(variant: str, arms: tuple[str, ...]) -> None:
+    """Keep official-019's hook treatment inside its exact paired roster."""
+
+    if variant != PROMPT_TIME_PAIRED_VARIANT:
+        return
+    if tuple(arms) != RECALL_PROMPT_TIME_PAIRED_ARMS:
+        raise ValueError(
+            f"{PROMPT_TIME_PAIRED_VARIANT!r} requires exactly "
+            f"{RECALL_PROMPT_TIME_PAIRED_ARMS} in that order, got {arms}"
+        )
+
+
 def load_oracle_ceiling_catalog(
     corpus_root: Path, tasks: list[Any] | tuple[Any, ...]
 ) -> MemoryBundleCatalog:
@@ -626,6 +647,25 @@ def premutation_checkpoint_pair_metadata(texts: Mapping[str, str]) -> dict[str, 
     }
 
 
+def prompt_time_pair_metadata(texts: Mapping[str, str]) -> dict[str, Any]:
+    """Record the matched prompt identity for official-019."""
+
+    return {
+        "arms": list(RECALL_PROMPT_TIME_PAIRED_ARMS),
+        "instruction_bytes_by_arm": {
+            arm: len(texts.get(arm, "").encode("utf-8"))
+            for arm in RECALL_PROMPT_TIME_PAIRED_ARMS
+        },
+        "instruction_sha256_by_arm": {
+            arm: hashlib.sha256(texts.get(arm, "").encode("utf-8")).hexdigest()
+            for arm in RECALL_PROMPT_TIME_PAIRED_ARMS
+        },
+        "hook_event": "UserPromptSubmit",
+        "hook_matcher": None,
+        "hook_max_hits": 3,
+    }
+
+
 def recall_preflight_request(arm: str, query: str) -> tuple[str, dict[str, Any]]:
     """Return the real read request that must pass before model spend."""
 
@@ -667,6 +707,7 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     validate_decision_protocol_pair(variant, arms)
     validate_oracle_ceiling_pair(variant, arms)
     validate_premutation_checkpoint_pair(variant, arms)
+    validate_prompt_time_pair(variant, arms)
     shared = variant in SHARED_PROTOCOL_VARIANTS
     texts = {arm: "" for arm in arms}
     if "recall" in texts:
@@ -696,6 +737,10 @@ def memory_instructions(variant: str, arms: tuple[str, ...], *, neutral: bool = 
     if RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM in texts:
         texts[RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM] = (
             recall_decision_protocol_instruction()
+        )
+    if RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM in texts:
+        texts[RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM] = recall_graph_fulltools_instruction(
+            "protocol"
         )
     for checkpoint_arm in (
         RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM,
@@ -838,6 +883,10 @@ def adapter_for(
         )
     if arm == RECALL_GRAPH_FULLTOOLS_DECISION_PROTOCOL_ARM:
         return RecallGraphFullToolsDecisionProtocolAdapter(
+            staging, static, instruction=texts.get(arm) or None
+        )
+    if arm == RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM:
+        return RecallGraphFullToolsPromptTimeAdapter(
             staging, static, instruction=texts.get(arm) or None
         )
     if arm == RECALL_GRAPH_FULLTOOLS_CHECKPOINT_PLACEBO_ARM:
@@ -1094,6 +1143,26 @@ def checkpoint_metadata(record: Any, spec: ArmSpec) -> dict[str, Any]:
     }
 
 
+def prompt_time_hook_ledger(spec: ArmSpec) -> tuple[dict[str, Any], ...]:
+    """Read the bounded prompt-time receipt written outside Claude's transcript."""
+
+    raw_path = spec.metadata.get("prompt_time_trace") if isinstance(spec.metadata, Mapping) else None
+    if not raw_path:
+        return ()
+    path = Path(str(raw_path))
+    if not path.is_file():
+        return ()
+    entries: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            entries.append(value)
+    return tuple(entries)
+
+
 def cell_namespace(base_namespace: str, task_id: str, seed: int, arm: str) -> str:
     """Give Claude-Mem one live store per task and seed.
 
@@ -1239,6 +1308,7 @@ async def main() -> int:
             "oneliner", "skill", "quality", "protocol", "draft",
             QUALITY_GATE_PAIRED_VARIANT, DECISION_PROTOCOL_PAIRED_VARIANT,
             ORACLE_CEILING_PAIRED_VARIANT, PREMUTATION_CHECKPOINT_PAIRED_VARIANT,
+            PROMPT_TIME_PAIRED_VARIANT,
         ),
         default="oneliner",
         help="which instruction the memory arms carry; recorded in the artifacts. `protocol` and "
@@ -1385,6 +1455,7 @@ async def main() -> int:
         validate_premutation_checkpoint_pair(
             args.memory_instruction, run_arms, condition=args.condition or None
         )
+        validate_prompt_time_pair(args.memory_instruction, run_arms)
     except ValueError as error:
         raise SystemExit(str(error)) from None
     if "protocol" in run_arms and args.memory_instruction not in SHARED_PROTOCOL_VARIANTS:
@@ -1902,6 +1973,8 @@ async def main() -> int:
         shared_tool_prefix_groups = (RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,)
     elif args.memory_instruction == PREMUTATION_CHECKPOINT_PAIRED_VARIANT:
         shared_tool_prefix_groups = (RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS,)
+    elif args.memory_instruction == PROMPT_TIME_PAIRED_VARIANT:
+        shared_tool_prefix_groups = (RECALL_PROMPT_TIME_PAIRED_ARMS,)
     else:
         shared_tool_prefix_groups = ()
     signals = with_forbidden_prefixes(
@@ -1995,7 +2068,8 @@ async def main() -> int:
                     texts, neutral=args.neutral_protocol
                 ),
                 "instruction_arms_matched": args.memory_instruction in {
-                    "protocol", PREMUTATION_CHECKPOINT_PAIRED_VARIANT
+                    "protocol", PREMUTATION_CHECKPOINT_PAIRED_VARIANT,
+                    PROMPT_TIME_PAIRED_VARIANT,
                 },
                 "quality_gate_pair": (
                     quality_gate_pair_metadata(texts)
@@ -2016,6 +2090,11 @@ async def main() -> int:
                 "premutation_checkpoint_pair": (
                     premutation_checkpoint_pair_metadata(texts)
                     if args.memory_instruction == PREMUTATION_CHECKPOINT_PAIRED_VARIANT
+                    else None
+                ),
+                "prompt_time_pair": (
+                    prompt_time_pair_metadata(texts)
+                    if args.memory_instruction == PROMPT_TIME_PAIRED_VARIANT
                     else None
                 ),
                 "shared_tool_prefix_groups": [
@@ -2285,6 +2364,16 @@ async def main() -> int:
         # and a blanket merge would let the adapter's value win.
         diagnostic_extra = diagnostic_metadata(spec)
         checkpoint_extra = checkpoint_metadata(record, spec)
+        hook_ledger = record.hook_ledger
+        prompt_time_extra: dict[str, Any] = {}
+        if arm == RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM:
+            hook_ledger = prompt_time_hook_ledger(spec)
+            prompt_time_extra = {
+                "prompt_time_hook": dict(hook_ledger[-1]) if hook_ledger else None,
+                "prompt_time_snapshot_manifest": spec.metadata.get(
+                    "prompt_time_snapshot_manifest"
+                ),
+            }
 
         # Classify HERE, not in the analysis. A damage detector needs the finished working tree,
         # and by the time anything reads records.jsonl the sandbox is gone. Without this the
@@ -2298,6 +2387,7 @@ async def main() -> int:
             **condition_extra,
             **diagnostic_extra,
             **checkpoint_extra,
+            **prompt_time_extra,
             # Compared ACROSS a cell's arms by harness.gate.admit_cells. Recorded since the first
             # commit and, until 2026-08-28, read by nothing.
             "sandbox_digest": digest,
@@ -2315,7 +2405,7 @@ async def main() -> int:
             record,
             success=ok and record.success,
             config_dir_digest=spec.config_dir_digest,
-            hook_ledger=(
+            hook_ledger=hook_ledger if arm == RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM else (
                 registry.get(arm).read_hook_ledger(
                     record.metadata.get("session_id"), spec.config_dir
                 )

@@ -116,6 +116,12 @@ PREMUTATION_CHECKPOINT_PAIRED_ARMS = [
     "recall_graph_fulltools_checkpoint_placebo",
     "recall_graph_fulltools_checkpoint",
 ]
+PROMPT_TIME_PAIRED_VARIANT = "prompt_time_auto_retrieval"
+PROMPT_TIME_PAIRED_ARMS = [
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_prompt_time",
+]
+PROMPT_TIME_CONTROL_SHA256 = QUALITY_GATE_CONTROL_SHA256
 
 _MARKS = {True: "PASS", False: "FAIL", None: "SKIP"}
 
@@ -502,6 +508,56 @@ def check_premutation_checkpoint_pair(env: dict) -> Check:
     )
 
 
+def check_prompt_time_pair(env: dict) -> Check:
+    """Verify official-019's matched protocol and prompt-time hook contract."""
+
+    if env.get("memory_instruction") != PROMPT_TIME_PAIRED_VARIANT:
+        return Check("prompt_time_pair", None, "official-019 paired variant not selected")
+    block = env.get("prompt_time_pair")
+    if not isinstance(block, dict):
+        return Check("prompt_time_pair", False, "prompt_time_pair metadata missing")
+    expected = {
+        "arms": PROMPT_TIME_PAIRED_ARMS,
+        "instruction_bytes_by_arm": {
+            arm: 3924 for arm in PROMPT_TIME_PAIRED_ARMS
+        },
+        "instruction_sha256_by_arm": {
+            arm: PROMPT_TIME_CONTROL_SHA256 for arm in PROMPT_TIME_PAIRED_ARMS
+        },
+        "hook_event": "UserPromptSubmit",
+        "hook_matcher": None,
+        "hook_max_hits": 3,
+    }
+    wrong = {
+        key: (value, block.get(key))
+        for key, value in expected.items()
+        if block.get(key) != value
+    }
+    if wrong:
+        return Check("prompt_time_pair", False, f"frozen prompt-time contract mismatch: {wrong}")
+    if env.get("shared_tool_prefix_groups") != [PROMPT_TIME_PAIRED_ARMS]:
+        return Check(
+            "prompt_time_pair",
+            False,
+            "the control and treatment are not the sole declared shared tool prefix group",
+        )
+    adapters = env.get("adapters") or {}
+    treatment = adapters.get("recall_graph_fulltools_prompt_time") or {}
+    if treatment.get("prompt_time_hook_source") != "released recall_hooks.prompt_time":
+        return Check(
+            "prompt_time_pair",
+            False,
+            "treatment does not identify the released prompt-time hook source",
+        )
+    if not treatment.get("prompt_time_hook_sha256"):
+        return Check("prompt_time_pair", False, "prompt-time hook digest is missing")
+    return Check(
+        "prompt_time_pair",
+        True,
+        "matched protocol and released UserPromptSubmit hook with max three hits",
+    )
+
+
 def check_claude_mem_preflight(env: dict) -> Check:
     """Require Claude-Mem's MCP server and one real search before model spend."""
 
@@ -559,6 +615,7 @@ def validate(
         check_decision_protocol_pair(env),
         check_oracle_ceiling_pair(env),
         check_premutation_checkpoint_pair(env),
+        check_prompt_time_pair(env),
         check_claude_mem_preflight(env),
     ]
 

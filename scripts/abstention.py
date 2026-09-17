@@ -79,12 +79,17 @@ RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS = (
     "recall_graph_fulltools_checkpoint_placebo",
     "recall_graph_fulltools_checkpoint",
 )
+RECALL_PROMPT_TIME_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_prompt_time",
+)
 RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
     {
         "recall_graph_fulltools",
         *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,
         *RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,
         *RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS,
+        *RECALL_PROMPT_TIME_PAIRED_ARMS,
     }
 )
 
@@ -526,6 +531,16 @@ def search_rate_for(run_dir: Path, *, admitted_only: bool = True) -> dict[str, f
                 for entry in ledger
             ):
                 return True
+        if arm == "recall_graph_fulltools_prompt_time":
+            ledger = record.get("hook_ledger")
+            if isinstance(ledger, list):
+                return any(
+                    isinstance(entry, dict)
+                    and entry.get("event") == "UserPromptSubmit"
+                    and entry.get("injection_status") == "context"
+                    and int(entry.get("source_count") or 0) > 0
+                    for entry in ledger
+                )
         return int(record.get("memory_call_count") or 0) > 0
 
     calls: dict[str, list[bool]] = {}
@@ -695,19 +710,22 @@ def main() -> int:
     valid_official015_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS
     valid_official016_pair = tuple(arms) == RECALL_ORACLE_CEILING_PAIRED_ARMS
     valid_official017_grid = tuple(arms) == RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS
+    valid_official019_pair = tuple(arms) == RECALL_PROMPT_TIME_PAIRED_ARMS
     if args.recall_only and not (
         valid_single
         or valid_official014_pair
         or valid_official015_pair
         or valid_official016_pair
-        or valid_official017_grid
+          or valid_official017_grid
+          or valid_official019_pair
     ):
         raise SystemExit(
             "--recall-only requires one standard RE-call arm or one preregistered comparison: "
             f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS} or "
             f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS} or "
-            f"{RECALL_ORACLE_CEILING_PAIRED_ARMS} or "
-            f"{RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS}"
+              f"{RECALL_ORACLE_CEILING_PAIRED_ARMS} or "
+              f"{RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS} or "
+              f"{RECALL_PROMPT_TIME_PAIRED_ARMS}"
         )
     if not args.recall_only and "bare" not in arms:
         raise SystemExit(
