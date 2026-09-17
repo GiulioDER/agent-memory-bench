@@ -352,7 +352,23 @@ def run_condition(args, condition: str) -> Path:
         }
         for arm in recall_arms
     ):
-        ingest_recall(corpus_root, namespace, dry_run=args.dry_run, arm=ingest_arm)
+        # Most recall arms only need the shared remote-generation verification. Some paired
+        # treatments also prepare local controller-side material during ingest (official-019's
+        # prompt-time snapshot is one example). Prepare every selected recall adapter against the
+        # same namespace; remote ingest is verification-only, while adapter-local preparation must
+        # not be skipped just because another arm shares the MCP server.
+        ingest_arms = list(dict.fromkeys(
+            arm
+            for arm in recall_arms
+            if arm in {
+                "recall",
+                "recall_rerank",
+                "recall_graph_rerank",
+                *RECALL_GRAPH_FULLTOOLS_ARMS,
+            }
+        ))
+        for arm in ingest_arms:
+            ingest_recall(corpus_root, namespace, dry_run=args.dry_run, arm=arm)
         # After ingest, because the server is checked against the corpus it will serve.
         preflight_recall(namespace, dry_run=args.dry_run, arm=ingest_arm)
 
