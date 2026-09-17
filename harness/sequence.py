@@ -41,6 +41,7 @@ SEQUENCE_KEY = "sequence"
 MEMORY_EVENTS_KEY = "memory_events"
 TARGET_ROLE = "target"
 EVENT_KINDS = ("write", "retrieve")
+FUNNEL_LABELS = ("encountered", "retained", "retrieved", "applied")
 
 
 def _mapping(record: SessionRecord | Mapping[str, Any]) -> Mapping[str, Any]:
@@ -111,6 +112,19 @@ def _events(record: SessionRecord | Mapping[str, Any]) -> tuple[Mapping[str, Any
                 raise TypeError(f"memory event {label} must be bool or None")
         result.append(event)
     return tuple(result)
+
+
+def _funnel(record: SessionRecord | Mapping[str, Any]) -> Mapping[str, bool | None]:
+    value = _mapping(record).get("sequence_funnel", {})
+    if isinstance(value, (str, bytes)) or not isinstance(value, Mapping):
+        raise TypeError("metadata.sequence_funnel must be a mapping")
+    unknown = sorted(set(value) - set(FUNNEL_LABELS))
+    if unknown:
+        raise ValueError(f"unknown sequence funnel labels: {unknown}")
+    for label, item in value.items():
+        if item is not None and not isinstance(item, bool):
+            raise TypeError(f"sequence funnel label {label!r} must be bool or None")
+    return value
 
 
 def _observed_rate(values: list[bool]) -> float | None:
@@ -206,6 +220,40 @@ def _empty_event_metrics() -> dict[str, Any]:
         "retrieval_useful_abstention_rate": None,
         "useful_abstentions": 0,
     }
+
+
+def _empty_funnel_metrics() -> dict[str, Any]:
+    return {
+        label: {"observed": 0, "successes": 0, "rate": None}
+        for label in FUNNEL_LABELS
+    }
+
+
+def _add_funnel(metrics: dict[str, Any], records: Sequence[SessionRecord | Mapping[str, Any]]) -> None:
+    source = next(record for record in records if _sequence(record)["role"] == "source")
+    target = next(record for record in records if _sequence(record)["role"] == TARGET_ROLE)
+    values = {**_funnel(source), **_funnel(target)}
+    previous: bool | None = None
+    for index, label in enumerate(FUNNEL_LABELS):
+        value = values.get(label)
+        if index == 0:
+            if value is None:
+                previous = None
+                continue
+            row = metrics[label]
+            row["observed"] += 1
+            row["successes"] += int(value)
+            row["rate"] = row["successes"] / row["observed"]
+            previous = value
+            continue
+        if previous is not True or value is None:
+            previous = value
+            continue
+        row = metrics[label]
+        row["observed"] += 1
+        row["successes"] += int(value)
+        row["rate"] = row["successes"] / row["observed"]
+        previous = value
 
 
 def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mapping[str, Any]]) -> None:
@@ -351,6 +399,7 @@ def score_sequences(
                     "token_delta_pairs": 0,
                 },
                 "selectivity": _empty_event_metrics(),
+                "funnel": _empty_funnel_metrics(),
             }
 
     for chain in chains:
@@ -371,6 +420,7 @@ def score_sequences(
                 bool(_record_value(record, "success")) for record in arm_records
             )
             _add_events(row["selectivity"], arm_records)
+            _add_funnel(row["funnel"], arm_records)
             overhead = _chain_overhead(arm_records)
             overhead_row = row["overhead"]
             metered_fields = (
