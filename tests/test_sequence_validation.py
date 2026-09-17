@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.sequence_plan import load_plan
-from harness.sequence_validation import validate_plan
+from harness.sequence_validation import sequence_input_files, validate_plan
 
 
 def _plan(source: str = "ts-atomic-write", target: str = "ts-bool-env", length: int = 2):
@@ -58,6 +58,15 @@ def test_plan_binds_real_primary_tasks_and_reports_dimensions():
         "chains_by_length": {2: 1},
         "task_ids": ["ts-atomic-write", "ts-bool-env"],
     }
+
+
+def test_sequence_input_files_cover_runtime_task_and_oracle_bytes():
+    files = sequence_input_files(_plan(), repo_root=".", tasks_root="tasks")
+    assert "tasks/ts-atomic-write/task.json" in files
+    assert "tasks/ts-atomic-write/checker.py" in files
+    assert "tasks/ts-atomic-write/tree/store.py" in files
+    assert "oracles/ts-atomic-write/driver.py" in files
+    assert all("__pycache__" not in path for path in files)
 
 
 def test_plan_refuses_prompt_drift():

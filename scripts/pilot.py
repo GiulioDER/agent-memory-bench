@@ -1363,7 +1363,13 @@ async def main() -> int:
         assert heldout_manifest is not None
         try:
             validate_plan(sequence_plan, tasks_root=REPO / "tasks")
-            validate_sequence_evaluation(sequence_plan, heldout_manifest)
+            validate_sequence_evaluation(
+                sequence_plan,
+                heldout_manifest,
+                repo_root=REPO,
+                tasks_root=REPO / "tasks",
+                plan_path=args.sequence_plan,
+            )
         except (OSError, TypeError, ValueError) as error:
             raise SystemExit(f"sequence preflight failed: {error}") from None
         plan_seed_values = sorted({chain.seed for chain in sequence_plan.chains})
