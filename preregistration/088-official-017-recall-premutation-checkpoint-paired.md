@@ -210,3 +210,88 @@ The first completed one-cell smoke then confirmed exactly one private checkpoint
 admitted session, but showed that the existing publication minimizer omitted the new bounded
 checkpoint fields. The public allowlist now retains only the preregistered diagnostic object and
 its counts; raw permission denials, queries, evidence text and mutation inputs remain private.
+
+## Result, 2026-09-17
+
+The run completed all 135 participant sessions. Forty-one complete three-arm cells were admitted,
+above the preregistered minimum of 36. Four cells were discarded because one arm did not complete:
+`ts-mig-name` seed 2, `ts-schema-additive` seed 4, `ts-semver-pin` seed 1 and `ts-tz-utc` seed 4.
+
+The setup validator passed the 206-session corpus floor, byte-identical shared protocol, expected
+three-arm roster, `premutation_checkpoint_paired` instruction, sandbox boundary, 22-tool RE-call
+preflight and frozen checkpoint pair. The recorded corpus fingerprint was
+`5a090d3c0809f751b2b3f62a2eda5b666a50413e902594d7d7c983af0e0f3766`. `verify_run` re-derived
+the 135 records, 41 admitted cells, four-cell discard set, 39,730,045 tokens and endpoint values,
+and verified the trusted execution receipt using its embedded key.
+
+### Paired quality endpoints
+
+| Comparison | Both succeed | First only | Second only | Both fail | Net wins for first | Success difference |
+|---|---:|---:|---:|---:|---:|---:|
+| treatment vs placebo | 12 | 5 | 4 | 20 | +1 | +2.44 points |
+| treatment vs standard | 14 | 3 | 18 | 6 | -15 | -36.59 points |
+| placebo vs standard | 15 | 1 | 17 | 8 | -16 | -39.02 points |
+
+The standard control succeeded on 32 of 41 cells, 78.05 percent. Placebo succeeded on 16 of 41,
+39.02 percent. Treatment succeeded on 17 of 41, 41.46 percent. Treatment therefore gained only
+one net paired win over placebo, while both checkpoint arms performed substantially worse than the
+standard control.
+
+The generic abstention summary marks placebo below its 50 percent autonomous-search floor. That
+gate is not the preregistered endpoint for this experiment because placebo is explicitly required
+to make no checkpoint memory request. The paired checkpoint analysis above uses the 41 cells that
+passed the experiment's frozen three-arm admission and setup gates; it does not reinterpret the
+generic abstention composite.
+
+### Retrieval reach and application
+
+Treatment triggered its checkpoint in 35 admitted cells. It reached the authored current source in
+26 of 35, 74.29 percent, and reached it at least once in eight of nine tasks. `ts-ignore-gen` was
+the only task never reached. Thirteen of the 26 reached cells succeeded, 50.00 percent. Four of the
+nine triggered cells that did not reach the source succeeded, 44.44 percent. Overall, 17 of 35
+triggered treatment cells succeeded, 48.57 percent.
+
+Query construction therefore cleared the frozen reach threshold, but reaching the intended source
+did not produce the predicted application quality. The observed bottleneck is evidence
+presentation or application, compounded by a strongly negative checkpoint intervention effect.
+
+### Safety, tool use and cost
+
+| Arm | Wrong-fact outcomes | Autonomous memory calls, sessions | Checkpoints | Checkpoint memory calls | Tool errors | Participant errors | Timeouts |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| standard | 0/41 | 62, 35 | 0 | 0 | 32 | 0 | 0 |
+| placebo | 0/41 | 9, 9 | 33 | 0 | 31 | 0 | 0 |
+| treatment | 2/41 | 38, 8 | 35 | 35 | 33 | 0 | 0 |
+
+The treatment wrong-fact rate was 4.88 percent, against zero for both controls. Every triggered
+treatment checkpoint returned a trusted non-abstaining response. No admitted arm had a participant
+error or timeout. Intended checkpoint denials remain excluded from the tool-error counts.
+
+| Arm | Mean input tokens | Mean output tokens | Mean turns | Mean wall time | Mean checkpoint latency | Estimated run spend |
+|---|---:|---:|---:|---:|---:|---:|
+| standard | 134,945 | 3,409.5 | 10.49 | 107.15 s | n/a | $0.3428 |
+| placebo | 312,077.3 | 2,988.3 | 10.02 | 96.87 s | 0 ms | $0.8026 |
+| treatment | 466,821 | 3,709.2 | 11.71 | 135.61 s | 803.49 ms | $1.1602 |
+
+Treatment used 49.59 percent more mean input tokens and 40.00 percent more mean wall time than
+placebo on admitted paired cells. Total estimated spend was $2.3056. The cost artifact records
+RE-call ingestion as unmetered, so that external ingestion cost is missing rather than zero.
+
+### Frozen predictions
+
+| Prediction | Result | Verdict |
+|---|---|---|
+| 1. Treatment at least three net wins over placebo | +1 | failed |
+| 2. Treatment at least three net wins over standard | -15 | failed |
+| 3. Placebo within two net wins of standard | -16 | failed |
+| 4. Target reach at least 50 percent and at least seven tasks | 74.29 percent, eight tasks | passed |
+| 5. At least 75 percent success when target reached | 50.00 percent | failed |
+| 6. Treatment wrong facts no greater than placebo and at most two | 2 vs 0 | failed |
+| 7. Treatment participant errors or timeouts no more than placebo plus one | 0 vs 0 | passed |
+| 8. Treatment input at most +20 percent and wall time at most +30 percent | +49.59 percent, +40.00 percent | failed |
+
+Two of eight predictions passed. The checkpoint lane does not advance because prediction 1 and
+prediction 6 both failed, despite sufficient admission and passing setup and trust invariants.
+The result closes this implementation path: retrieval reached the intended memory often enough,
+but the checkpoint did not convert that evidence into quality and introduced measurable harm and
+substantial cost.
