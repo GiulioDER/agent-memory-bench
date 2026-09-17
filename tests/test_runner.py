@@ -63,8 +63,35 @@ def test_sequence_metadata_survives_runner_success_and_failure():
     records = asyncio.run(
         run_grid([{"task_id": "target", "sequence": sequence}], ("bare", "recall"), runner)
     )
-    for record in records:
-        assert record.metadata["sequence"] == sequence
+    by_arm = {record.arm: record for record in records}
+    assert by_arm["bare"].metadata["sequence"] == sequence
+    assert by_arm["recall"].metadata["sequence"] == {**sequence, "admitted": False}
+
+
+def test_runner_marks_adapter_error_sequence_as_not_admitted():
+    """Mutation: retaining admitted=true on an error would let a failed session enter scoring."""
+
+    sequence = {
+        "chain_id": "chain-1",
+        "length": 2,
+        "position": 1,
+        "role": "target",
+        "admitted": True,
+    }
+
+    async def runner(row, arm):
+        return SessionRecord(
+            task_id=str(row["task_id"]),
+            arm=arm,
+            seed=int(row.get("seed", 0)),
+            success=False,
+            error="adapter failed",
+        )
+
+    records = asyncio.run(
+        run_grid([{"task_id": "target", "sequence": sequence}], ("recall",), runner)
+    )
+    assert records[0].metadata["sequence"]["admitted"] is False
 
 
 def test_runner_cannot_replace_row_sequence_identity():

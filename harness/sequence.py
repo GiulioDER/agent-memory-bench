@@ -142,7 +142,10 @@ class _Chain:
         by_position = self.records.get(arm, {})
         if set(by_position) != set(range(self.length)):
             return False
-        return all(_sequence(record)["admitted"] for record in by_position.values())
+        return all(
+            _sequence(record)["admitted"] and _record_value(record, "error") is None
+            for record in by_position.values()
+        )
 
     def target(self, arm: str) -> SessionRecord | Mapping[str, Any]:
         targets = [record for record in self.for_arm(arm) if _sequence(record)["role"] == TARGET_ROLE]
@@ -187,6 +190,8 @@ def _empty_event_metrics() -> dict[str, Any]:
         "write_useful": 0,
         "write_precision": None,
         "write_abstention_rate": None,
+        "write_useful_abstentions": 0,
+        "write_useful_abstention_rate": None,
         "retrieval_decisions": 0,
         "retrievals": 0,
         "retrieval_abstentions": 0,
@@ -197,6 +202,8 @@ def _empty_event_metrics() -> dict[str, Any]:
         "retrieval_harm_observed": 0,
         "retrieval_harmful": 0,
         "retrieval_harm_rate": None,
+        "retrieval_useful_abstentions": 0,
+        "retrieval_useful_abstention_rate": None,
         "useful_abstentions": 0,
     }
 
@@ -217,6 +224,8 @@ def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mappi
                         metrics["write_useful"] += useful
                 else:
                     metrics["write_skips"] += 1
+                    if useful is True:
+                        metrics["write_useful_abstentions"] += 1
             else:
                 metrics["retrieval_decisions"] += 1
                 if decision == "retrieve":
@@ -230,7 +239,7 @@ def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mappi
                 else:
                     metrics["retrieval_abstentions"] += 1
                     if useful is True:
-                        metrics["useful_abstentions"] += 1
+                        metrics["retrieval_useful_abstentions"] += 1
     metrics["write_precision"] = _observed_rate(
         [True] * metrics["write_useful"]
         + [False] * (metrics["write_useful_observed"] - metrics["write_useful"])
@@ -238,6 +247,11 @@ def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mappi
     metrics["write_abstention_rate"] = (
         metrics["write_skips"] / metrics["write_decisions"]
         if metrics["write_decisions"]
+        else None
+    )
+    metrics["write_useful_abstention_rate"] = (
+        metrics["write_useful_abstentions"] / metrics["write_skips"]
+        if metrics["write_skips"]
         else None
     )
     metrics["retrieval_precision"] = _observed_rate(
@@ -248,6 +262,14 @@ def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mappi
         metrics["retrieval_abstentions"] / metrics["retrieval_decisions"]
         if metrics["retrieval_decisions"]
         else None
+    )
+    metrics["retrieval_useful_abstention_rate"] = (
+        metrics["retrieval_useful_abstentions"] / metrics["retrieval_abstentions"]
+        if metrics["retrieval_abstentions"]
+        else None
+    )
+    metrics["useful_abstentions"] = (
+        metrics["write_useful_abstentions"] + metrics["retrieval_useful_abstentions"]
     )
     metrics["retrieval_harm_rate"] = _observed_rate(
         [True] * metrics["retrieval_harmful"]
