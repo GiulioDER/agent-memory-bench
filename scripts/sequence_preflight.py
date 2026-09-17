@@ -16,12 +16,19 @@ def main() -> int:
     parser.add_argument("plan", type=Path)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("--repo-root", type=Path, default=Path("."))
+    parser.add_argument("--tasks-root", type=Path)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
     plan = load_plan_file(args.plan)
     manifest = FrozenEvaluationManifest.load(args.manifest, root=args.repo_root)
-    result = validate_sequence_evaluation(plan, manifest).to_dict()
+    result = validate_sequence_evaluation(
+        plan,
+        manifest,
+        repo_root=args.repo_root,
+        tasks_root=args.tasks_root or args.repo_root / "tasks",
+        plan_path=args.plan,
+    ).to_dict()
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")

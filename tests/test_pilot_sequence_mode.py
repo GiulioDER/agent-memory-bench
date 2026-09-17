@@ -67,6 +67,9 @@ def test_pilot_sequence_dry_run_uses_plan_roster_and_position_count(tmp_path, mo
         "validate_plan",
         lambda plan, **_kwargs: validated.append(plan.plan_id),
     )
+    # The dry-run fixture keeps its plan outside the repository; manifest coverage of the
+    # committed plan/task bytes is exercised by the dedicated sequence preflight tests.
+    monkeypatch.setattr(pilot, "validate_sequence_evaluation", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         sys,
         "argv",

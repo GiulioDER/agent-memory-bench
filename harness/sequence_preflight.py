@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from .frozen_manifest import FrozenEvaluationManifest
 from .sequence_plan import SequencePlan
+from .sequence_validation import sequence_input_files
 
 
 @dataclass(frozen=True)
@@ -21,6 +23,7 @@ class SequenceEvaluationPreflight:
     chain_lengths: tuple[int, ...]
     corpus_files: tuple[str, ...]
     protocol_files: tuple[str, ...]
+    bound_sequence_files: tuple[str, ...]
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -32,12 +35,18 @@ class SequenceEvaluationPreflight:
             "chain_lengths": list(self.chain_lengths),
             "corpus_files": list(self.corpus_files),
             "protocol_files": list(self.protocol_files),
+            "bound_sequence_files": list(self.bound_sequence_files),
             "verified": True,
         }
 
 
 def validate_sequence_evaluation(
-    plan: SequencePlan, manifest: FrozenEvaluationManifest
+    plan: SequencePlan,
+    manifest: FrozenEvaluationManifest,
+    *,
+    repo_root: str | Path | None = None,
+    tasks_root: str | Path | None = None,
+    plan_path: str | Path | None = None,
 ) -> SequenceEvaluationPreflight:
     """Verify the frozen inputs and their binding before execution."""
 
@@ -47,6 +56,27 @@ def validate_sequence_evaluation(
         raise ValueError("sequence plan and heldout manifest identify different manifests")
     if manifest.digest != plan.evaluation_manifest_digest:
         raise ValueError("sequence plan and heldout manifest have different digests")
+    bound_sequence_files: set[str] = set()
+    if repo_root is not None or tasks_root is not None:
+        if repo_root is None or tasks_root is None:
+            raise ValueError("repo_root and tasks_root must be supplied together")
+        bound_sequence_files.update(
+            sequence_input_files(plan, repo_root=repo_root, tasks_root=tasks_root)
+        )
+    if plan_path is not None:
+        plan_file = Path(plan_path).resolve()
+        repository = Path(manifest.root).resolve()
+        try:
+            bound_sequence_files.add(plan_file.relative_to(repository).as_posix())
+        except ValueError as error:
+            raise ValueError("sequence plan must be inside the manifest root") from error
+    missing = sorted(
+        bound_sequence_files - set(manifest.data.get("protocol_files", {}))
+    )
+    if missing:
+        raise ValueError(
+            "heldout manifest does not bind all sequence evaluation inputs: " + ", ".join(missing)
+        )
     return SequenceEvaluationPreflight(
         plan_id=plan.plan_id,
         plan_digest=plan.digest,
@@ -56,4 +86,5 @@ def validate_sequence_evaluation(
         chain_lengths=tuple(sorted({chain.length for chain in plan.chains})),
         corpus_files=tuple(sorted(manifest.data["corpus_files"])),
         protocol_files=tuple(sorted(manifest.data["protocol_files"])),
+        bound_sequence_files=tuple(sorted(bound_sequence_files)),
     )

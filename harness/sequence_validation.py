@@ -63,6 +63,54 @@ def _shared_text(paths: Iterable[str | Path]) -> str:
     return normalise(" ".join(parts))
 
 
+def sequence_input_files(
+    plan: SequencePlan, *, repo_root: str | Path, tasks_root: str | Path
+) -> tuple[str, ...]:
+    """List task and oracle files whose bytes can affect a sequence evaluation.
+
+    The ordinary corpus manifest does not include executable task fixtures. A longitudinal
+    manifest must bind those inputs too, or changing a checker or fresh tree after freezing would
+    change the evaluation while leaving the manifest digest untouched.
+    """
+
+    repository = Path(repo_root).resolve()
+    tasks_directory = Path(tasks_root).resolve()
+    try:
+        tasks_directory.relative_to(repository)
+    except ValueError as error:
+        raise ValueError("tasks_root must be inside repo_root") from error
+
+    tasks = {task.task_id: task for task in discover_tasks(tasks_directory)}
+    task_ids = {session.task_id for chain in plan.chains for session in chain.sessions}
+    missing = sorted(task_ids - set(tasks))
+    if missing:
+        raise ValueError(f"sequence plan names unknown task(s) {missing}")
+
+    files: set[str] = set()
+
+    def add_tree(root: Path) -> None:
+        if not root.is_dir():
+            raise FileNotFoundError(f"sequence evaluation input directory does not exist: {root}")
+        for path in sorted(item for item in root.rglob("*") if item.is_file()):
+            if "__pycache__" in path.parts:
+                continue
+            try:
+                relative = path.resolve().relative_to(repository).as_posix()
+            except ValueError as error:
+                raise ValueError(f"sequence evaluation input escapes repo_root: {path}") from error
+            files.add(relative)
+
+    for task_id in sorted(task_ids):
+        task = tasks[task_id]
+        for path in (task.path / "task.json", task.checker_path):
+            if not path.is_file():
+                raise FileNotFoundError(f"sequence evaluation input file does not exist: {path}")
+            files.add(path.resolve().relative_to(repository).as_posix())
+        add_tree(task.path / "tree")
+        add_tree(repository / "oracles" / task_id)
+    return tuple(sorted(files))
+
+
 def validate_plan(
     plan: SequencePlan,
     *,
