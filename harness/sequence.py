@@ -41,6 +41,7 @@ SEQUENCE_KEY = "sequence"
 MEMORY_EVENTS_KEY = "memory_events"
 TARGET_ROLE = "target"
 EVENT_KINDS = ("write", "retrieve")
+FUNNEL_LABELS = ("encountered", "retained", "retrieved", "applied")
 
 
 def _mapping(record: SessionRecord | Mapping[str, Any]) -> Mapping[str, Any]:
@@ -113,6 +114,19 @@ def _events(record: SessionRecord | Mapping[str, Any]) -> tuple[Mapping[str, Any
     return tuple(result)
 
 
+def _funnel(record: SessionRecord | Mapping[str, Any]) -> Mapping[str, bool | None]:
+    value = _mapping(record).get("sequence_funnel", {})
+    if isinstance(value, (str, bytes)) or not isinstance(value, Mapping):
+        raise TypeError("metadata.sequence_funnel must be a mapping")
+    unknown = sorted(set(value) - set(FUNNEL_LABELS))
+    if unknown:
+        raise ValueError(f"unknown sequence funnel labels: {unknown}")
+    for label, item in value.items():
+        if item is not None and not isinstance(item, bool):
+            raise TypeError(f"sequence funnel label {label!r} must be bool or None")
+    return value
+
+
 def _observed_rate(values: list[bool]) -> float | None:
     return sum(values) / len(values) if values else None
 
@@ -123,6 +137,23 @@ def _optional_sum(values: list[Any]) -> int | None:
     if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in values):
         raise ValueError("token and storage overhead values must be nonnegative integers")
     return sum(values)
+
+
+def _optional_number_sum(values: list[Any]) -> int | float | None:
+    if not values or any(value is None for value in values):
+        return None
+    if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in values):
+        raise ValueError("duration and cost values must be numbers")
+    return sum(values)
+
+
+def _tool_call_count(record: SessionRecord | Mapping[str, Any]) -> int | None:
+    value = _record_value(record, "tool_calls")
+    if value is None:
+        return None
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise TypeError("tool_calls must be a sequence")
+    return len(value)
 
 
 @dataclass(frozen=True)
@@ -208,6 +239,40 @@ def _empty_event_metrics() -> dict[str, Any]:
     }
 
 
+def _empty_funnel_metrics() -> dict[str, Any]:
+    return {
+        label: {"observed": 0, "successes": 0, "rate": None}
+        for label in FUNNEL_LABELS
+    }
+
+
+def _add_funnel(metrics: dict[str, Any], records: Sequence[SessionRecord | Mapping[str, Any]]) -> None:
+    source = next(record for record in records if _sequence(record)["role"] == "source")
+    target = next(record for record in records if _sequence(record)["role"] == TARGET_ROLE)
+    values = {**_funnel(source), **_funnel(target)}
+    previous: bool | None = None
+    for index, label in enumerate(FUNNEL_LABELS):
+        value = values.get(label)
+        if index == 0:
+            if value is None:
+                previous = None
+                continue
+            row = metrics[label]
+            row["observed"] += 1
+            row["successes"] += int(value)
+            row["rate"] = row["successes"] / row["observed"]
+            previous = value
+            continue
+        if previous is not True or value is None:
+            previous = value
+            continue
+        row = metrics[label]
+        row["observed"] += 1
+        row["successes"] += int(value)
+        row["rate"] = row["successes"] / row["observed"]
+        previous = value
+
+
 def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mapping[str, Any]]) -> None:
     for record in records:
         for event in _events(record):
@@ -277,7 +342,9 @@ def _add_events(metrics: dict[str, Any], records: Sequence[SessionRecord | Mappi
     )
 
 
-def _chain_overhead(records: Sequence[SessionRecord | Mapping[str, Any]]) -> dict[str, int | None]:
+def _chain_overhead(
+    records: Sequence[SessionRecord | Mapping[str, Any]],
+) -> dict[str, int | float | None]:
     metadata = [_mapping(record) for record in records]
     return {
         "input_tokens": _optional_sum([_record_value(record, "input_tokens") for record in records]),
@@ -301,6 +368,10 @@ def _chain_overhead(records: Sequence[SessionRecord | Mapping[str, Any]]) -> dic
         ),
         "memory_storage_bytes": _optional_sum(
             [metadata_item.get("memory_storage_bytes") for metadata_item in metadata]
+        ),
+        "tool_calls": _optional_sum([_tool_call_count(record) for record in records]),
+        "wall_time_ms": _optional_number_sum(
+            [_record_value(record, "wall_time_ms") for record in records]
         ),
     }
 
@@ -346,11 +417,18 @@ def score_sequences(
                     "memory_input_tokens": None,
                     "memory_output_tokens": None,
                     "memory_storage_bytes": None,
+                    "tool_calls": None,
+                    "wall_time_ms": None,
                     "chains_metered": 0,
                     "mean_total_token_delta_vs_baseline": None,
                     "token_delta_pairs": 0,
+                    "mean_tool_call_delta_vs_baseline": None,
+                    "tool_call_delta_pairs": 0,
+                    "mean_wall_time_delta_vs_baseline": None,
+                    "wall_time_delta_pairs": 0,
                 },
                 "selectivity": _empty_event_metrics(),
+                "funnel": _empty_funnel_metrics(),
             }
 
     for chain in chains:
@@ -371,6 +449,7 @@ def score_sequences(
                 bool(_record_value(record, "success")) for record in arm_records
             )
             _add_events(row["selectivity"], arm_records)
+            _add_funnel(row["funnel"], arm_records)
             overhead = _chain_overhead(arm_records)
             overhead_row = row["overhead"]
             metered_fields = (
@@ -380,6 +459,8 @@ def score_sequences(
                 "memory_input_tokens",
                 "memory_output_tokens",
                 "memory_storage_bytes",
+                "tool_calls",
+                "wall_time_ms",
             )
             for field in metered_fields:
                 if overhead[field] is not None:
@@ -399,6 +480,26 @@ def score_sequences(
                             current_delta * current_pairs + overhead["total_tokens"] - baseline_total
                         ) / (current_pairs + 1)
                         overhead_row["token_delta_pairs"] += 1
+                    baseline_tools = _chain_overhead(chain.for_arm(baseline_arm))["tool_calls"]
+                    if baseline_tools is not None and overhead["tool_calls"] is not None:
+                        current_pairs = overhead_row["tool_call_delta_pairs"]
+                        current_delta = overhead_row["mean_tool_call_delta_vs_baseline"] or 0
+                        overhead_row["mean_tool_call_delta_vs_baseline"] = (
+                            current_delta * current_pairs
+                            + overhead["tool_calls"]
+                            - baseline_tools
+                        ) / (current_pairs + 1)
+                        overhead_row["tool_call_delta_pairs"] += 1
+                    baseline_wall = _chain_overhead(chain.for_arm(baseline_arm))["wall_time_ms"]
+                    if baseline_wall is not None and overhead["wall_time_ms"] is not None:
+                        current_pairs = overhead_row["wall_time_delta_pairs"]
+                        current_delta = overhead_row["mean_wall_time_delta_vs_baseline"] or 0
+                        overhead_row["mean_wall_time_delta_vs_baseline"] = (
+                            current_delta * current_pairs
+                            + overhead["wall_time_ms"]
+                            - baseline_wall
+                        ) / (current_pairs + 1)
+                        overhead_row["wall_time_delta_pairs"] += 1
 
     for row in by_arm_length.values():
         admitted = row["admitted_chains"]
