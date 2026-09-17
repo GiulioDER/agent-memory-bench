@@ -9,7 +9,9 @@ from pathlib import Path
 import pytest
 
 from adapters.recall_prompt_time.adapter import RecallGraphFullToolsPromptTimeAdapter
+from harness import isolation
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport
+from harness.claude_exec import ClaudeExecConfig, session_environment
 from scripts import pilot
 from scripts.validate_run_setup import check_prompt_time_pair
 
@@ -104,6 +106,19 @@ def test_prompt_time_wrapper_fails_open_and_records_bounded_receipt(tmp_path) ->
     assert entry["exit_code"] == 0
     assert entry["hook_error"] == "ModuleNotFoundError"
     assert entry["output_sha256"]
+
+
+def test_prompt_time_trace_path_reaches_the_participant() -> None:
+    config = ClaudeExecConfig(
+        executable="/bin/true",
+        env={"AMB_RECALL_PROMPT_TIME_TRACE": "/workspace/.amb-prompt-time-ledger.jsonl"},
+        bare=False,
+        strict_mcp_config=False,
+    )
+    assert session_environment(config)["AMB_RECALL_PROMPT_TIME_TRACE"] == (
+        "/workspace/.amb-prompt-time-ledger.jsonl"
+    )
+    assert "AMB_RECALL_PROMPT_TIME_TRACE" in isolation._PUBLIC_ENV_NAMES
 
 
 def test_prompt_time_build_copies_release_and_uses_container_paths(tmp_path, monkeypatch) -> None:

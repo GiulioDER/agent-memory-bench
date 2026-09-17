@@ -76,7 +76,9 @@ class RecallGraphFullToolsPromptTimeAdapter(RecallGraphFullToolsProtocolAdapter)
         shutil.copytree(snapshot, config_dir / _SNAPSHOT_NAME)
         wrapper = config_dir / "prompt_time_hook.py"
         shutil.copy2(_HOOK, wrapper)
-        trace = config_dir / "prompt-time-ledger.jsonl"
+        # /session is private to the participant container and is not copied back by the
+        # isolation boundary. Keep the bounded receipt in the transferred workspace instead.
+        trace = session_dir / ".amb-prompt-time-ledger.jsonl"
         command = '"/usr/local/bin/python" "/session/claude-config/prompt_time_hook.py"'
         settings = {
             "hooks": {
@@ -120,6 +122,7 @@ class RecallGraphFullToolsPromptTimeAdapter(RecallGraphFullToolsProtocolAdapter)
             config_dir_digest=digest_tree(config_dir),
             env={
                 **base.env,
+                "AMB_RECALL_PROMPT_TIME_TRACE": "/workspace/.amb-prompt-time-ledger.jsonl",
             },
             metadata={
                 **base.metadata,

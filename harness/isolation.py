@@ -221,7 +221,18 @@ _SECRET_PARTS = (
     "OPENROUTER",
 )
 _PUBLIC_ENV_NAMES = frozenset(
-    {"HOME", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "NO_COLOR", "TMPDIR"}
+    {
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "TERM",
+        "NO_COLOR",
+        "TMPDIR",
+        # The official-019 prompt-time hook writes its bounded receipt into /workspace so the
+        # participant boundary can return it to the controller for admission.
+        "AMB_RECALL_PROMPT_TIME_TRACE",
+    }
 )
 
 
