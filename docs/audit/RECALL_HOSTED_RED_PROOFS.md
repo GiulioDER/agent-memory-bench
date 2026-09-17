@@ -114,3 +114,53 @@ Observed assertion failure: p95 of request latencies 1 through 16 was reported a
 
 Green restoration: replay uses the nearest rank definition and therefore includes the slowest
 request in a sixteen request p95.
+
+## Source session concentration
+
+Test node:
+`tests/test_recall_hosted_replay.py::test_replay_scoring_reports_duplicate_session_concentration`
+
+Production symbol: `scripts.recall_hosted_replay.score_items`
+
+Mutation: report duplicate session concentration as zero for every nonempty result.
+
+Observed assertion failure: a four item pack containing two records from `p01` reported `0.0`
+instead of the expected duplicate concentration `0.25`.
+
+Green restoration: the metric reports the fraction of returned items beyond the first item from
+each distinct source session. Source session recall separately reports how many labeled source
+sessions were represented.
+
+## Engineering experience promotion and fallback
+
+Test nodes:
+`tests/test_recall_experience_select.py::test_selector_promotes_compiled_plus_raw_when_it_recovers_compiler_losses`
+and
+`tests/test_recall_experience_select.py::test_selector_falls_back_to_raw_when_compiled_arms_miss_the_registered_gates`
+
+Production symbol: `scripts.recall_experience_select.select_experience`
+
+Mutations: force the selected candidate to `E0_raw` when E2 passed, then force it to
+`E2_compiled_raw` when both compiled arms failed their gates.
+
+Observed assertion failures: the first mutation returned E0 instead of E2 after E2 recovered the
+only task lost by compiled-only. The second returned E2 instead of E0 when both compiled arms had
+lower coverage and MRR than raw.
+
+Green restoration: E2 is selected only after its registered coverage or recovery condition and
+raw-MRR floor pass. E1 is the next eligible arm. Otherwise the selector retains E0.
+
+## Engineering experience paired identity
+
+Test node:
+`tests/test_recall_experience_select.py::test_selector_refuses_population_product_or_task_identity_drift`
+
+Production symbol: `scripts.recall_experience_select.select_experience`
+
+Mutation: remove product identity equality across the three artifacts.
+
+Observed assertion failure: an E2 artifact with a different compiler prompt digest completed
+selection instead of raising the expected product identity drift error.
+
+Green restoration: corpus, task set, message count, served commit, model and prompt identities,
+and per-task query and label hashes must match before any representation can be selected.

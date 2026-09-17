@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.recall_hosted_replay import REGISTERED_VARIANTS
+from scripts.recall_hosted_replay import ATTRIBUTION_VARIANTS
 
 A4_BUDGETS = {
     "A4_pack_5000": 5_000,
@@ -23,10 +23,10 @@ def _identity_without_variant(version: dict[str, Any]) -> dict[str, Any]:
 
 def select_replay(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
     by_variant = {str(artifact.get("variant")): artifact for artifact in artifacts}
-    if set(by_variant) != set(REGISTERED_VARIANTS) or len(artifacts) != len(REGISTERED_VARIANTS):
+    if set(by_variant) != set(ATTRIBUTION_VARIANTS) or len(artifacts) != len(ATTRIBUTION_VARIANTS):
         raise ValueError("selection requires exactly one artifact for every registered variant")
 
-    ordered = [by_variant[name] for name in REGISTERED_VARIANTS]
+    ordered = [by_variant[name] for name in ATTRIBUTION_VARIANTS]
     reference = ordered[0]
     invariant_keys = (
         "corpus_manifest_sha256",
@@ -75,7 +75,7 @@ def select_replay(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             "facet_fallbacks": artifact["aggregate"]["facet_fallbacks"],
             "reranker_fallbacks": artifact["aggregate"]["reranker_fallbacks"],
         }
-        for name, artifact in zip(REGISTERED_VARIANTS, ordered, strict=True)
+        for name, artifact in zip(ATTRIBUTION_VARIANTS, ordered, strict=True)
     }
     return {
         "schema_version": 1,
@@ -101,7 +101,7 @@ def main() -> None:
         raise SystemExit(f"refusing to overwrite selection artifact: {args.output}")
     artifacts = [
         json.loads((args.input_dir / f"{name}.json").read_text(encoding="utf-8"))
-        for name in REGISTERED_VARIANTS
+        for name in ATTRIBUTION_VARIANTS
     ]
     selected = select_replay(artifacts)
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -16,7 +16,7 @@ from adapters.recall_hosted.adapter import HostedHttpClient, HostedHttpResponse,
 from harness.adapters.base import CorpusManifest, resolve_corpus_path
 from harness.tasks import TaskSpec, discover_tasks
 
-REGISTERED_VARIANTS = (
+ATTRIBUTION_VARIANTS = (
     "A0_raw",
     "A1_compiler",
     "A2_facets",
@@ -25,6 +25,12 @@ REGISTERED_VARIANTS = (
     "A4_pack_7000",
     "A4_pack_9000",
 )
+EXPERIENCE_VARIANTS = (
+    "E0_raw",
+    "E1_compiled",
+    "E2_compiled_raw",
+)
+REGISTERED_VARIANTS = ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS
 
 
 class Client(Protocol):
@@ -51,20 +57,44 @@ def _percentile(values: list[float], quantile: float) -> float | None:
     return ordered[index]
 
 
-def score_items(items: list[dict[str, Any]], fact_terms: tuple[str, ...]) -> dict[str, Any]:
+def _complete_at(texts: list[str], terms: tuple[str, ...], limit: int) -> bool:
+    joined = "\n".join(texts[:limit]).casefold()
+    return bool(terms) and all(term in joined for term in terms)
+
+
+def score_items(
+    items: list[dict[str, Any]],
+    fact_terms: tuple[str, ...],
+    *,
+    relevant_sources: tuple[str, ...] = (),
+) -> dict[str, Any]:
     """Score only after retrieval, using terms that are never sent to the memory system."""
     folded_terms = tuple(term.casefold() for term in fact_terms)
     texts = [str(item["content"]) for item in items]
     answer_bearing = [any(term in text.casefold() for term in folded_terms) for text in texts]
     first = next((index for index, hit in enumerate(answer_bearing, start=1) if hit), None)
-    joined = "\n".join(texts).casefold()
+    returned_sources = tuple(str(item["session_id"]) for item in items)
+    unique_sources = set(returned_sources)
+    expected_sources = set(relevant_sources)
     return {
         "hit_at_1": any(answer_bearing[:1]),
         "hit_at_5": any(answer_bearing[:5]),
         "hit_at_10": any(answer_bearing[:10]),
+        "hit_at_100": any(answer_bearing[:100]),
         "hit_in_returned_budget": any(answer_bearing),
-        "complete_coverage": bool(folded_terms) and all(term in joined for term in folded_terms),
+        "complete_coverage_at_5": _complete_at(texts, folded_terms, 5),
+        "complete_coverage_at_10": _complete_at(texts, folded_terms, 10),
+        "complete_coverage_at_100": _complete_at(texts, folded_terms, 100),
+        "complete_coverage": _complete_at(texts, folded_terms, len(texts)),
         "reciprocal_rank": 0.0 if first is None else 1.0 / first,
+        "source_session_recall": (
+            None
+            if not expected_sources
+            else len(unique_sources & expected_sources) / len(expected_sources)
+        ),
+        "duplicate_session_concentration": (
+            0.0 if not returned_sources else 1.0 - len(unique_sources) / len(returned_sources)
+        ),
         "item_count": len(items),
         "character_count": sum(len(text) for text in texts),
     }
@@ -80,8 +110,24 @@ def _validated_items(response: dict[str, Any]) -> list[dict[str, Any]]:
             raise TypeError("hosted Search item has no string id")
         if not isinstance(item.get("content"), str):
             raise TypeError("hosted Search item has no string content")
+        if not isinstance(item.get("session_id"), str) or not item["session_id"]:
+            raise TypeError("hosted Search item has no string session_id")
         items.append(item)
     return items
+
+
+def _relevant_sources(
+    corpus: CorpusManifest, fact_terms: tuple[str, ...]
+) -> tuple[str, ...]:
+    """Resolve labeled source sessions only after Search for diagnostic scoring."""
+    folded_terms = tuple(term.casefold() for term in fact_terms)
+    relevant: list[str] = []
+    for relative in sorted(corpus.sessions):
+        messages = session_messages(resolve_corpus_path(corpus.root, relative))
+        text = "\n".join(str(message["content"]) for message in messages).casefold()
+        if any(term in text for term in folded_terms):
+            relevant.append(relative)
+    return tuple(relevant)
 
 
 def _fallback_header(headers: dict[str, str], name: str) -> bool:
@@ -168,13 +214,22 @@ def run_replay(
                 "latency_ms": latency_ms,
                 "facet_fallback": facet_fallback,
                 "reranker_fallback": reranker_fallback,
-                "metrics": score_items(items, task.fact_terms),
+                "metrics": score_items(
+                    items,
+                    task.fact_terms,
+                    relevant_sources=_relevant_sources(corpus, task.fact_terms),
+                ),
                 "items": items,
             }
         )
 
     def mean(metric: str) -> float:
         return statistics.fmean(float(row["metrics"][metric]) for row in rows)
+
+    def optional_mean(metric: str) -> float | None:
+        values = [row["metrics"][metric] for row in rows]
+        present = [float(value) for value in values if value is not None]
+        return statistics.fmean(present) if present else None
 
     task_digest = hashlib.sha256(
         "".join(
@@ -195,9 +250,17 @@ def run_replay(
             "hit_at_1": mean("hit_at_1"),
             "hit_at_5": mean("hit_at_5"),
             "hit_at_10": mean("hit_at_10"),
+            "hit_at_100": mean("hit_at_100"),
             "hit_in_returned_budget": mean("hit_in_returned_budget"),
+            "complete_coverage_at_5": mean("complete_coverage_at_5"),
+            "complete_coverage_at_10": mean("complete_coverage_at_10"),
+            "complete_coverage_at_100": mean("complete_coverage_at_100"),
             "complete_coverage": mean("complete_coverage"),
             "mean_reciprocal_rank": mean("reciprocal_rank"),
+            "mean_source_session_recall": optional_mean("source_session_recall"),
+            "mean_duplicate_session_concentration": mean(
+                "duplicate_session_concentration"
+            ),
             "mean_item_count": mean("item_count"),
             "mean_character_count": mean("character_count"),
             "add_p50_ms": _percentile(add_latencies, 0.50),

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from scripts.recall_hosted_replay import REGISTERED_VARIANTS
+from scripts.recall_hosted_replay import ATTRIBUTION_VARIANTS
 from scripts.recall_hosted_select import select_replay
 
 
@@ -46,7 +46,7 @@ def _artifacts() -> list[dict]:
                 "reranker_fallbacks": 0,
             },
         }
-        for name in REGISTERED_VARIANTS
+        for name in ATTRIBUTION_VARIANTS
     ]
 
 

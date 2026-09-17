@@ -31,8 +31,16 @@ class FakeReplayClient:
         if path == "/v1/search":
             return {
                 "data": [
-                    {"id": "one", "content": "the private governing phrase appears here"},
-                    {"id": "two", "content": "second stored item"},
+                    {
+                        "id": "one",
+                        "content": "the private governing phrase appears here",
+                        "session_id": "sessions/task/p01.jsonl",
+                    },
+                    {
+                        "id": "two",
+                        "content": "second stored item",
+                        "session_id": "sessions/task/p01.jsonl",
+                    },
                 ]
             }
         return {"status": "deleted"}
@@ -153,22 +161,48 @@ def test_replay_scoring_reports_rank_coverage_and_context_size():
     """A first-hit rank mutation or any-term complete coverage mutation makes this test RED."""
     metrics = score_items(
         [
-            {"id": "noise", "content": "unrelated"},
-            {"id": "partial", "content": "alpha evidence"},
-            {"id": "complete", "content": "beta evidence"},
+            {"id": "noise", "content": "unrelated", "session_id": "noise"},
+            {"id": "partial", "content": "alpha evidence", "session_id": "p01"},
+            {"id": "complete", "content": "beta evidence", "session_id": "p02"},
         ],
         ("alpha", "beta"),
+        relevant_sources=("p01", "p02"),
     )
 
     assert metrics == {
         "hit_at_1": False,
         "hit_at_5": True,
         "hit_at_10": True,
+        "hit_at_100": True,
         "hit_in_returned_budget": True,
+        "complete_coverage_at_5": True,
+        "complete_coverage_at_10": True,
+        "complete_coverage_at_100": True,
         "complete_coverage": True,
         "reciprocal_rank": 0.5,
+        "source_session_recall": 1.0,
+        "duplicate_session_concentration": 0.0,
         "item_count": 3,
         "character_count": 36,
     }
-    incomplete = score_items([{"id": "partial", "content": "alpha only"}], ("alpha", "beta"))
+    incomplete = score_items(
+        [{"id": "partial", "content": "alpha only", "session_id": "p01"}],
+        ("alpha", "beta"),
+    )
     assert incomplete["complete_coverage"] is False
+
+
+def test_replay_scoring_reports_duplicate_session_concentration():
+    metrics = score_items(
+        [
+            {"id": "one", "content": "alpha", "session_id": "p01"},
+            {"id": "two", "content": "more alpha", "session_id": "p01"},
+            {"id": "three", "content": "beta", "session_id": "p02"},
+            {"id": "four", "content": "noise", "session_id": "noise"},
+        ],
+        ("alpha", "beta"),
+        relevant_sources=("p01", "p02", "p03"),
+    )
+
+    assert metrics["source_session_recall"] == pytest.approx(2 / 3)
+    assert metrics["duplicate_session_concentration"] == 0.25
