@@ -17,6 +17,8 @@ import pytest
 
 from adapters.oracle_memory.adapter import OracleMemoryAdapter
 from scripts import pilot
+from scripts.abstention import selection_for
+from scripts.assemble_condition_corpus import assemble
 from scripts.validate_run_setup import check_oracle_ceiling_pair
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +30,16 @@ CATALOG_SHA256 = "322cd2331c8b1c6ed0e01eb293f6dd562088a016c6b31c25d304efe46ef5da
 PAIRED_ARMS = ("recall_graph_fulltools_protocol", "oracle_memory")
 
 
-def test_official016_dry_run_builds_the_frozen_oracle_pair() -> None:
+@pytest.fixture(scope="module")
+def superseded_corpus(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    root = tmp_path_factory.mktemp("official016-corpus") / "seed-1"
+    assemble("superseded", 1, selection_for("superseded"), root)
+    return root
+
+
+def test_official016_dry_run_builds_the_frozen_oracle_pair(
+    superseded_corpus: Path,
+) -> None:
     result = subprocess.run(
         [
             sys.executable,
@@ -48,7 +59,7 @@ def test_official016_dry_run_builds_the_frozen_oracle_pair() -> None:
             "--memory-instruction",
             "oracle_ceiling_paired",
             "--corpus-root",
-            str(ROOT / "corpus" / "conditions" / "superseded" / "seed-1"),
+            str(superseded_corpus),
             "--condition",
             "superseded",
         ],
@@ -126,11 +137,12 @@ def test_official016_roster_guard_rejects_reordering_and_task_drift() -> None:
         )
 
 
-def test_oracle_adapter_receives_the_validated_selected_catalog(tmp_path) -> None:
+def test_oracle_adapter_receives_the_validated_selected_catalog(
+    tmp_path: Path, superseded_corpus: Path
+) -> None:
     wanted = set(TASKS.split(","))
     tasks = [task for task in pilot.discover_tasks() if task.task_id in wanted]
-    corpus_root = ROOT / "corpus" / "conditions" / "superseded" / "seed-1"
-    catalog = pilot.load_oracle_ceiling_catalog(corpus_root, tasks)
+    catalog = pilot.load_oracle_ceiling_catalog(superseded_corpus, tasks)
     static = tmp_path / "static.md"
     static.write_text("# Static task context\n", encoding="utf-8")
 
@@ -146,12 +158,12 @@ def test_oracle_adapter_receives_the_validated_selected_catalog(tmp_path) -> Non
     assert adapter.catalog.digest == CATALOG_SHA256
 
 
-def test_setup_gate_verifies_the_frozen_oracle_identity() -> None:
+def test_setup_gate_verifies_the_frozen_oracle_identity(superseded_corpus: Path) -> None:
     texts = pilot.memory_instructions("oracle_ceiling_paired", PAIRED_ARMS)
     wanted = set(TASKS.split(","))
     tasks = [task for task in pilot.discover_tasks() if task.task_id in wanted]
     catalog = pilot.load_oracle_ceiling_catalog(
-        ROOT / "corpus" / "conditions" / "superseded" / "seed-1", tasks
+        superseded_corpus, tasks
     )
     env = {
         "memory_instruction": "oracle_ceiling_paired",
