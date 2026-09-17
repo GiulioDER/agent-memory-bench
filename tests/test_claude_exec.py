@@ -243,7 +243,6 @@ def test_declared_memory_tool_call_becomes_a_sequence_event() -> None:
             "kind": "retrieve",
             "decision": "abstain",
             "source": "tool_calls[0].mcp__memory__search",
-            "useful": True,
         },
     )
 
