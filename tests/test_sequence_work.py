@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from harness.schema import SessionRecord
 from harness.sequence import score_sequences
+from scripts.score_sequence import render_markdown
 
 
 def _record(arm: str, position: int, *, tools: int, wall: float) -> SessionRecord:
@@ -57,3 +58,18 @@ def test_missing_work_measurements_remain_unknown():
     overhead = result["metrics"][0]["overhead"]
     assert overhead["tool_calls"] is None
     assert overhead["wall_time_ms"] is None
+
+
+def test_sequence_report_exposes_all_work_saved_measurements():
+    records = [
+        _record("bare", 0, tools=4, wall=100),
+        _record("bare", 1, tools=6, wall=140),
+        _record("recall", 0, tools=3, wall=80),
+        _record("recall", 1, tools=2, wall=90),
+    ]
+    markdown = render_markdown(score_sequences(records))
+    assert "Tool calls" in markdown
+    assert "Tool-call delta vs baseline" in markdown
+    assert "Wall time (ms)" in markdown
+    assert "Wall-time delta vs baseline" in markdown
+    assert "| recall | 2 | unknown | unknown | unknown | unknown | unknown | unknown | unknown | unknown | unknown | 5 | -5.0 | 170 | -70.0 |" in markdown

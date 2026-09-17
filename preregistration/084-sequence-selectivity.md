@@ -45,8 +45,10 @@ are reported separately so abstention is not treated as automatically good.
 
 Each sequence record may carry `memory_input_tokens`, `memory_output_tokens`, and
 `memory_storage_bytes` in metadata. The scorer also sums the canonical session input and output
-tokens. Missing measurements remain unknown. For memory arms, total token delta is calculated
-against the matched baseline chain when both chains are metered.
+tokens, tool calls, and wall time. Missing measurements remain unknown. For memory arms, paired
+deltas for total tokens, tool calls, and wall time are calculated against the matched baseline
+chain when both chains are metered. The Markdown analysis exposes all three work measures; a
+missing field never becomes zero by default.
 
 ## Held out evaluation gate
 
