@@ -1644,6 +1644,14 @@ async def main() -> int:
     participant_agent_digest = os.environ.get("AMB_PARTICIPANT_AGENT_DIGEST", "").strip()
     signing_key_file = os.environ.get("AMB_ADJUDICATOR_SIGNING_KEY_FILE", "").strip()
     ledger_file = os.environ.get("AMB_ADJUDICATOR_LEDGER_FILE", "").strip()
+    print(
+        "[diagnostic] adjudication env: "
+        f"runner_len={len(runner_image_digest)} "
+        f"runner_sha256={bool(re.fullmatch(r'sha256:[0-9a-f]{{64}}', runner_image_digest))} "
+        f"agent_sha256={bool(re.fullmatch(r'sha256:[0-9a-f]{{64}}', participant_agent_digest))} "
+        f"python={sys.executable}",
+        flush=True,
+    )
     if not runner_image_digest or not participant_agent_digest or not signing_key_file or not ledger_file:
         raise SystemExit(
             "trusted adjudication is required for live runs; set "
