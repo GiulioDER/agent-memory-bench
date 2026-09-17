@@ -6,7 +6,7 @@
   "recall_mcp.server"
  ],
  "dsn_env": "RECALL_DSN",
- "embedder": "voyage:voyage-4",
+ "embedder": "voyage-context:voyage-context-4",
  "trust_mode": "strict",
  "tool_prefix": "mcp__recall__",
  "allowed_tools": [
@@ -20,7 +20,7 @@
   "recall_tenants"
  ],
  "instruction": "You have a persistent project memory available through the {server} MCP server. Search it with {tool} BEFORE answering any question about this repository's conventions, tooling, commands, or history, and before recommending a command you have not verified against it. It holds decisions and hazards that are not derivable from the code, and the notes below do not contain all of them.",
- "package_pin": "recall-rag[fastembed,mcp,voyage,rerank]==0.11.0",
+ "package_pin": "recall-rag[fastembed,mcp,voyage,rerank]==0.13.0",
  "environment": "production",
  "transport": "host",
  "extra_env": {

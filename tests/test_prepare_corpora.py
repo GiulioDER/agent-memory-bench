@@ -93,7 +93,7 @@ def _stub_everything_remote(mod, monkeypatch, *, ship_rc: int, ship_out: str, re
     monkeypatch.setattr(mod, "assemble", lambda *a, **k: None)
     monkeypatch.setattr(mod, "selection_for", lambda *a, **k: ["ts-a"])
     monkeypatch.setattr(mod.CorpusManifest, "load", classmethod(lambda cls, root: _Corpus()))
-    monkeypatch.setattr(mod, "corpus_fingerprint", lambda c: "f" * 64)
+    monkeypatch.setattr(mod, "corpus_fingerprint", lambda c, **_kw: "f" * 64)
     monkeypatch.setattr(mod, "render_corpus", lambda *a, **k: rendered)
     monkeypatch.setattr(mod.subprocess, "run", lambda *a, **k: _result(0, "", ""))
     return calls

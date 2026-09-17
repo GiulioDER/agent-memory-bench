@@ -1,0 +1,39 @@
+{
+ "server_name": "recall",
+ "command": "python",
+ "args": ["-m", "recall_mcp.server"],
+ "dsn_env": "RECALL_DSN",
+ "embedder": "voyage-context:voyage-context-4",
+ "trust_mode": "strict",
+ "tool_prefix": "mcp__recall__",
+ "allowed_tools": [
+  "recall_search",
+  "recall_evidence",
+  "recall_reasoning_query",
+  "recall_reasoning_projection",
+  "recall_reasoning_proposals",
+  "recall_reasoning_audit",
+  "recall_stats",
+  "recall_tenants"
+ ],
+ "instruction": "You have a persistent project memory available through the {server} MCP server. Search it with {tool} using graph_expansion=one_hop and expand_retrieval=false BEFORE answering any question about this repository's conventions, tooling, commands, or history, and before recommending a command you have not verified against it. It holds decisions and hazards that are not derivable from the code, and the notes below do not contain all of them.",
+ "package_pin": "recall-rag[fastembed,mcp,voyage,rerank]==0.13.0",
+ "environment": "production",
+ "transport": "host",
+ "ssh_host_env": "AMB_RECALL_SSH_HOST",
+ "remote_root_env": "AMB_RECALL_REMOTE_ROOT",
+ "remote_python_env": "AMB_RECALL_REMOTE_PYTHON",
+ "remote_env_file_env": "AMB_RECALL_REMOTE_ENV_FILE",
+ "graph_metadata": "structural_session_order",
+ "extra_env": {
+  "RECALL_RERANK": "1",
+  "RECALL_RERANK_MODEL": "voyage:rerank-2.5"
+ },
+ "notes": {
+  "graph": "The corpus renderer emits only exact, bidirectional adjacency relations between sessions in the same task directory. No relation is inferred from transcript prose. The graph corpus fingerprint includes this mode and cannot verify a no-graph generation.",
+  "reranker": "Voyage rerank-2.5 is explicitly enabled through the MCP server. A valid run must report reranking_ran=true, rerank_ms>0, and zero local fallback events in the server log.",
+  "embedder": "This arm uses the registered voyage-context-4-v1 profile and the same production GenerationStore path as the Context4 baseline.",
+  "transport": "The MCP server runs on VPS2 through host transport so workstation interruption cannot stop the server process.",
+  "measurement": "Graph use is measured only through recall_reasoning_query with graph_expansion=one_hop. Ordinary recall_search calls are not evidence that graph retrieval ran."
+ }
+}

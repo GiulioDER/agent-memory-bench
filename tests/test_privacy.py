@@ -50,6 +50,35 @@ def test_public_receipt_contains_no_raw_transcript() -> None:
     assert receipt["metadata"]["privacy"]["hash_algorithm"] == "sha256"
 
 
+def test_public_receipt_keeps_bounded_checkpoint_diagnostics_only() -> None:
+    receipt = public_receipt(
+        _record(
+            arm="recall_graph_fulltools_checkpoint",
+            metadata={
+                "memory_checkpoint": {
+                    "mode": "treatment",
+                    "status": "ok",
+                    "query_sha256": "q",
+                    "result_sha256": "r",
+                    "sources": ["sessions__ts-a__p01.md"],
+                    "injected_bytes": 100,
+                    "injected_sha256": "i",
+                },
+                "checkpoint_denials": 1,
+                "mutation_candidate_count": 2,
+                "unguarded_mutation_count": 0,
+                "permission_denials": [{"tool_input": {"secret": "must not publish"}}],
+            },
+        )
+    )
+    metadata = receipt["metadata"]
+    assert metadata["memory_checkpoint"]["sources"] == ["sessions__ts-a__p01.md"]
+    assert metadata["checkpoint_denials"] == 1
+    assert metadata["mutation_candidate_count"] == 2
+    assert metadata["unguarded_mutation_count"] == 0
+    assert "permission_denials" not in metadata
+
+
 def test_public_jsonl_writer_emits_receipts_only(tmp_path: Path) -> None:
     path = tmp_path / "records.jsonl"
     write_public_jsonl(path, [_record()])
