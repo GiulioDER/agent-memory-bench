@@ -8,6 +8,8 @@ from pathlib import Path
 
 from harness.io import read_jsonl
 from harness.sequence import score_sequences
+from harness.sequence_labels import apply_label_set, load_label_set_file
+from harness.sequence_plan import load_plan_file
 
 
 def render_markdown(analysis: dict) -> str:
@@ -72,9 +74,32 @@ def main() -> int:
     parser.add_argument("records", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--baseline-arm", default="bare")
+    parser.add_argument(
+        "--oracle-labels",
+        type=Path,
+        help="post run oracle label artifact; requires --sequence-plan",
+    )
+    parser.add_argument(
+        "--sequence-plan",
+        type=Path,
+        help="sequence plan used to bind an oracle label artifact",
+    )
     args = parser.parse_args()
 
-    analysis = score_sequences(read_jsonl(args.records), baseline_arm=args.baseline_arm)
+    records = read_jsonl(args.records)
+    if args.oracle_labels:
+        if not args.sequence_plan:
+            parser.error("--oracle-labels requires --sequence-plan")
+        plan = load_plan_file(args.sequence_plan)
+        label_set = load_label_set_file(args.oracle_labels)
+        if (
+            label_set.sequence_plan_id != plan.plan_id
+            or label_set.evaluation_manifest_id != plan.evaluation_manifest_id
+            or label_set.evaluation_manifest_digest != plan.evaluation_manifest_digest
+        ):
+            parser.error("oracle labels are bound to a different sequence plan or held out manifest")
+        records = list(apply_label_set(records, label_set))
+    analysis = score_sequences(records, baseline_arm=args.baseline_arm)
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "sequence_analysis.json").write_text(
         json.dumps(analysis, indent=2, sort_keys=True) + "\n", encoding="utf-8"

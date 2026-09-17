@@ -137,6 +137,7 @@ from harness.decision_trace import (
     STAGED_DECISION_OUTPUT_SCHEMA,
     with_decision_output_instruction,
 )
+from harness.frozen_manifest import FrozenEvaluationManifest
 from harness.gate import admit_cells, with_forbidden_prefixes
 from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
 from harness.io import read_jsonl
@@ -149,7 +150,10 @@ from harness.memory_bundles import MemoryBundleCatalog
 from harness.placebo import length_metadata, render_placebo
 from harness.prereg import assert_preregistered
 from harness.privacy import load_provider_policy, provider_policy_metadata, write_public_jsonl
-from harness.runner import run_grid
+from harness.runner import run_grid, run_sequences
+from harness.sequence_plan import load_plan_file
+from harness.sequence_preflight import validate_sequence_evaluation
+from harness.sequence_validation import validate_plan
 from harness.tasks import discover_tasks
 from scripts.validate_run_setup import validate as validate_setup
 
@@ -1103,6 +1107,18 @@ def cell_namespace(base_namespace: str, task_id: str, seed: int, arm: str) -> st
     return base_namespace
 
 
+def sequence_namespace(base_namespace: str, chain_id: str, seed: int, arm: str) -> str:
+    """Give every sequence chain and arm an isolated memory namespace.
+
+    Chain identifiers are hashed before joining them to a namespace because the value is later
+    passed to adapter path and tenant joins. The digest preserves stable identity without allowing
+    a plan supplied identifier to become a path component.
+    """
+
+    chain_digest = hashlib.sha256(chain_id.encode("utf-8")).hexdigest()[:16]
+    return f"{base_namespace}-seq-{chain_digest}-s{seed}-{arm}"
+
+
 def session_capability_issuer() -> SessionCapabilityIssuer:
     """Build the controller-side issuer used for every participant invocation."""
 
@@ -1206,6 +1222,16 @@ async def main() -> int:
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--namespace", default="bench-recall-pilot")
     parser.add_argument(
+        "--sequence-plan",
+        type=Path,
+        help="run a bound longitudinal sequence plan instead of the ordinary grid",
+    )
+    parser.add_argument(
+        "--heldout-manifest",
+        type=Path,
+        help="frozen held out manifest required by --sequence-plan",
+    )
+    parser.add_argument(
         "--memory-instruction",
         "--recall-instruction",
         dest="memory_instruction",
@@ -1306,7 +1332,6 @@ async def main() -> int:
     continuation = args.continue_existing or args.finalize_existing
     if continuation and args.dry_run:
         raise SystemExit("continuation modes cannot be combined with --dry-run")
-
     if args.emit_decision_stages and not args.emit_decisions:
         raise SystemExit("--emit-decision-stages requires --emit-decisions")
 
@@ -1322,6 +1347,30 @@ async def main() -> int:
     unknown = [arm for arm in run_arms if arm not in ARMS]
     if unknown:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
+    if bool(args.sequence_plan) != bool(args.heldout_manifest):
+        raise SystemExit("--sequence-plan and --heldout-manifest must be supplied together")
+    sequence_plan = load_plan_file(args.sequence_plan) if args.sequence_plan else None
+    heldout_manifest = (
+        FrozenEvaluationManifest.load(args.heldout_manifest, root=REPO)
+        if args.heldout_manifest
+        else None
+    )
+    if sequence_plan is not None:
+        if continuation:
+            raise SystemExit("sequence runs do not support continuation modes yet")
+        if set(sequence_plan.arms) != set(run_arms):
+            raise SystemExit("sequence plan arms must exactly match --arms")
+        assert heldout_manifest is not None
+        try:
+            validate_plan(sequence_plan, tasks_root=REPO / "tasks")
+            validate_sequence_evaluation(sequence_plan, heldout_manifest)
+        except (OSError, TypeError, ValueError) as error:
+            raise SystemExit(f"sequence preflight failed: {error}") from None
+        plan_seed_values = sorted({chain.seed for chain in sequence_plan.chains})
+        if args.seed_values and set(seed_values) != set(plan_seed_values):
+            raise SystemExit("--seed-values must exactly match the sequence plan seeds")
+        seed_values = plan_seed_values
+        args.seeds = max(plan_seed_values) + 1
     try:
         validate_quality_gate_pair(args.memory_instruction, run_arms)
         validate_decision_protocol_pair(args.memory_instruction, run_arms)
@@ -1398,10 +1447,26 @@ async def main() -> int:
                 "Claude-Mem is not configured; set " + ", ".join(missing)
             )
 
-    # The default grid, and the wider set a --tasks subset may name. Keeping these apart is what
-    # lets a new class be calibrated without silently changing what an ordinary run measures.
-    prefixes = SELECTABLE_PREFIXES if args.tasks else GRID_PREFIXES
-    tasks = [task for task in discover_tasks() if task.task_id.startswith(prefixes)]
+    # A sequence plan is the task roster. The ordinary grid keeps its historical prefix and
+    # explicit subset rules so enabling sequence mode cannot silently change an existing run.
+    if sequence_plan is not None:
+        if args.tasks:
+            raise SystemExit("--tasks cannot be combined with --sequence-plan")
+        discovered = {task.task_id: task for task in discover_tasks()}
+        plan_task_ids = list(
+            dict.fromkeys(
+                session.task_id
+                for chain in sequence_plan.chains
+                for session in chain.sessions
+            )
+        )
+        missing = [task_id for task_id in plan_task_ids if task_id not in discovered]
+        if missing:
+            raise SystemExit(f"sequence plan names unknown task(s) {missing}")
+        tasks = [discovered[task_id] for task_id in plan_task_ids]
+    else:
+        prefixes = SELECTABLE_PREFIXES if args.tasks else GRID_PREFIXES
+        tasks = [task for task in discover_tasks() if task.task_id.startswith(prefixes)]
     if args.tasks:
         wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
         available = {task.task_id for task in tasks}
@@ -1444,7 +1509,11 @@ async def main() -> int:
 
     if args.dry_run:
         # Placed BEFORE the run directory is created, so a dry run touches nothing at all.
-        sessions = len(tasks) * len(seed_values) * len(run_arms)
+        sessions = (
+            sum(chain.length for chain in sequence_plan.chains) * len(run_arms)
+            if sequence_plan is not None
+            else len(tasks) * len(seed_values) * len(run_arms)
+        )
         manifest = instructions.instruction_manifest(texts)
         print(f"[dry-run] run-id {args.run_id}, model {args.model}, seeds {seed_values}")
         print(f"[dry-run] arms   {list(run_arms)}")
@@ -1456,6 +1525,12 @@ async def main() -> int:
         if oracle_catalog is not None:
             print(f"[dry-run] oracle catalog {oracle_catalog.digest}")
         print(f"[dry-run] tasks  {len(tasks)}: {', '.join(task.task_id for task in tasks)}")
+        if sequence_plan is not None:
+            print(
+                f"[dry-run] sequence plan {sequence_plan.plan_id}, "
+                f"chains {len(sequence_plan.chains)}, "
+                f"manifest {heldout_manifest.digest}"
+            )
         print(f"[dry-run] work root {args.work_root or sandbox.default_work_root()}")
         print(f"[dry-run] would run {sessions} session(s); nothing written, nothing executed")
         return 0
@@ -1559,6 +1634,18 @@ async def main() -> int:
             for task in tasks
             for seed in range(args.seeds)
         )
+        if sequence_plan is not None:
+            claude_mem_namespaces = tuple(
+                {
+                    *claude_mem_namespaces,
+                    *(
+                        sequence_namespace(
+                            args.namespace, chain.chain_id, chain.seed, "claude_mem"
+                        )
+                        for chain in sequence_plan.chains
+                    ),
+                }
+            )
         registry.get("claude_mem").isolate_cell_namespaces(
             args.namespace, claude_mem_namespaces
         )
@@ -1624,6 +1711,33 @@ async def main() -> int:
                     task.task_id,
                     task.prompt,
                 )
+
+    sequence_specs: dict[tuple[str, str, int, str], ArmSpec] = {}
+    if sequence_plan is not None:
+        sequence_tasks = {task.task_id: task for task in tasks}
+        for chain in sequence_plan.chains:
+            chain_digest = hashlib.sha256(chain.chain_id.encode("utf-8")).hexdigest()[:16]
+            for session in chain.sessions:
+                task = sequence_tasks[session.task_id]
+                for arm in run_arms:
+                    adapter = adapter_for(
+                        arm,
+                        bundles[task.task_id],
+                        staging,
+                        texts,
+                        oracle_catalog,
+                    )
+                    namespace = sequence_namespace(
+                        args.namespace, chain.chain_id, chain.seed, arm
+                    )
+                    sequence_specs[(chain.chain_id, task.task_id, chain.seed, arm)] = (
+                        adapter.build_for_task(
+                            run_dir / "cfg" / "sequence" / chain_digest / task.task_id / arm,
+                            namespace,
+                            task.task_id,
+                            task.prompt,
+                        )
+                    )
 
     prompt_hashes: dict[str, dict[str, str]] = {}
     for arm in run_arms:
@@ -1829,6 +1943,17 @@ async def main() -> int:
                 ),
                 "oracle_visible_to_participant": False,
                 "arms": list(run_arms),
+                "sequence_evaluation": (
+                    {
+                        "plan_id": sequence_plan.plan_id,
+                        "manifest_id": heldout_manifest.data["manifest_id"],
+                        "manifest_digest": heldout_manifest.digest,
+                        "chains": len(sequence_plan.chains),
+                        "chain_lengths": sorted({chain.length for chain in sequence_plan.chains}),
+                    }
+                    if sequence_plan is not None and heldout_manifest is not None
+                    else None
+                ),
                 "memory_instruction": args.memory_instruction,
                 "condition": args.condition,
                 "neutral_protocol": args.neutral_protocol,
@@ -1977,7 +2102,20 @@ async def main() -> int:
         "ANTHROPIC_API_KEY": "",
     }
 
-    def config_for(task_id: str, seed: int, arm: str, cwd: Path) -> ClaudeExecConfig:
+    def spec_for_row(row: Mapping[str, Any], arm: str) -> ArmSpec:
+        sequence = row.get("sequence")
+        if sequence is not None:
+            if not isinstance(sequence, Mapping):
+                raise TypeError("row sequence metadata must be a mapping")
+            chain_id = str(sequence.get("chain_id", ""))
+            key = (chain_id, str(row["task_id"]), int(row.get("seed", 0)), arm)
+            try:
+                return sequence_specs[key]
+            except KeyError as error:
+                raise ValueError(f"no sequence adapter spec for {key!r}") from error
+        return cell_specs[(str(row["task_id"]), int(row.get("seed", 0)), arm)]
+
+    def config_for(row: Mapping[str, Any], arm: str, cwd: Path) -> ClaudeExecConfig:
         """Everything the harness controls is here; everything the product controls is in the spec.
 
         The split is the neutrality claim made mechanical: model, timeout, tool allow/deny list,
@@ -1985,7 +2123,7 @@ async def main() -> int:
         values are the four the adapter returned.
         """
 
-        spec = cell_specs[(task_id, seed, arm)]
+        spec = spec_for_row(row, arm)
         return ClaudeExecConfig(
             # The participant image supplies /usr/local/bin/claude. The controller only needs a
             # local executable to satisfy command construction; isolation.py replaces argv[0]
@@ -2026,17 +2164,31 @@ async def main() -> int:
 
     async def runner(row, arm):
         task_id, seed = str(row["task_id"]), int(row["seed"])
-        workdir = work_root / "work" / task_id / f"s{seed}" / arm
-        overlay = fs_grep_memory if arm == "fs_grep" else None
+        sequence = row.get("sequence")
+        if sequence is not None:
+            if not isinstance(sequence, Mapping):
+                raise TypeError("row sequence metadata must be a mapping")
+            chain_id = str(sequence["chain_id"])
+            chain_digest = hashlib.sha256(chain_id.encode("utf-8")).hexdigest()[:16]
+            session_namespace = sequence_namespace(args.namespace, chain_id, seed, arm)
+            workdir = work_root / "work" / "sequence" / chain_digest / task_id / f"s{seed}" / arm
+        else:
+            session_namespace = cell_namespace(args.namespace, task_id, seed, arm)
+            workdir = work_root / "work" / task_id / f"s{seed}" / arm
+        overlay = (
+            namespace_path(staging, session_namespace, "memory")
+            if arm == "fs_grep" and sequence is not None
+            else fs_grep_memory if arm == "fs_grep" else None
+        )
         digest = sandbox.restore(task_id, workdir, overlay=overlay)
-        session_config = config_for(task_id, seed, arm, workdir)
+        session_config = config_for(row, arm, workdir)
         model_capability, memory_capability = issue_session_capabilities(
             capability_issuer,
             run_id=args.run_id,
             task_id=task_id,
             seed=seed,
             arm=arm,
-            namespace=args.namespace,
+            namespace=session_namespace,
             needs_memory=session_config.mcp_config is not None,
         )
         silent_retries = 0
@@ -2106,7 +2258,7 @@ async def main() -> int:
                 "oracle_read_only": True,
             },
         )
-        spec = cell_specs[(task_id, seed, arm)]
+        spec = spec_for_row(row, arm)
         prompt_file = spec.append_system_prompt_file
 
         # ⛔ Carry the adapter's diagnostic metadata into the RECORD, or the admission gate
@@ -2156,13 +2308,13 @@ async def main() -> int:
         final = replace(
             record,
             success=ok and record.success,
-            config_dir_digest=cell_specs[(task_id, seed, arm)].config_dir_digest,
+            config_dir_digest=spec.config_dir_digest,
             hook_ledger=(
                 registry.get(arm).read_hook_ledger(
-                    record.metadata.get("session_id"), cell_specs[(task_id, seed, arm)].config_dir
+                    record.metadata.get("session_id"), spec.config_dir
                 )
                 if arm in ("supermemory", "claude_mem")
-                and cell_specs[(task_id, seed, arm)].config_dir is not None
+                and spec.config_dir is not None
                 else record.hook_ledger
             ),
             metadata={**record.metadata, **extra},
@@ -2178,6 +2330,22 @@ async def main() -> int:
         records = existing_records
         wall_min = 0.0
         print(f"[finalize] reusing {len(records)} existing records; no sessions executed", flush=True)
+    elif sequence_plan is not None:
+        assert heldout_manifest is not None
+        print(
+            f"[sequence] {len(sequence_plan.chains)} chains, "
+            f"{sum(chain.length for chain in sequence_plan.chains)} positions, "
+            f"{len(run_arms)} arms",
+            flush=True,
+        )
+        started = time.monotonic()
+        records = await run_sequences(
+            sequence_plan,
+            runner,
+            heldout_manifest=heldout_manifest,
+            chain_concurrency=block_concurrency(),
+        )
+        wall_min = (time.monotonic() - started) / 60
     else:
         rows = [
             {
