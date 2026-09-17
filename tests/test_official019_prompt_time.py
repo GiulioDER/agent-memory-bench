@@ -13,6 +13,7 @@ from harness import isolation
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport
 from harness.claude_exec import ClaudeExecConfig, session_environment
 from scripts import pilot
+from scripts.pilot import prompt_time_hook_ledger
 from scripts.validate_run_setup import check_prompt_time_pair
 
 
@@ -119,6 +120,26 @@ def test_prompt_time_trace_path_reaches_the_participant() -> None:
         "/workspace/.amb-prompt-time-ledger.jsonl"
     )
     assert "AMB_RECALL_PROMPT_TIME_TRACE" in isolation._PUBLIC_ENV_NAMES
+
+
+def test_prompt_time_ledger_reads_the_runtime_workspace(tmp_path) -> None:
+    runtime_workspace = tmp_path / "runtime"
+    runtime_workspace.mkdir()
+    trace = runtime_workspace / ".amb-prompt-time-ledger.jsonl"
+    trace.write_text(
+        json.dumps({"event": "UserPromptSubmit", "exit_code": 0}) + "\n",
+        encoding="utf-8",
+    )
+    spec = ArmSpec(
+        arm="recall_graph_fulltools_prompt_time",
+        metadata={
+            "prompt_time_trace": str(tmp_path / "setup" / "prompt-time-ledger.jsonl"),
+            "prompt_time_trace_relative": ".amb-prompt-time-ledger.jsonl",
+        },
+    )
+    assert prompt_time_hook_ledger(spec, runtime_workspace) == (
+        {"event": "UserPromptSubmit", "exit_code": 0},
+    )
 
 
 def test_prompt_time_build_copies_release_and_uses_container_paths(tmp_path, monkeypatch) -> None:

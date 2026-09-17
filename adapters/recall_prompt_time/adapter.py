@@ -129,6 +129,7 @@ class RecallGraphFullToolsPromptTimeAdapter(RecallGraphFullToolsProtocolAdapter)
                 "prompt_time_snapshot": str(snapshot),
                 "prompt_time_snapshot_manifest": dict(getattr(self, "_snapshot_manifest", {})),
                 "prompt_time_trace": str(trace),
+                "prompt_time_trace_relative": ".amb-prompt-time-ledger.jsonl",
                 "prompt_time_hook_version": 1,
             },
         )

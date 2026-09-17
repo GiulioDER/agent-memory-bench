@@ -1143,13 +1143,29 @@ def checkpoint_metadata(record: Any, spec: ArmSpec) -> dict[str, Any]:
     }
 
 
-def prompt_time_hook_ledger(spec: ArmSpec) -> tuple[dict[str, Any], ...]:
-    """Read the bounded prompt-time receipt written outside Claude's transcript."""
+def prompt_time_hook_ledger(
+    spec: ArmSpec, workspace_dir: Path | None = None
+) -> tuple[dict[str, Any], ...]:
+    """Read the bounded prompt-time receipt written outside Claude's transcript.
+
+    The participant writes the receipt into its transferred ``/workspace``. The adapter metadata
+    is created earlier, under the setup directory, so resolve the explicit relative filename
+    against the runtime workspace after the isolated session returns.
+    """
 
     raw_path = spec.metadata.get("prompt_time_trace") if isinstance(spec.metadata, Mapping) else None
     if not raw_path:
         return ()
     path = Path(str(raw_path))
+    relative = (
+        spec.metadata.get("prompt_time_trace_relative")
+        if isinstance(spec.metadata, Mapping)
+        else None
+    )
+    if workspace_dir is not None and isinstance(relative, str):
+        candidate = Path(relative)
+        if not candidate.is_absolute() and candidate.name == relative and relative not in {"", ".", ".."}:
+            path = Path(workspace_dir) / candidate
     if not path.is_file():
         return ()
     entries: list[dict[str, Any]] = []
@@ -2375,7 +2391,7 @@ async def main() -> int:
         hook_ledger = record.hook_ledger
         prompt_time_extra: dict[str, Any] = {}
         if arm == RECALL_GRAPH_FULLTOOLS_PROMPT_TIME_ARM:
-            hook_ledger = prompt_time_hook_ledger(spec)
+            hook_ledger = prompt_time_hook_ledger(spec, workdir)
             prompt_time_extra = {
                 "prompt_time_hook": dict(hook_ledger[-1]) if hook_ledger else None,
                 "prompt_time_snapshot_manifest": spec.metadata.get(
