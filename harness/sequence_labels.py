@@ -18,6 +18,7 @@ from .memory_events import ORACLE_LABELS, apply_oracle_labels
 from .schema import SessionRecord
 
 LABEL_SCHEMA = 1
+FUNNEL_LABELS = ("encountered", "retained", "retrieved", "applied")
 
 
 def _digest(value: Any, name: str) -> str:
@@ -42,6 +43,7 @@ class OracleLabelSet:
     evaluation_manifest_id: str
     evaluation_manifest_digest: str
     labels: dict[tuple[str, str, int], dict[str, dict[str, bool | None]]]
+    funnel_labels: dict[tuple[str, str, int], dict[str, bool | None]]
     data: dict[str, Any]
 
 
@@ -64,6 +66,7 @@ def load_label_set(data: Mapping[str, Any]) -> OracleLabelSet:
             "oracle label set sessions must be a list"
         )
     labels: dict[tuple[str, str, int], dict[str, dict[str, bool | None]]] = {}
+    funnel_labels: dict[tuple[str, str, int], dict[str, bool | None]] = {}
     for session_index, raw_session in enumerate(sessions):
         if not isinstance(raw_session, Mapping):
             raise TypeError(f"oracle label session {session_index} must be an object")
@@ -103,12 +106,27 @@ def load_label_set(data: Mapping[str, Any]) -> OracleLabelSet:
                 raise ValueError(f"oracle label event {key!r}/{event_index} has no labels")
             by_source[source] = annotation
         labels[key] = by_source
+        raw_funnel = raw_session.get("funnel", {})
+        if isinstance(raw_funnel, (str, bytes)) or not isinstance(raw_funnel, Mapping):
+            raise ValueError(  # noqa: TRY004 - malformed label artifacts use one stable error
+                f"oracle label session {key!r}.funnel must be an object"
+            )
+        funnel: dict[str, bool | None] = {}
+        for label, value in raw_funnel.items():
+            if label not in FUNNEL_LABELS:
+                raise ValueError(f"unknown sequence funnel label {label!r}")
+            if value is not None and not isinstance(value, bool):
+                raise TypeError(f"sequence funnel label {label!r} must be bool or None")
+            funnel[label] = value
+        if funnel:
+            funnel_labels[key] = funnel
     return OracleLabelSet(
         label_set_id,
         plan_id,
         manifest_id,
         manifest_digest,
         labels,
+        funnel_labels,
         dict(data),
     )
 
@@ -146,15 +164,32 @@ def apply_label_set(
         arm = record.arm if isinstance(record, SessionRecord) else str(record.get("arm", ""))
         key = _session_key(sequence, arm)
         annotations = label_set.labels.get(key)
-        if annotations is None:
+        funnel = label_set.funnel_labels.get(key)
+        if annotations is None and funnel is None:
             output.append(record)
             continue
         matched_sessions.add(key)
-        events = metadata.get("memory_events", ())
-        if isinstance(events, (str, bytes)) or not isinstance(events, Sequence):
-            raise TypeError(f"record {key!r} memory_events must be a sequence")
-        labelled_events = apply_oracle_labels(events, annotations)
-        new_metadata = {**dict(metadata), "memory_events": [dict(event) for event in labelled_events]}
+        new_metadata = dict(metadata)
+        if annotations is not None:
+            events = metadata.get("memory_events", ())
+            if isinstance(events, (str, bytes)) or not isinstance(events, Sequence):
+                raise TypeError(f"record {key!r} memory_events must be a sequence")
+            labelled_events = apply_oracle_labels(events, annotations)
+            new_metadata["memory_events"] = [dict(event) for event in labelled_events]
+        if funnel is not None:
+            role = str(sequence.get("role", ""))
+            invalid = sorted(
+                label
+                for label in funnel
+                if (label in {"encountered", "retained"} and role != "source")
+                or (label in {"retrieved", "applied"} and role != "target")
+            )
+            if invalid:
+                raise ValueError(
+                    f"oracle funnel labels {invalid} are attached to sequence role {role!r}; "
+                    "encountered and retained belong on source, retrieved and applied on target"
+                )
+            new_metadata["sequence_funnel"] = dict(funnel)
         if isinstance(record, SessionRecord):
             output.append(replace(record, metadata=new_metadata))
         else:
