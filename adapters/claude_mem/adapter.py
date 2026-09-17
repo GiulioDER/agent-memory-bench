@@ -867,6 +867,10 @@ class ClaudeMemAdapter(MemoryAdapter):
                 "worker_data_dir": str(data_dir),
                 "worker_port": self._worker_port(namespace),
                 "hook_ledger": str(ledger),
+                "memory_event_tools": {
+                    f"{self.config['tool_prefix']}{tool}": "retrieve"
+                    for tool in self.config["tools"]
+                },
                 "first_search_sentinel": str(first_search_sentinel),
                 "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest(),
             },

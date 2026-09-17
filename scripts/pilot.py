@@ -2005,6 +2005,7 @@ async def main() -> int:
             append_system_prompt_file=spec.append_system_prompt_file,
             permission_mode="acceptEdits",
             memory_tool_prefix=spec.memory_tool_prefix or "mcp__never__",
+            memory_event_tools=spec.metadata.get("memory_event_tools", {}),
             stream_dir=work_root / "private-streams",
             json_schema=(
                 STAGED_DECISION_OUTPUT_SCHEMA

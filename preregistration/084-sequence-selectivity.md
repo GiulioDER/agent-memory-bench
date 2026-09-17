@@ -28,6 +28,12 @@ Every memory decision is represented as an event in `metadata.memory_events`:
 * a retrieval event has decision `retrieve` or `abstain`;
 * `useful`, `harmful`, and `applied` are optional oracle labels, and missing labels remain unknown.
 
+The producer is conservative. Each adapter declares exact fully qualified memory tools and their
+event kind. An observed call produces the positive action for that kind, unless its structured
+result explicitly says `skip` or `abstain`. An undeclared tool produces no event, and the absence
+of a call never produces an abstention event. Therefore an arm with no event producer is
+unobserved for selectivity, not automatically selective.
+
 Write precision is useful labelled writes divided by all labelled writes. Retrieval precision is
 useful labelled retrievals divided by all labelled retrievals. Write skip rate and retrieval
 abstention rate measure the decision to remain quiet. Useful abstentions and harmful retrievals
