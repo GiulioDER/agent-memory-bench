@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "manifest_id": "amb-governance-v1",
+  "track": "governance",
+  "description": "Applicability, plausible replacement, supersession, conflict, and pinned old knowledge.",
+  "findings": [
+    {
+      "finding_id": "finding-alpha-lease-v1",
+      "source_path": "governance/alpha-lease-v1.json",
+      "claim": "Queue alpha used a 90 second renewal interval before the June revision.",
+      "scope": {"target": "queue-alpha", "environment": "production", "component": "lease-service"},
+      "valid_from": "2026-04-12",
+      "valid_until": "2026-06-01",
+      "supersedes": []
+    },
+    {
+      "finding_id": "finding-alpha-lease-v2",
+      "source_path": "governance/alpha-lease-v2.json",
+      "claim": "Queue alpha now uses a 20 second renewal interval.",
+      "scope": {"target": "queue-alpha", "environment": "production", "component": "lease-service"},
+      "valid_from": "2026-06-02",
+      "valid_until": null,
+      "supersedes": ["finding-alpha-lease-v1"]
+    },
+    {
+      "finding_id": "finding-alpha-lease-staging",
+      "source_path": "governance/alpha-lease-staging.json",
+      "claim": "The staging queue uses a 5 second renewal interval.",
+      "scope": {"target": "queue-alpha", "environment": "staging", "component": "lease-service"},
+      "valid_from": "2026-06-02",
+      "valid_until": null,
+      "supersedes": []
+    },
+    {
+      "finding_id": "finding-export-order-a",
+      "source_path": "governance/export-order-a.json",
+      "claim": "Production partner exports are written oldest first.",
+      "scope": {"target": "partner-export", "environment": "production", "component": "ordering"},
+      "valid_from": null,
+      "valid_until": null,
+      "supersedes": []
+    },
+    {
+      "finding_id": "finding-export-order-b",
+      "source_path": "governance/export-order-b.json",
+      "claim": "Production partner exports are written newest first.",
+      "scope": {"target": "partner-export", "environment": "production", "component": "ordering"},
+      "valid_from": null,
+      "valid_until": null,
+      "supersedes": []
+    },
+    {
+      "finding_id": "finding-beta-lease",
+      "source_path": "governance/beta-lease.json",
+      "claim": "Queue beta uses a 45 second renewal interval.",
+      "scope": {"target": "queue-beta", "environment": "production", "component": "lease-service"},
+      "valid_from": "2026-06-02",
+      "valid_until": null,
+      "supersedes": []
+    }
+  ],
+  "probes": [
+    {
+      "probe_id": "governance-current-supersession",
+      "query": "What renewal interval should production queue alpha use on 2026-08-01?",
+      "expected_decision": "apply",
+      "expected_selected_finding_ids": ["finding-alpha-lease-v2"],
+      "expected_conflict_finding_ids": [],
+      "replacement_candidate_ids": ["finding-alpha-lease-v1", "finding-alpha-lease-v2"],
+      "nonreplacement_finding_ids": ["finding-alpha-lease-staging", "finding-beta-lease"],
+      "forbidden_selected_finding_ids": ["finding-alpha-lease-v1", "finding-alpha-lease-staging", "finding-beta-lease"],
+      "expected_terms": ["20 second"]
+    },
+    {
+      "probe_id": "governance-pinned-old-finding",
+      "query": "What renewal interval was valid for production queue alpha on 2026-05-01?",
+      "expected_decision": "apply",
+      "expected_selected_finding_ids": ["finding-alpha-lease-v1"],
+      "expected_conflict_finding_ids": [],
+      "replacement_candidate_ids": ["finding-alpha-lease-v1"],
+      "nonreplacement_finding_ids": ["finding-alpha-lease-v2", "finding-alpha-lease-staging", "finding-beta-lease"],
+      "forbidden_selected_finding_ids": ["finding-alpha-lease-v2", "finding-alpha-lease-staging", "finding-beta-lease"],
+      "expected_terms": ["90 second"]
+    },
+    {
+      "probe_id": "governance-adjacent-environment",
+      "query": "What renewal interval should production queue alpha use?",
+      "expected_decision": "not_applicable",
+      "expected_selected_finding_ids": [],
+      "expected_conflict_finding_ids": [],
+      "replacement_candidate_ids": [],
+      "nonreplacement_finding_ids": ["finding-alpha-lease-staging"],
+      "forbidden_selected_finding_ids": ["finding-alpha-lease-staging"],
+      "expected_terms": ["does not apply"]
+    },
+    {
+      "probe_id": "governance-adjacent-target",
+      "query": "What renewal interval should production queue alpha use when only the beta finding is available?",
+      "expected_decision": "not_applicable",
+      "expected_selected_finding_ids": [],
+      "expected_conflict_finding_ids": [],
+      "replacement_candidate_ids": [],
+      "nonreplacement_finding_ids": ["finding-beta-lease"],
+      "forbidden_selected_finding_ids": ["finding-beta-lease"],
+      "expected_terms": ["does not apply"]
+    },
+    {
+      "probe_id": "governance-same-scope-conflict",
+      "query": "Which order should production partner exports use when the two findings disagree?",
+      "expected_decision": "conflict",
+      "expected_selected_finding_ids": [],
+      "expected_conflict_finding_ids": ["finding-export-order-a", "finding-export-order-b"],
+      "replacement_candidate_ids": ["finding-export-order-a", "finding-export-order-b"],
+      "nonreplacement_finding_ids": [],
+      "forbidden_selected_finding_ids": ["finding-export-order-a", "finding-export-order-b"],
+      "expected_terms": ["conflict"]
+    }
+  ],
+  "manifest_digest": "e0740ca6868afa65f3636bf4a3081b113578fdad373457763043cbf6f3a65b06"
+}
