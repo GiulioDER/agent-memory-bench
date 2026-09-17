@@ -2,8 +2,8 @@
 
 The benchmark must not infer an abstention from a missing tool call. An adapter declares which
 fully qualified tools represent a memory write or retrieval, and this module emits an event only
-when that tool was actually observed. Oracle labels remain optional and are never derived from
-the tool output prose.
+when that tool was actually observed. Oracle labels are joined separately after execution and are
+never accepted from tool output.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 EVENT_KINDS = ("write", "retrieve")
+ORACLE_LABELS = ("useful", "harmful", "applied")
 
 
 def _json_payload(output: Any) -> Mapping[str, Any] | None:
@@ -89,9 +90,40 @@ def memory_events_from_tool_calls(
             "decision": _decision(kind, raw_decision),
             "source": f"tool_calls[{index}].{tool}",
         }
-        for label in ("useful", "harmful", "applied"):
-            value = _payload_value(call, payload, label)
-            if value is not None:
-                event[label] = value
         events.append(event)
     return tuple(events)
+
+
+def apply_oracle_labels(
+    events: Sequence[Mapping[str, Any]],
+    labels_by_source: Mapping[str, Mapping[str, bool | None]],
+) -> tuple[dict[str, Any], ...]:
+    """Attach preregistered labels to observed events by their stable source identifier.
+
+    The label artifact is supplied by the trusted evaluator after a session finishes. Unknown
+    event sources and non boolean labels are refused so a misspelled or self supplied label cannot
+    silently change selectivity metrics.
+    """
+
+    if not isinstance(labels_by_source, Mapping):
+        raise TypeError("oracle labels must be a mapping keyed by event source")
+    event_sources = {str(event.get("source", "")) for event in events}
+    unknown_sources = sorted(set(labels_by_source) - event_sources)
+    if unknown_sources:
+        raise ValueError(f"oracle labels reference unknown event sources: {unknown_sources}")
+    labelled: list[dict[str, Any]] = []
+    for event in events:
+        source = str(event.get("source", ""))
+        annotation = labels_by_source.get(source)
+        result = dict(event)
+        if annotation is not None:
+            if not isinstance(annotation, Mapping):
+                raise TypeError(f"oracle labels for {source!r} must be a mapping")
+            for label, value in annotation.items():
+                if label not in ORACLE_LABELS:
+                    raise ValueError(f"unknown oracle memory label {label!r}")
+                if value is not None and not isinstance(value, bool):
+                    raise TypeError(f"oracle memory label {label!r} must be bool or None")
+                result[label] = value
+        labelled.append(result)
+    return tuple(labelled)

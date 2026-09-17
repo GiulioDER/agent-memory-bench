@@ -27,6 +27,8 @@ Every memory decision is represented as an event in `metadata.memory_events`:
 * a write event has decision `write` or `skip`;
 * a retrieval event has decision `retrieve` or `abstain`;
 * `useful`, `harmful`, and `applied` are optional oracle labels, and missing labels remain unknown.
+  They are supplied by a trusted evaluator after execution and joined by the event's stable source,
+  never accepted from participant tool output.
 
 The producer is conservative. Each adapter declares exact fully qualified memory tools and their
 event kind. An observed call produces the positive action for that kind, unless its structured
@@ -70,3 +72,8 @@ The implementation writes `sequence_analysis.json` and `sequence_analysis.md` th
 The scorer refuses records without sequence metadata, duplicate chain positions, inconsistent
 chain lengths, missing targets, and a missing baseline arm. It never scores a partial chain as an
 admitted chain.
+
+Oracle labels are a separate post run artifact. Its schema is versioned and bound to the sequence
+plan and held out manifest. The scoring command requires the matching plan before joining labels
+to observed events by chain, arm, position, and event source. Labels cannot create an event that
+the runner did not observe, and tool payloads cannot supply oracle labels.
