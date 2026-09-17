@@ -41,6 +41,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .decision_trace import decisions_from_result_events, decisions_from_tool_calls
+from .memory_events import memory_events_from_tool_calls, validate_memory_event_tools
 from .retrieval_trace import summarize_memory_calls
 from .schema import DEFAULT_MEMORY_TOOL_PREFIX, SessionRecord
 
@@ -214,6 +215,9 @@ class ClaudeExecConfig:
     #: stream is the evidence; every number in the summary is derived from it and can be
     #: recomputed, so it is written by the adapter itself rather than by whatever calls it.
     stream_dir: str | Path | None = None
+    #: Exact memory tools whose observed calls become sequence selectivity events. Empty means no
+    #: event producer is declared for this arm; it does not mean the arm abstained.
+    memory_event_tools: Mapping[str, str] = field(default_factory=dict)
     #: Claude Code's schema constrained terminal output. None preserves the historical transcript
     #: mode; the benchmark pilot enables this explicitly when it is collecting decision traces.
     json_schema: Mapping[str, Any] | None = None
@@ -242,6 +246,7 @@ class ClaudeExecConfig:
             )
         if self.json_schema is not None and not isinstance(self.json_schema, Mapping):
             raise TypeError("json_schema must be a mapping when provided")
+        validate_memory_event_tools(self.memory_event_tools)
 
     def command(self, prompt: str) -> list[str]:
         """Build an argument list without invoking a shell."""
@@ -399,6 +404,7 @@ class TranscriptFields:
     subagent_tool_calls: int
     runtime_decisions: tuple[dict[str, Any], ...]
     memory_retrieval: dict[str, Any]
+    memory_events: tuple[dict[str, Any], ...]
 
 
 #: One tool call as it is assembled from the stream. The values are genuinely heterogeneous
@@ -411,6 +417,7 @@ def transcript_fields(
     events: Sequence[Mapping[str, Any]],
     *,
     memory_tool_prefix: str = DEFAULT_MEMORY_TOOL_PREFIX,
+    memory_event_tools: Mapping[str, str] | None = None,
 ) -> TranscriptFields:
     """Reconstruct conversation, tool calls, memory tool usage and failures from the stream."""
 
@@ -509,6 +516,9 @@ def transcript_fields(
     memory_retrieval = summarize_memory_calls(
         tool_calls, memory_tool_prefix=memory_tool_prefix
     )
+    memory_events = memory_events_from_tool_calls(
+        tool_calls, memory_event_tools=memory_event_tools
+    )
     tool_decisions = decisions_from_tool_calls(tool_calls)
     result_decisions = decisions_from_result_events(events)
     return TranscriptFields(
@@ -524,6 +534,7 @@ def transcript_fields(
         subagent_tool_calls=sum(1 for call in ordered if call.get("subagent")),
         runtime_decisions=_merge_runtime_decisions(tool_decisions, result_decisions),
         memory_retrieval=memory_retrieval,
+        memory_events=memory_events,
     )
 
 
@@ -618,7 +629,11 @@ def build_record(
     events = parse_claude_stream_json(stream)
     init = init_event(events)
     result = result_event(events)
-    fields = transcript_fields(events, memory_tool_prefix=config.memory_tool_prefix)
+    fields = transcript_fields(
+        events,
+        memory_tool_prefix=config.memory_tool_prefix,
+        memory_event_tools=config.memory_event_tools,
+    )
     usage = _usage_fields(result)
 
     session_tools = [str(name) for name in (init.get("tools") or [])] if init else []
@@ -661,6 +676,7 @@ def build_record(
         "failed_tool_calls": fields.failed_tool_calls,
         "subagent_tool_calls": fields.subagent_tool_calls,
         "memory_retrieval": fields.memory_retrieval,
+        "memory_events": [dict(event) for event in fields.memory_events],
         # Kept apart because they are not priced alike: a cache read is far cheaper than a fresh
         # token and cache creation is dearer. input_tokens above is their sum.
         "fresh_input_tokens": usage.get("fresh_input_tokens"),

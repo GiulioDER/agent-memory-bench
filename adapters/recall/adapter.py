@@ -1169,6 +1169,12 @@ class RecallAdapter(MemoryAdapter):
                 "transport": "stdio",
                 "tenant": namespace,
                 "tool_prefix": prefix,
+                "memory_event_tools": {
+                    f"{prefix}recall_search": "retrieve",
+                    f"{prefix}recall_evidence": "retrieve",
+                    f"{prefix}recall_reasoning_query": "retrieve",
+                    f"{prefix}recall_reasoning_projection": "retrieve",
+                },
                 "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest(),
             },
         )
