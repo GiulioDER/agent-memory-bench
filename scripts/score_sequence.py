@@ -46,8 +46,8 @@ def render_markdown(analysis: dict) -> str:
             "",
             "## Selectivity and overhead",
             "",
-        "| Arm | Length | Write precision | Write skip rate | Useful write skips | Retrieval precision | Retrieval abstention | Useful retrieval abstentions | Retrieval harm | Total tokens | Token delta vs baseline |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Arm | Length | Write precision | Write skip rate | Useful write skips | Retrieval precision | Retrieval abstention | Useful retrieval abstentions | Retrieval harm | Total tokens | Token delta vs baseline | Tool calls | Tool-call delta vs baseline | Wall time (ms) | Wall-time delta vs baseline |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for row in analysis["metrics"]:
@@ -63,7 +63,11 @@ def render_markdown(analysis: dict) -> str:
             f"{selectivity_value(selectivity, 'retrieval_useful_abstention_rate')} | "
             f"{selectivity_value(selectivity, 'retrieval_harm_rate')} | "
             f"{overhead_value(overhead, 'total_tokens')} | "
-            f"{overhead_value(overhead, 'mean_total_token_delta_vs_baseline')} |"
+            f"{overhead_value(overhead, 'mean_total_token_delta_vs_baseline')} | "
+            f"{overhead_value(overhead, 'tool_calls')} | "
+            f"{overhead_value(overhead, 'mean_tool_call_delta_vs_baseline')} | "
+            f"{overhead_value(overhead, 'wall_time_ms')} | "
+            f"{overhead_value(overhead, 'mean_wall_time_delta_vs_baseline')} |"
         )
     lines.extend(["", "## Interpretation", "", analysis["interpretation"], ""])
     return "\n".join(lines)
