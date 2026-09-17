@@ -10,13 +10,6 @@ from harness.sequence_plan import load_plan_file
 from harness.sequence_validation import sequence_input_files, validate_plan
 
 
-def _repo_relative(root: Path, path: Path) -> str:
-    try:
-        return path.resolve().relative_to(root.resolve()).as_posix()
-    except ValueError as error:
-        raise ValueError(f"sequence plan must be inside repo_root: {path}") from error
-
-
 def _unique(values: list[str]) -> list[str]:
     return list(dict.fromkeys(values))
 
@@ -50,10 +43,7 @@ def main() -> int:
         ).resolve()
         validate_plan(plan, tasks_root=tasks_root)
         protocol_files.extend(
-            [
-                _repo_relative(repo_root, sequence_plan_path),
-                *sequence_input_files(plan, repo_root=repo_root, tasks_root=tasks_root),
-            ]
+            sequence_input_files(plan, repo_root=repo_root, tasks_root=tasks_root)
         )
 
     manifest = FrozenEvaluationManifest.build(

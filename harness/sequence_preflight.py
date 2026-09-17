@@ -46,9 +46,13 @@ def validate_sequence_evaluation(
     *,
     repo_root: str | Path | None = None,
     tasks_root: str | Path | None = None,
-    plan_path: str | Path | None = None,
 ) -> SequenceEvaluationPreflight:
-    """Verify the frozen inputs and their binding before execution."""
+    """Verify the frozen inputs and their binding before execution.
+
+    The manifest binds runtime task inputs.  The sequence plan is bound
+    separately by its content digest, which avoids making the manifest and
+    the plan recursively depend on each other.
+    """
 
     manifest.verify()
     manifest_id = manifest.data.get("manifest_id")
@@ -63,13 +67,6 @@ def validate_sequence_evaluation(
         bound_sequence_files.update(
             sequence_input_files(plan, repo_root=repo_root, tasks_root=tasks_root)
         )
-    if plan_path is not None:
-        plan_file = Path(plan_path).resolve()
-        repository = Path(manifest.root).resolve()
-        try:
-            bound_sequence_files.add(plan_file.relative_to(repository).as_posix())
-        except ValueError as error:
-            raise ValueError("sequence plan must be inside the manifest root") from error
     missing = sorted(
         bound_sequence_files - set(manifest.data.get("protocol_files", {}))
     )
