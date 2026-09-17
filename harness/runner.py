@@ -40,7 +40,9 @@ Runner = Callable[
 ]
 
 
-def _row_sequence_metadata(row: Mapping[str, Any]) -> dict[str, Any]:
+def _row_sequence_metadata(
+    row: Mapping[str, Any], *, admitted: bool | None = None
+) -> dict[str, Any]:
     """Return the runner-owned sequence metadata, if this row belongs to a chain."""
 
     sequence = row.get("sequence")
@@ -48,7 +50,10 @@ def _row_sequence_metadata(row: Mapping[str, Any]) -> dict[str, Any]:
         return {}
     if not isinstance(sequence, Mapping):
         raise TypeError("row sequence metadata must be a mapping")
-    return {"sequence": dict(sequence)}
+    result = dict(sequence)
+    if admitted is not None:
+        result["admitted"] = admitted
+    return {"sequence": result}
 
 
 def cell_start_stagger_seconds() -> float:
@@ -72,7 +77,7 @@ def _error_record(row: Mapping[str, Any], arm: str, error: BaseException) -> Ses
         success=False,
         user_input=str(row.get("user_input", "")),
         error=f"{type(error).__name__}: {error}",
-        metadata=_row_sequence_metadata(row),
+        metadata=_row_sequence_metadata(row, admitted=False),
     )
 
 
@@ -113,6 +118,11 @@ async def _run_one(row: Mapping[str, Any], arm: str, runner: Runner) -> SessionR
             existing = record.metadata.get("sequence")
             if existing is not None and existing != row_metadata["sequence"]:
                 raise ValueError("runner returned sequence metadata for a different chain session")
+            if record.error is not None:
+                row_metadata["sequence"] = {
+                    **row_metadata["sequence"],
+                    "admitted": False,
+                }
             record = replace(
                 record,
                 metadata={**dict(record.metadata), "sequence": row_metadata["sequence"]},

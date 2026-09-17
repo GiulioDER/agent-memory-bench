@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from harness.schema import SessionRecord
@@ -80,6 +82,20 @@ def test_unadmitted_chain_is_not_scored():
     assert admitted == {"bare": 0, "recall": 1}
 
 
+def test_error_record_is_not_admitted_even_with_stale_metadata():
+    """Mutation: ignoring record.error would score a crashed session as a valid chain step."""
+
+    records = [
+        _record("c1", "bare", 0),
+        replace(_record("c1", "bare", 1), error="adapter failed"),
+        _record("c1", "recall", 0),
+        _record("c1", "recall", 1),
+    ]
+    result = score_sequences(records)
+    admitted = {row["arm"]: row["admitted_chains"] for row in result["metrics"]}
+    assert admitted == {"bare": 0, "recall": 1}
+
+
 def test_duplicate_position_is_refused():
     """Mutation: removing the duplicate guard would count a retry as a second chain session."""
 
@@ -112,6 +128,32 @@ def test_unlabelled_selectivity_remains_unknown():
     assert recall["selectivity"]["write_precision"] is None
     assert recall["selectivity"]["retrieval_precision"] is None
     assert recall["selectivity"]["retrieval_abstention_rate"] == 1
+
+
+def test_useful_write_and_retrieval_abstentions_are_reported():
+    """Mutation: counting useful abstentions only for retrieval hides selective write skipping."""
+
+    records = [
+        _record("c1", "bare", 0),
+        _record("c1", "bare", 1),
+        _record(
+            "c1",
+            "recall",
+            0,
+            events=(
+                {"kind": "write", "decision": "skip", "useful": True},
+                {"kind": "retrieve", "decision": "abstain", "useful": True},
+            ),
+        ),
+        _record("c1", "recall", 1),
+    ]
+    recall = next(row for row in score_sequences(records)["metrics"] if row["arm"] == "recall")
+    selectivity = recall["selectivity"]
+    assert selectivity["write_useful_abstentions"] == 1
+    assert selectivity["write_useful_abstention_rate"] == 1
+    assert selectivity["retrieval_useful_abstentions"] == 1
+    assert selectivity["retrieval_useful_abstention_rate"] == 1
+    assert selectivity["useful_abstentions"] == 2
 
 
 def test_sequence_markdown_renderer_formats_scored_rows():

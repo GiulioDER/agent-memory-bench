@@ -44,8 +44,8 @@ def render_markdown(analysis: dict) -> str:
             "",
             "## Selectivity and overhead",
             "",
-            "| Arm | Length | Write precision | Write skip rate | Retrieval precision | Retrieval abstention | Retrieval harm | Total tokens | Token delta vs baseline |",
-            "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Arm | Length | Write precision | Write skip rate | Useful write skips | Retrieval precision | Retrieval abstention | Useful retrieval abstentions | Retrieval harm | Total tokens | Token delta vs baseline |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for row in analysis["metrics"]:
@@ -55,8 +55,10 @@ def render_markdown(analysis: dict) -> str:
         lines.append(
             f"| {row['arm']} | {row['length']} | {selectivity_value(selectivity, 'write_precision')} | "
             f"{selectivity_value(selectivity, 'write_abstention_rate')} | "
+            f"{selectivity_value(selectivity, 'write_useful_abstention_rate')} | "
             f"{selectivity_value(selectivity, 'retrieval_precision')} | "
             f"{selectivity_value(selectivity, 'retrieval_abstention_rate')} | "
+            f"{selectivity_value(selectivity, 'retrieval_useful_abstention_rate')} | "
             f"{selectivity_value(selectivity, 'retrieval_harm_rate')} | "
             f"{overhead_value(overhead, 'total_tokens')} | "
             f"{overhead_value(overhead, 'mean_total_token_delta_vs_baseline')} |"
