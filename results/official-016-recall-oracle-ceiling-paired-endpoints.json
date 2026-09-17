@@ -1,0 +1,76 @@
+{
+  "reference_arm": "bare",
+  "arms": {
+    "recall_graph_fulltools_protocol": {
+      "1_net_harm_by_stratum": {},
+      "2_damage_rate_by_condition": {},
+      "3_abstention_rate": {},
+      "4_wrong_fact_applied": {
+        "superseded": {
+          "n_cells": 43,
+          "wrong_fact_applied": 3,
+          "rate": 0.06976744186046512
+        }
+      },
+      "5_usefulness_composite": {
+        "sensitivity": null,
+        "sensitivity_n_cells": 0,
+        "missed_rate": null,
+        "missed_n_cells": 0,
+        "missed_n_present_cells": 0,
+        "specificity_floor": 0.9302,
+        "specificity_ceiling": 0.9302,
+        "specificity_n_cells": 43,
+        "youden_j_floor": null,
+        "youden_j_ceiling": null,
+        "zero_means": "never searching (sensitivity 0, specificity 1) and always trusting (sensitivity 1, specificity 0) both score 0",
+        "sensitivity_n_tasks": 0,
+        "specificity_n_tasks": 9,
+        "underpowered": true,
+        "never_run": true
+      }
+    },
+    "oracle_memory": {
+      "1_net_harm_by_stratum": {},
+      "2_damage_rate_by_condition": {},
+      "3_abstention_rate": {},
+      "4_wrong_fact_applied": {
+        "superseded": {
+          "n_cells": 43,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        }
+      },
+      "5_usefulness_composite": {
+        "sensitivity": null,
+        "sensitivity_n_cells": 0,
+        "missed_rate": null,
+        "missed_n_cells": 0,
+        "missed_n_present_cells": 0,
+        "specificity_floor": 1.0,
+        "specificity_ceiling": 1.0,
+        "specificity_n_cells": 43,
+        "youden_j_floor": null,
+        "youden_j_ceiling": null,
+        "zero_means": "never searching (sensitivity 0, specificity 1) and always trusting (sensitivity 1, specificity 0) both score 0",
+        "sensitivity_n_tasks": 0,
+        "specificity_n_tasks": 9,
+        "underpowered": true,
+        "never_run": true
+      }
+    }
+  },
+  "conditions": [
+    "superseded"
+  ],
+  "n_cells": 86,
+  "search_rates": {
+    "recall_graph_fulltools_protocol[superseded]": 0.9069767441860465
+  },
+  "search_rates_all_cells": {
+    "recall_graph_fulltools_protocol[superseded]": 0.9111111111111111
+  },
+  "interpretable": {
+    "recall_graph_fulltools_protocol[superseded]": true
+  }
+}

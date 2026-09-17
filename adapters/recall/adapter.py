@@ -43,6 +43,7 @@ from harness.adapters.base import (
     validate_namespace,
 )
 from harness.gate import AdmissionSignal
+from harness.graph_metadata import GRAPH_METADATA_MODE, structural_graph_metadata
 from harness.lifecycle import LifecycleEvent, LifecycleIngestReport, source_sha256
 from harness.lineage import lineage_from_env
 from harness.transcripts import render_corpus, render_transcript
@@ -183,7 +184,7 @@ def resolve_location(config: dict, key: str) -> str:
     return value
 
 
-def corpus_fingerprint(corpus: CorpusManifest) -> str:
+def corpus_fingerprint(corpus: CorpusManifest, *, graph_mode: str = "off") -> str:
     """A deterministic identity for the corpus CONTENT this run assembled.
 
     `CorpusManifest` carries `sessions`, a mapping of transcript path to sha256, so hashing its
@@ -195,7 +196,10 @@ def corpus_fingerprint(corpus: CorpusManifest) -> str:
     json.dumps' default spacing is a fingerprint that changes for no reason.
     """
 
-    payload = json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":"))
+    payload: object = dict(sorted(corpus.sessions.items()))
+    if graph_mode != "off":
+        payload = {"sessions": payload, "graph_mode": graph_mode}
+    payload = json.dumps(payload, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -695,7 +699,8 @@ class RecallAdapter(MemoryAdapter):
         """
 
 
-        expected = corpus_fingerprint(corpus)
+        graph_mode = str(self.config.get("graph_metadata", "off"))
+        expected = corpus_fingerprint(corpus, graph_mode=graph_mode)
         remote = (
             f"cd {shlex.quote(self._location('remote_root'))} && "
             f"set -a && . {shlex.quote(self._location('remote_env_file'))} && set +a && "
@@ -768,8 +773,18 @@ class RecallAdapter(MemoryAdapter):
         if staged.exists():
             shutil.rmtree(staged)
         _paths = [corpus.root / rel for rel in corpus.sessions]
+        graph_mode = str(self.config.get("graph_metadata", "off"))
+        graph = (
+            structural_graph_metadata(_paths, corpus.root)
+            if graph_mode == GRAPH_METADATA_MODE
+            else None
+        )
         count = render_corpus(
-            _paths, staged, root=corpus.root, lineage=lineage_from_env(_paths, corpus.root)
+            _paths,
+            staged,
+            root=corpus.root,
+            lineage=lineage_from_env(_paths, corpus.root),
+            graph=graph,
         )
         start = time.monotonic()
         # recall's own write path: the published CLI, one tenant per namespace. Re-indexing

@@ -62,6 +62,31 @@ from scripts.assemble_condition_corpus import (
 )
 
 CORPUS = REPO / "corpus"
+RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_quality_gate",
+)
+RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_decision_protocol",
+)
+RECALL_ORACLE_CEILING_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "oracle_memory",
+)
+RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS = (
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_checkpoint_placebo",
+    "recall_graph_fulltools_checkpoint",
+)
+RECALL_GRAPH_FULLTOOLS_ARMS = frozenset(
+    {
+        "recall_graph_fulltools",
+        *RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS,
+        *RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS,
+        *RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS,
+    }
+)
 
 # Tasks retired from the harm suite on 2026-08-30 because **no arm has ever failed them**, across
 # every run in this repository plus official-001. A task nobody fails can record neither damage
@@ -143,7 +168,9 @@ def selection_for(condition: str, *, announce: bool = True) -> list[str]:
     return kept
 
 
-def ingest_recall(corpus_root: Path, namespace: str, *, dry_run: bool) -> dict | None:
+def ingest_recall(
+    corpus_root: Path, namespace: str, *, dry_run: bool, arm: str = "recall"
+) -> dict | None:
     """Load this condition's feed into its own tenant, so conditions cannot contaminate each other.
 
     Imported lazily: the adapter reaches for a database and a model, and a dry run must not.
@@ -152,7 +179,14 @@ def ingest_recall(corpus_root: Path, namespace: str, *, dry_run: bool) -> dict |
     if dry_run:
         print(f"[dry-run] would ingest {corpus_root} into tenant {namespace}")
         return None
-    from adapters.recall.adapter import RecallAdapter
+    if arm in RECALL_GRAPH_FULLTOOLS_ARMS:
+        from adapters.recall_graph_fulltools.adapter import RecallGraphFullToolsAdapter as Adapter
+    elif arm == "recall_graph_rerank":
+        from adapters.recall_graph_rerank.adapter import RecallGraphRerankAdapter as Adapter
+    elif arm == "recall_rerank":
+        from adapters.recall_rerank.adapter import RecallRerankAdapter as Adapter
+    else:
+        from adapters.recall.adapter import RecallAdapter as Adapter
 
     corpus = CorpusManifest.load(corpus_root)
     corpus.verify()
@@ -161,13 +195,15 @@ def ingest_recall(corpus_root: Path, namespace: str, *, dry_run: bool) -> dict |
     # manifest as a prompt worked only because nothing validated it, and that is the kind of thing
     # that holds until someone adds a check.
     staging = REPO / "results" / ".ingest-staging"
-    adapter = RecallAdapter(staging, REPO / "adapters" / "_shared" / "memory_protocol.md")
+    adapter = Adapter(staging, REPO / "adapters" / "_shared" / "memory_protocol.md")
     report = adapter.ingest(corpus, namespace)
     print(f"[ingest] recall  {namespace}: {report.items_stored} item(s)")
     return report.to_dict()
 
 
-def preflight_recall(namespace: str, *, dry_run: bool) -> None:
+def preflight_recall(
+    namespace: str, *, dry_run: bool, arm: str = "recall"
+) -> None:
     """Refuse the run unless the recall arm's MCP server actually starts and offers its tools.
 
     ⛔ This exists because a dead stdio server is invisible in a session record. The model gets no
@@ -183,11 +219,18 @@ def preflight_recall(namespace: str, *, dry_run: bool) -> None:
     if dry_run:
         print(f"[dry-run] would preflight the recall MCP server for {namespace}")
         return
-    from adapters.recall.adapter import RecallAdapter
+    if arm in RECALL_GRAPH_FULLTOOLS_ARMS:
+        from adapters.recall_graph_fulltools.adapter import RecallGraphFullToolsAdapter as Adapter
+    elif arm == "recall_graph_rerank":
+        from adapters.recall_graph_rerank.adapter import RecallGraphRerankAdapter as Adapter
+    elif arm == "recall_rerank":
+        from adapters.recall_rerank.adapter import RecallRerankAdapter as Adapter
+    else:
+        from adapters.recall.adapter import RecallAdapter as Adapter
     from harness.mcp_probe import probe
 
     staging = REPO / "results" / ".ingest-staging"
-    adapter = RecallAdapter(staging, REPO / "adapters" / "_shared" / "memory_protocol.md")
+    adapter = Adapter(staging, REPO / "adapters" / "_shared" / "memory_protocol.md")
     with tempfile.TemporaryDirectory() as temp:
         spec = adapter.build(Path(temp) / "preflight", namespace)
         required = [
@@ -254,10 +297,11 @@ def plan_conditions(run_id: str, conditions: list[str], *, resume: bool) -> list
 def run_condition(args, condition: str) -> Path:
     """Assemble, ingest and run one condition. Returns its run directory."""
 
-    selection = selection_for(condition)
+    corpus_selection = selection_for(condition)
+    selection = list(corpus_selection)
     if args.tasks:
         wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
-        missing = [task_id for task_id in wanted if task_id not in selection]
+        missing = [task_id for task_id in wanted if task_id not in corpus_selection]
         if missing:
             raise SystemExit(
                 f"{missing} do not declare the {condition!r} condition, so they cannot be run "
@@ -272,7 +316,11 @@ def run_condition(args, condition: str) -> Path:
 
     corpus_root = REPO / "corpus" / "conditions" / condition / f"seed-{args.seed}"
     provenance = assemble(
-        condition, args.seed, selection, corpus_root, haystack=haystack_root()
+        condition,
+        args.seed,
+        corpus_selection,
+        corpus_root,
+        haystack=haystack_root(),
     )
     print(
         f"[{condition}] {len(selection)} task(s), "
@@ -280,10 +328,28 @@ def run_condition(args, condition: str) -> Path:
     )
 
     namespace = f"{args.namespace}-{condition}"
-    if "recall" in args.arms.split(","):
-        ingest_recall(corpus_root, namespace, dry_run=args.dry_run)
+    recall_arms = args.arms.split(",")
+    ingest_arm = (
+        next(arm for arm in recall_arms if arm in RECALL_GRAPH_FULLTOOLS_ARMS)
+        if any(arm in RECALL_GRAPH_FULLTOOLS_ARMS for arm in recall_arms)
+        else "recall_graph_rerank"
+        if "recall_graph_rerank" in recall_arms
+        else "recall_rerank"
+        if "recall_rerank" in recall_arms
+        else "recall"
+    )
+    if any(
+        arm in {
+            "recall",
+            "recall_rerank",
+            "recall_graph_rerank",
+            *RECALL_GRAPH_FULLTOOLS_ARMS,
+        }
+        for arm in recall_arms
+    ):
+        ingest_recall(corpus_root, namespace, dry_run=args.dry_run, arm=ingest_arm)
         # After ingest, because the server is checked against the corpus it will serve.
-        preflight_recall(namespace, dry_run=args.dry_run)
+        preflight_recall(namespace, dry_run=args.dry_run, arm=ingest_arm)
 
     run_id = f"{args.run_id}-{condition}"
     command = [
@@ -342,7 +408,17 @@ SEARCH_RATE_FLOOR = 0.50
 # decides whether its numbers mean anything. `_classify_arms` below now refuses an arm that is in
 # neither set, so the next product cannot repeat it.
 MEMORY_ARMS = frozenset(
-    {"recall", "recall_rerank", "mempalace", "fs_grep", "cachly", "supermemory", "claude_mem"}
+    {
+        "recall",
+        "recall_rerank",
+        "recall_graph_rerank",
+        *RECALL_GRAPH_FULLTOOLS_ARMS,
+        "mempalace",
+        "fs_grep",
+        "cachly",
+        "supermemory",
+        "claude_mem",
+    }
 )
 
 # Arms with no retrieval surface THE AGENT CAN REACH. A search rate for these is meaningless,
@@ -421,6 +497,10 @@ def search_rate_for(run_dir: Path, *, admitted_only: bool = True) -> dict[str, f
 
     def searched(record: dict[str, Any]) -> bool:
         arm = str(record["arm"])
+        if arm == "recall_graph_fulltools_checkpoint":
+            checkpoint = (record.get("metadata") or {}).get("memory_checkpoint")
+            if isinstance(checkpoint, dict) and checkpoint.get("status") in {"ok", "abstained"}:
+                return True
         if arm == "supermemory":
             # Supermemory's official integration retrieves through lifecycle hooks rather than
             # an MCP tool. The generic memory_call_count is therefore always zero for this arm.
@@ -534,6 +614,12 @@ def main() -> int:
     parser.add_argument("--run-id", default="abstention-001")
     parser.add_argument("--conditions", default="absent,superseded")
     parser.add_argument("--arms", default="bare,claude_md,recall")
+    parser.add_argument(
+        "--recall-only",
+        action="store_true",
+        help="run the corpus conditions with one RE-call arm or a preregistered paired RE-call "
+        "experiment; this does not report bare-paired AMB harm/benefit endpoints",
+    )
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1, help="corpus assembly seed")
     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
@@ -598,7 +684,32 @@ def main() -> int:
         raise SystemExit(f"unknown condition(s) {unknown}; choose from {CORPUS_CONDITIONS}")
 
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
-    if "bare" not in arms:
+    recall_only_arms = {
+        "recall",
+        "recall_rerank",
+        "recall_graph_rerank",
+        "recall_graph_fulltools",
+    }
+    valid_single = len(arms) == 1 and arms[0] in recall_only_arms
+    valid_official014_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS
+    valid_official015_pair = tuple(arms) == RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS
+    valid_official016_pair = tuple(arms) == RECALL_ORACLE_CEILING_PAIRED_ARMS
+    valid_official017_grid = tuple(arms) == RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS
+    if args.recall_only and not (
+        valid_single
+        or valid_official014_pair
+        or valid_official015_pair
+        or valid_official016_pair
+        or valid_official017_grid
+    ):
+        raise SystemExit(
+            "--recall-only requires one standard RE-call arm or one preregistered comparison: "
+            f"{RECALL_GRAPH_FULLTOOLS_PAIRED_ARMS} or "
+            f"{RECALL_GRAPH_FULLTOOLS_DECISION_PAIRED_ARMS} or "
+            f"{RECALL_ORACLE_CEILING_PAIRED_ARMS} or "
+            f"{RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS}"
+        )
+    if not args.recall_only and "bare" not in arms:
         raise SystemExit(
             "the `bare` arm is mandatory for this suite. Damage is defined as failing a cell "
             "bare solved, so without it the primary and secondary endpoints are undefined rather "
