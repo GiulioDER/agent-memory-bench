@@ -1725,20 +1725,24 @@ async def main() -> int:
         registry.get("claude_mem").isolate_cell_namespaces(
             args.namespace, claude_mem_namespaces
         )
-    recall_arm = next((arm for arm in run_arms if arm in RECALL_ARMS), None)
-    if not args.finalize_existing and recall_arm is not None:
+    recall_arms = list(dict.fromkeys(arm for arm in run_arms if arm in RECALL_ARMS))
+    if not args.finalize_existing and recall_arms:
         # Recall is indexed out of band, but a run still has to prove here that its tenant serves
         # the active generation built from THIS frozen manifest. Previously pilot.py skipped this
         # check because the abstention wrapper happened to perform it, leaving direct pilot runs
-        # able to spend against a missing or stale tenant.
+        # able to spend against a missing or stale tenant. Each selected adapter gets its ingest
+        # hook too: paired treatments may materialize controller-side state in addition to this
+        # shared remote-generation verification.
         assert corpus is not None
-        print(f"[verify] recall generation for {args.namespace}", flush=True)
-        report = registry.get(recall_arm).ingest(corpus, args.namespace)
-        ingest_reports.append(report)
-        print(
-            f"[verify] recall: {report.notes[-1] if report.notes else 'generation verified'}",
-            flush=True,
-        )
+        for recall_arm in recall_arms:
+            print(f"[verify] recall generation for {args.namespace} ({recall_arm})", flush=True)
+            report = registry.get(recall_arm).ingest(corpus, args.namespace)
+            ingest_reports.append(report)
+            print(
+                f"[verify] recall {recall_arm}: "
+                f"{report.notes[-1] if report.notes else 'generation verified'}",
+                flush=True,
+            )
 
     provider_policy = None
     if not args.dry_run:
