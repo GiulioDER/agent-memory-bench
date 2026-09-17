@@ -17,7 +17,7 @@ from typing import Any
 from .memory_events import ORACLE_LABELS, apply_oracle_labels
 from .schema import SessionRecord
 
-LABEL_SCHEMA = 1
+LABEL_SCHEMA = 2
 FUNNEL_LABELS = ("encountered", "retained", "retrieved", "applied")
 
 
@@ -40,6 +40,7 @@ def _session_key(sequence: Mapping[str, Any], arm: str) -> tuple[str, str, int]:
 class OracleLabelSet:
     label_set_id: str
     sequence_plan_id: str
+    sequence_plan_digest: str
     evaluation_manifest_id: str
     evaluation_manifest_digest: str
     labels: dict[tuple[str, str, int], dict[str, dict[str, bool | None]]]
@@ -57,6 +58,7 @@ def load_label_set(data: Mapping[str, Any]) -> OracleLabelSet:
     manifest_id = str(data.get("evaluation_manifest_id", "")).strip()
     if not label_set_id or not plan_id or not manifest_id:
         raise ValueError("oracle label set needs label_set_id, sequence_plan_id, and manifest id")
+    plan_digest = _digest(data.get("sequence_plan_digest"), "sequence_plan_digest")
     manifest_digest = _digest(
         data.get("evaluation_manifest_digest"), "evaluation_manifest_digest"
     )
@@ -123,6 +125,7 @@ def load_label_set(data: Mapping[str, Any]) -> OracleLabelSet:
     return OracleLabelSet(
         label_set_id,
         plan_id,
+        plan_digest,
         manifest_id,
         manifest_digest,
         labels,

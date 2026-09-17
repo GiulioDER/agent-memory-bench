@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harness.sequence_plan import load_plan
+from harness.sequence_plan import load_plan, plan_digest
 
 
 def _plan():
@@ -38,6 +38,20 @@ def test_plan_expands_rows_with_runner_owned_sequence_identity():
         "role": "source",
         "admitted": True,
     }
+
+
+def test_plan_digest_changes_when_the_plan_body_changes():
+    original = _plan()
+    changed = _plan()
+    changed["chains"][0]["sessions"][1]["user_input"] = "changed"
+    assert plan_digest(original) != plan_digest(changed)
+
+
+def test_plan_rejects_a_self_reported_digest_for_different_content():
+    data = _plan()
+    data["plan_digest"] = "a" * 64
+    with pytest.raises(ValueError, match="plan_digest does not match"):
+        load_plan(data)
 
 
 def test_plan_requires_source_then_target_and_distance_middle():

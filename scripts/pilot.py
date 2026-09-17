@@ -1946,6 +1946,7 @@ async def main() -> int:
                 "sequence_evaluation": (
                     {
                         "plan_id": sequence_plan.plan_id,
+                        "plan_digest": sequence_plan.digest,
                         "manifest_id": heldout_manifest.data["manifest_id"],
                         "manifest_digest": heldout_manifest.digest,
                         "chains": len(sequence_plan.chains),

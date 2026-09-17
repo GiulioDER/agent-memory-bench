@@ -14,6 +14,7 @@ class SequenceEvaluationPreflight:
     """The immutable identities checked before a sequence run may start."""
 
     plan_id: str
+    plan_digest: str
     manifest_id: str
     manifest_digest: str
     chains: int
@@ -24,6 +25,7 @@ class SequenceEvaluationPreflight:
     def to_dict(self) -> dict[str, Any]:
         return {
             "plan_id": self.plan_id,
+            "plan_digest": self.plan_digest,
             "manifest_id": self.manifest_id,
             "manifest_digest": self.manifest_digest,
             "chains": self.chains,
@@ -47,6 +49,7 @@ def validate_sequence_evaluation(
         raise ValueError("sequence plan and heldout manifest have different digests")
     return SequenceEvaluationPreflight(
         plan_id=plan.plan_id,
+        plan_digest=plan.digest,
         manifest_id=str(manifest_id),
         manifest_digest=manifest.digest,
         chains=len(plan.chains),

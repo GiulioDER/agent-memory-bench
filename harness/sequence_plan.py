@@ -8,14 +8,24 @@ it does not start a model or a vendor process.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 PLAN_SCHEMA = 1
 ALLOWED_ROLES = ("source", "distance", "target")
+
+
+def plan_digest(data: Mapping[str, Any]) -> str:
+    """Return the content digest used to bind post-run artifacts to one plan."""
+
+    unsigned = {key: value for key, value in data.items() if key != "plan_digest"}
+    canonical = json.dumps(unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -65,6 +75,12 @@ class SequencePlan:
     chains: tuple[SequenceChain, ...]
     data: dict[str, Any]
 
+    @property
+    def digest(self) -> str:
+        """The digest of the plan body, independent of any self-reported digest field."""
+
+        return plan_digest(self.data)
+
     def rows(self) -> tuple[dict[str, Any], ...]:
         """Expand chains into runner rows in chain order.
 
@@ -107,6 +123,14 @@ def load_plan(data: dict[str, Any]) -> SequencePlan:
     plan_id = str(data.get("plan_id", "")).strip()
     if not plan_id:
         raise ValueError("sequence plan needs a plan_id")
+    declared_plan_digest = data.get("plan_digest")
+    if declared_plan_digest is not None:
+        if not isinstance(declared_plan_digest, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", declared_plan_digest
+        ):
+            raise ValueError("plan_digest must be a lowercase SHA256 digest")
+        if declared_plan_digest != plan_digest(data):
+            raise ValueError("sequence plan_digest does not match the plan body")
     manifest_id = str(data.get("evaluation_manifest_id", "")).strip()
     manifest_digest = str(data.get("evaluation_manifest_digest", "")).strip()
     if not manifest_id:
