@@ -56,6 +56,7 @@ def test_preflight_verifies_bound_manifest(tmp_path):
     )
     assert result.to_dict() == {
         "plan_id": "plan-1",
+        "plan_digest": _plan(manifest.digest).digest,
         "manifest_id": "manifest-1",
         "manifest_digest": manifest.digest,
         "chains": 1,

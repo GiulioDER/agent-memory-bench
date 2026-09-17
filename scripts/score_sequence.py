@@ -94,6 +94,7 @@ def main() -> int:
         label_set = load_label_set_file(args.oracle_labels)
         if (
             label_set.sequence_plan_id != plan.plan_id
+            or label_set.sequence_plan_digest != plan.digest
             or label_set.evaluation_manifest_id != plan.evaluation_manifest_id
             or label_set.evaluation_manifest_digest != plan.evaluation_manifest_digest
         ):

@@ -10,6 +10,7 @@ import pytest
 from harness.io import write_jsonl
 from harness.schema import SessionRecord
 from harness.sequence_labels import apply_label_set, load_label_set
+from harness.sequence_plan import load_plan
 from scripts.score_sequence import main
 
 
@@ -41,9 +42,10 @@ def _record() -> SessionRecord:
 def _label_set():
     return load_label_set(
         {
-            "schema": 1,
+            "schema": 2,
             "label_set_id": "labels-1",
             "sequence_plan_id": "sequence-1",
+            "sequence_plan_digest": "b" * 64,
             "evaluation_manifest_id": "manifest-1",
             "evaluation_manifest_digest": "a" * 64,
             "sessions": [
@@ -70,6 +72,13 @@ def test_label_set_joins_labels_to_observed_events_only():
     assert event["useful"] is True
     assert event["harmful"] is False
     assert event["applied"] is True
+
+
+def test_label_set_requires_the_bound_plan_digest():
+    data = dict(_label_set().data)
+    data.pop("sequence_plan_digest")
+    with pytest.raises(ValueError, match="sequence_plan_digest"):
+        load_label_set(data)
 
 
 def test_label_set_refuses_a_session_absent_from_records():
@@ -128,41 +137,43 @@ def test_score_command_applies_matching_bound_labels(tmp_path, monkeypatch):
     records_path = tmp_path / "records.jsonl"
     write_jsonl(records_path, records)
     plan_path = tmp_path / "plan.json"
-    plan_path.write_text(
-        json.dumps(
+    plan_data = {
+        "schema": 1,
+        "plan_id": "sequence-1",
+        "evaluation_manifest_id": "manifest-1",
+        "evaluation_manifest_digest": "a" * 64,
+        "baseline_arm": "bare",
+        "arms": ["bare", "recall"],
+        "chains": [
             {
-                "schema": 1,
-                "plan_id": "sequence-1",
-                "evaluation_manifest_id": "manifest-1",
-                "evaluation_manifest_digest": "a" * 64,
-                "baseline_arm": "bare",
-                "arms": ["bare", "recall"],
-                "chains": [
+                "chain_id": "c1",
+                "seed": 0,
+                "sessions": [
                     {
-                        "chain_id": "c1",
-                        "seed": 0,
-                        "sessions": [
-                            {
-                                "task_id": "task-0",
-                                "position": 0,
-                                "role": "source",
-                                "user_input": "learn",
-                            },
-                            {
-                                "task_id": "task-1",
-                                "position": 1,
-                                "role": "target",
-                                "user_input": "apply",
-                            },
-                        ],
-                    }
+                        "task_id": "task-0",
+                        "position": 0,
+                        "role": "source",
+                        "user_input": "learn",
+                    },
+                    {
+                        "task_id": "task-1",
+                        "position": 1,
+                        "role": "target",
+                        "user_input": "apply",
+                    },
                 ],
             }
-        ),
+        ],
+    }
+    plan_path.write_text(
+        json.dumps(plan_data),
         encoding="utf-8",
     )
     labels_path = tmp_path / "labels.json"
-    labels_path.write_text(json.dumps(_label_set().data), encoding="utf-8")
+    labels = dict(_label_set().data)
+    labels["schema"] = 2
+    labels["sequence_plan_digest"] = load_plan(plan_data).digest
+    labels_path.write_text(json.dumps(labels), encoding="utf-8")
     out_dir = tmp_path / "analysis"
     monkeypatch.setattr(
         sys,

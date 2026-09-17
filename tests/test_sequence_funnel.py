@@ -31,9 +31,10 @@ def _record(position: int, arm: str = "recall") -> SessionRecord:
 def _labels():
     return load_label_set(
         {
-            "schema": 1,
+            "schema": 2,
             "label_set_id": "labels-1",
             "sequence_plan_id": "plan-1",
+            "sequence_plan_digest": "b" * 64,
             "evaluation_manifest_id": "manifest-1",
             "evaluation_manifest_digest": "a" * 64,
             "sessions": [
