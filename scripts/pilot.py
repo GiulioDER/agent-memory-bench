@@ -1368,7 +1368,6 @@ async def main() -> int:
                 heldout_manifest,
                 repo_root=REPO,
                 tasks_root=REPO / "tasks",
-                plan_path=args.sequence_plan,
             )
         except (OSError, TypeError, ValueError) as error:
             raise SystemExit(f"sequence preflight failed: {error}") from None

@@ -27,7 +27,6 @@ def main() -> int:
         manifest,
         repo_root=args.repo_root,
         tasks_root=args.tasks_root or args.repo_root / "tasks",
-        plan_path=args.plan,
     ).to_dict()
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

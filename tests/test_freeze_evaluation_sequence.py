@@ -92,9 +92,9 @@ def test_sequence_plan_freeze_binds_plan_tasks_and_oracles(tmp_path, monkeypatch
     assert main() == 0
     manifest = FrozenEvaluationManifest.load(output, root=tmp_path)
     protocol_files = set(manifest.data["protocol_files"])
+    assert "plan.json" not in protocol_files
     assert {
         "protocol.md",
-        "plan.json",
         "tasks/source/task.json",
         "tasks/source/checker.py",
         "tasks/source/tree/README.md",
