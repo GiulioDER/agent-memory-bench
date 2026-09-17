@@ -1656,7 +1656,7 @@ async def main() -> int:
                 namespace=args.namespace,
                 needs_memory=True,
             )
-            # The controller and participant run in different network namespaces on VPS2.  The
+            # The controller and participant run in different network namespaces on the host. The
             # participant-facing broker URL is a Docker DNS name; the controller preflight uses
             # the explicit host-published endpoint when supplied.
             tools = probe_jsonrpc_endpoint(

@@ -3,22 +3,34 @@
 from __future__ import annotations
 
 import json
+import os
+import shlex
 import subprocess
+from pathlib import PurePosixPath
 from typing import Any
 
-
-HOST = "sentiment@100.91.148.25"
 TENANT = "amb-smoke-graph-rerank"
-REMOTE = (
-    "cd /home/sentiment/recall-repos/serving && "
-    "set -a && . ../.env && set +a && "
-    "RECALL_ENV=production RECALL_TRUST_MODE=development "
-    f"RECALL_TENANT={TENANT} "
-    "RECALL_EMBEDDER=voyage-context:voyage-context-4 "
-    "RECALL_INDEX_ROOT=/home/sentiment/recall-repos "
-    "RECALL_RERANK=1 RECALL_RERANK_MODEL=voyage:rerank-2.5 "
-    "../.venv/bin/python -m recall_mcp.server"
-)
+
+
+def _required_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise SystemExit(f"{name} is required")
+    return value
+
+
+def _remote_command(root: str, env_file: str, python: str) -> str:
+    index_root = str(PurePosixPath(root).parent)
+    return (
+        f"cd {shlex.quote(root)} && "
+        f"set -a && . {shlex.quote(env_file)} && set +a && "
+        "RECALL_ENV=production RECALL_TRUST_MODE=development "
+        f"RECALL_TENANT={TENANT} "
+        "RECALL_EMBEDDER=voyage-context:voyage-context-4 "
+        f"RECALL_INDEX_ROOT={shlex.quote(index_root)} "
+        "RECALL_RERANK=1 RECALL_RERANK_MODEL=voyage:rerank-2.5 "
+        f"{shlex.quote(python)} -m recall_mcp.server"
+    )
 
 
 def _call(proc: subprocess.Popen[str], counter: list[int], name: str, args: dict[str, Any]) -> dict:
@@ -57,8 +69,14 @@ def _payload(message: dict) -> dict:
 
 
 def main() -> int:
+    host = _required_env("AMB_RECALL_SSH_HOST")
+    remote = _remote_command(
+        _required_env("AMB_RECALL_REMOTE_ROOT"),
+        _required_env("AMB_RECALL_REMOTE_ENV_FILE"),
+        _required_env("AMB_RECALL_REMOTE_PYTHON"),
+    )
     proc = subprocess.Popen(
-        ["ssh", "-T", "-o", "BatchMode=yes", HOST, REMOTE],
+        ["ssh", "-T", "-o", "BatchMode=yes", host, remote],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

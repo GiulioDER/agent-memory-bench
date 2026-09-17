@@ -72,6 +72,9 @@ KNOWN_PROSE_MENTIONS = frozenset(
     {
         "adapters/recall/adapter.py",
         "adapters/recall/config.frozen.json",
+        # Frozen measured configs preserve their historical topology note byte for byte.
+        "adapters/recall_graph_fulltools/config.frozen.json",
+        "adapters/recall_graph_rerank/config.frozen.json",
         ".env.example",
         "harness/mcp_probe.py",
         "preregistration/008-midband-task-calibration.md",
@@ -124,6 +127,8 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/080-graphiti-deepseek-v4-flash-vps2-smoke.md",
         "preregistration/081-official-004-graphiti-vps2.md",
         "preregistration/082-official-005-graphiti-bare-vps2.md",
+        "preregistration/084-official-008-recall-context4.md",
+        "preregistration/086-official-010-recall-context4-graph-rerank.md",
         "preregistration/timestamps/manifest-20260907T172420Z.json",
         "preregistration/timestamps/manifest-20260907T191609Z.json",
         "preregistration/timestamps/manifest-20260907T221701Z.json",
@@ -286,6 +291,10 @@ KNOWN_PROSE_RECORDS = frozenset(
         "preregistration/077-claude-mem-official-017-cache-retry.md",
         "preregistration/078-claude-mem-official-018-cache-retry-corrected.md",
         "preregistration/079-claude-mem-official-019-cache-timeout-fixed.md",
+        # Frozen records imported from the experiment branch. They name the host only to pin
+        # execution topology, never as a configuration value.
+        "preregistration/084-official-008-recall-context4.md",
+        "preregistration/086-official-010-recall-context4-graph-rerank.md",
     }
 )
 

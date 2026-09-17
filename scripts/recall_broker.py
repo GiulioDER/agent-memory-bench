@@ -1,6 +1,7 @@
 """Dedicated capability-checked HTTP broker for the RE-call AMB arm.
 
-The official AMB broker is shared with Graphiti on VPS2.  RE-call exposes MCP over stdio, so this
+The official AMB broker is shared with Graphiti on the serving host. RE-call exposes MCP over
+stdio, so this
 small controller-side bridge keeps the participant-facing broker boundary while maintaining one
 RE-call process per signed namespace. The full-tools benchmark surface is filtered to the frozen
 adapter allow-list; task instructions, capability scopes and the store's own authorization remain
@@ -67,11 +68,14 @@ INITIALIZE_PARAMS = {
 
 class RecallProcess:
     def __init__(self, namespace: str) -> None:
-        root = Path(os.environ.get("AMB_RECALL_SERVING_ROOT", "/home/sentiment/recall-repos/serving"))
-        python = os.environ.get(
-            "AMB_RECALL_PYTHON", "/home/sentiment/recall-repos/.venv/bin/python"
-        )
-        # The shared VPS2 venv is created on the host and its launcher points at
+        root_value = os.environ.get("AMB_RECALL_REMOTE_ROOT", "").strip()
+        python = os.environ.get("AMB_RECALL_REMOTE_PYTHON", "").strip()
+        if not root_value or not python:
+            raise BrokerError(
+                "AMB_RECALL_REMOTE_ROOT and AMB_RECALL_REMOTE_PYTHON are required"
+            )
+        root = Path(root_value)
+        # The shared venv is created on the host and its launcher points at
         # /usr/bin/python3.12.  The broker image has the same Python ABI under
         # /usr/local/bin instead, so use the image interpreter while keeping the
         # shared venv's dependencies on PYTHONPATH.
