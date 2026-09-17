@@ -12,6 +12,8 @@ from adapters.recall_prompt_time.adapter import RecallGraphFullToolsPromptTimeAd
 from harness import isolation
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport
 from harness.claude_exec import ClaudeExecConfig, session_environment
+from harness.privacy import public_receipt
+from harness.schema import SessionRecord
 from scripts import pilot
 from scripts.pilot import prompt_time_hook_ledger
 from scripts.validate_run_setup import check_prompt_time_pair
@@ -140,6 +142,35 @@ def test_prompt_time_ledger_reads_the_runtime_workspace(tmp_path) -> None:
     assert prompt_time_hook_ledger(spec, runtime_workspace) == (
         {"event": "UserPromptSubmit", "exit_code": 0},
     )
+
+
+def test_prompt_time_diagnostics_are_publishable() -> None:
+    receipt = public_receipt(
+        SessionRecord(
+            task_id="ts-base36-id",
+            arm="recall_graph_fulltools_prompt_time",
+            success=True,
+            metadata={
+                "prompt_time_hook": {
+                    "event": "UserPromptSubmit",
+                    "exit_code": 0,
+                    "hook_error": None,
+                    "injection_status": "context",
+                    "output_bytes": 128,
+                    "output_sha256": "output",
+                    "source_count": 3,
+                    "source_sha256": ["a", "b", "c"],
+                },
+                "prompt_time_snapshot_manifest": {
+                    "corpus_fingerprint": "corpus",
+                    "files": 4910,
+                    "snapshot_digest": "snapshot",
+                },
+            },
+        )
+    )
+    assert receipt["metadata"]["prompt_time_hook"]["source_count"] == 3
+    assert receipt["metadata"]["prompt_time_snapshot_manifest"]["files"] == 4910
 
 
 def test_prompt_time_build_copies_release_and_uses_container_paths(tmp_path, monkeypatch) -> None:

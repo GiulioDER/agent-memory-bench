@@ -67,6 +67,8 @@ _SAFE_METADATA_FIELDS = frozenset(
         "participant_isolation_verified",
         "permission_denial_count",
         "prompt_sha256",
+        "prompt_time_hook",
+        "prompt_time_snapshot_manifest",
         "sandbox_digest",
         "sandbox_paths_present",
         "session_tools",
