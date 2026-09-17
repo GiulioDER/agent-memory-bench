@@ -1743,6 +1743,10 @@ async def main() -> int:
                 f"{report.notes[-1] if report.notes else 'generation verified'}",
                 flush=True,
             )
+        # The MCP preflight below is intentionally issued from the first selected recall arm,
+        # which is the reference surface for paired runs. Do not let the loop variable above
+        # silently select the last treatment arm.
+        recall_arm = recall_arms[0]
 
     provider_policy = None
     if not args.dry_run:
