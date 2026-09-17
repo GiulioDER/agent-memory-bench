@@ -69,3 +69,19 @@ def test_plan_rejects_position_gaps():
     )
     with pytest.raises(ValueError, match="positions must be ordered"):
         load_plan(data)
+
+
+def test_plan_rejects_task_seed_reuse_across_chains():
+    data = _plan()
+    data["chains"].append(
+        {
+            "chain_id": "c2",
+            "seed": 0,
+            "sessions": [
+                {"task_id": "source", "position": 0, "role": "source", "user_input": "learn"},
+                {"task_id": "target-2", "position": 1, "role": "target", "user_input": "apply"},
+            ],
+        }
+    )
+    with pytest.raises(ValueError, match="reuses task 'source' at seed 0"):
+        load_plan(data)

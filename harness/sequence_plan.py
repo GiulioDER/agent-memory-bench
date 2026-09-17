@@ -129,6 +129,7 @@ def load_plan(data: dict[str, Any]) -> SequencePlan:
     chains: list[SequenceChain] = []
     seen_chain_ids: set[str] = set()
     seen_cells: set[tuple[str, int]] = set()
+    seen_task_cells: set[tuple[str, int]] = set()
     for chain_index, raw_chain in enumerate(chains_raw):
         if not isinstance(raw_chain, dict):
             raise TypeError(f"sequence chain {chain_index} must be an object")
@@ -163,6 +164,14 @@ def load_plan(data: dict[str, Any]) -> SequencePlan:
             raise ValueError(f"sequence chain {chain_id!r} middle sessions must be distance sessions")
         if len({session.task_id for session in sessions}) != length:
             raise ValueError(f"sequence chain {chain_id!r} must use a distinct task per session")
+        for session in sessions:
+            task_cell = (session.task_id, seed)
+            if task_cell in seen_task_cells:
+                raise ValueError(
+                    f"sequence plan reuses task {session.task_id!r} at seed {seed}; "
+                    "each task and seed cell must belong to one chain"
+                )
+            seen_task_cells.add(task_cell)
         chains.append(SequenceChain(chain_id, seed, sessions))
 
     return SequencePlan(

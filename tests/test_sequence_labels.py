@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import json
+import sys
+
 import pytest
 
+from harness.io import write_jsonl
 from harness.schema import SessionRecord
 from harness.sequence_labels import apply_label_set, load_label_set
+from scripts.score_sequence import main
 
 
 def _record() -> SessionRecord:
@@ -87,3 +92,93 @@ def test_label_set_rejects_unknown_event_sources():
     )
     with pytest.raises(ValueError, match="unknown event sources"):
         apply_label_set([_record()], label_set)
+
+
+def test_score_command_applies_matching_bound_labels(tmp_path, monkeypatch):
+    records = []
+    for arm in ("bare", "recall"):
+        for position in (0, 1):
+            events = []
+            if arm == "recall" and position == 0:
+                events.append(
+                    {
+                        "kind": "retrieve",
+                        "decision": "retrieve",
+                        "source": "tool_calls[0].mcp__memory__search",
+                    }
+                )
+            records.append(
+                SessionRecord(
+                    task_id=f"task-{position}",
+                    arm=arm,
+                    seed=0,
+                    success=True,
+                    metadata={
+                        "sequence": {
+                            "chain_id": "c1",
+                            "length": 2,
+                            "position": position,
+                            "role": "target" if position else "source",
+                            "admitted": True,
+                        },
+                        "memory_events": events,
+                    },
+                )
+            )
+    records_path = tmp_path / "records.jsonl"
+    write_jsonl(records_path, records)
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "plan_id": "sequence-1",
+                "evaluation_manifest_id": "manifest-1",
+                "evaluation_manifest_digest": "a" * 64,
+                "baseline_arm": "bare",
+                "arms": ["bare", "recall"],
+                "chains": [
+                    {
+                        "chain_id": "c1",
+                        "seed": 0,
+                        "sessions": [
+                            {
+                                "task_id": "task-0",
+                                "position": 0,
+                                "role": "source",
+                                "user_input": "learn",
+                            },
+                            {
+                                "task_id": "task-1",
+                                "position": 1,
+                                "role": "target",
+                                "user_input": "apply",
+                            },
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    labels_path = tmp_path / "labels.json"
+    labels_path.write_text(json.dumps(_label_set().data), encoding="utf-8")
+    out_dir = tmp_path / "analysis"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "score_sequence",
+            str(records_path),
+            "--out-dir",
+            str(out_dir),
+            "--oracle-labels",
+            str(labels_path),
+            "--sequence-plan",
+            str(plan_path),
+        ],
+    )
+    assert main() == 0
+    analysis = json.loads((out_dir / "sequence_analysis.json").read_text(encoding="utf-8"))
+    recall = next(row for row in analysis["metrics"] if row["arm"] == "recall")
+    assert recall["selectivity"]["retrieval_precision"] == 1
