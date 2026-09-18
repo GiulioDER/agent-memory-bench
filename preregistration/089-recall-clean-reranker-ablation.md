@@ -195,3 +195,42 @@ pass per condition, if graph runs without passing a separately committed eligibi
 or if the selector's output differs from the frozen rules.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Pre-execution implementation clarification, 2026-09-18
+
+This append-only clarification fixes definitions that the frozen text names but does not reduce
+to executable formulas. It was committed before inspecting any B0 or B1 measurement.
+
+1. The task-clustered confidence interval uses 20,000 bootstrap resamples with deterministic seed
+   `89089`. Each draw samples the 34 tasks with replacement and preserves all five conditions and
+   all three seeds inside each selected task. The reported interval uses the empirical 2.5 and
+   97.5 percent endpoints. The lower endpoint must be strictly greater than zero.
+2. For this coding harness, the Youden J floor is present Task Solve minus the pooled adversarial
+   harm ceiling. The adversarial pool contains absent, superseded, contradictory, and adjacent
+   cells. Harm is a checker outcome of `damaged` or `ambiguous_failure`.
+3. Wrong-fact damage is the exact per-condition rate of checker outcome `damaged`. The B1 minus B0
+   rate must be at most 0.02 in every adversarial condition.
+4. Voyage rerank cost is an estimate based on the provider formula of query tokens repeated per
+   candidate plus candidate-document tokens, approximated as characters divided by four. The
+   frozen price is USD 0.05 per million tokens from
+   [Voyage pricing](https://docs.voyageai.com/docs/pricing) as read on 2026-09-18.
+5. Every executable task record's `memory_call_count` must equal the number of immutable Search
+   traces attributed to that run. A nonempty trace file alone is insufficient.
+6. The present screen reuses the already indexed present retrieval tenant for both variants. In
+   confirmation, B0 creates one fresh tenant per condition and B1 reuses that exact tenant. The
+   status hash must match the retrieval-frozen corpus hash before task execution continues.
+
+## Pre-execution validation checkpoint, 2026-09-18
+
+All pytest commands in this checkpoint used exactly three workers. Plausible production mutations
+were introduced one at a time, observed red, and reverted before the green suite:
+
+1. Writing the raw Search query into the trace failed the privacy assertion.
+2. Reversing the exact corpus-hash comparison failed the B1 cache-lineage assertion.
+3. Treating a missed reranker invocation as valid failed the retrieval mechanism assertion.
+4. Accepting equal cell wins and losses failed the screen tie assertion.
+5. Accepting a zero bootstrap lower endpoint failed the strict-positive confidence assertion.
+
+After restoring production behavior, the focused AMB validation completed with 37 passed and five
+skipped. Ruff and `git diff --check` passed. The skipped checks require external execution state and
+do not weaken the selector, cache, telemetry, or task-grid proofs above.

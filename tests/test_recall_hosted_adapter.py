@@ -6,7 +6,11 @@ import json
 import pytest
 
 from adapters.recall_hosted import mcp_bridge
-from adapters.recall_hosted.adapter import RecallHostedAdapter, session_messages
+from adapters.recall_hosted.adapter import (
+    HostedHttpResponse,
+    RecallHostedAdapter,
+    session_messages,
+)
 from harness.adapters.base import CorpusManifest
 from scripts.recall_hosted_replay import (
     REPLAY_HTTP_TIMEOUT_SECONDS,
@@ -159,9 +163,7 @@ def test_adapter_reuses_dense_corpus_and_backfills_only_sparse(monkeypatch, tmp_
         '{"role":"assistant","content":"cached result"}\n',
         encoding="utf-8",
     )
-    corpus = CorpusManifest(
-        tmp_path, {relative: hashlib.sha256(source.read_bytes()).hexdigest()}
-    )
+    corpus = CorpusManifest(tmp_path, {relative: hashlib.sha256(source.read_bytes()).hexdigest()})
     base = tmp_path / "base.md"
     base.write_text("base", encoding="utf-8")
     adapter = RecallHostedAdapter(tmp_path / "stage", base)
@@ -172,7 +174,8 @@ def test_adapter_reuses_dense_corpus_and_backfills_only_sparse(monkeypatch, tmp_
     report = adapter.ingest(corpus, "shared-raw-corpus")
 
     assert client.calls == [
-        ("/v1/sparse/backfill", {"user_id": "shared-raw-corpus"})
+        ("/version", None),
+        ("/v1/sparse/backfill", {"user_id": "shared-raw-corpus"}),
     ]
     assert report.sessions_offered == 1
     assert report.items_stored == 2
@@ -202,14 +205,88 @@ def test_adapter_refuses_to_reuse_an_empty_corpus(monkeypatch, tmp_path):
         adapter.ingest(corpus, "empty-corpus")
 
 
+def test_adapter_b1_reuses_only_the_exact_b0_corpus_without_add(monkeypatch, tmp_path):
+    source = tmp_path / "session.jsonl"
+    source.write_text('{"role":"user","content":"evidence"}\n', encoding="utf-8")
+    corpus = CorpusManifest(
+        tmp_path, {source.name: hashlib.sha256(source.read_bytes()).hexdigest()}
+    )
+    base = tmp_path / "base.md"
+    base.write_text("base", encoding="utf-8")
+    adapter = RecallHostedAdapter(tmp_path / "stage", base)
+    expected_hash = "a" * 64
+
+    class CleanClient(FakeClient):
+        def request(self, path, payload=None):
+            self.calls.append((path, payload))
+            if path == "/version":
+                return {"variant": "B1_raw_rerank"}
+            if path == "/v1/corpus/status":
+                return {
+                    "status": "ready",
+                    "chunk_count": 7,
+                    "corpus_sha256": expected_hash,
+                }
+            raise AssertionError(f"unexpected mutation endpoint: {path}")
+
+    client = CleanClient()
+    monkeypatch.setattr(adapter, "_client", lambda **kwargs: client)
+    monkeypatch.setenv("AMB_RECALL_HOSTED_REUSE_CORPUS", "1")
+    monkeypatch.setenv("AMB_RECALL_HOSTED_EXPECTED_CORPUS_SHA256", expected_hash)
+
+    report = adapter.ingest(corpus, "clean-present")
+
+    assert client.calls == [
+        ("/version", None),
+        ("/v1/corpus/status", {"user_id": "clean-present"}),
+    ]
+    assert report.items_stored == 1
+    assert expected_hash in report.notes[1]
+
+
+def test_adapter_b0_proves_the_new_corpus_matches_frozen_lineage(monkeypatch, tmp_path):
+    source = tmp_path / "session.jsonl"
+    source.write_text('{"role":"user","content":"evidence"}\n', encoding="utf-8")
+    corpus = CorpusManifest(
+        tmp_path, {source.name: hashlib.sha256(source.read_bytes()).hexdigest()}
+    )
+    base = tmp_path / "base.md"
+    base.write_text("base", encoding="utf-8")
+    adapter = RecallHostedAdapter(tmp_path / "stage", base)
+    expected_hash = "c" * 64
+
+    class CleanClient(FakeClient):
+        def request(self, path, payload=None):
+            if path == "/version":
+                return {"variant": "B0_raw"}
+            if path == "/v1/corpus/status":
+                return {
+                    "status": "ready",
+                    "chunk_count": 1,
+                    "corpus_sha256": expected_hash,
+                }
+            return super().request(path, payload)
+
+    client = CleanClient()
+    monkeypatch.setattr(adapter, "_client", lambda **kwargs: client)
+    monkeypatch.setenv("AMB_RECALL_HOSTED_EXPECTED_CORPUS_SHA256", expected_hash)
+
+    report = adapter.ingest(corpus, "clean-present")
+
+    assert any(path == "/v1/add" for path, _ in client.calls)
+    assert expected_hash in report.notes[-1]
+
+
 def test_mcp_bridge_exposes_only_search_and_forwards_stored_evidence(monkeypatch):
     monkeypatch.setenv("RECALL_HOSTED_URL", "https://memory.example.test")
     monkeypatch.setenv("RECALL_HOSTED_API_KEY", "secret")
     monkeypatch.setenv("RECALL_HOSTED_USER_ID", "run-1")
     monkeypatch.setattr(
         mcp_bridge.HostedHttpClient,
-        "request",
-        lambda self, path, payload: {"data": [{"id": "one", "content": "stored evidence"}]},
+        "request_with_headers",
+        lambda self, path, payload: HostedHttpResponse(
+            {"data": [{"id": "one", "content": "stored evidence"}]}, {}
+        ),
     )
     listed = mcp_bridge._result({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
     called = mcp_bridge._result(
@@ -224,6 +301,62 @@ def test_mcp_bridge_exposes_only_search_and_forwards_stored_evidence(monkeypatch
     assert called["result"]["structuredContent"] == {
         "data": [{"id": "one", "content": "stored evidence"}]
     }
+
+
+def test_mcp_bridge_writes_sanitized_immutable_search_telemetry(monkeypatch, tmp_path):
+    trace = tmp_path / "trace.jsonl"
+    secret_query = "customer-secret failure signature"
+    monkeypatch.setenv("RECALL_HOSTED_URL", "https://memory.example.test")
+    monkeypatch.setenv("RECALL_HOSTED_API_KEY", "secret")
+    monkeypatch.setenv("RECALL_HOSTED_USER_ID", "run-1")
+    monkeypatch.setenv("RECALL_HOSTED_TRACE_PATH", str(trace))
+
+    def fake_request(self, path, payload):
+        return HostedHttpResponse(
+            {"data": [{"id": "one", "content": "stored evidence"}]},
+            {
+                "x-recall-reranker-attempted": "1",
+                "x-recall-reranker-completed": "1",
+                "x-recall-reranker-provider": "voyage",
+                "x-recall-reranker-model": "rerank-2.5",
+                "x-recall-reranker-input-count": "100",
+                "x-recall-reranker-output-count": "100",
+                "x-recall-reranker-permutation-valid": "1",
+                "x-recall-reranker-top10-order-changed": "1",
+                "x-recall-reranker-top10-membership-changed": "0",
+                "x-recall-reranker-top100-order-changed": "1",
+                "x-recall-reranker-top100-membership-changed": "0",
+                "x-recall-reranker-ms": "42.0",
+                "x-recall-search-ms": "52.0",
+                "x-recall-reranker-candidate-chars": "12345",
+                "x-recall-reranker-estimated-cost-usd": "0.0002",
+                "x-recall-reranker-fallback": "0",
+                "x-recall-served-commit": "abc123",
+                "x-recall-generation": "aml-clean-reranker-v1",
+                "x-recall-corpus-sha256": "b" * 64,
+                "x-recall-variant": "B1_raw_rerank",
+            },
+        )
+
+    monkeypatch.setattr(mcp_bridge.HostedHttpClient, "request_with_headers", fake_request)
+
+    mcp_bridge._result(
+        {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {"name": "recall_search", "arguments": {"query": secret_query}},
+        }
+    )
+
+    raw = trace.read_text(encoding="utf-8")
+    row = json.loads(raw)
+    assert secret_query not in raw
+    assert row["query_sha256"] == hashlib.sha256(secret_query.encode()).hexdigest()
+    assert row["headers"]["x-recall-reranker-provider"] == "voyage"
+    assert row["headers"]["x-recall-reranker-model"] == "rerank-2.5"
+    assert row["headers"]["x-recall-corpus-sha256"] == "b" * 64
+    assert row["headers"]["x-recall-reranker-fallback"] == "0"
 
 
 def test_adapter_rejects_add_response_that_does_not_echo_request_identity(monkeypatch, tmp_path):

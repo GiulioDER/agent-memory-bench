@@ -2,13 +2,60 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
+from pathlib import Path
 
 from adapters.recall_hosted.adapter import HostedHttpClient
 
 TOOL = "recall_search"
+
+_TRACE_HEADERS = (
+    "x-recall-reranker-attempted",
+    "x-recall-reranker-completed",
+    "x-recall-reranker-provider",
+    "x-recall-reranker-model",
+    "x-recall-reranker-input-count",
+    "x-recall-reranker-output-count",
+    "x-recall-reranker-permutation-valid",
+    "x-recall-reranker-top10-order-changed",
+    "x-recall-reranker-top10-membership-changed",
+    "x-recall-reranker-top100-order-changed",
+    "x-recall-reranker-top100-membership-changed",
+    "x-recall-reranker-ms",
+    "x-recall-search-ms",
+    "x-recall-reranker-candidate-chars",
+    "x-recall-reranker-estimated-cost-usd",
+    "x-recall-reranker-fallback",
+    "x-recall-served-commit",
+    "x-recall-generation",
+    "x-recall-corpus-sha256",
+    "x-recall-variant",
+)
+
+
+def _append_trace(query: str, top_k: int, response) -> None:
+    raw_path = os.environ.get("RECALL_HOSTED_TRACE_PATH", "").strip()
+    if not raw_path:
+        return
+    path = Path(raw_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    row = {
+        "schema_version": 1,
+        "query_sha256": hashlib.sha256(query.encode()).hexdigest(),
+        "user_id_sha256": hashlib.sha256(os.environ["RECALL_HOSTED_USER_ID"].encode()).hexdigest(),
+        "top_k": top_k,
+        "items_returned": len(response.payload.get("data", [])),
+        "headers": {name: response.headers.get(name) for name in _TRACE_HEADERS},
+    }
+    encoded = (json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    descriptor = os.open(path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o600)
+    try:
+        os.write(descriptor, encoded)
+    finally:
+        os.close(descriptor)
 
 
 def _result(request: dict) -> dict | None:
@@ -56,7 +103,7 @@ def _result(request: dict) -> dict | None:
             os.environ["RECALL_HOSTED_API_KEY"],
             timeout=10,
         )
-        value = client.request(
+        response = client.request_with_headers(
             "/v1/search",
             {
                 "query": query,
@@ -64,6 +111,8 @@ def _result(request: dict) -> dict | None:
                 "top_k": top_k,
             },
         )
+        _append_trace(query, top_k, response)
+        value = response.payload
         return {
             "jsonrpc": "2.0",
             "id": request_id,

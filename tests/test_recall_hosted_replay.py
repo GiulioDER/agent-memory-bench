@@ -19,7 +19,16 @@ class FakeReplayClient:
     def request(self, path, payload=None):
         self.calls.append((path, payload))
         if path == "/version":
-            return {"product": "RE-call Hosted 1.0", "variant": self.variant}
+            return {
+                "product": "RE-call Hosted 1.0",
+                "variant": self.variant,
+                "git_commit": "abc123",
+                "embedding_profile": "voyage-context-4-v1",
+                "reranker_provider": "voyage",
+                "reranker_model": "rerank-2.5",
+                "candidate_width": 100,
+                "rrf_constant": 60,
+            }
         if path == "/v1/add":
             return {
                 "success": True,
@@ -30,6 +39,21 @@ class FakeReplayClient:
             }
         if path == "/v1/sparse/backfill":
             return {"status": "ready", "sparse_chunk_count": 1}
+        if path == "/v1/corpus/status":
+            return {
+                "status": "ready",
+                "chunk_count": 1,
+                "raw_chunk_count": 1,
+                "compiled_chunk_count": 0,
+                "source_session_count": 1,
+                "authored_relation_count": 0,
+                "eligible_relation_count": 0,
+                "store_relation_count": 0,
+                "generation_id": "aml-clean-reranker-v1",
+                "corpus_sha256": "a" * 64,
+                "variant": self.variant,
+                "served_commit": "abc123",
+            }
         if path == "/v1/search":
             return {
                 "data": [
@@ -49,13 +73,40 @@ class FakeReplayClient:
 
     def request_with_headers(self, path, payload=None):
         response = self.request(path, payload)
+        clean = self.variant in {"B0_raw", "B1_raw_rerank"}
+        reranked = self.variant == "B1_raw_rerank"
+        headers = {
+            "x-recall-facet-fallback": "1" if not clean else "0",
+            "x-recall-reranker-fallback": "1" if not clean else "0",
+            "x-recall-task-type": "bugfix" if not clean else "unknown",
+        }
+        if clean:
+            headers.update(
+                {
+                    "x-recall-reranker-attempted": str(int(reranked)),
+                    "x-recall-reranker-completed": str(int(reranked)),
+                    "x-recall-reranker-provider": "voyage" if reranked else "none",
+                    "x-recall-reranker-model": "rerank-2.5" if reranked else "none",
+                    "x-recall-reranker-input-count": "2",
+                    "x-recall-reranker-output-count": "2",
+                    "x-recall-reranker-permutation-valid": "1",
+                    "x-recall-reranker-top10-order-changed": str(int(reranked)),
+                    "x-recall-reranker-top10-membership-changed": "0",
+                    "x-recall-reranker-top100-order-changed": str(int(reranked)),
+                    "x-recall-reranker-top100-membership-changed": "0",
+                    "x-recall-reranker-ms": "5.0" if reranked else "0.0",
+                    "x-recall-search-ms": "10.0",
+                    "x-recall-reranker-candidate-chars": "100",
+                    "x-recall-reranker-estimated-cost-usd": ("0.000001" if reranked else "0"),
+                    "x-recall-served-commit": "abc123",
+                    "x-recall-generation": "aml-clean-reranker-v1",
+                    "x-recall-corpus-sha256": "a" * 64,
+                    "x-recall-variant": self.variant,
+                }
+            )
         return HostedHttpResponse(
             response,
-            {
-                "x-recall-facet-fallback": "1",
-                "x-recall-reranker-fallback": "1",
-                "x-recall-task-type": "bugfix",
-            },
+            headers,
         )
 
 
@@ -125,9 +176,7 @@ def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):
 
     paths = [path for path, _ in client.calls]
     assert paths[:1] == ["/version"]
-    assert sparse_client.calls == [
-        ("/v1/sparse/backfill", {"user_id": "shared-raw-corpus"})
-    ]
+    assert sparse_client.calls == [("/v1/sparse/backfill", {"user_id": "shared-raw-corpus"})]
     assert "/v1/delete" not in paths
     assert "/v1/add" not in paths
     assert result["corpus_reused"] is True
@@ -135,6 +184,42 @@ def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):
     assert result["sparse_backfill_timeout_seconds"] == 7_200.0
     assert result["messages_offered"] == 1
     assert result["aggregate"]["add_p50_ms"] is None
+
+
+def test_clean_reranker_replay_reuses_exact_corpus_and_captures_three_times(tmp_path):
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("B1_raw_rerank")
+
+    result = run_replay(
+        client,
+        variant_name="B1_raw_rerank",
+        corpus=corpus,
+        tasks=[task],
+        namespace="clean-present",
+        reuse_corpus=True,
+        captures=3,
+        expected_corpus_sha256="a" * 64,
+    )
+
+    paths = [path for path, _ in client.calls]
+    assert "/v1/delete" not in paths
+    assert "/v1/add" not in paths
+    assert paths.count("/v1/search") == 3
+    assert result["task_count"] == 1
+    assert result["capture_count"] == 3
+    assert result["request_count"] == 3
+    assert result["corpus_reused"] is True
+    assert result["dense_embedding_pass"] is False
+    assert result["corpus_status"]["corpus_sha256"] == "a" * 64
+    assert result["aggregate"]["reranker_attempts"] == 3
+    assert result["aggregate"]["reranker_completions"] == 3
+    assert result["aggregate"]["reranker_fallbacks"] == 0
+    assert result["aggregate"]["invalid_permutations"] == 0
+    assert {(row["task_id"], row["capture"]) for row in result["rows"]} == {
+        ("task", 0),
+        ("task", 1),
+        ("task", 2),
+    }
 
 
 def test_replay_resumes_partial_ingest_without_delete_or_dense_reembedding(tmp_path):

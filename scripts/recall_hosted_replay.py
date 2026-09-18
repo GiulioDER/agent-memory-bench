@@ -37,7 +37,10 @@ CODING_MATRIX_VARIANTS = (
     "C3_rerank",
     "C4_task_pack",
 )
-REGISTERED_VARIANTS = ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS + CODING_MATRIX_VARIANTS
+CLEAN_RERANK_VARIANTS = ("B0_raw", "B1_raw_rerank")
+REGISTERED_VARIANTS = (
+    ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS + CODING_MATRIX_VARIANTS + CLEAN_RERANK_VARIANTS
+)
 
 # Measured 2026-09-18 on VPS2: a valid idempotent Add needed all three compiler attempts and
 # completed in 88 seconds.  The old 60 second transport timeout abandoned the response while the
@@ -148,9 +151,7 @@ def _validated_items(response: dict[str, Any]) -> list[dict[str, Any]]:
     return items
 
 
-def _relevant_sources(
-    corpus: CorpusManifest, fact_terms: tuple[str, ...]
-) -> tuple[str, ...]:
+def _relevant_sources(corpus: CorpusManifest, fact_terms: tuple[str, ...]) -> tuple[str, ...]:
     """Resolve labeled source sessions only after Search for diagnostic scoring."""
     folded_terms = tuple(term.casefold() for term in fact_terms)
     relevant: list[str] = []
@@ -165,7 +166,9 @@ def _relevant_sources(
 def _fallback_header(headers: dict[str, str], name: str) -> bool:
     value = headers.get(name)
     if value not in {"0", "1"}:
-        raise RuntimeError(f"hosted Search response has invalid or missing fallback telemetry: {name}")
+        raise RuntimeError(
+            f"hosted Search response has invalid or missing fallback telemetry: {name}"
+        )
     return value == "1"
 
 
@@ -174,6 +177,62 @@ def _task_type_header(headers: dict[str, str]) -> str:
     if value not in {"feature", "bugfix", "unknown"}:
         raise RuntimeError("hosted Search response has invalid or missing task routing telemetry")
     return value
+
+
+def _required_header(headers: dict[str, str], name: str) -> str:
+    value = headers.get(name)
+    if value is None or not value.strip():
+        raise RuntimeError(f"hosted Search response has missing telemetry: {name}")
+    return value
+
+
+def _bool_header(headers: dict[str, str], name: str) -> bool:
+    value = _required_header(headers, name)
+    if value not in {"0", "1"}:
+        raise RuntimeError(f"hosted Search response has invalid boolean telemetry: {name}")
+    return value == "1"
+
+
+def _int_header(headers: dict[str, str], name: str) -> int:
+    value = int(_required_header(headers, name))
+    if value < 0:
+        raise RuntimeError(f"hosted Search response has negative telemetry: {name}")
+    return value
+
+
+def _float_header(headers: dict[str, str], name: str) -> float:
+    value = float(_required_header(headers, name))
+    if not math.isfinite(value) or value < 0:
+        raise RuntimeError(f"hosted Search response has invalid numeric telemetry: {name}")
+    return value
+
+
+def _reranker_telemetry(headers: dict[str, str]) -> dict[str, Any]:
+    return {
+        "attempted": _bool_header(headers, "x-recall-reranker-attempted"),
+        "completed": _bool_header(headers, "x-recall-reranker-completed"),
+        "provider": _required_header(headers, "x-recall-reranker-provider"),
+        "model": _required_header(headers, "x-recall-reranker-model"),
+        "input_count": _int_header(headers, "x-recall-reranker-input-count"),
+        "output_count": _int_header(headers, "x-recall-reranker-output-count"),
+        "permutation_valid": _bool_header(headers, "x-recall-reranker-permutation-valid"),
+        "top_10_order_changed": _bool_header(headers, "x-recall-reranker-top10-order-changed"),
+        "top_10_membership_changed": _bool_header(
+            headers, "x-recall-reranker-top10-membership-changed"
+        ),
+        "top_100_order_changed": _bool_header(headers, "x-recall-reranker-top100-order-changed"),
+        "top_100_membership_changed": _bool_header(
+            headers, "x-recall-reranker-top100-membership-changed"
+        ),
+        "rerank_ms": _float_header(headers, "x-recall-reranker-ms"),
+        "search_ms": _float_header(headers, "x-recall-search-ms"),
+        "candidate_character_count": _int_header(headers, "x-recall-reranker-candidate-chars"),
+        "estimated_cost_usd": _float_header(headers, "x-recall-reranker-estimated-cost-usd"),
+        "served_commit": _required_header(headers, "x-recall-served-commit"),
+        "generation_id": _required_header(headers, "x-recall-generation"),
+        "corpus_sha256": _required_header(headers, "x-recall-corpus-sha256"),
+        "variant": _required_header(headers, "x-recall-variant"),
+    }
 
 
 def run_replay(
@@ -186,9 +245,13 @@ def run_replay(
     reuse_corpus: bool = False,
     sparse_backfill_client: Client | None = None,
     resume_ingest: bool = False,
+    captures: int = 1,
+    expected_corpus_sha256: str | None = None,
 ) -> dict[str, Any]:
     if variant_name not in REGISTERED_VARIANTS:
         raise ValueError(f"unregistered hosted variant {variant_name!r}")
+    if captures < 1:
+        raise ValueError("captures must be positive")
     corpus.verify()
     version = client.request("/version")
     if version.get("variant") != variant_name:
@@ -201,25 +264,42 @@ def run_replay(
         raise ValueError("resume ingest is registered only for the amended C2 procedure run")
     if not reuse_corpus and not resume_ingest:
         client.request("/v1/delete", {"user_id": namespace})
-    if reuse_corpus and variant_name != "C1_splade" and variant_name not in {
-        "C3_rerank",
-        "C4_task_pack",
-    }:
+    if (
+        reuse_corpus
+        and variant_name != "C1_splade"
+        and variant_name
+        not in {
+            "C3_rerank",
+            "C4_task_pack",
+            "B1_raw_rerank",
+        }
+    ):
         raise ValueError(f"{variant_name} is not a registered corpus-reuse arm")
 
     if reuse_corpus:
         preparation_client = sparse_backfill_client or client
-        prepared = preparation_client.request(
-            "/v1/sparse/backfill", {"user_id": namespace}
-        )
-        sparse_count = prepared.get("sparse_chunk_count")
-        if (
-            prepared.get("status") != "ready"
-            or isinstance(sparse_count, bool)
-            or not isinstance(sparse_count, int)
-            or sparse_count <= 0
-        ):
-            raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
+        if variant_name == "B1_raw_rerank":
+            if expected_corpus_sha256 is None or len(expected_corpus_sha256) != 64:
+                raise ValueError("B1 reuse requires the expected B0 corpus SHA-256")
+            prepared = preparation_client.request("/v1/corpus/status", {"user_id": namespace})
+            if (
+                prepared.get("status") != "ready"
+                or prepared.get("corpus_sha256") != expected_corpus_sha256
+                or isinstance(prepared.get("chunk_count"), bool)
+                or not isinstance(prepared.get("chunk_count"), int)
+                or int(prepared["chunk_count"]) <= 0
+            ):
+                raise RuntimeError("hosted corpus status did not prove exact cache lineage")
+        else:
+            prepared = preparation_client.request("/v1/sparse/backfill", {"user_id": namespace})
+            sparse_count = prepared.get("sparse_chunk_count")
+            if (
+                prepared.get("status") != "ready"
+                or isinstance(sparse_count, bool)
+                or not isinstance(sparse_count, int)
+                or sparse_count <= 0
+            ):
+                raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
 
     add_latencies: list[float] = []
     compiler_fallbacks = 0
@@ -250,47 +330,68 @@ def run_replay(
                 compiler_fallbacks += int(response.get("compiler_fallback") is True)
             messages_offered += len(batch)
 
+    corpus_status = (
+        client.request("/v1/corpus/status", {"user_id": namespace})
+        if variant_name in CLEAN_RERANK_VARIANTS
+        else None
+    )
+    if corpus_status is not None:
+        if (
+            corpus_status.get("status") != "ready"
+            or not isinstance(corpus_status.get("chunk_count"), int)
+            or int(corpus_status["chunk_count"]) <= 0
+        ):
+            raise RuntimeError("clean replay corpus status is not ready")
+        if expected_corpus_sha256 and corpus_status.get("corpus_sha256") != expected_corpus_sha256:
+            raise RuntimeError("clean replay corpus identity drifted")
+
     search_latencies: list[float] = []
     facet_fallbacks = 0
     reranker_fallbacks = 0
     rows: list[dict[str, Any]] = []
     for task in sorted(tasks, key=lambda item: item.task_id):
-        payload = {"query": task.prompt, "user_id": namespace, "top_k": 100}
-        started = time.perf_counter()
-        http_response = client.request_with_headers("/v1/search", payload)
-        response = http_response.payload
-        latency_ms = (time.perf_counter() - started) * 1_000
-        search_latencies.append(latency_ms)
-        facet_fallback = _fallback_header(
-            http_response.headers, "x-recall-facet-fallback"
-        )
-        reranker_fallback = _fallback_header(
-            http_response.headers, "x-recall-reranker-fallback"
-        )
-        task_type = _task_type_header(http_response.headers)
-        facet_fallbacks += int(facet_fallback)
-        reranker_fallbacks += int(reranker_fallback)
-        items = _validated_items(response)
-        rows.append(
-            {
-                "task_id": task.task_id,
-                "kind": task.kind,
-                "query_sha256": hashlib.sha256(task.prompt.encode()).hexdigest(),
-                "fact_terms_sha256": hashlib.sha256(
-                    json.dumps(task.fact_terms, separators=(",", ":")).encode()
-                ).hexdigest(),
-                "latency_ms": latency_ms,
-                "facet_fallback": facet_fallback,
-                "reranker_fallback": reranker_fallback,
-                "task_type": task_type,
-                "metrics": score_items(
-                    items,
-                    task.fact_terms,
-                    relevant_sources=_relevant_sources(corpus, task.fact_terms),
-                ),
-                "items": items,
-            }
-        )
+        for capture in range(captures):
+            payload = {"query": task.prompt, "user_id": namespace, "top_k": 100}
+            started = time.perf_counter()
+            http_response = client.request_with_headers("/v1/search", payload)
+            response = http_response.payload
+            latency_ms = (time.perf_counter() - started) * 1_000
+            search_latencies.append(latency_ms)
+            facet_fallback = _fallback_header(http_response.headers, "x-recall-facet-fallback")
+            reranker_fallback = _fallback_header(
+                http_response.headers, "x-recall-reranker-fallback"
+            )
+            task_type = _task_type_header(http_response.headers)
+            telemetry = (
+                _reranker_telemetry(http_response.headers)
+                if variant_name in CLEAN_RERANK_VARIANTS
+                else None
+            )
+            facet_fallbacks += int(facet_fallback)
+            reranker_fallbacks += int(reranker_fallback)
+            items = _validated_items(response)
+            rows.append(
+                {
+                    "task_id": task.task_id,
+                    "capture": capture,
+                    "kind": task.kind,
+                    "query_sha256": hashlib.sha256(task.prompt.encode()).hexdigest(),
+                    "fact_terms_sha256": hashlib.sha256(
+                        json.dumps(task.fact_terms, separators=(",", ":")).encode()
+                    ).hexdigest(),
+                    "latency_ms": latency_ms,
+                    "facet_fallback": facet_fallback,
+                    "reranker_fallback": reranker_fallback,
+                    "task_type": task_type,
+                    "reranker": telemetry,
+                    "metrics": score_items(
+                        items,
+                        task.fact_terms,
+                        relevant_sources=_relevant_sources(corpus, task.fact_terms),
+                    ),
+                    "items": items,
+                }
+            )
 
     def mean(metric: str) -> float:
         return statistics.fmean(float(row["metrics"][metric]) for row in rows)
@@ -324,7 +425,7 @@ def run_replay(
         ).encode()
     ).hexdigest()
     return {
-        "schema_version": 1,
+        "schema_version": 2 if variant_name in CLEAN_RERANK_VARIANTS else 1,
         "variant": variant_name,
         "namespace": namespace,
         "version": version,
@@ -332,7 +433,9 @@ def run_replay(
         "task_set_sha256": task_digest,
         "sessions_offered": len(corpus.sessions),
         "messages_offered": messages_offered,
-        "task_count": len(rows),
+        "task_count": len(tasks),
+        "capture_count": captures,
+        "request_count": len(rows),
         "http_timeout_seconds": REPLAY_HTTP_TIMEOUT_SECONDS,
         "sparse_backfill_timeout_seconds": (
             SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS if reuse_corpus else None
@@ -340,6 +443,7 @@ def run_replay(
         "corpus_reused": reuse_corpus,
         "dense_embedding_pass": not reuse_corpus,
         "ingest_resumed": resume_ingest,
+        "corpus_status": corpus_status,
         "routing_aggregate": routing_aggregate,
         "aggregate": {
             "hit_at_1": mean("hit_at_1"),
@@ -353,9 +457,7 @@ def run_replay(
             "complete_coverage": mean("complete_coverage"),
             "mean_reciprocal_rank": mean("reciprocal_rank"),
             "mean_source_session_recall": optional_mean("source_session_recall"),
-            "mean_duplicate_session_concentration": mean(
-                "duplicate_session_concentration"
-            ),
+            "mean_duplicate_session_concentration": mean("duplicate_session_concentration"),
             "mean_item_count": mean("item_count"),
             "mean_character_count": mean("character_count"),
             "add_p50_ms": _percentile(add_latencies, 0.50),
@@ -366,6 +468,32 @@ def run_replay(
             "facet_fallbacks": facet_fallbacks,
             "reranker_fallbacks": reranker_fallbacks,
             "sparse_failures": 0,
+            "reranker_attempts": sum(
+                int(bool(row["reranker"] and row["reranker"]["attempted"])) for row in rows
+            ),
+            "reranker_completions": sum(
+                int(bool(row["reranker"] and row["reranker"]["completed"])) for row in rows
+            ),
+            "invalid_permutations": sum(
+                int(bool(row["reranker"] and not row["reranker"]["permutation_valid"]))
+                for row in rows
+            ),
+            "top_10_order_changes": sum(
+                int(bool(row["reranker"] and row["reranker"]["top_10_order_changed"]))
+                for row in rows
+            ),
+            "top_100_membership_changes": sum(
+                int(bool(row["reranker"] and row["reranker"]["top_100_membership_changed"]))
+                for row in rows
+            ),
+            "candidate_character_count": sum(
+                int(row["reranker"]["candidate_character_count"])
+                for row in rows
+                if row["reranker"]
+            ),
+            "estimated_reranker_cost_usd": sum(
+                float(row["reranker"]["estimated_cost_usd"]) for row in rows if row["reranker"]
+            ),
         },
         "rows": rows,
     }
@@ -381,6 +509,8 @@ def main() -> None:
     parser.add_argument("--namespace")
     parser.add_argument("--reuse-corpus", action="store_true")
     parser.add_argument("--resume-ingest", action="store_true")
+    parser.add_argument("--captures", type=int, default=1)
+    parser.add_argument("--expected-corpus-sha256")
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit(f"refusing to overwrite replay artifact: {args.output}")
@@ -396,11 +526,11 @@ def main() -> None:
         namespace=namespace,
         reuse_corpus=args.reuse_corpus,
         sparse_backfill_client=(
-            build_sparse_backfill_client(args.base_url, api_key)
-            if args.reuse_corpus
-            else None
+            build_sparse_backfill_client(args.base_url, api_key) if args.reuse_corpus else None
         ),
         resume_ingest=args.resume_ingest,
+        captures=args.captures,
+        expected_corpus_sha256=args.expected_corpus_sha256,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")

@@ -152,9 +152,7 @@ class RecallHostedAdapter(MemoryAdapter):
             raise RuntimeError(f"the recall_hosted arm needs {variable} set")
         return value
 
-    def _client(
-        self, *, search: bool = False, sparse_backfill: bool = False
-    ) -> HostedHttpClient:
+    def _client(self, *, search: bool = False, sparse_backfill: bool = False) -> HostedHttpClient:
         if search and sparse_backfill:
             raise ValueError("a hosted client cannot be both Search and sparse backfill")
         timeout_key = (
@@ -177,18 +175,40 @@ class RecallHostedAdapter(MemoryAdapter):
         if reuse_value not in {"", "0", "1"}:
             raise RuntimeError("AMB_RECALL_HOSTED_REUSE_CORPUS must be 0 or 1")
         reuse_corpus = reuse_value == "1"
+        expected_hash = os.environ.get("AMB_RECALL_HOSTED_EXPECTED_CORPUS_SHA256", "").strip()
         client = self._client(sparse_backfill=reuse_corpus)
         if reuse_corpus:
             started = time.monotonic()
-            prepared = client.request("/v1/sparse/backfill", {"user_id": namespace})
-            sparse_count = prepared.get("sparse_chunk_count")
-            if (
-                prepared.get("status") != "ready"
-                or isinstance(sparse_count, bool)
-                or not isinstance(sparse_count, int)
-                or sparse_count <= 0
-            ):
-                raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
+            version = client.request("/version")
+            if version.get("variant") in {"B0_raw", "B1_raw_rerank"}:
+                if len(expected_hash) != 64:
+                    raise RuntimeError(
+                        "clean corpus reuse requires AMB_RECALL_HOSTED_EXPECTED_CORPUS_SHA256"
+                    )
+                prepared = client.request("/v1/corpus/status", {"user_id": namespace})
+                chunk_count = prepared.get("chunk_count")
+                if (
+                    prepared.get("status") != "ready"
+                    or prepared.get("corpus_sha256") != expected_hash
+                    or isinstance(chunk_count, bool)
+                    or not isinstance(chunk_count, int)
+                    or chunk_count <= 0
+                ):
+                    raise RuntimeError("hosted corpus status did not prove exact cache lineage")
+                readiness_note = (
+                    f"verified exact cached corpus {expected_hash} over {chunk_count} chunks"
+                )
+            else:
+                prepared = client.request("/v1/sparse/backfill", {"user_id": namespace})
+                sparse_count = prepared.get("sparse_chunk_count")
+                if (
+                    prepared.get("status") != "ready"
+                    or isinstance(sparse_count, bool)
+                    or not isinstance(sparse_count, int)
+                    or sparse_count <= 0
+                ):
+                    raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
+                readiness_note = f"verified learned sparse coverage for {sparse_count} chunks"
             message_count = sum(
                 len(session_messages(resolve_corpus_path(corpus.root, relative)))
                 for relative in sorted(corpus.sessions)
@@ -203,7 +223,7 @@ class RecallHostedAdapter(MemoryAdapter):
                 llm_output_tokens=None,
                 notes=(
                     "reused the existing dense corpus without calling Add",
-                    f"verified learned sparse coverage for {sparse_count} chunks",
+                    readiness_note,
                     "items_stored counts source messages represented by the reused corpus",
                 ),
             )
@@ -241,6 +261,21 @@ class RecallHostedAdapter(MemoryAdapter):
         started = time.monotonic()
         with ThreadPoolExecutor(max_workers=int(self.config["add_concurrency"])) as pool:
             counts = list(pool.map(add_one, sorted(corpus.sessions.items())))
+        exact_note: tuple[str, ...] = ()
+        if expected_hash:
+            version = client.request("/version")
+            if version.get("variant") in {"B0_raw", "B1_raw_rerank"}:
+                status = client.request("/v1/corpus/status", {"user_id": namespace})
+                chunk_count = status.get("chunk_count")
+                if (
+                    status.get("status") != "ready"
+                    or status.get("corpus_sha256") != expected_hash
+                    or isinstance(chunk_count, bool)
+                    or not isinstance(chunk_count, int)
+                    or chunk_count <= 0
+                ):
+                    raise RuntimeError("new clean corpus did not match frozen cache lineage")
+                exact_note = (f"verified exact corpus {expected_hash} over {chunk_count} chunks",)
         return IngestReport(
             arm=self.name,
             namespace=namespace,
@@ -252,7 +287,8 @@ class RecallHostedAdapter(MemoryAdapter):
             notes=(
                 "loaded through the public synchronous Add endpoint",
                 "items_stored counts source messages acknowledged by the hosted product",
-            ),
+            )
+            + exact_note,
         )
 
     def search(
@@ -313,6 +349,16 @@ class RecallHostedAdapter(MemoryAdapter):
         session_dir.mkdir(parents=True, exist_ok=True)
         prompt = self._write_prompt(session_dir / "prompt.md")
         mcp_path = session_dir / "recall_hosted.mcp.json"
+        bridge_env = {
+            "PYTHONPATH": str(_REPO),
+            "RECALL_HOSTED_URL": self._required("url_env"),
+            "RECALL_HOSTED_API_KEY": self._required("api_key_env"),
+            "RECALL_HOSTED_USER_ID": namespace,
+            "RECALL_HOSTED_TOP_K": str(self.config["search_top_k"]),
+        }
+        trace_path = os.environ.get("AMB_RECALL_HOSTED_TRACE_PATH", "").strip()
+        if trace_path:
+            bridge_env["RECALL_HOSTED_TRACE_PATH"] = trace_path
         mcp_path.write_text(
             json.dumps(
                 {
@@ -320,13 +366,7 @@ class RecallHostedAdapter(MemoryAdapter):
                         str(self.config["server_name"]): {
                             "command": os.environ.get("PYTHON", os.sys.executable),
                             "args": ["-m", "adapters.recall_hosted.mcp_bridge"],
-                            "env": {
-                                "PYTHONPATH": str(_REPO),
-                                "RECALL_HOSTED_URL": self._required("url_env"),
-                                "RECALL_HOSTED_API_KEY": self._required("api_key_env"),
-                                "RECALL_HOSTED_USER_ID": namespace,
-                                "RECALL_HOSTED_TOP_K": str(self.config["search_top_k"]),
-                            },
+                            "env": bridge_env,
                         }
                     }
                 },
