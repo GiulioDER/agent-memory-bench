@@ -42,11 +42,16 @@ if [[ "$served_variant" != "$variant" ]]; then
 fi
 
 started_at="$(date --iso-8601=seconds)"
+capture_service_log() {
+    journalctl --user -u "$service" --since "$started_at" -o cat --no-pager >"$service_log"
+}
+trap capture_service_log EXIT
 .venv/bin/python -m scripts.recall_hosted_replay \
     --variant "$variant" \
     --base-url http://127.0.0.1:18004 \
     --corpus corpus \
     --tasks tasks \
     --output "$artifact"
-journalctl --user -u "$service" --since "$started_at" -o cat --no-pager >"$service_log"
+capture_service_log
+trap - EXIT
 sha256sum "$artifact" "$service_log"
