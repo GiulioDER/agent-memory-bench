@@ -463,16 +463,11 @@ GRID_PREFIXES = ("ts-",)
 #: Prefixes `--tasks` may name. Wider than the default grid on purpose: a new class has to be
 #: runnable before anyone can calibrate it, and calibrating it is the evidence a preregistration
 #: would rest on. Selecting one is explicit and leaves the default grid alone.
-SELECTABLE_PREFIXES = ("ts-", "fa-")
+SELECTABLE_PREFIXES = ("ts-", "fa-", "xs-")
 
 #: Classes in neither, with the reason, so an absence is a decision on the record rather than an
 #: oversight.
-EXCLUDED_PREFIXES = {
-    "xs-": (
-        "cross-session synthesis; needs a corpus shape the grid does not assemble, and admitting "
-        "it changes what every run measures"
-    ),
-}
+EXCLUDED_PREFIXES: dict[str, str] = {}
 
 
 def diagnostic_metadata(spec: Any) -> dict[str, Any]:

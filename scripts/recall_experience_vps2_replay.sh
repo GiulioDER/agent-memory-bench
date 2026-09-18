@@ -5,11 +5,15 @@ set -euo pipefail
 
 readonly variant="${1:?usage: recall_experience_vps2_replay.sh VARIANT OUTPUT_DIR}"
 readonly output_dir="${2:?output directory is required}"
-readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-/home/sentiment/.config/recall-aml/experience-compiler.env}"
 readonly service="recall-aml-experiment.service"
 
 case "$variant" in
-    E0_raw|E1_compiled|E2_compiled_raw) ;;
+    E0_raw|E1_compiled|E2_compiled_raw)
+        readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-/home/sentiment/.config/recall-aml/experience-compiler.env}"
+        ;;
+    C0_raw_lexical|C1_splade|C2_procedure|C3_rerank|C4_task_pack)
+        readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-/home/sentiment/.config/recall-aml/coding-memory-matrix.env}"
+        ;;
     *) echo "unsupported experience variant" >&2; exit 2 ;;
 esac
 if [[ ! -r "$runtime_env" ]]; then

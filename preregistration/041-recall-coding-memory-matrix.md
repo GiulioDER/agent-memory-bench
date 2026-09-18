@@ -125,3 +125,13 @@ is falsified if any frozen identity or pairing drifts, if product requests conta
 labels, or if the selector produces a different winner from the frozen decision rule.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Premeasurement correction, 2026-09-18
+
+No matrix measurement had started when this correction was recorded. The 102-cell final grid is
+explicitly the present condition, so the earlier requirement about new failures under superseded
+or adjacent-memory controls is not measurable inside that population. It is removed from the
+present-condition pass gate rather than inferred from absent cells. The final pass gate therefore
+requires at least 8 net executable wins, complete treatment admission, and paired identities.
+Control-condition safety remains a separately preregistered follow-up and cannot be used to rescue
+or reject this present-condition result.

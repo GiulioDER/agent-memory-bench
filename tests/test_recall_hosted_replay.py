@@ -52,6 +52,7 @@ class FakeReplayClient:
             {
                 "x-recall-facet-fallback": "1",
                 "x-recall-reranker-fallback": "1",
+                "x-recall-task-type": "bugfix",
             },
         )
 
@@ -120,6 +121,8 @@ def test_replay_counts_request_local_search_fallback_headers(tmp_path):
     assert result["aggregate"]["reranker_fallbacks"] == 1
     assert result["rows"][0]["facet_fallback"] is True
     assert result["rows"][0]["reranker_fallback"] is True
+    assert result["rows"][0]["task_type"] == "bugfix"
+    assert result["routing_aggregate"]["bugfix"]["task_count"] == 1
 
 
 def test_replay_refuses_missing_search_fallback_telemetry(tmp_path):
@@ -127,7 +130,7 @@ def test_replay_refuses_missing_search_fallback_telemetry(tmp_path):
     corpus, task = _fixture(tmp_path)
     client = FakeReplayClient()
     client.request_with_headers = lambda path, payload=None: HostedHttpResponse(
-        client.request(path, payload), {}
+        client.request(path, payload), {"x-recall-task-type": "unknown"}
     )
 
     with pytest.raises(RuntimeError, match="fallback telemetry"):
@@ -137,6 +140,27 @@ def test_replay_refuses_missing_search_fallback_telemetry(tmp_path):
             corpus=corpus,
             tasks=[task],
             namespace="replay-a0",
+        )
+
+
+def test_replay_refuses_missing_task_routing_telemetry(tmp_path):
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("C4_task_pack")
+    client.request_with_headers = lambda path, payload=None: HostedHttpResponse(
+        client.request(path, payload),
+        {
+            "x-recall-facet-fallback": "0",
+            "x-recall-reranker-fallback": "0",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="task routing telemetry"):
+        run_replay(
+            client,
+            variant_name="C4_task_pack",
+            corpus=corpus,
+            tasks=[task],
+            namespace="replay-c4",
         )
 
 

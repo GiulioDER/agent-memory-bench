@@ -30,6 +30,12 @@ visible without changing the AML response body or placing benchmark content in l
 nonbinary fallback headers invalidate the replay instead of being counted as successful primary
 requests.
 
+The coding-memory matrix adds `C0_raw_lexical`, `C1_splade`, `C2_procedure`, `C3_rerank`, and
+`C4_task_pack`. Every Search response must also expose `X-Recall-Task-Type` as `feature`,
+`bugfix`, or `unknown`. These are query-only system predictions, not benchmark labels. Run the
+five immutable artifacts through `scripts.recall_coding_matrix_select` before starting the
+executable screen frozen in preregistration 041.
+
 The replay is a retrieval screen, not the executable outcome. After selecting the smallest A4
 context budget within the preregistered coverage margin, use `scripts.pilot` for the fixed
 executable screen and final paired comparison.

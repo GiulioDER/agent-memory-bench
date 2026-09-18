@@ -5,9 +5,9 @@
   "allowed_tools": ["recall_search"],
   "url_env": "AMB_RECALL_HOSTED_URL",
   "api_key_env": "AMB_RECALL_HOSTED_API_KEY",
-  "add_concurrency": 16,
-  "add_timeout_seconds": 45,
-  "search_timeout_seconds": 10,
+  "add_concurrency": 1,
+  "add_timeout_seconds": 180,
+  "search_timeout_seconds": 60,
   "search_top_k": 12,
   "package_pin": "RE-call Hosted 1.0",
   "search_sentence": "This project keeps a searchable memory of past work sessions; search it with the `mcp__recall_hosted__recall_search` tool before acting."

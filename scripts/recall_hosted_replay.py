@@ -30,7 +30,14 @@ EXPERIENCE_VARIANTS = (
     "E1_compiled",
     "E2_compiled_raw",
 )
-REGISTERED_VARIANTS = ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS
+CODING_MATRIX_VARIANTS = (
+    "C0_raw_lexical",
+    "C1_splade",
+    "C2_procedure",
+    "C3_rerank",
+    "C4_task_pack",
+)
+REGISTERED_VARIANTS = ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS + CODING_MATRIX_VARIANTS
 
 # Measured 2026-09-18 on VPS2: a valid idempotent Add needed all three compiler attempts and
 # completed in 88 seconds.  The old 60 second transport timeout abandoned the response while the
@@ -148,6 +155,13 @@ def _fallback_header(headers: dict[str, str], name: str) -> bool:
     return value == "1"
 
 
+def _task_type_header(headers: dict[str, str]) -> str:
+    value = headers.get("x-recall-task-type")
+    if value not in {"feature", "bugfix", "unknown"}:
+        raise RuntimeError("hosted Search response has invalid or missing task routing telemetry")
+    return value
+
+
 def run_replay(
     client: Client,
     *,
@@ -211,6 +225,7 @@ def run_replay(
         reranker_fallback = _fallback_header(
             http_response.headers, "x-recall-reranker-fallback"
         )
+        task_type = _task_type_header(http_response.headers)
         facet_fallbacks += int(facet_fallback)
         reranker_fallbacks += int(reranker_fallback)
         items = _validated_items(response)
@@ -225,6 +240,7 @@ def run_replay(
                 "latency_ms": latency_ms,
                 "facet_fallback": facet_fallback,
                 "reranker_fallback": reranker_fallback,
+                "task_type": task_type,
                 "metrics": score_items(
                     items,
                     task.fact_terms,
@@ -242,6 +258,24 @@ def run_replay(
         present = [float(value) for value in values if value is not None]
         return statistics.fmean(present) if present else None
 
+    routing_aggregate: dict[str, dict[str, Any]] = {}
+    for task_type in ("feature", "bugfix", "unknown"):
+        routed = [row for row in rows if row["task_type"] == task_type]
+        if not routed:
+            continue
+        routing_aggregate[task_type] = {
+            "task_count": len(routed),
+            "complete_coverage_at_10": statistics.fmean(
+                float(row["metrics"]["complete_coverage_at_10"]) for row in routed
+            ),
+            "mean_reciprocal_rank": statistics.fmean(
+                float(row["metrics"]["reciprocal_rank"]) for row in routed
+            ),
+            "mean_character_count": statistics.fmean(
+                float(row["metrics"]["character_count"]) for row in routed
+            ),
+        }
+
     task_digest = hashlib.sha256(
         "".join(
             f"{task.task_id}\0{_digest_file(task.path / 'task.json')}\n" for task in tasks
@@ -258,6 +292,7 @@ def run_replay(
         "messages_offered": messages_offered,
         "task_count": len(rows),
         "http_timeout_seconds": REPLAY_HTTP_TIMEOUT_SECONDS,
+        "routing_aggregate": routing_aggregate,
         "aggregate": {
             "hit_at_1": mean("hit_at_1"),
             "hit_at_5": mean("hit_at_5"),
@@ -282,6 +317,7 @@ def run_replay(
             "compiler_fallbacks": compiler_fallbacks,
             "facet_fallbacks": facet_fallbacks,
             "reranker_fallbacks": reranker_fallbacks,
+            "sparse_failures": 0,
         },
         "rows": rows,
     }
