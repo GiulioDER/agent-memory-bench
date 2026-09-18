@@ -111,6 +111,7 @@ def test_replay_never_sends_fact_terms_to_the_memory_system(tmp_path):
 def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):
     corpus, task = _fixture(tmp_path)
     client = FakeReplayClient("C1_splade")
+    sparse_client = FakeReplayClient("C1_splade")
 
     result = run_replay(
         client,
@@ -119,14 +120,19 @@ def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):
         tasks=[task],
         namespace="shared-raw-corpus",
         reuse_corpus=True,
+        sparse_backfill_client=sparse_client,
     )
 
     paths = [path for path, _ in client.calls]
-    assert paths[:2] == ["/version", "/v1/sparse/backfill"]
+    assert paths[:1] == ["/version"]
+    assert sparse_client.calls == [
+        ("/v1/sparse/backfill", {"user_id": "shared-raw-corpus"})
+    ]
     assert "/v1/delete" not in paths
     assert "/v1/add" not in paths
     assert result["corpus_reused"] is True
     assert result["dense_embedding_pass"] is False
+    assert result["sparse_backfill_timeout_seconds"] == 7_200.0
     assert result["messages_offered"] == 1
     assert result["aggregate"]["add_p50_ms"] is None
 

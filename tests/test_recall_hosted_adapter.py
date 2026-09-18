@@ -8,7 +8,12 @@ import pytest
 from adapters.recall_hosted import mcp_bridge
 from adapters.recall_hosted.adapter import RecallHostedAdapter, session_messages
 from harness.adapters.base import CorpusManifest
-from scripts.recall_hosted_replay import REPLAY_HTTP_TIMEOUT_SECONDS, build_replay_client
+from scripts.recall_hosted_replay import (
+    REPLAY_HTTP_TIMEOUT_SECONDS,
+    SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS,
+    build_replay_client,
+    build_sparse_backfill_client,
+)
 
 
 class FakeClient:
@@ -50,6 +55,28 @@ def test_replay_transport_outlives_the_observed_three_attempt_compiler_envelope(
 
     assert client.timeout == REPLAY_HTTP_TIMEOUT_SECONDS
     assert client.timeout >= 180.0
+
+
+def test_sparse_backfill_transport_outlives_the_observed_cpu_envelope():
+    """The sparse sidecar has its own window without weakening Add or Search identity."""
+    client = build_sparse_backfill_client("http://127.0.0.1:18004", "test-key")
+
+    assert client.timeout == SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS
+    assert client.timeout >= 7_200.0
+    assert client.timeout > REPLAY_HTTP_TIMEOUT_SECONDS
+
+
+def test_adapter_uses_the_dedicated_sparse_backfill_timeout(monkeypatch, tmp_path):
+    base = tmp_path / "base.md"
+    base.write_text("base", encoding="utf-8")
+    adapter = RecallHostedAdapter(tmp_path / "stage", base)
+    monkeypatch.setenv("AMB_RECALL_HOSTED_URL", "http://127.0.0.1:18004")
+    monkeypatch.setenv("AMB_RECALL_HOSTED_API_KEY", "test-key")
+
+    client = adapter._client(sparse_backfill=True)
+
+    assert client.timeout == 7_200.0
+    assert adapter._client().timeout == REPLAY_HTTP_TIMEOUT_SECONDS
 
 
 def test_session_translation_preserves_timestamp_and_tool_evidence(tmp_path):

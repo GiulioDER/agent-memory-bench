@@ -7,6 +7,7 @@
   "api_key_env": "AMB_RECALL_HOSTED_API_KEY",
   "add_concurrency": 1,
   "add_timeout_seconds": 180,
+  "sparse_backfill_timeout_seconds": 7200,
   "search_timeout_seconds": 60,
   "search_top_k": 12,
   "package_pin": "RE-call Hosted 1.0",

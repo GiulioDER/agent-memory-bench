@@ -45,6 +45,11 @@ REGISTERED_VARIANTS = ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS + CODING_MATRIX
 # changing the product's compiler timeout, retry policy, or deterministic fallback.
 REPLAY_HTTP_TIMEOUT_SECONDS = 180.0
 
+# Measured 2026-09-18 on VPS2: the CPU SPLADE sidecar had completed 576 of 2,284 chunks after
+# 13 minutes, projecting to about 52 minutes.  This endpoint is an explicit corpus preparation
+# operation, not Add or Search, so give only it a two-hour transport window.
+SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS = 7_200.0
+
 
 class Client(Protocol):
     def request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]: ...
@@ -56,6 +61,15 @@ class Client(Protocol):
 def build_replay_client(base_url: str, api_key: str) -> HostedHttpClient:
     """Construct the frozen replay transport with room for the product retry envelope."""
     return HostedHttpClient(base_url, api_key, timeout=REPLAY_HTTP_TIMEOUT_SECONDS)
+
+
+def build_sparse_backfill_client(base_url: str, api_key: str) -> HostedHttpClient:
+    """Construct the corpus-preparation transport without changing Add or Search timeouts."""
+    return HostedHttpClient(
+        base_url,
+        api_key,
+        timeout=SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS,
+    )
 
 
 def _digest_file(path: Path) -> str:
@@ -170,6 +184,7 @@ def run_replay(
     tasks: list[TaskSpec],
     namespace: str,
     reuse_corpus: bool = False,
+    sparse_backfill_client: Client | None = None,
 ) -> dict[str, Any]:
     if variant_name not in REGISTERED_VARIANTS:
         raise ValueError(f"unregistered hosted variant {variant_name!r}")
@@ -188,7 +203,10 @@ def run_replay(
         raise ValueError(f"{variant_name} is not a registered corpus-reuse arm")
 
     if reuse_corpus:
-        prepared = client.request("/v1/sparse/backfill", {"user_id": namespace})
+        preparation_client = sparse_backfill_client or client
+        prepared = preparation_client.request(
+            "/v1/sparse/backfill", {"user_id": namespace}
+        )
         sparse_count = prepared.get("sparse_chunk_count")
         if (
             prepared.get("status") != "ready"
@@ -311,6 +329,9 @@ def run_replay(
         "messages_offered": messages_offered,
         "task_count": len(rows),
         "http_timeout_seconds": REPLAY_HTTP_TIMEOUT_SECONDS,
+        "sparse_backfill_timeout_seconds": (
+            SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS if reuse_corpus else None
+        ),
         "corpus_reused": reuse_corpus,
         "dense_embedding_pass": not reuse_corpus,
         "routing_aggregate": routing_aggregate,
@@ -367,6 +388,11 @@ def main() -> None:
         tasks=discover_tasks(args.tasks),
         namespace=namespace,
         reuse_corpus=args.reuse_corpus,
+        sparse_backfill_client=(
+            build_sparse_backfill_client(args.base_url, api_key)
+            if args.reuse_corpus
+            else None
+        ),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")

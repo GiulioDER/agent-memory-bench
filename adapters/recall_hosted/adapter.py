@@ -152,8 +152,18 @@ class RecallHostedAdapter(MemoryAdapter):
             raise RuntimeError(f"the recall_hosted arm needs {variable} set")
         return value
 
-    def _client(self, *, search: bool = False) -> HostedHttpClient:
-        timeout_key = "search_timeout_seconds" if search else "add_timeout_seconds"
+    def _client(
+        self, *, search: bool = False, sparse_backfill: bool = False
+    ) -> HostedHttpClient:
+        if search and sparse_backfill:
+            raise ValueError("a hosted client cannot be both Search and sparse backfill")
+        timeout_key = (
+            "sparse_backfill_timeout_seconds"
+            if sparse_backfill
+            else "search_timeout_seconds"
+            if search
+            else "add_timeout_seconds"
+        )
         return HostedHttpClient(
             self._required("url_env"),
             self._required("api_key_env"),
@@ -163,11 +173,11 @@ class RecallHostedAdapter(MemoryAdapter):
     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
         corpus.verify()
         validate_namespace(namespace)
-        client = self._client()
         reuse_value = os.environ.get("AMB_RECALL_HOSTED_REUSE_CORPUS", "").strip()
         if reuse_value not in {"", "0", "1"}:
             raise RuntimeError("AMB_RECALL_HOSTED_REUSE_CORPUS must be 0 or 1")
         reuse_corpus = reuse_value == "1"
+        client = self._client(sparse_backfill=reuse_corpus)
         if reuse_corpus:
             started = time.monotonic()
             prepared = client.request("/v1/sparse/backfill", {"user_id": namespace})

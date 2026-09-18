@@ -7,7 +7,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.recall_hosted_replay import CODING_MATRIX_VARIANTS
+from scripts.recall_hosted_replay import (
+    CODING_MATRIX_VARIANTS,
+    SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS,
+)
 from scripts.recall_hosted_select import _identity_without_variant
 
 
@@ -43,6 +46,14 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         "C3_rerank": (True, False),
         "C4_task_pack": (True, False),
     }
+    expected_backfill_timeout = {
+        name: (
+            SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS
+            if expected_cache[name][0]
+            else None
+        )
+        for name in CODING_MATRIX_VARIANTS
+    }
     reference = ordered[0]
     reference_rows = _rows_by_task(reference)
     invariant_keys = (
@@ -62,6 +73,8 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             artifact.get("dense_embedding_pass"),
         ) != expected_cache[name]:
             raise ValueError(f"invalid corpus cache lineage for {name}")
+        if artifact.get("sparse_backfill_timeout_seconds") != expected_backfill_timeout[name]:
+            raise ValueError(f"invalid sparse backfill timeout identity for {name}")
         if any(artifact.get(key) != reference.get(key) for key in invariant_keys):
             raise ValueError(f"replay population drift for {name}")
         version = artifact.get("version")

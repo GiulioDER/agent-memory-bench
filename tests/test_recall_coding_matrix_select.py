@@ -33,6 +33,9 @@ def _artifact(name: str, index: int) -> dict:
         "sessions_offered": 2,
         "messages_offered": 3,
         "http_timeout_seconds": 180.0,
+        "sparse_backfill_timeout_seconds": (
+            7_200.0 if name in {"C1_splade", "C3_rerank", "C4_task_pack"} else None
+        ),
         "corpus_reused": name in {"C1_splade", "C3_rerank", "C4_task_pack"},
         "dense_embedding_pass": name in {"C0_raw_lexical", "C2_procedure"},
         "aggregate": {
@@ -102,6 +105,10 @@ def test_selector_stops_at_first_failed_incremental_gate():
         (
             lambda items: items[3].__setitem__("dense_embedding_pass", True),
             "invalid corpus cache lineage",
+        ),
+        (
+            lambda items: items[1].__setitem__("sparse_backfill_timeout_seconds", 180.0),
+            "invalid sparse backfill timeout identity",
         ),
     ],
 )
