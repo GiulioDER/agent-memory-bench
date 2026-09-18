@@ -34,6 +34,7 @@ def _artifacts(
             "task_count": 4,
             "sessions_offered": 10,
             "messages_offered": 100,
+            "http_timeout_seconds": 180.0,
             "aggregate": {
                 "complete_coverage_at_10": coverages[index],
                 "mean_reciprocal_rank": reciprocal_ranks[index],
@@ -82,10 +83,16 @@ def test_selector_falls_back_to_raw_when_compiled_arms_miss_the_registered_gates
 
 
 def test_selector_refuses_population_product_or_task_identity_drift():
+    """RED: removing ``http_timeout_seconds`` from invariant keys accepts a mixed apparatus."""
     population_drift = _artifacts()
     population_drift[1]["messages_offered"] = 101
     with pytest.raises(ValueError, match="population drift"):
         select_experience(population_drift)
+
+    timeout_drift = _artifacts()
+    timeout_drift[1]["http_timeout_seconds"] = 60.0
+    with pytest.raises(ValueError, match="population drift"):
+        select_experience(timeout_drift)
 
     product_drift = _artifacts()
     product_drift[2]["version"]["compiler_prompt_digest"] = "different"

@@ -42,6 +42,7 @@ def select_experience(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         "task_count",
         "sessions_offered",
         "messages_offered",
+        "http_timeout_seconds",
     )
     reference_rows = _rows_by_task(reference)
     for artifact in ordered:

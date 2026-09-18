@@ -8,6 +8,7 @@ import pytest
 from adapters.recall_hosted import mcp_bridge
 from adapters.recall_hosted.adapter import RecallHostedAdapter, session_messages
 from harness.adapters.base import CorpusManifest
+from scripts.recall_hosted_replay import REPLAY_HTTP_TIMEOUT_SECONDS, build_replay_client
 
 
 class FakeClient:
@@ -32,6 +33,21 @@ class FakeClient:
                 ]
             }
         return {"status": "deleted", "deleted_count": 0}
+
+
+def test_replay_transport_outlives_the_observed_three_attempt_compiler_envelope():
+    """The 60s mutation failed at this assertion; the fixed transport covers the measured 88s.
+
+    RED proof: mutate ``REPLAY_HTTP_TIMEOUT_SECONDS`` to 60.0 in
+    ``scripts.recall_hosted_replay``. This node fails on the envelope assertion instead of timing
+    out, importing the wrong layer, or depending on a live provider. The production symbol under
+    test is ``build_replay_client`` because a sufficient constant that is not wired into the
+    client would not repair the replay.
+    """
+    client = build_replay_client("http://127.0.0.1:18004", "test-key")
+
+    assert client.timeout == REPLAY_HTTP_TIMEOUT_SECONDS
+    assert client.timeout >= 180.0
 
 
 def test_session_translation_preserves_timestamp_and_tool_evidence(tmp_path):

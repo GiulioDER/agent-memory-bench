@@ -32,12 +32,23 @@ EXPERIENCE_VARIANTS = (
 )
 REGISTERED_VARIANTS = ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS
 
+# Measured 2026-09-18 on VPS2: a valid idempotent Add needed all three compiler attempts and
+# completed in 88 seconds.  The old 60 second transport timeout abandoned the response while the
+# server continued and durably committed it.  Keep this above the observed retry envelope without
+# changing the product's compiler timeout, retry policy, or deterministic fallback.
+REPLAY_HTTP_TIMEOUT_SECONDS = 180.0
+
 
 class Client(Protocol):
     def request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]: ...
     def request_with_headers(
         self, path: str, payload: dict[str, Any] | None = None
     ) -> HostedHttpResponse: ...
+
+
+def build_replay_client(base_url: str, api_key: str) -> HostedHttpClient:
+    """Construct the frozen replay transport with room for the product retry envelope."""
+    return HostedHttpClient(base_url, api_key, timeout=REPLAY_HTTP_TIMEOUT_SECONDS)
 
 
 def _digest_file(path: Path) -> str:
@@ -246,6 +257,7 @@ def run_replay(
         "sessions_offered": len(corpus.sessions),
         "messages_offered": messages_offered,
         "task_count": len(rows),
+        "http_timeout_seconds": REPLAY_HTTP_TIMEOUT_SECONDS,
         "aggregate": {
             "hit_at_1": mean("hit_at_1"),
             "hit_at_5": mean("hit_at_5"),
@@ -291,7 +303,7 @@ def main() -> None:
         raise SystemExit("AMB_RECALL_HOSTED_API_KEY is required")
     namespace = args.namespace or f"aml-replay-{args.variant.casefold().replace('_', '-')}"
     result = run_replay(
-        HostedHttpClient(args.base_url, api_key, timeout=60),
+        build_replay_client(args.base_url, api_key),
         variant_name=args.variant,
         corpus=CorpusManifest.load(args.corpus),
         tasks=discover_tasks(args.tasks),
