@@ -1,0 +1,127 @@
+# 041: RE-call hosted coding memory matrix
+
+Status: FROZEN before implementation measurement.
+
+## Question
+
+Which progressively richer RE-call Hosted configuration should be submitted to AML Smoke when
+the local agent-memory-bench present-condition corpus is used as the selection proxy?
+
+This experiment selects a release candidate. It does not estimate the private CAMBench score and
+does not authorize an AML Full run.
+
+## Arms and fixed identities
+
+| arm | treatment added to the preceding arm |
+|---|---|
+| `C0_raw_lexical` | raw evidence, `voyage-context-4-v1`, and exact PostgreSQL lexical retrieval |
+| `C1_splade` | pinned SPLADE learned sparse retrieval while exact lexical remains active |
+| `C2_procedure` | source-grounded procedure memory while retaining raw evidence |
+| `C3_rerank` | Voyage reranking over the complete fused candidate pool |
+| `C4_task_pack` | query-only task routing, up to four facets, and a 7,000 character evidence pack |
+
+All arms use `openai/gpt-4o-mini` for Add and Search generation,
+`deepseek/deepseek-v4-flash` for downstream execution, candidate width 100 per active retrieval
+leg, exact `user_id` isolation, the same source corpus, the same original task prompts, and the
+same checker and timeout policy. Voyage reranking uses `voyage:rerank-2.5`. SPLADE uses
+`prithivida/Splade_PP_en_v1` at revision
+`762be6a7206e2f299182705972a65e5c46e62be2`, with at most 1,000 nonzero terms.
+
+Graph expansion, entailment judging, confidence abstention, and alternative reasoning models are
+outside this matrix. Search returns stored evidence only.
+
+The C4 task router sees only the original query and optional answer choices. It assigns
+`feature`, `bugfix`, or `unknown`. Benchmark task labels, checked-in `fact_terms`, checker data,
+and gold answers never enter product requests, stored product metadata, or planner prompts. The
+routing classes are system predictions, not gold task categories.
+
+## Deterministic retrieval replay
+
+Run all five arms over the complete checked-in corpus and executable task roster in the present
+condition. Search receives the original task prompt only. Checked-in `fact_terms` are applied only
+after retrieval for scoring.
+
+Report any answer-bearing evidence at ranks 1, 5, 10, and 100; complete evidence coverage at ranks
+5, 10, and 100; first-hit reciprocal rank; source-session recall; duplicate-session
+concentration; returned items and characters; Add and Search median and p95 latency; compiler,
+planner, sparse, and reranker fallback or failure counts; and the same retrieval metrics grouped
+by predicted routing class.
+
+An arm is invalid if corpus, task population, original queries, provider identities, prompts,
+candidate width, or post-retrieval labels drift. Learned sparse sidecar coverage must equal dense
+chunk coverage before Search starts.
+
+## Executable screen
+
+Run every arm at seeds 0, 1, and 2 on this frozen twelve-task roster:
+
+1. `xs-evolve-lease`
+2. `xs-join-batch`
+3. `xs-widen-manifest`
+4. `fa-dedup-key`
+5. `ts-mig-name`
+6. `ts-semver-pin`
+7. `ts-retry-cap`
+8. `ts-config-layer`
+9. `ts-atomic-write`
+10. `ts-idempotent-run`
+11. `ts-glob-hidden`
+12. `ts-quote-shell`
+
+For each arm report task success, candidate-only wins and baseline-only wins against C0, net wins,
+timeouts, invalid cells, memory calls, memory evidence delivery, provider fallbacks, latency, and
+estimated provider cost. A timeout is an outcome and is not retried.
+
+Promote the nonbaseline arm with the most screen successes only if it has positive net wins
+against C0 and passes the retrieval gate. Break ties by higher complete rank 10 coverage, then
+higher mean reciprocal rank, then fewer returned characters, then lower Search p95. If no arm has
+positive net wins, C0 remains the candidate.
+
+## Final executable confirmation
+
+Compare C0 with the promoted candidate over all 34 executable tasks except `smoke-config-port`,
+at seeds 0, 1, and 2. The final population contains 102 paired task and seed cells.
+
+The candidate passes only when candidate-only wins minus baseline-only wins is at least 8, no more
+than 2 new candidate failures occur under superseded or adjacent-memory controls, every admitted
+cell proves that the intended memory arm was available, and every model, prompt, corpus, task,
+checker, seed, retry, and timeout identity remains paired.
+
+## Predictions
+
+1. C1 raises complete rank 10 coverage by at least 0.02 over C0 while keeping Search p95 below
+   three times C0.
+2. C2 raises mean reciprocal rank by at least 0.02 over C1 and helps most on cross-session and
+   failed-attempt tasks.
+3. C3 raises mean reciprocal rank by at least 0.03 over C2 without reducing complete rank 100
+   coverage by more than 0.01.
+4. C4 keeps complete returned-budget coverage within 0.01 of C3 while reducing mean returned
+   characters by at least 0.30.
+5. C4 wins the screen and reaches at least 8 net executable wins over C0 in the 102-cell
+   confirmation.
+
+## Exclusion and stop rules
+
+Stop and invalidate the affected arm if evaluation memory crosses a user scope, Add acknowledges
+before every enabled index is searchable, a contextual document group changes chunk order,
+learned sparse coverage is partial, Search returns generated answers, a benchmark label enters
+the product, provider identity drifts, or raw benchmark content enters application logs.
+
+Do not interrupt an existing provider-backed replay or start a second embedding process on VPS2.
+Do not spend an AML Full run on this matrix. Only the locally selected, contract-verified release
+candidate may proceed to AML Smoke.
+
+## Artifacts
+
+Write immutable replay and selection artifacts under a new run-specific results directory. Record
+both repository commits, dependency lock digests, model and prompt identities, task and corpus
+digests, SPLADE revision and device, configuration settings, fallback counts, costs, invalid
+cells, and the selection decision.
+
+## What would falsify this
+
+The predictions are falsified by missing their numeric thresholds. The local selection procedure
+is falsified if any frozen identity or pairing drifts, if product requests contain post-retrieval
+labels, or if the selector produces a different winner from the frozen decision rule.
+
+<!-- results are appended below this line; everything above is frozen -->
