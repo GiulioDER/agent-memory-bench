@@ -22,7 +22,7 @@ def _artifact(name: str, index: int) -> dict:
         "variant": name,
         "version": {
             "product": "RE-call Hosted 1.0",
-            "git_commit": "commit",
+            "git_commit": "repair" if index >= 2 else "original",
             "embedding_profile": "voyage-context-4-v1",
             "sparse_revision": "pinned",
             "variant": name,
@@ -38,6 +38,7 @@ def _artifact(name: str, index: int) -> dict:
         ),
         "corpus_reused": name in {"C1_splade", "C3_rerank", "C4_task_pack"},
         "dense_embedding_pass": name in {"C0_raw_lexical", "C2_procedure"},
+        "ingest_resumed": name == "C2_procedure",
         "aggregate": {
             "complete_coverage_at_10": complete10,
             "complete_coverage_at_100": complete100,
@@ -74,6 +75,8 @@ def test_selector_applies_every_incremental_retrieval_gate_in_order():
     }
     assert selected["deepest_retrieval_eligible"] == "C4_task_pack"
     assert selected["deltas"]["c4_character_reduction"] == pytest.approx(1 / 3)
+    assert selected["served_product_identity"]["git_commit"] == "original"
+    assert selected["served_product_repair_identity"]["git_commit"] == "repair"
 
 
 def test_selector_stops_at_first_failed_incremental_gate():
@@ -109,6 +112,10 @@ def test_selector_stops_at_first_failed_incremental_gate():
         (
             lambda items: items[1].__setitem__("sparse_backfill_timeout_seconds", 180.0),
             "invalid sparse backfill timeout identity",
+        ),
+        (
+            lambda items: items[2].__setitem__("ingest_resumed", False),
+            "invalid ingest resume lineage",
         ),
     ],
 )

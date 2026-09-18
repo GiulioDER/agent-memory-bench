@@ -31,6 +31,14 @@ def _rows_by_task(artifact: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return by_task
 
 
+def _identity_without_variant_or_commit(version: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in version.items()
+        if key not in {"variant", "git_commit"}
+    }
+
+
 def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
     by_variant = {str(artifact.get("variant")): artifact for artifact in artifacts}
     if set(by_variant) != set(CODING_MATRIX_VARIANTS) or len(artifacts) != len(
@@ -55,6 +63,7 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         for name in CODING_MATRIX_VARIANTS
     }
     reference = ordered[0]
+    repair_reference = by_variant["C2_procedure"]
     reference_rows = _rows_by_task(reference)
     invariant_keys = (
         "corpus_manifest_sha256",
@@ -64,6 +73,16 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         "messages_offered",
         "http_timeout_seconds",
     )
+    reference_version = reference.get("version")
+    repair_version = repair_reference.get("version")
+    if not isinstance(reference_version, dict) or not isinstance(repair_version, dict):
+        raise TypeError("missing served product identity")
+    if reference_version.get("git_commit") == repair_version.get("git_commit"):
+        raise ValueError("the amended retrieval requires a distinct repair commit identity")
+    if _identity_without_variant_or_commit(
+        reference_version
+    ) != _identity_without_variant_or_commit(repair_version):
+        raise ValueError("served product identity drift beyond the registered repair commit")
     for artifact in ordered:
         name = str(artifact["variant"])
         if artifact.get("schema_version") != 1:
@@ -75,12 +94,19 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             raise ValueError(f"invalid corpus cache lineage for {name}")
         if artifact.get("sparse_backfill_timeout_seconds") != expected_backfill_timeout[name]:
             raise ValueError(f"invalid sparse backfill timeout identity for {name}")
+        if bool(artifact.get("ingest_resumed", False)) != (name == "C2_procedure"):
+            raise ValueError(f"invalid ingest resume lineage for {name}")
         if any(artifact.get(key) != reference.get(key) for key in invariant_keys):
             raise ValueError(f"replay population drift for {name}")
         version = artifact.get("version")
         if not isinstance(version, dict) or version.get("variant") != name:
             raise ValueError(f"served version mismatch for {name}")
-        if _identity_without_variant(version) != _identity_without_variant(reference["version"]):
+        identity_reference = (
+            reference_version
+            if name in {"C0_raw_lexical", "C1_splade"}
+            else repair_version
+        )
+        if _identity_without_variant(version) != _identity_without_variant(identity_reference):
             raise ValueError(f"served product identity drift for {name}")
         rows = _rows_by_task(artifact)
         if set(rows) != set(reference_rows):
@@ -163,6 +189,7 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         "task_set_sha256": reference["task_set_sha256"],
         "task_count": reference["task_count"],
         "served_product_identity": _identity_without_variant(reference["version"]),
+        "served_product_repair_identity": _identity_without_variant(repair_version),
         "variants": {
             name: {
                 key: by_variant[name]["aggregate"][key]

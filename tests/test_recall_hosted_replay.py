@@ -137,6 +137,41 @@ def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):
     assert result["aggregate"]["add_p50_ms"] is None
 
 
+def test_replay_resumes_partial_ingest_without_delete_or_dense_reembedding(tmp_path):
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("C2_procedure")
+
+    result = run_replay(
+        client,
+        variant_name="C2_procedure",
+        corpus=corpus,
+        tasks=[task],
+        namespace="shared-procedure-corpus",
+        resume_ingest=True,
+    )
+
+    paths = [path for path, _ in client.calls]
+    assert paths[:2] == ["/version", "/v1/add"]
+    assert "/v1/delete" not in paths
+    assert result["ingest_resumed"] is True
+    assert result["dense_embedding_pass"] is True
+
+
+def test_replay_refuses_incompatible_resume_and_cache_reuse(tmp_path):
+    corpus, task = _fixture(tmp_path)
+
+    with pytest.raises(ValueError, match="resume ingest"):
+        run_replay(
+            FakeReplayClient("C2_procedure"),
+            variant_name="C2_procedure",
+            corpus=corpus,
+            tasks=[task],
+            namespace="shared-procedure-corpus",
+            reuse_corpus=True,
+            resume_ingest=True,
+        )
+
+
 def test_replay_refuses_to_reuse_an_empty_corpus(tmp_path):
     corpus, task = _fixture(tmp_path)
     client = FakeReplayClient("C1_splade")

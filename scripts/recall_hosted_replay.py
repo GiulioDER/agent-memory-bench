@@ -185,6 +185,7 @@ def run_replay(
     namespace: str,
     reuse_corpus: bool = False,
     sparse_backfill_client: Client | None = None,
+    resume_ingest: bool = False,
 ) -> dict[str, Any]:
     if variant_name not in REGISTERED_VARIANTS:
         raise ValueError(f"unregistered hosted variant {variant_name!r}")
@@ -194,9 +195,13 @@ def run_replay(
         raise RuntimeError(
             f"hosted variant mismatch: expected {variant_name}, got {version.get('variant')!r}"
         )
-    if not reuse_corpus:
+    if reuse_corpus and resume_ingest:
+        raise ValueError("resume ingest cannot be combined with corpus reuse")
+    if resume_ingest and variant_name != "C2_procedure":
+        raise ValueError("resume ingest is registered only for the amended C2 procedure run")
+    if not reuse_corpus and not resume_ingest:
         client.request("/v1/delete", {"user_id": namespace})
-    elif variant_name != "C1_splade" and variant_name not in {
+    if reuse_corpus and variant_name != "C1_splade" and variant_name not in {
         "C3_rerank",
         "C4_task_pack",
     }:
@@ -334,6 +339,7 @@ def run_replay(
         ),
         "corpus_reused": reuse_corpus,
         "dense_embedding_pass": not reuse_corpus,
+        "ingest_resumed": resume_ingest,
         "routing_aggregate": routing_aggregate,
         "aggregate": {
             "hit_at_1": mean("hit_at_1"),
@@ -374,6 +380,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--namespace")
     parser.add_argument("--reuse-corpus", action="store_true")
+    parser.add_argument("--resume-ingest", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit(f"refusing to overwrite replay artifact: {args.output}")
@@ -393,6 +400,7 @@ def main() -> None:
             if args.reuse_corpus
             else None
         ),
+        resume_ingest=args.resume_ingest,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")

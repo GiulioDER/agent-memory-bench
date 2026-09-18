@@ -5,9 +5,23 @@ set -euo pipefail
 
 readonly variant="${1:?usage: recall_experience_vps2_replay.sh VARIANT OUTPUT_DIR}"
 readonly output_dir="${2:?output directory is required}"
+readonly resume_mode="${3:-}"
 readonly service="recall-aml-experiment.service"
 reuse_args=()
 namespace_args=()
+resume_args=()
+
+case "$resume_mode" in
+    "") ;;
+    --resume-ingest)
+        if [[ "$variant" != "C2_procedure" ]]; then
+            echo "resume ingest is registered only for C2_procedure" >&2
+            exit 2
+        fi
+        resume_args=(--resume-ingest)
+        ;;
+    *) echo "unsupported replay resume mode" >&2; exit 2 ;;
+esac
 
 case "$variant" in
     E0_raw|E1_compiled|E2_compiled_raw)
@@ -71,7 +85,8 @@ trap capture_service_log EXIT
     --tasks tasks \
     --output "$artifact" \
     "${namespace_args[@]}" \
-    "${reuse_args[@]}"
+    "${reuse_args[@]}" \
+    "${resume_args[@]}"
 capture_service_log
 trap - EXIT
 sha256sum "$artifact" "$service_log"
