@@ -205,6 +205,48 @@ def test_real_stream_yields_tool_calls_a_response_and_usage() -> None:
     assert record.metadata["claude_code_version"] == "2.1.220"
 
 
+def test_declared_memory_tool_call_becomes_a_sequence_event() -> None:
+    events = [
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "memory-1",
+                        "name": "mcp__memory__search",
+                        "input": {"query": "task"},
+                    }
+                ]
+            },
+        },
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "memory-1",
+                        "content": '{"decision":"abstain","useful":true}',
+                    }
+                ]
+            },
+        },
+    ]
+    fields = transcript_fields(
+        events,
+        memory_tool_prefix="mcp__memory__",
+        memory_event_tools={"mcp__memory__search": "retrieve"},
+    )
+    assert fields.memory_events == (
+        {
+            "kind": "retrieve",
+            "decision": "abstain",
+            "source": "tool_calls[0].mcp__memory__search",
+        },
+    )
+
+
 def test_a_failed_tool_call_is_counted_and_does_not_crash_the_parser() -> None:
     # In the capture, the failing call's `tool_use_result` is a bare STRING while the succeeding
     # call's is a dict. A parser that assumes a mapping raises on exactly the calls that matter.

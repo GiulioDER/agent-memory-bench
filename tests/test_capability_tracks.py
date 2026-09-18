@@ -10,6 +10,15 @@ from harness.capabilities import (
     qualification_subset,
     score_artifact,
 )
+from harness.lifecycle import (
+    LifecycleIngestReport,
+    load_lifecycle_artifact,
+    load_lifecycle_manifest,
+    run_lifecycle_ingest,
+    score_lifecycle_artifact,
+    source_sha256,
+    supports_lifecycle_ingest,
+)
 from scripts.capability_verify import main
 
 ROOT = Path(__file__).parents[1]
@@ -206,3 +215,144 @@ def test_duplicate_subset_ids_and_oversized_artifact_are_rejected(tmp_path):
     oversized.write_bytes(b" " * (MAX_ARTIFACT_BYTES + 1))
     with pytest.raises(ValueError, match="exceeds"):
         load_artifact(oversized, manifest)
+
+
+def _lifecycle_artifact(tmp_path, *, replay_outcome="deduplicated"):
+    manifest = load_lifecycle_manifest(ROOT / "capabilities" / "lifecycle-temporal.json")
+    data, events, probes = manifest
+    receipts = []
+    for event in events:
+        receipts.append(
+            LifecycleIngestReport(
+                event_id=event.event_id,
+                source_path=event.source_path,
+                source_sha256=event.source_sha256,
+                event_order=event.event_order,
+                phase=event.phase,
+                outcome=replay_outcome if event.phase == "replay" else "inserted",
+                indexed=not (event.phase == "replay" and replay_outcome == "deduplicated"),
+                deduplicated=event.phase == "replay" and replay_outcome == "deduplicated",
+                completion_boundary="returned",
+                visibility_boundary="search_verified",
+            ).to_dict()
+        )
+    rows = []
+    for probe in probes:
+        for phase in ("initial", "replay"):
+            ranked = [probe["expected_source_path"]]
+            rows.append(
+                {
+                    "probe_id": probe["probe_id"],
+                    "phase": phase,
+                    "answer_text": probe["expected_terms"][0],
+                    "ranked_source_paths": ranked,
+                }
+            )
+    header = {
+        "artifact_type": "amb-lifecycle-results",
+        "schema_version": 1,
+        "track": "lifecycle-temporal",
+        "manifest_digest": data["manifest_digest"],
+        "system": "test-fixture",
+        "ingest_events": receipts,
+    }
+    path = tmp_path / "lifecycle.jsonl"
+    path.write_text(
+        "\n".join(json.dumps(item, sort_keys=True) for item in [header, *rows]) + "\n",
+        encoding="utf-8",
+    )
+    return path, manifest
+
+
+def test_lifecycle_manifest_binds_event_hashes_and_order():
+    data, events, probes = load_lifecycle_manifest(ROOT / "capabilities" / "lifecycle-temporal.json")
+    assert data["track"] == "lifecycle-temporal"
+    assert [event.event_id for event in events] == [
+        "initial-p01",
+        "initial-p02",
+        "initial-p03",
+        "replay-p01",
+    ]
+    assert events[-1].source_sha256 == source_sha256(
+        (ROOT / "corpus" / "sessions" / "xs-evolve-lease" / "p01.jsonl").read_bytes()
+    )
+    assert len(probes) == 3
+
+
+def test_deduplicated_replay_is_idempotent_but_not_stale_resolution(tmp_path):
+    """Mutation proof target: treating every replay as freshly indexed would claim a deduplicated
+    repeat demonstrated stale candidate resolution. The report must keep that field inapplicable."""
+
+    artifact, manifest = _lifecycle_artifact(tmp_path)
+    header, rows = load_lifecycle_artifact(artifact, manifest)
+    report = score_lifecycle_artifact(manifest, header, rows)
+    assert report["qualification"]["passed"] is True
+    assert report["qualification"]["replay_deduplicated"] is True
+    assert report["qualification"]["stale_candidate_resolution"] is None
+    assert report["metrics"]["replay_temporal_stability"] is None
+
+
+def test_actual_replay_must_preserve_all_three_temporal_answers(tmp_path):
+    """Mutation proof target: if replay rows are not scored, changing the replay current answer to
+    the old p01 source would still pass. The source level replay result must fail."""
+
+    artifact, manifest = _lifecycle_artifact(
+        tmp_path,
+        replay_outcome="updated",
+    )
+    header, rows = load_lifecycle_artifact(artifact, manifest)
+    rows = tuple(
+        {**row, "ranked_source_paths": ["sessions/xs-evolve-lease/p01.jsonl"]}
+        if row["phase"] == "replay" and row["probe_id"] == "temporal-current-revision"
+        else row
+        for row in rows
+    )
+    report = score_lifecycle_artifact(manifest, header, rows)
+    assert report["qualification"]["passed"] is False
+    assert report["qualification"]["stale_candidate_resolution"] is False
+
+
+def test_existing_adapters_do_not_claim_optional_lifecycle_support(tmp_path):
+    from adapters.fs_grep.adapter import FsGrepAdapter
+
+    prompt = tmp_path / "prompt.md"
+    prompt.write_text("# prompt\n", encoding="utf-8")
+    assert supports_lifecycle_ingest(FsGrepAdapter(tmp_path / "staging", prompt)) is False
+
+
+def test_lifecycle_runner_preserves_event_order_and_hashes(tmp_path):
+    """The runner is the lifecycle boundary: the adapter receives committed event order and the
+    exact source hash for each event rather than relying on filesystem order."""
+
+    _, events, _ = load_lifecycle_manifest(ROOT / "capabilities" / "lifecycle-temporal.json")
+
+    class FakeLifecycleAdapter:
+        def __init__(self):
+            self.seen = []
+
+        def ingest_event(self, namespace, event, content):
+            self.seen.append((namespace, event.event_id, source_sha256(content)))
+            deduplicated = event.phase == "replay"
+            return LifecycleIngestReport(
+                event_id=event.event_id,
+                source_path=event.source_path,
+                source_sha256=event.source_sha256,
+                event_order=event.event_order,
+                phase=event.phase,
+                outcome="deduplicated" if deduplicated else "inserted",
+                indexed=not deduplicated,
+                deduplicated=deduplicated,
+                completion_boundary="returned",
+                visibility_boundary="search_verified",
+            )
+
+    adapter = FakeLifecycleAdapter()
+    reports = run_lifecycle_ingest(adapter, "ns", ROOT / "corpus", events)
+    assert reports is not None
+    assert [event_id for _, event_id, _ in adapter.seen] == [
+        "initial-p01",
+        "initial-p02",
+        "initial-p03",
+        "replay-p01",
+    ]
+    assert reports[-1].outcome == "deduplicated"

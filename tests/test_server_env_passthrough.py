@@ -68,7 +68,7 @@ def test_the_frozen_embedder_has_its_credential_in_the_passthrough(adapter, monk
     key is not passed through and this goes red.
     """
     embedder = str(CONFIG["embedder"])
-    provider = embedder.split(":", 1)[0].upper()
+    provider = embedder.split(":", 1)[0].split("-", 1)[0].upper()
     if provider in {"FASTEMBED", "STUB", "HASH"}:
         pytest.skip(f"{embedder} is local and needs no credential")
     key = f"{provider}_API_KEY"

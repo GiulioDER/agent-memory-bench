@@ -1,0 +1,1289 @@
+{
+  "required_arms": [
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_checkpoint_placebo",
+    "recall_graph_fulltools_checkpoint"
+  ],
+  "admitted_cells": 41,
+  "discarded_cells": [
+    [
+      "ts-mig-name",
+      2
+    ],
+    [
+      "ts-schema-additive",
+      4
+    ],
+    [
+      "ts-semver-pin",
+      1
+    ],
+    [
+      "ts-tz-utc",
+      4
+    ]
+  ],
+  "discarded_by_arm": {
+    "recall_graph_fulltools_protocol": 3,
+    "recall_graph_fulltools_checkpoint": 1
+  },
+  "verdicts": [
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-base36-id",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-mig-name",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation",
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "session failed before reaching a detected repository mutation"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 0,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 1,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 2,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 3,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_protocol",
+      "admitted": false,
+      "reasons": [
+        "the session did not complete: no result event in stream"
+      ],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "admitted": true,
+      "reasons": [],
+      "notes": []
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "seed": 4,
+      "arm": "recall_graph_fulltools_checkpoint",
+      "admitted": true,
+      "reasons": [],
+      "notes": [
+        "the memory layer was available and never called: a behavioural result about discoverability, not a wiring failure, and it is counted in the summary"
+      ]
+    }
+  ],
+  "runtime_signals_sha256": "b016395e3f702b13097165effd3490c7ca5dabd0234ad6876d7e9c5baa75bb04"
+}

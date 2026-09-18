@@ -25,16 +25,48 @@ the arms no longer see an identical instant, only an unbiased sample of instants
 from __future__ import annotations
 
 import asyncio
+import os
 import random
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import replace
 from typing import Any
 
+from .frozen_manifest import FrozenEvaluationManifest
 from .schema import SessionRecord
+from .sequence_plan import SequencePlan
 
 Runner = Callable[
     [Mapping[str, Any], str], Awaitable[SessionRecord | Mapping[str, Any]]
 ]
+
+
+def _row_sequence_metadata(
+    row: Mapping[str, Any], *, admitted: bool | None = None
+) -> dict[str, Any]:
+    """Return the runner-owned sequence metadata, if this row belongs to a chain."""
+
+    sequence = row.get("sequence")
+    if sequence is None:
+        return {}
+    if not isinstance(sequence, Mapping):
+        raise TypeError("row sequence metadata must be a mapping")
+    result = dict(sequence)
+    if admitted is not None:
+        result["admitted"] = admitted
+    return {"sequence": result}
+
+
+def cell_start_stagger_seconds() -> float:
+    """Delay cell starts to avoid burst failures at the upstream model gateway."""
+
+    raw = os.environ.get("AMB_CELL_START_STAGGER_SECONDS", "0").strip()
+    if not raw:
+        return 0.0
+    try:
+        value = float(raw)
+    except ValueError:
+        return 0.0
+    return max(0.0, value)
 
 
 def _error_record(row: Mapping[str, Any], arm: str, error: BaseException) -> SessionRecord:
@@ -45,6 +77,7 @@ def _error_record(row: Mapping[str, Any], arm: str, error: BaseException) -> Ses
         success=False,
         user_input=str(row.get("user_input", "")),
         error=f"{type(error).__name__}: {error}",
+        metadata=_row_sequence_metadata(row, admitted=False),
     )
 
 
@@ -80,9 +113,28 @@ async def _run_one(row: Mapping[str, Any], arm: str, runner: Runner) -> SessionR
             or record.seed != int(row.get("seed", 0))
         ):
             raise ValueError("runner returned a record for a different cell or arm")
+        row_metadata = _row_sequence_metadata(row)
+        if row_metadata:
+            existing = record.metadata.get("sequence")
+            if existing is not None and existing != row_metadata["sequence"]:
+                raise ValueError("runner returned sequence metadata for a different chain session")
+            if record.error is not None:
+                row_metadata["sequence"] = {
+                    **row_metadata["sequence"],
+                    "admitted": False,
+                }
+            record = replace(
+                record,
+                metadata={**dict(record.metadata), "sequence": row_metadata["sequence"]},
+            )
         return record
     except Exception as error:  # noqa: BLE001 - any runner failure must become an error
         # record rather than a lost row; the gate decides what an error means.
+        print(
+            f"[runner-error] task={row.get('task_id')} seed={row.get('seed', 0)} "
+            f"arm={arm}: {type(error).__name__}: {error}",
+            flush=True,
+        )
         return _error_record(row, arm, error)
 
 
@@ -121,7 +173,11 @@ async def run_grid(
 
     semaphore = asyncio.Semaphore(block_concurrency)
 
-    async def run_cell(row: Mapping[str, Any]) -> list[SessionRecord]:
+    stagger = cell_start_stagger_seconds()
+
+    async def run_cell(row: Mapping[str, Any], index: int) -> list[SessionRecord]:
+        if stagger and index:
+            await asyncio.sleep(stagger * index)
         async with semaphore:
             cell = (str(row.get("task_id", "")), int(row.get("seed", 0)))
             order = arm_order(arm_list, cell, order_seed) if arm_concurrency else list(arm_list)
@@ -150,5 +206,51 @@ async def run_grid(
                 for position, record in enumerate(records)
             ]
 
-    blocks = await asyncio.gather(*(run_cell(row) for row in materialized))
+    blocks = await asyncio.gather(*(run_cell(row, index) for index, row in enumerate(materialized)))
+    return [record for block in blocks for record in block]
+
+
+async def run_sequences(
+    plan: SequencePlan,
+    runner: Runner,
+    *,
+    heldout_manifest: FrozenEvaluationManifest,
+    chain_concurrency: int = 1,
+    arm_concurrency: int | None = None,
+    order_seed: str = "agent-memory-bench-sequence",
+) -> list[SessionRecord]:
+    """Run each chain in order while allowing independent chains to overlap.
+
+    The callback receives the same ``chain_id`` and arm on every row for that chain, so it can
+    bind one memory namespace per ``(chain_id, arm)``. The next position is not submitted until
+    every arm at the current position has returned. A failure becomes a record through
+    :func:`run_grid`; it does not skip the later positions or erase the chain from the artifact.
+    The held out manifest is verified and matched to the plan before the first callback runs.
+    """
+
+    heldout_manifest.verify()
+    if heldout_manifest.data.get("manifest_id") != plan.evaluation_manifest_id:
+        raise ValueError("sequence plan and heldout manifest identify different manifests")
+    if heldout_manifest.digest != plan.evaluation_manifest_digest:
+        raise ValueError("sequence plan and heldout manifest have different digests")
+    if chain_concurrency < 1:
+        raise ValueError("chain_concurrency must be at least one")
+    semaphore = asyncio.Semaphore(chain_concurrency)
+
+    async def run_chain(chain) -> list[SessionRecord]:
+        async with semaphore:
+            records: list[SessionRecord] = []
+            for row in chain.rows():
+                records.extend(
+                    await run_grid(
+                        [row],
+                        plan.arms,
+                        runner,
+                        arm_concurrency=arm_concurrency,
+                        order_seed=f"{order_seed}|{chain.chain_id}",
+                    )
+                )
+            return records
+
+    blocks = await asyncio.gather(*(run_chain(chain) for chain in plan.chains))
     return [record for block in blocks for record in block]

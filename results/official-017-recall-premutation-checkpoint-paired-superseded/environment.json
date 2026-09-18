@@ -1,0 +1,389 @@
+{
+  "run_id": "official-017-recall-premutation-checkpoint-paired-superseded",
+  "model": "deepseek/deepseek-v4-flash",
+  "base_url": "https://openrouter.ai/api",
+  "execution_mode": "rootless-docker",
+  "runtime_name": "docker",
+  "participant_image_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+  "checker_image_digest": "sha256:d993e22e1453f05dd02d56fa29289f50be778c27d463857fa141348335274f07",
+  "isolation_policy_digest": "7f7f69875972ac76a98b0b37ee023ff5a30238215d4c5079547cca1361d50ba5",
+  "network_policy_digest": "sha256:1c525e95987ba6d234eeeac53c355b7114ec1b48a4e41d37275e4b8d8db8e0ef",
+  "participant_isolation_verified": true,
+  "oracle_visible_to_participant": false,
+  "arms": [
+    "recall_graph_fulltools_protocol",
+    "recall_graph_fulltools_checkpoint_placebo",
+    "recall_graph_fulltools_checkpoint"
+  ],
+  "memory_instruction": "premutation_checkpoint_paired",
+  "condition": "superseded",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "recall_graph_fulltools_checkpoint": {
+      "bytes": 3924,
+      "chars": 3924,
+      "sha256": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
+    },
+    "recall_graph_fulltools_checkpoint_placebo": {
+      "bytes": 3924,
+      "chars": 3924,
+      "sha256": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
+    },
+    "recall_graph_fulltools_protocol": {
+      "bytes": 3924,
+      "chars": 3924,
+      "sha256": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
+    }
+  },
+  "instruction_excess_bytes": {
+    "recall_graph_fulltools_checkpoint": 452,
+    "recall_graph_fulltools_checkpoint_placebo": 452,
+    "recall_graph_fulltools_protocol": 452
+  },
+  "instruction_arms_matched": true,
+  "quality_gate_pair": null,
+  "decision_protocol_pair": null,
+  "oracle_ceiling_pair": null,
+  "premutation_checkpoint_pair": {
+    "arms": [
+      "recall_graph_fulltools_protocol",
+      "recall_graph_fulltools_checkpoint_placebo",
+      "recall_graph_fulltools_checkpoint"
+    ],
+    "instruction_bytes_by_arm": {
+      "recall_graph_fulltools_protocol": 3924,
+      "recall_graph_fulltools_checkpoint_placebo": 3924,
+      "recall_graph_fulltools_checkpoint": 3924
+    },
+    "instruction_sha256_by_arm": {
+      "recall_graph_fulltools_protocol": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8",
+      "recall_graph_fulltools_checkpoint_placebo": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8",
+      "recall_graph_fulltools_checkpoint": "aae2f2cf6fe67cac3998b1692d9173ef9ae7edcbe3263053d36025e77f2dc7d8"
+    },
+    "checkpoint_k": 5,
+    "query_limit_chars": 4096,
+    "reason_limit_chars": 4800,
+    "max_injected_hits": 3,
+    "hit_text_limit_chars": 1200
+  },
+  "shared_tool_prefix_groups": [
+    [
+      "recall_graph_fulltools_protocol",
+      "recall_graph_fulltools_checkpoint_placebo",
+      "recall_graph_fulltools_checkpoint"
+    ]
+  ],
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "recall_graph_fulltools_protocol": {
+      "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+      "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+      "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+      "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+      "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+      "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+      "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+      "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+      "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+    },
+    "recall_graph_fulltools_checkpoint_placebo": {
+      "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+      "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+      "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+      "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+      "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+      "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+      "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+      "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+      "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+    },
+    "recall_graph_fulltools_checkpoint": {
+      "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+      "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+      "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+      "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+      "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+      "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+      "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+      "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+      "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+    }
+  },
+  "namespace": "amb-graph-rerank-official-010-superseded",
+  "cell_namespace_policy": {
+    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion"
+  },
+  "work_root": "external-disposable-storage",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "recall_graph_fulltools_protocol": {
+      "arm": "recall_graph_fulltools_protocol",
+      "memory": "static+retrieved",
+      "config_sha256": "60ca046979be796dc342f6d5e89c53b1b975cb8add1d1ded6a19ec6d65a93519",
+      "package_pin": "recall-rag[fastembed,mcp,voyage]==0.13.0"
+    },
+    "recall_graph_fulltools_checkpoint_placebo": {
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "memory": "static+retrieved",
+      "config_sha256": "60ca046979be796dc342f6d5e89c53b1b975cb8add1d1ded6a19ec6d65a93519",
+      "package_pin": "recall-rag[fastembed,mcp,voyage]==0.13.0",
+      "checkpoint_mode": "placebo",
+      "checkpoint_version": 1,
+      "checkpoint_hook_sha256": "11dda345fe2023190f312cd6c98ca461791d3e1955bf22e2be1b0ffe452ce19c"
+    },
+    "recall_graph_fulltools_checkpoint": {
+      "arm": "recall_graph_fulltools_checkpoint",
+      "memory": "static+retrieved",
+      "config_sha256": "60ca046979be796dc342f6d5e89c53b1b975cb8add1d1ded6a19ec6d65a93519",
+      "package_pin": "recall-rag[fastembed,mcp,voyage]==0.13.0",
+      "checkpoint_mode": "treatment",
+      "checkpoint_version": 1,
+      "checkpoint_hook_sha256": "11dda345fe2023190f312cd6c98ca461791d3e1955bf22e2be1b0ffe452ce19c"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "recall_graph_fulltools_protocol",
+      "namespace": "amb-graph-rerank-official-010-superseded",
+      "sessions_offered": 206,
+      "items_stored": 1219,
+      "wall_time_ms": 0.0,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": null,
+      "notes": [
+        "verified remote generation gen_80e1dc8089054da4a816da333a0c998c active             pipeline=ea1f10610e645de",
+        "corpus fingerprint 5a090d3c0809f751b2b3f62a2eda5b666a50413e902594d7d7c983af0e0f3766"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "passed",
+    "server": "recall",
+    "required_tools": [
+      "recall_apply_fact",
+      "recall_calibration_publish",
+      "recall_calibration_run",
+      "recall_calibration_status",
+      "recall_current_facts",
+      "recall_current_state",
+      "recall_evidence",
+      "recall_forget",
+      "recall_index",
+      "recall_ingest",
+      "recall_inventory",
+      "recall_job_status",
+      "recall_query_construction_challenge",
+      "recall_reasoning_audit",
+      "recall_reasoning_projection",
+      "recall_reasoning_proposals",
+      "recall_reasoning_query",
+      "recall_related",
+      "recall_rewrite_plan",
+      "recall_search",
+      "recall_stats",
+      "recall_tenants"
+    ],
+    "tools_observed": [
+      "recall_search",
+      "recall_evidence",
+      "recall_current_facts",
+      "recall_apply_fact",
+      "recall_related",
+      "recall_current_state",
+      "recall_reasoning_query",
+      "recall_query_construction_challenge",
+      "recall_reasoning_projection",
+      "recall_reasoning_proposals",
+      "recall_rewrite_plan",
+      "recall_reasoning_audit",
+      "recall_index",
+      "recall_tenants",
+      "recall_ingest",
+      "recall_job_status",
+      "recall_calibration_status",
+      "recall_calibration_run",
+      "recall_calibration_publish",
+      "recall_forget",
+      "recall_inventory",
+      "recall_stats"
+    ],
+    "probe": "tools/call recall_reasoning_query succeeded"
+  },
+  "claude_mem_preflight": {
+    "status": "not_required"
+  },
+  "graphiti_preflight": {
+    "status": "not_required"
+  },
+  "provider_data_policy": {
+    "schema_version": 1,
+    "data_classification": "synthetic-only",
+    "providers": [
+      "openrouter",
+      "voyage"
+    ],
+    "retention": "zero",
+    "training": false,
+    "reuse": false,
+    "policy_sha256": "fd60146f31351062e9b499c8219657087739dde6702cc8f61c5a31085df81342"
+  },
+  "admission_signals": {
+    "recall_graph_fulltools_checkpoint": {
+      "arm": "recall_graph_fulltools_checkpoint",
+      "mcp_tool_prefixes": [
+        "mcp__recall__"
+      ],
+      "required_hooks": [],
+      "sandbox_paths": [],
+      "prompt_sha256": null,
+      "forbidden_prefixes": [],
+      "metadata": {
+        "checkpoint_mode": "treatment",
+        "prompt_sha256_by_task": {
+          "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+          "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+          "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+          "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+          "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+          "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+          "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+          "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+          "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+        }
+      }
+    },
+    "recall_graph_fulltools_checkpoint_placebo": {
+      "arm": "recall_graph_fulltools_checkpoint_placebo",
+      "mcp_tool_prefixes": [
+        "mcp__recall__"
+      ],
+      "required_hooks": [],
+      "sandbox_paths": [],
+      "prompt_sha256": null,
+      "forbidden_prefixes": [],
+      "metadata": {
+        "checkpoint_mode": "placebo",
+        "prompt_sha256_by_task": {
+          "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+          "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+          "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+          "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+          "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+          "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+          "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+          "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+          "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+        }
+      }
+    },
+    "recall_graph_fulltools_protocol": {
+      "arm": "recall_graph_fulltools_protocol",
+      "mcp_tool_prefixes": [
+        "mcp__recall__"
+      ],
+      "required_hooks": [],
+      "sandbox_paths": [],
+      "prompt_sha256": null,
+      "forbidden_prefixes": [],
+      "metadata": {
+        "prompt_sha256_by_task": {
+          "ts-base36-id": "2f2509042b1b51081b62035ae852c37996defd932a13afbf51413cfa7333ea5e",
+          "ts-bom-merge": "02e4361223b73004c86395bb9e08e7937eb9d79a1ffbbf38f1592b3a00fbbcc9",
+          "ts-golden-regen": "f26a8bb57850dcd89dac00a140ffd3a767ea847e9d2f8eb44e60a5402fa5622a",
+          "ts-ignore-gen": "a8a45c4bad502245bf89298dd1c14363c0678c592056d74fb9231f9a881515af",
+          "ts-legacy-hash": "7ba4be805c68af956e093017eb26be03990f4d25a91a6c1aa8631f7767a3e836",
+          "ts-mig-name": "aa672ab0e9c154696f658503b43206b289a02328393ac563231600eeb4e6bbfa",
+          "ts-schema-additive": "5aa47bc25b1dc99c6b2c950a8927671a5e36a5555d9a678ec192278f73efd19c",
+          "ts-semver-pin": "2f292935fffe91e5a89b762f9b089b6efce6079d4c584ef8189581793bb18bca",
+          "ts-tz-utc": "e142bc1465b3b8be5b48f3f36b4db61df46122d53d76a026397e3763d64f111b"
+        }
+      }
+    }
+  },
+  "adjudication": {
+    "schema": "amb-adjudication-receipt-v1",
+    "required": true,
+    "challenge_version": 1,
+    "challenge_id": "d7e4fec3-be87-4257-8989-46734a59dfa8",
+    "nonce": "VEyoArDD0JyDYsGEDycrS5RCrDBrvdzY0vaRX8PI3P8",
+    "runner_image_digest": "sha256:fe029bc864585bc2d453757d293eff168047151a093b79a63a3a6d2169c0e34f",
+    "participant_agent_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+    "oracle_version": "sha256:abb63a2e9259db22927b0c4c55c9db9bb9a7d691543bf69671daf2dc5fb3c83b",
+    "event_log": "execution-events.jsonl",
+    "receipt": "adjudication.receipt.json"
+  }
+}

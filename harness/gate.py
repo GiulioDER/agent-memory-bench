@@ -83,25 +83,39 @@ class AdmissionSignal:
 
 def with_forbidden_prefixes(
     signals: Mapping[str, AdmissionSignal],
+    *,
+    shared_prefix_groups: Iterable[Iterable[str]] = (),
 ) -> dict[str, AdmissionSignal]:
     """Fill each arm's ``forbidden_prefixes`` with every other arm's tool prefixes.
 
-    A prefix an arm claims for itself is never forbidden to it, even if another arm also claims
-    it; two arms claiming the same prefix is a roster error and is refused outright, because a
-    shared prefix would make the two arms indistinguishable to the gate.
+    Two product arms claiming the same prefix is normally a roster error because the gate cannot
+    distinguish cross-product contamination. A preregistered instruction-only comparison may
+    explicitly declare a group that intentionally shares one product surface. The shared prefix
+    remains allowed only inside that exact group and is never forbidden to one of its members.
     """
 
-    claimed: dict[str, str] = {}
+    groups = tuple(frozenset(str(name) for name in group) for group in shared_prefix_groups)
+    if any(len(group) < 2 for group in groups):
+        raise ValueError("a shared prefix group must contain at least two arms")
+    grouped = [name for group in groups for name in group]
+    if len(grouped) != len(set(grouped)):
+        raise ValueError("an arm may belong to only one shared prefix group")
+    unknown = sorted(set(grouped) - set(signals))
+    if unknown:
+        raise ValueError(f"shared prefix group names unknown arms {unknown}")
+
+    claimed: dict[str, set[str]] = defaultdict(set)
     for name, signal in signals.items():
         if name != signal.arm:
             raise ValueError(f"signal for {name!r} names arm {signal.arm!r}")
         for prefix in signal.mcp_tool_prefixes:
-            if prefix in claimed and claimed[prefix] != name:
-                raise ValueError(
-                    f"tool prefix {prefix!r} is claimed by both {claimed[prefix]!r} and "
-                    f"{name!r}; the gate cannot tell those arms apart"
-                )
-            claimed[prefix] = name
+            claimed[prefix].add(name)
+    for prefix, claimants in claimed.items():
+        if len(claimants) > 1 and not any(claimants <= group for group in groups):
+            raise ValueError(
+                f"tool prefix {prefix!r} is claimed by {sorted(claimants)!r}; "
+                "the gate cannot tell those arms apart"
+            )
 
     filled: dict[str, AdmissionSignal] = {}
     for name, signal in signals.items():
@@ -111,6 +125,7 @@ def with_forbidden_prefixes(
                 for other, other_signal in signals.items()
                 if other != name
                 for prefix in other_signal.mcp_tool_prefixes
+                if prefix not in signal.mcp_tool_prefixes
             )
         )
         filled[name] = replace(signal, forbidden_prefixes=others)
@@ -203,6 +218,54 @@ def _check_diagnostic(record: SessionRecord, signal: AdmissionSignal, reasons: l
             reasons.append("prefetch record is malformed")
 
 
+def _check_checkpoint(
+    record: SessionRecord,
+    signal: AdmissionSignal,
+    reasons: list[str],
+    notes: list[str],
+) -> None:
+    expected = signal.metadata.get("checkpoint_mode")
+    diagnostic = record.metadata.get("memory_checkpoint")
+    if expected is None:
+        if diagnostic is not None:
+            reasons.append("non checkpoint arm contains pre-mutation checkpoint metadata")
+        return
+    if diagnostic is not None and not isinstance(diagnostic, Mapping):
+        reasons.append("pre-mutation checkpoint metadata is malformed")
+        return
+    if int(record.metadata.get("unguarded_mutation_count", 0) or 0) > 0:
+        reasons.append("a repository mutation completed before the first checkpoint marker")
+    if diagnostic is None or not diagnostic.get("triggered"):
+        if record.success:
+            reasons.append(
+                "task succeeded without a pre-mutation checkpoint, so the hook did not guard "
+                "the successful repository mutation"
+            )
+        else:
+            notes.append("session failed before reaching a detected repository mutation")
+        return
+    if diagnostic.get("mode") != expected:
+        reasons.append(
+            f"checkpoint arm expected mode {expected!r}, got {diagnostic.get('mode')!r}"
+        )
+    if diagnostic.get("marker_count") != 1:
+        reasons.append(
+            f"checkpoint emitted {diagnostic.get('marker_count')!r} markers instead of one"
+        )
+    status = diagnostic.get("status")
+    if status == "error":
+        reasons.append("pre-mutation checkpoint retrieval or receipt failed")
+    if expected == "placebo" and status != "placebo":
+        reasons.append(f"placebo checkpoint has unexpected status {status!r}")
+    if expected == "treatment":
+        if status not in {"ok", "abstained"}:
+            reasons.append(f"treatment checkpoint has unexpected status {status!r}")
+        if not diagnostic.get("query_sha256") or not diagnostic.get("result_sha256"):
+            reasons.append("treatment checkpoint is missing query or result identity")
+        if diagnostic.get("injected_bytes", 0) <= 0 or not diagnostic.get("injected_sha256"):
+            reasons.append("treatment checkpoint is missing injected-context identity")
+
+
 def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVerdict:
     """Decide whether one session is admissible evidence for its arm."""
 
@@ -215,6 +278,7 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
     notes: list[str] = []
 
     _check_diagnostic(record, signal, reasons)
+    _check_checkpoint(record, signal, reasons, notes)
 
     if not record.metadata.get("init_present", True):
         reasons.append(
@@ -276,6 +340,15 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
     if signal.required_hooks:
         events = _ledger_events(record)
         for hook in signal.required_hooks:
+            conditional_hooks = signal.metadata.get("conditional_hooks", {})
+            if (
+                isinstance(conditional_hooks, Mapping)
+                and conditional_hooks.get(hook) == "tool_calls"
+                and not record.tool_calls
+            ):
+                # PostToolUse is only emitted after a tool invocation. Requiring it from a
+                # model turn that made no tool call would manufacture an integration discard.
+                continue
             entry = events.get(hook)
             if entry is None:
                 reasons.append(

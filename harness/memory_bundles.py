@@ -91,6 +91,8 @@ class MemoryBundleCatalog:
         root: str | Path,
         corpus: CorpusManifest,
         tasks: list[TaskSpec] | tuple[TaskSpec, ...] = (),
+        *,
+        include_task_ids: set[str] | frozenset[str] | None = None,
     ) -> MemoryBundleCatalog:
         root = Path(root)
         manifest = root / "bundles.jsonl"
@@ -106,6 +108,8 @@ class MemoryBundleCatalog:
             except json.JSONDecodeError as error:
                 raise ValueError(f"invalid bundle JSON on line {line_number}") from error
             bundle = _parse_bundle(data, line_number)
+            if include_task_ids is not None and bundle.task_id not in include_task_ids:
+                continue
             if bundle.bundle_id in bundles:
                 raise ValueError(f"duplicate memory bundle id {bundle.bundle_id!r}")
             bundles[bundle.bundle_id] = bundle

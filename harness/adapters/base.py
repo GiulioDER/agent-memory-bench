@@ -192,6 +192,7 @@ class ArmSpec:
     append_system_prompt_file: str | Path | None = None
     memory_tool_prefix: str | None = None
     extra_allowed_tools: tuple[str, ...] = ()
+    extra_args: tuple[str, ...] = ()
     config_dir: Path | None = None
     config_dir_digest: str | None = None
     env: Mapping[str, str] = field(default_factory=dict)
@@ -358,6 +359,12 @@ class MemoryAdapter(ABC):
         """Build a task aware arm, preserving the original adapter contract by default."""
 
         return self.build(session_dir, namespace)
+
+    def prepare_for_session(self, namespace: str) -> None:  # pragma: no cover - optional lifecycle
+        """Prepare a per-session vendor runtime immediately before execution."""
+
+    def cleanup_after_session(self, namespace: str) -> None:  # pragma: no cover - optional lifecycle
+        """Release a per-session vendor runtime after execution."""
 
     @abstractmethod
     def admission_signal(self) -> AdmissionSignal:

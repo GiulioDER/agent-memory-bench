@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "manifest_id": "amb-lifecycle-temporal-v1",
+  "track": "lifecycle-temporal",
+  "temporal_manifest": "temporal.json",
+  "temporal_manifest_digest": "72c583bfe9952df3895dbb50d6a86a2006f7356ba2cd1b78789ad10b5e071b65",
+  "basis": {
+    "task_id": "xs-evolve-lease",
+    "description": "Source replay after ordered ingestion of the three dated evolve revisions."
+  },
+  "events": [
+    {
+      "event_id": "initial-p01",
+      "source_path": "sessions/xs-evolve-lease/p01.jsonl",
+      "source_sha256": "83d0a8b637a335348512985b7f30e74d3260d6fa882b260ad07b41365adcb3e9",
+      "event_order": 1,
+      "phase": "initial",
+      "authored_at": "2026-04-12",
+      "replay_of": null
+    },
+    {
+      "event_id": "initial-p02",
+      "source_path": "sessions/xs-evolve-lease/p02.jsonl",
+      "source_sha256": "94fe7d1829c282893de131fb79cfb2a4bb86f3f3f7a0b350997dda9e6cfd5009",
+      "event_order": 2,
+      "phase": "initial",
+      "authored_at": "2026-06-02",
+      "replay_of": null
+    },
+    {
+      "event_id": "initial-p03",
+      "source_path": "sessions/xs-evolve-lease/p03.jsonl",
+      "source_sha256": "57be03230608a2fb09aba30c63bfaca46e5180662054135e99ac6d2b1b76d48e",
+      "event_order": 3,
+      "phase": "initial",
+      "authored_at": "2026-07-21",
+      "replay_of": null
+    },
+    {
+      "event_id": "replay-p01",
+      "source_path": "sessions/xs-evolve-lease/p01.jsonl",
+      "source_sha256": "83d0a8b637a335348512985b7f30e74d3260d6fa882b260ad07b41365adcb3e9",
+      "event_order": 4,
+      "phase": "replay",
+      "authored_at": "2026-04-12",
+      "replay_of": "initial-p01"
+    }
+  ],
+  "probe_ids": [
+    "temporal-before-second-revision",
+    "temporal-between-revisions",
+    "temporal-current-revision"
+  ],
+  "manifest_digest": "c905dc22e079342d76855441825e9c3f0feeb17a885c4e4854367c24e00a2458"
+}

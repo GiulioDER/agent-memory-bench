@@ -5,7 +5,8 @@ description = "A preregistered, execution-graded benchmark of pluggable memory l
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
-dependencies = []
+# The adjudicator uses Ed25519 so a reviewer can verify receipts with a public key.
+dependencies = ["cryptography>=42"]
 
 [project.optional-dependencies]
 dev = ["pytest==9.1.1", "ruff==0.16.2"]

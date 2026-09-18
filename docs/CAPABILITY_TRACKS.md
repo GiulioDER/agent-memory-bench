@@ -1,7 +1,9 @@
 # Capability tracks
 
 These tracks add coverage without changing the official AMB task grid or its headline score. They
-are deliberately small, deterministic qualification checks for a memory adapter.
+are deliberately small, deterministic qualification checks for a memory adapter. The optional
+source replay capability is documented separately in `docs/LIFECYCLE_CAPABILITY.md` because the
+ordinary adapter contract does not promise incremental ingestion.
 
 ## Temporal selection
 
@@ -67,3 +69,19 @@ failing result and `2` for malformed, incomplete, or digest-mismatched input.
 These artifacts must remain separate from `results/<run_id>/` and from the official leaderboard.
 They measure selected capabilities, not overall memory quality, and they must not be combined with
 execution-graded task success into one score.
+
+## Applicability and replacement governance
+
+`capabilities/governance.json` is the next layer above retrieval. It tests stable finding identity,
+plausible replacement candidates, explicit supersession, same scope contradiction, out of scope
+findings, and old findings that remain valid for a pinned historical query. Its artifact contract
+keeps candidate retrieval, applied selection, and conflict declaration separate, so a cited finding
+is observable without being mistaken for a successful outcome.
+
+Verify it with:
+
+```bash
+python -m scripts.governance_verify \
+  --manifest capabilities/governance.json \
+  --artifact results/governance.jsonl
+```
