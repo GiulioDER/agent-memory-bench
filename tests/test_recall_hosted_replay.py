@@ -28,6 +28,8 @@ class FakeReplayClient:
                 "session_id": payload["session_id"],
                 "compiler_fallback": False,
             }
+        if path == "/v1/sparse/backfill":
+            return {"status": "ready", "sparse_chunk_count": 1}
         if path == "/v1/search":
             return {
                 "data": [
@@ -104,6 +106,53 @@ def test_replay_never_sends_fact_terms_to_the_memory_system(tmp_path):
     search_payload = next(payload for path, payload in client.calls if path == "/v1/search")
     assert search_payload == {"query": "exact task prompt", "user_id": "replay-a0", "top_k": 100}
     assert result["rows"][0]["metrics"]["complete_coverage"] is True
+
+
+def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("C1_splade")
+
+    result = run_replay(
+        client,
+        variant_name="C1_splade",
+        corpus=corpus,
+        tasks=[task],
+        namespace="shared-raw-corpus",
+        reuse_corpus=True,
+    )
+
+    paths = [path for path, _ in client.calls]
+    assert paths[:2] == ["/version", "/v1/sparse/backfill"]
+    assert "/v1/delete" not in paths
+    assert "/v1/add" not in paths
+    assert result["corpus_reused"] is True
+    assert result["dense_embedding_pass"] is False
+    assert result["messages_offered"] == 1
+    assert result["aggregate"]["add_p50_ms"] is None
+
+
+def test_replay_refuses_to_reuse_an_empty_corpus(tmp_path):
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("C1_splade")
+    original_request = client.request
+
+    def empty_backfill(path, payload=None):
+        if path == "/v1/sparse/backfill":
+            client.calls.append((path, payload))
+            return {"status": "ready", "sparse_chunk_count": 0}
+        return original_request(path, payload)
+
+    client.request = empty_backfill
+
+    with pytest.raises(RuntimeError, match="did not prove corpus readiness"):
+        run_replay(
+            client,
+            variant_name="C1_splade",
+            corpus=corpus,
+            tasks=[task],
+            namespace="empty-corpus",
+            reuse_corpus=True,
+        )
 
 
 def test_replay_counts_request_local_search_fallback_headers(tmp_path):

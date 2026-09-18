@@ -169,6 +169,7 @@ def run_replay(
     corpus: CorpusManifest,
     tasks: list[TaskSpec],
     namespace: str,
+    reuse_corpus: bool = False,
 ) -> dict[str, Any]:
     if variant_name not in REGISTERED_VARIANTS:
         raise ValueError(f"unregistered hosted variant {variant_name!r}")
@@ -178,7 +179,24 @@ def run_replay(
         raise RuntimeError(
             f"hosted variant mismatch: expected {variant_name}, got {version.get('variant')!r}"
         )
-    client.request("/v1/delete", {"user_id": namespace})
+    if not reuse_corpus:
+        client.request("/v1/delete", {"user_id": namespace})
+    elif variant_name != "C1_splade" and variant_name not in {
+        "C3_rerank",
+        "C4_task_pack",
+    }:
+        raise ValueError(f"{variant_name} is not a registered corpus-reuse arm")
+
+    if reuse_corpus:
+        prepared = client.request("/v1/sparse/backfill", {"user_id": namespace})
+        sparse_count = prepared.get("sparse_chunk_count")
+        if (
+            prepared.get("status") != "ready"
+            or isinstance(sparse_count, bool)
+            or not isinstance(sparse_count, int)
+            or sparse_count <= 0
+        ):
+            raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
 
     add_latencies: list[float] = []
     compiler_fallbacks = 0
@@ -194,18 +212,19 @@ def run_replay(
                 "user_id": namespace,
                 "session_id": relative,
             }
-            started = time.perf_counter()
-            response = client.request("/v1/add", payload)
-            add_latencies.append((time.perf_counter() - started) * 1_000)
-            expected = {
-                "success": True,
-                "request_id": request_id,
-                "user_id": namespace,
-                "session_id": relative,
-            }
-            if not expected.items() <= response.items():
-                raise RuntimeError("hosted Add response did not echo the request identity")
-            compiler_fallbacks += int(response.get("compiler_fallback") is True)
+            if not reuse_corpus:
+                started = time.perf_counter()
+                response = client.request("/v1/add", payload)
+                add_latencies.append((time.perf_counter() - started) * 1_000)
+                expected = {
+                    "success": True,
+                    "request_id": request_id,
+                    "user_id": namespace,
+                    "session_id": relative,
+                }
+                if not expected.items() <= response.items():
+                    raise RuntimeError("hosted Add response did not echo the request identity")
+                compiler_fallbacks += int(response.get("compiler_fallback") is True)
             messages_offered += len(batch)
 
     search_latencies: list[float] = []
@@ -292,6 +311,8 @@ def run_replay(
         "messages_offered": messages_offered,
         "task_count": len(rows),
         "http_timeout_seconds": REPLAY_HTTP_TIMEOUT_SECONDS,
+        "corpus_reused": reuse_corpus,
+        "dense_embedding_pass": not reuse_corpus,
         "routing_aggregate": routing_aggregate,
         "aggregate": {
             "hit_at_1": mean("hit_at_1"),
@@ -331,6 +352,7 @@ def main() -> None:
     parser.add_argument("--tasks", type=Path, default=Path("tasks"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--namespace")
+    parser.add_argument("--reuse-corpus", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit(f"refusing to overwrite replay artifact: {args.output}")
@@ -344,6 +366,7 @@ def main() -> None:
         corpus=CorpusManifest.load(args.corpus),
         tasks=discover_tasks(args.tasks),
         namespace=namespace,
+        reuse_corpus=args.reuse_corpus,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")

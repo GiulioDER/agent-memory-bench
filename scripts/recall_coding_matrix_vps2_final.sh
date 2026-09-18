@@ -33,6 +33,16 @@ for variant in C0_raw_lexical "$candidate"; do
     api_key="$(sed -n 's/^RECALL_AML_API_KEY=//p' "$runtime_env")"
     export AMB_RECALL_HOSTED_URL="http://127.0.0.1:18004"
     export AMB_RECALL_HOSTED_API_KEY="$api_key"
+    if [[ "$variant" == "C0_raw_lexical" ]]; then
+        namespace="amb-coding-final-raw-v1"
+        unset AMB_RECALL_HOSTED_REUSE_CORPUS
+    elif [[ "$variant" == "C1_splade" ]]; then
+        namespace="amb-coding-final-raw-v1"
+        export AMB_RECALL_HOSTED_REUSE_CORPUS=1
+    else
+        namespace="amb-coding-final-procedure-v1"
+        unset AMB_RECALL_HOSTED_REUSE_CORPUS
+    fi
     mkdir -p -- "results/${run_id}"
     curl --fail --silent --show-error "$AMB_RECALL_HOSTED_URL/version" \
         >"results/${run_id}/service-version.json"
@@ -41,7 +51,7 @@ for variant in C0_raw_lexical "$candidate"; do
         --model deepseek/deepseek-v4-flash \
         --seeds 3 \
         --timeout 600 \
-        --namespace "amb-coding-final-${variant,,}" \
+        --namespace "$namespace" \
         --memory-instruction protocol \
         --condition present \
         --arms recall_hosted \

@@ -164,6 +164,39 @@ class RecallHostedAdapter(MemoryAdapter):
         corpus.verify()
         validate_namespace(namespace)
         client = self._client()
+        reuse_value = os.environ.get("AMB_RECALL_HOSTED_REUSE_CORPUS", "").strip()
+        if reuse_value not in {"", "0", "1"}:
+            raise RuntimeError("AMB_RECALL_HOSTED_REUSE_CORPUS must be 0 or 1")
+        reuse_corpus = reuse_value == "1"
+        if reuse_corpus:
+            started = time.monotonic()
+            prepared = client.request("/v1/sparse/backfill", {"user_id": namespace})
+            sparse_count = prepared.get("sparse_chunk_count")
+            if (
+                prepared.get("status") != "ready"
+                or isinstance(sparse_count, bool)
+                or not isinstance(sparse_count, int)
+                or sparse_count <= 0
+            ):
+                raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
+            message_count = sum(
+                len(session_messages(resolve_corpus_path(corpus.root, relative)))
+                for relative in sorted(corpus.sessions)
+            )
+            return IngestReport(
+                arm=self.name,
+                namespace=namespace,
+                sessions_offered=len(corpus.sessions),
+                items_stored=message_count,
+                wall_time_ms=(time.monotonic() - started) * 1_000,
+                llm_input_tokens=None,
+                llm_output_tokens=None,
+                notes=(
+                    "reused the existing dense corpus without calling Add",
+                    f"verified learned sparse coverage for {sparse_count} chunks",
+                    "items_stored counts source messages represented by the reused corpus",
+                ),
+            )
         client.request("/v1/delete", {"user_id": namespace})
 
         def add_one(item: tuple[str, str]) -> int:

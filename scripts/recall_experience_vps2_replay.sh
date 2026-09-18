@@ -6,6 +6,8 @@ set -euo pipefail
 readonly variant="${1:?usage: recall_experience_vps2_replay.sh VARIANT OUTPUT_DIR}"
 readonly output_dir="${2:?output directory is required}"
 readonly service="recall-aml-experiment.service"
+reuse_args=()
+namespace_args=()
 
 case "$variant" in
     E0_raw|E1_compiled|E2_compiled_raw)
@@ -13,6 +15,18 @@ case "$variant" in
         ;;
     C0_raw_lexical|C1_splade|C2_procedure|C3_rerank|C4_task_pack)
         readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-/home/sentiment/.config/recall-aml/coding-memory-matrix.env}"
+        case "$variant" in
+            C0_raw_lexical) namespace_args=(--namespace "aml-coding-raw-v1") ;;
+            C1_splade)
+                namespace_args=(--namespace "aml-coding-raw-v1")
+                reuse_args=(--reuse-corpus)
+                ;;
+            C2_procedure) namespace_args=(--namespace "aml-coding-procedure-v1") ;;
+            C3_rerank|C4_task_pack)
+                namespace_args=(--namespace "aml-coding-procedure-v1")
+                reuse_args=(--reuse-corpus)
+                ;;
+        esac
         ;;
     *) echo "unsupported experience variant" >&2; exit 2 ;;
 esac
@@ -55,7 +69,9 @@ trap capture_service_log EXIT
     --base-url http://127.0.0.1:18004 \
     --corpus corpus \
     --tasks tasks \
-    --output "$artifact"
+    --output "$artifact" \
+    "${namespace_args[@]}" \
+    "${reuse_args[@]}"
 capture_service_log
 trap - EXIT
 sha256sum "$artifact" "$service_log"

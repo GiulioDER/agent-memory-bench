@@ -30,6 +30,24 @@ for variant in C0_raw_lexical C1_splade C2_procedure C3_rerank C4_task_pack; do
     fi
     export AMB_RECALL_HOSTED_URL="http://127.0.0.1:18004"
     export AMB_RECALL_HOSTED_API_KEY="$api_key"
+    case "$variant" in
+        C0_raw_lexical)
+            namespace="amb-coding-screen-raw-v1"
+            unset AMB_RECALL_HOSTED_REUSE_CORPUS
+            ;;
+        C1_splade)
+            namespace="amb-coding-screen-raw-v1"
+            export AMB_RECALL_HOSTED_REUSE_CORPUS=1
+            ;;
+        C2_procedure)
+            namespace="amb-coding-screen-procedure-v1"
+            unset AMB_RECALL_HOSTED_REUSE_CORPUS
+            ;;
+        C3_rerank|C4_task_pack)
+            namespace="amb-coding-screen-procedure-v1"
+            export AMB_RECALL_HOSTED_REUSE_CORPUS=1
+            ;;
+    esac
     mkdir -p -- "results/${run_id}"
     curl --fail --silent --show-error "$AMB_RECALL_HOSTED_URL/version" \
         >"results/${run_id}/service-version.json"
@@ -38,7 +56,7 @@ for variant in C0_raw_lexical C1_splade C2_procedure C3_rerank C4_task_pack; do
         --model deepseek/deepseek-v4-flash \
         --seeds 3 \
         --timeout 600 \
-        --namespace "amb-coding-screen-${variant,,}" \
+        --namespace "$namespace" \
         --memory-instruction protocol \
         --condition present \
         --arms recall_hosted \

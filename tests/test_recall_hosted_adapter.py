@@ -32,6 +32,8 @@ class FakeClient:
                     {"session_id": "distractors/d01.jsonl", "score": 0.7},
                 ]
             }
+        if path == "/v1/sparse/backfill":
+            return {"status": "ready", "sparse_chunk_count": 7}
         return {"status": "deleted", "deleted_count": 0}
 
 
@@ -119,6 +121,58 @@ def test_adapter_uses_public_add_search_and_builds_read_only_mcp(monkeypatch, tm
         __import__("pathlib").Path(__file__).parents[1] / "scripts" / "pilot.py"
     ).read_text(encoding="utf-8")
     assert '"recall_hosted"' in pilot_source
+
+
+def test_adapter_reuses_dense_corpus_and_backfills_only_sparse(monkeypatch, tmp_path):
+    relative = "sessions/task/p01.jsonl"
+    source = tmp_path / relative
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        '{"role":"user","content":"cached evidence"}\n'
+        '{"role":"assistant","content":"cached result"}\n',
+        encoding="utf-8",
+    )
+    corpus = CorpusManifest(
+        tmp_path, {relative: hashlib.sha256(source.read_bytes()).hexdigest()}
+    )
+    base = tmp_path / "base.md"
+    base.write_text("base", encoding="utf-8")
+    adapter = RecallHostedAdapter(tmp_path / "stage", base)
+    client = FakeClient()
+    monkeypatch.setattr(adapter, "_client", lambda **kwargs: client)
+    monkeypatch.setenv("AMB_RECALL_HOSTED_REUSE_CORPUS", "1")
+
+    report = adapter.ingest(corpus, "shared-raw-corpus")
+
+    assert client.calls == [
+        ("/v1/sparse/backfill", {"user_id": "shared-raw-corpus"})
+    ]
+    assert report.sessions_offered == 1
+    assert report.items_stored == 2
+    assert "without calling Add" in report.notes[0]
+
+
+def test_adapter_refuses_to_reuse_an_empty_corpus(monkeypatch, tmp_path):
+    source = tmp_path / "session.jsonl"
+    source.write_text('{"role":"user","content":"evidence"}\n', encoding="utf-8")
+    corpus = CorpusManifest(
+        tmp_path, {source.name: hashlib.sha256(source.read_bytes()).hexdigest()}
+    )
+    base = tmp_path / "base.md"
+    base.write_text("base", encoding="utf-8")
+    adapter = RecallHostedAdapter(tmp_path / "stage", base)
+
+    class EmptyClient(FakeClient):
+        def request(self, path, payload=None):
+            if path == "/v1/sparse/backfill":
+                return {"status": "ready", "sparse_chunk_count": 0}
+            return super().request(path, payload)
+
+    monkeypatch.setattr(adapter, "_client", lambda **kwargs: EmptyClient())
+    monkeypatch.setenv("AMB_RECALL_HOSTED_REUSE_CORPUS", "1")
+
+    with pytest.raises(RuntimeError, match="did not prove corpus readiness"):
+        adapter.ingest(corpus, "empty-corpus")
 
 
 def test_mcp_bridge_exposes_only_search_and_forwards_stored_evidence(monkeypatch):

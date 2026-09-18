@@ -36,6 +36,13 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         raise ValueError("selection requires exactly one C0 through C4 artifact")
 
     ordered = [by_variant[name] for name in CODING_MATRIX_VARIANTS]
+    expected_cache = {
+        "C0_raw_lexical": (False, True),
+        "C1_splade": (True, False),
+        "C2_procedure": (False, True),
+        "C3_rerank": (True, False),
+        "C4_task_pack": (True, False),
+    }
     reference = ordered[0]
     reference_rows = _rows_by_task(reference)
     invariant_keys = (
@@ -50,6 +57,11 @@ def select_coding_matrix(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         name = str(artifact["variant"])
         if artifact.get("schema_version") != 1:
             raise ValueError(f"unsupported replay schema for {name}")
+        if (
+            artifact.get("corpus_reused"),
+            artifact.get("dense_embedding_pass"),
+        ) != expected_cache[name]:
+            raise ValueError(f"invalid corpus cache lineage for {name}")
         if any(artifact.get(key) != reference.get(key) for key in invariant_keys):
             raise ValueError(f"replay population drift for {name}")
         version = artifact.get("version")
