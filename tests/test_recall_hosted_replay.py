@@ -60,7 +60,13 @@ class FakeReplayClient:
                 "raw_count": 1,
                 "compiled_count": (
                     1
-                    if self.variant in {"V2_anchor_raw", "M2_repository_raw", "M3_experience_raw"}
+                    if self.variant
+                    in {
+                        "V2_anchor_raw",
+                        "V3_anchor_raw",
+                        "M2_repository_raw",
+                        "M3_experience_raw",
+                    }
                     else 0
                 ),
                 "compiler_fallback": False,
@@ -74,7 +80,13 @@ class FakeReplayClient:
                 "raw_chunk_count": 1,
                 "compiled_chunk_count": (
                     1
-                    if self.variant in {"V2_anchor_raw", "M2_repository_raw", "M3_experience_raw"}
+                    if self.variant
+                    in {
+                        "V2_anchor_raw",
+                        "V3_anchor_raw",
+                        "M2_repository_raw",
+                        "M3_experience_raw",
+                    }
                     else 0
                 ),
                 "source_session_count": 1,
@@ -86,7 +98,13 @@ class FakeReplayClient:
                 "raw_corpus_sha256": "b" * 64,
                 "compiled_corpus_sha256": (
                     "c" * 64
-                    if self.variant in {"V2_anchor_raw", "M2_repository_raw", "M3_experience_raw"}
+                    if self.variant
+                    in {
+                        "V2_anchor_raw",
+                        "V3_anchor_raw",
+                        "M2_repository_raw",
+                        "M3_experience_raw",
+                    }
                     else None
                 ),
                 "compiled_kind_counts": (
@@ -262,6 +280,26 @@ def test_anchor_compiler_replay_records_admission_and_corpus_counters(tmp_path):
     assert result["compiled_record_count"] == 1
     assert result["aggregate"]["compiler_fallbacks"] == 0
     assert result["corpus_status"]["raw_chunk_count"] == 1
+
+
+def test_anchor_compiler_v3_replay_is_a_distinct_admission_identity(tmp_path):
+    """RED on f7aa8d3b: the replay rejected both v3 admission variants."""
+    assert "V3_raw" in replay_module.REGISTERED_VARIANTS
+    assert "V3_anchor_raw" in replay_module.REGISTERED_VARIANTS
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("V3_anchor_raw")
+
+    result = run_replay(
+        client,
+        variant_name="V3_anchor_raw",
+        corpus=corpus,
+        tasks=[task],
+        namespace="anchor-v3-pilot",
+    )
+
+    assert result["schema_version"] == 4
+    assert result["typed_session_count"] == 1
+    assert result["compiled_record_count"] == 1
 
 
 @pytest.mark.parametrize(

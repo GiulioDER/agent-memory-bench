@@ -10,7 +10,6 @@ from typing import Any
 
 from scripts.recall_hosted_select import _identity_without_variant
 
-
 INVARIANT_KEYS = (
     "corpus_manifest_sha256",
     "task_set_sha256",
@@ -45,22 +44,27 @@ def _rate(numerator: int, denominator: int) -> float:
 
 
 def select_anchor_compiler(
-    baseline: dict[str, Any], candidate: dict[str, Any], audit: dict[str, Any]
+    baseline: dict[str, Any],
+    candidate: dict[str, Any],
+    audit: dict[str, Any],
+    *,
+    baseline_variant: str = "V2_raw",
+    candidate_variant: str = "V2_anchor_raw",
 ) -> dict[str, Any]:
     """Apply frozen admission gates without inspecting task answers or changing thresholds."""
-    if baseline.get("schema_version") != 4 or baseline.get("variant") != "V2_raw":
-        raise ValueError("baseline must be the V2_raw replay schema")
-    if candidate.get("schema_version") != 4 or candidate.get("variant") != "V2_anchor_raw":
-        raise ValueError("candidate must be the V2_anchor_raw replay schema")
+    if baseline.get("schema_version") != 4 or baseline.get("variant") != baseline_variant:
+        raise ValueError(f"baseline must be the {baseline_variant} replay schema")
+    if candidate.get("schema_version") != 4 or candidate.get("variant") != candidate_variant:
+        raise ValueError(f"candidate must be the {candidate_variant} replay schema")
     if any(candidate.get(key) != baseline.get(key) for key in INVARIANT_KEYS):
         raise ValueError("replay population drift")
     baseline_version = baseline.get("version")
     candidate_version = candidate.get("version")
     if (
         not isinstance(baseline_version, dict)
-        or baseline_version.get("variant") != "V2_raw"
+        or baseline_version.get("variant") != baseline_variant
         or not isinstance(candidate_version, dict)
-        or candidate_version.get("variant") != "V2_anchor_raw"
+        or candidate_version.get("variant") != candidate_variant
     ):
         raise ValueError("served version mismatch")
     if _identity_without_variant(candidate_version) != _identity_without_variant(baseline_version):
@@ -110,12 +114,12 @@ def select_anchor_compiler(
     wrong_profiles = _count(audit.get("wrong_profile_count"), "wrong profile count")
     violations = audit.get("violations")
     if not isinstance(violations, list):
-        raise ValueError("invalid audit violations")
+        raise TypeError("invalid audit violations")
 
     baseline_aggregate = baseline.get("aggregate")
     candidate_aggregate = candidate.get("aggregate")
     if not isinstance(baseline_aggregate, dict) or not isinstance(candidate_aggregate, dict):
-        raise ValueError("missing replay aggregate")
+        raise TypeError("missing replay aggregate")
     if (
         _count(candidate_aggregate.get("compiler_fallbacks"), "compiler fallback count")
         != fallback_sessions
@@ -123,7 +127,7 @@ def select_anchor_compiler(
         raise ValueError("fallback counter drift")
     corpus_status = candidate.get("corpus_status")
     if not isinstance(corpus_status, dict):
-        raise ValueError("missing stored corpus status")
+        raise TypeError("missing stored corpus status")
     if (
         _count(corpus_status.get("compiled_chunk_count"), "stored compiled chunk count")
         != compiled_records
@@ -160,9 +164,9 @@ def select_anchor_compiler(
     admission_pass = all(gates.values())
     return {
         "schema_version": 1,
-        "baseline": "V2_raw",
-        "candidate": "V2_anchor_raw",
-        "selected_compiler": "V2_anchor_raw" if admission_pass else "V2_raw",
+        "baseline": baseline_variant,
+        "candidate": candidate_variant,
+        "selected_compiler": candidate_variant if admission_pass else baseline_variant,
         "admission_pass": admission_pass,
         "authorize_m2_m3_retrieval": admission_pass,
         "accepted_typed_session_rate": accepted_rate,
@@ -190,6 +194,8 @@ def main() -> None:
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--audit", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--baseline-variant", default="V2_raw")
+    parser.add_argument("--candidate-variant", default="V2_anchor_raw")
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit(f"refusing to overwrite selection artifact: {args.output}")
@@ -197,6 +203,8 @@ def main() -> None:
         json.loads(args.baseline.read_text(encoding="utf-8")),
         json.loads(args.candidate.read_text(encoding="utf-8")),
         json.loads(args.audit.read_text(encoding="utf-8")),
+        baseline_variant=args.baseline_variant,
+        candidate_variant=args.candidate_variant,
     )
     result["input_sha256"] = {
         "baseline": _digest(args.baseline),

@@ -143,3 +143,27 @@ Write new files only under
 Existing paths cause refusal. No artifact is overwritten, resumed, or repaired in place.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Measured result, 2026-09-19
+
+The third immutable attempt completed both replays and the independent audit, then stopped before
+selection because the replay reported 815 compiled records while storage and audit contained 803.
+The artifact is
+`results/aml-anchor-compiler-v2/f806935a-cf8c97e2-pilot-r3/` on VPS2. The frozen identities were
+RE-call `f806935ae57e523762c05a6064e4df12089c9d14` and AMB
+`cf8c97e2af29ce1792db6f34265cc10f425b6d98`.
+
+The immutable evidence also fails the substantive admission gates. Accepted typed records covered
+175 of 196 sessions, or 89.2857 percent. Fallback covered 21 sessions, or 10.7143 percent. The
+audit found 42 unsupported fields, exactly `task_shape` and `problem` on each deterministic
+fallback record, zero invalid spans, and zero wrong profiles. Complete coverage at rank 100 was
+0.911765 for the candidate and 0.941176 for raw. The candidate mean reciprocal rank was 0.313461
+against 0.322158 for raw.
+
+Inspection of privacy safe diagnostics found three independent causes. Ten sessions reached a
+successful provider response but failed schema validation outside the retry loop. Eleven sessions
+accepted no proposal because every proposal cited an invalid long anchor identifier. Compiled
+records also displaced raw tail evidence and reduced source session diversity on the one task that
+lost rank 100 coverage. The record count drift came from duplicate compiled payloads sharing a
+content derived chunk identifier while Add counted the proposal list before storage deduplicated
+it. The v2 lane remains failed and will not be resumed or reinterpreted.

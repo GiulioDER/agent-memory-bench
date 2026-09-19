@@ -105,6 +105,20 @@ def test_anchor_audit_distinguishes_accepted_records_from_deterministic_fallback
     ) == ("fallback", False)
 
 
+def test_anchor_audit_validates_an_explicit_v3_profile():
+    """Mutation proof: ignoring accepted_profile marks the v3 record invalid."""
+    module = importlib.import_module("scripts.recall_anchor_compiler_audit")
+
+    assert module.compiler_record_state(
+        {"compiler_profile": "anchor-v3", "compiler_fallback": False},
+        accepted_profile="anchor-v3",
+    ) == ("accepted", True)
+    assert module.compiler_record_state(
+        {"compiler_profile": "anchor-v2", "compiler_fallback": False},
+        accepted_profile="anchor-v3",
+    ) == ("accepted", False)
+
+
 def test_vps_pilot_runs_the_database_audit_with_the_recall_runtime():
     """RED: the AMB runtime lacks psycopg and could not execute the frozen audit."""
     script = (
@@ -112,6 +126,20 @@ def test_vps_pilot_runs_the_database_audit_with_the_recall_runtime():
     ).read_text(encoding="utf-8")
 
     assert '"$recall_root/.venv/bin/python" -m scripts.recall_anchor_compiler_audit' in script
+
+
+def test_v3_pilot_binds_the_v3_audit_and_selector_identities():
+    """Mutation proof: removing the v3 profile flag fails the profile assertion."""
+    script = (
+        Path(__file__).parents[1]
+        / "scripts"
+        / "recall_anchor_compiler_v3_vps2_pilot.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "--accepted-profile anchor-v3" in script
+    assert "--baseline-variant V3_raw" in script
+    assert "--candidate-variant V3_anchor_raw" in script
+    assert "094-recall-anchor-compiler-v3-admission.md" in script
 
 
 def test_anchor_audit_opens_the_exact_tenant_without_rebinding(tmp_path, monkeypatch):

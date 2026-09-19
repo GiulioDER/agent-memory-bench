@@ -39,7 +39,7 @@ CODING_MATRIX_VARIANTS = (
 )
 CLEAN_RERANK_VARIANTS = ("B0_raw", "B1_raw_rerank")
 CODE_AWARE_VARIANTS = ("M0_raw", "M1_code_neighbors")
-ANCHOR_COMPILER_VARIANTS = ("V2_raw", "V2_anchor_raw")
+ANCHOR_COMPILER_VARIANTS = ("V2_raw", "V2_anchor_raw", "V3_raw", "V3_anchor_raw")
 MULTIVIEW_RETRIEVAL_VARIANTS = (
     "M0_multiview_raw",
     "M2_repository_raw",

@@ -36,6 +36,15 @@ case "$variant" in
         fi
         namespace_args=(--namespace "$anchor_namespace")
         ;;
+    V3_raw|V3_anchor_raw)
+        readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/anchor-compiler-v3.env}"
+        readonly anchor_namespace="${RECALL_ANCHOR_NAMESPACE:-}"
+        if [[ -z "$anchor_namespace" ]]; then
+            echo "RECALL_ANCHOR_NAMESPACE is required for compiler v3" >&2
+            exit 2
+        fi
+        namespace_args=(--namespace "$anchor_namespace")
+        ;;
     M0_multiview_raw|M2_repository_raw|M3_experience_raw)
         readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/multiview-retrieval.env}"
         readonly multiview_namespace="${RECALL_MULTIVIEW_NAMESPACE:-}"

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import importlib
 import importlib.util
+from copy import deepcopy
 
 import pytest
 
@@ -106,6 +106,30 @@ def test_anchor_selector_authorizes_views_only_when_every_admission_gate_passes(
     assert result["accepted_typed_session_rate"] == 0.9
     assert result["full_session_fallback_rate"] == 0.0
     assert all(result["gates"].values())
+
+
+def test_anchor_selector_accepts_the_explicit_v3_identity_without_relaxing_gates():
+    """Mutation proof: restoring either hardcoded v2 identity leaves the result empty."""
+    baseline, candidate, audit = _artifacts()
+    baseline["variant"] = "V3_raw"
+    baseline["version"]["variant"] = "V3_raw"
+    candidate["variant"] = "V3_anchor_raw"
+    candidate["version"]["variant"] = "V3_anchor_raw"
+
+    try:
+        result = _selector()(
+            baseline,
+            candidate,
+            audit,
+            baseline_variant="V3_raw",
+            candidate_variant="V3_anchor_raw",
+        )
+    except (TypeError, ValueError):
+        result = {}
+
+    assert result.get("admission_pass") is True
+    assert result.get("selected_compiler") == "V3_anchor_raw"
+    assert all(result.get("gates", {}).values())
 
 
 @pytest.mark.parametrize(

@@ -35,12 +35,14 @@ def _event_time_ms(value: object) -> int | None:
     return int(parsed.timestamp() * 1_000)
 
 
-def compiler_record_state(metadata: Mapping[str, Any]) -> tuple[str, bool]:
+def compiler_record_state(
+    metadata: Mapping[str, Any], *, accepted_profile: str = "anchor-v2"
+) -> tuple[str, bool]:
     """Classify stored compiler output and validate the profile attached by RE-call."""
     fallback = metadata.get("compiler_fallback")
     profile = metadata.get("compiler_profile")
     if fallback is False:
-        return "accepted", profile == "anchor-v2"
+        return "accepted", profile == accepted_profile
     if fallback is True:
         return "fallback", profile == "deterministic-fallback"
     return "unknown", False
@@ -121,6 +123,7 @@ def audit_corpus(
     tenant_store: Any,
     corpus: CorpusManifest,
     namespace: str,
+    accepted_profile: str = "anchor-v2",
 ) -> dict[str, Any]:
     """Audit all stored compiler v2 records without calling a model or product endpoint."""
     from recall_aml.identity import session_digest
@@ -144,13 +147,18 @@ def audit_corpus(
         raw = [chunk for chunk in chunks if chunk.metadata.get("record_type") == "raw"]
         compiled = [chunk for chunk in chunks if chunk.metadata.get("record_type") == "compiled"]
         raw_sessions += int(bool(raw))
-        states = [compiler_record_state(chunk.metadata)[0] for chunk in compiled]
+        states = [
+            compiler_record_state(chunk.metadata, accepted_profile=accepted_profile)[0]
+            for chunk in compiled
+        ]
         compiled_sessions += int("accepted" in states)
         fallback_sessions += int("fallback" in states)
         for chunk in compiled:
             audited_records += 1
             issues: list[str] = []
-            _, profile_valid = compiler_record_state(chunk.metadata)
+            _, profile_valid = compiler_record_state(
+                chunk.metadata, accepted_profile=accepted_profile
+            )
             if not profile_valid:
                 issues.append("wrong_compiler_profile")
                 wrong_profile_count += 1
@@ -208,6 +216,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--table", default=os.environ.get("RECALL_AML_TABLE", "recall_chunks"))
     parser.add_argument("--generation", default="aml-anchor-compiler-v2")
+    parser.add_argument("--accepted-profile", default="anchor-v2")
     parser.add_argument("--dimension", type=int, default=1_024)
     args = parser.parse_args()
     if args.output.exists():
@@ -227,6 +236,7 @@ def main() -> None:
             tenant_store=store,
             corpus=CorpusManifest.load(args.corpus),
             namespace=args.namespace,
+            accepted_profile=args.accepted_profile,
         )
     finally:
         store.close()
