@@ -104,3 +104,36 @@ Write `V3_raw.json`, `V3_raw.service.log`, `V3_anchor_raw.json`,
 `SHA256SUMS` under one fresh run directory.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Infrastructure result: pilot 97fdc2a8-38470a0a-pilot
+
+Measured on 2026-09-19 from frozen RE-call commit
+`97fdc2a8d160a559d78e496f49315d23d6116bb3` and AMB commit
+`38470a0acbed8b21c679b104f640b4f671b4eed6`.
+
+The raw arm completed. Its immutable `V3_raw.json` SHA-256 is
+`275679a7e1c35f4fee15364a78027a13051be460e551b2bdd4d1e136efebab62`. The candidate arm then
+stopped during Add when one request received HTTP 503. The service remained running, the host had
+more than 22 GB available memory, and no OOM event occurred. No candidate JSON, independent audit,
+or selector artifact exists, so this run has no admission verdict and cannot be scored.
+
+The partial `V3_anchor_raw.service.log` is preserved with SHA-256
+`2f3119be85f6e113534081d32b40498b9ce40360797b332f469017a28649723c`. It records successful
+grounded compiler responses before the transient failure without recording request content.
+
+## Infrastructure amendment: reproduce AML Add retry behavior
+
+The public AML runtime contract measured on 2026-09-19 makes HTTP 503 retryable for Add, permits at
+most 32 attempts, and requires the same `request_id` and payload for the logical write. The frozen
+local client instead terminated on its first 503. The failed pilot therefore exercised a replay
+transport mismatch rather than a registered compiler gate.
+
+The repaired replay client retries only the documented Add HTTP status set, preserves identical
+body bytes, uses at most 32 attempts, and applies deterministic exponential waits capped at 60
+seconds. Permanent statuses still fail immediately. The regression node
+`tests/test_recall_hosted_adapter.py::test_add_retries_a_transient_503_with_the_identical_logical_write`
+was proven red against AMB commit `38470a0a`: the first 503 escaped after one attempt and failed its
+explicit retry assertion. The same node must pass before a fresh immutable retry begins.
+
+The registered population, arms, compiler treatment, gates, predictions, and stopping rule remain
+unchanged. Every retry uses a fresh output directory and exact newly committed apparatus identity.

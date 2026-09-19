@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
+from urllib.error import HTTPError
 
 import pytest
 
+from adapters.recall_hosted import adapter as hosted_adapter
 from adapters.recall_hosted import mcp_bridge
 from adapters.recall_hosted.adapter import (
+    HostedHttpClient,
     HostedHttpResponse,
     RecallHostedAdapter,
     session_messages,
@@ -44,6 +48,63 @@ class FakeClient:
         if path == "/v1/sparse/backfill":
             return {"status": "ready", "sparse_chunk_count": 7}
         return {"status": "deleted", "deleted_count": 0}
+
+
+class _HttpResponse:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._body = json.dumps(payload).encode("utf-8")
+        self.headers: dict[str, str] = {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self) -> bytes:
+        return self._body
+
+
+def test_add_retries_a_transient_503_with_the_identical_logical_write(monkeypatch):
+    """A retryable Add failure must not terminate the frozen replay.
+
+    RED proof: commit 38470a0a, before the repair, raised ``RuntimeError`` on the first 503 and
+    failed the explicit ``error is None`` assertion below after one HTTP attempt.  The production
+    boundary is ``HostedHttpClient.request_with_headers``.  The regression also proves that the
+    retry preserves the exact body bytes required by AML's Add idempotency contract.
+    """
+    calls: list[bytes | None] = []
+    sleeps: list[float] = []
+
+    def fake_urlopen(request, *, timeout):
+        assert timeout == 180.0
+        calls.append(request.data)
+        if len(calls) == 1:
+            raise HTTPError(
+                request.full_url,
+                503,
+                "Service Unavailable",
+                {},
+                io.BytesIO(b'{"error":"service_unavailable"}'),
+            )
+        return _HttpResponse({"success": True})
+
+    monkeypatch.setattr(hosted_adapter, "urlopen", fake_urlopen)
+    monkeypatch.setattr(hosted_adapter.time, "sleep", sleeps.append)
+    client = HostedHttpClient("http://127.0.0.1:18004", "test-key", timeout=180.0)
+    payload = {"request_id": "stable", "messages": [], "user_id": "u", "session_id": "s"}
+    result = None
+    error = None
+    try:
+        result = client.request("/v1/add", payload)
+    except RuntimeError as exc:
+        error = exc
+
+    assert error is None, "retryable Add 503 escaped before the AML attempt budget was used"
+    assert result == {"success": True}
+    assert len(calls) == 2
+    assert calls[0] == calls[1]
+    assert sleeps == [1.0]
 
 
 def test_replay_transport_outlives_the_observed_three_attempt_compiler_envelope():

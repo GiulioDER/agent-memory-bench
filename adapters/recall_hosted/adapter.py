@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -29,6 +30,10 @@ from harness.instructions import compose
 
 _CONFIG_PATH = Path(__file__).with_name("config.frozen.json")
 _REPO = Path(__file__).resolve().parents[2]
+_ADD_RETRYABLE_HTTP_STATUSES = frozenset({408, 409, 425, 429, 500, 502, 503, 504, 524})
+_ADD_MAX_ATTEMPTS = 32
+_ADD_MAX_BACKOFF_SECONDS = 60.0
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -96,24 +101,40 @@ class HostedHttpClient:
     ) -> HostedHttpResponse:
         started = time.monotonic()
         body = None if payload is None else json.dumps(payload).encode("utf-8")
-        request = Request(
-            self.base_url + path,
-            data=body,
-            method="GET" if payload is None else "POST",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-        )
-        try:
-            with urlopen(request, timeout=self.timeout) as response:
-                result = json.loads(response.read().decode("utf-8"))
-                headers = {key.casefold(): value for key, value in response.headers.items()}
-        except HTTPError as exc:
-            detail = exc.read(2_000).decode("utf-8", errors="replace")
-            raise RuntimeError(f"hosted API {path} returned HTTP {exc.code}: {detail}") from exc
-        except URLError as exc:
-            raise RuntimeError(f"hosted API {path} is unreachable: {exc.reason}") from exc
+        max_attempts = _ADD_MAX_ATTEMPTS if path == "/v1/add" and body is not None else 1
+        for attempt in range(1, max_attempts + 1):
+            request = Request(
+                self.base_url + path,
+                data=body,
+                method="GET" if payload is None else "POST",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+            try:
+                with urlopen(request, timeout=self.timeout) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                    headers = {key.casefold(): value for key, value in response.headers.items()}
+                break
+            except HTTPError as exc:
+                if exc.code in _ADD_RETRYABLE_HTTP_STATUSES and attempt < max_attempts:
+                    delay = min(2.0 ** (attempt - 1), _ADD_MAX_BACKOFF_SECONDS)
+                    log.warning(
+                        "hosted Add retryable HTTP status=%d attempt=%d/%d retry_in=%.1fs",
+                        exc.code,
+                        attempt,
+                        max_attempts,
+                        delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                detail = exc.read(2_000).decode("utf-8", errors="replace")
+                raise RuntimeError(
+                    f"hosted API {path} returned HTTP {exc.code}: {detail}"
+                ) from exc
+            except URLError as exc:
+                raise RuntimeError(f"hosted API {path} is unreachable: {exc.reason}") from exc
         if not isinstance(result, dict):
             raise TypeError(f"hosted API {path} returned a non-object response")
         return HostedHttpResponse(result, headers, (time.monotonic() - started) * 1_000)
