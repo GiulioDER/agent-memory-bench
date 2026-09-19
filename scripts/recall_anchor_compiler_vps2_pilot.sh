@@ -60,7 +60,7 @@ if [[ -z "$database_url" || "$database_url" == *$'\n'* || "$database_url" == *$'
 fi
 RECALL_AML_DATABASE_URL="$database_url" \
 PYTHONPATH="$amb_root:$recall_root" \
-    "$amb_root/.venv/bin/python" -m scripts.recall_anchor_compiler_audit \
+    "$recall_root/.venv/bin/python" -m scripts.recall_anchor_compiler_audit \
     --corpus "$amb_root/corpus" \
     --namespace "$candidate_namespace" \
     --table "$table" \

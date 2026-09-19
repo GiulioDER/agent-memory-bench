@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+from pathlib import Path
 
 
 def test_anchor_audit_rechecks_every_claim_against_original_source_bytes():
@@ -97,3 +98,12 @@ def test_anchor_audit_distinguishes_accepted_records_from_deterministic_fallback
     assert module.compiler_record_state(
         {"compiler_profile": "anchor-v2", "compiler_fallback": True}
     ) == ("fallback", False)
+
+
+def test_vps_pilot_runs_the_database_audit_with_the_recall_runtime():
+    """RED: the AMB runtime lacks psycopg and could not execute the frozen audit."""
+    script = (
+        Path(__file__).parents[1] / "scripts" / "recall_anchor_compiler_vps2_pilot.sh"
+    ).read_text(encoding="utf-8")
+
+    assert '"$recall_root/.venv/bin/python" -m scripts.recall_anchor_compiler_audit' in script
