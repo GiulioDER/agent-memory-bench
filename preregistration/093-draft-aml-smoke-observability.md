@@ -10,10 +10,11 @@ submitted version to held-out questions?
 
 ## Contract interpretation
 
-AML calls Search per question with the original benchmark question, exact `user_id`, and formal
-`top_k`. The participant returns ranked evidence. The platform owns Answer and Eval. This is not an
-agent-controlled sequence of memory searches, so no post-first-search instruction or additional
-tool call is part of the official surface.
+AML makes one logical Search per Coding question with the original benchmark question, exact
+`user_id`, and formal `top_k`; identical transport retries remain possible. The participant returns
+ranked evidence. The platform owns Answer and Eval. This is not an agent-controlled sequence of
+memory searches, so no post-first-search instruction or additional tool call is part of the
+official surface.
 
 Smoke is a compatibility mode. It is private, nonpublishable, limited to one run per hour and 30
 runs per track for the edition. AML says evaluation data and derived copies may be used only for
