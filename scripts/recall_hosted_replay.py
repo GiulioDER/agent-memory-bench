@@ -39,12 +39,14 @@ CODING_MATRIX_VARIANTS = (
 )
 CLEAN_RERANK_VARIANTS = ("B0_raw", "B1_raw_rerank")
 CODE_AWARE_VARIANTS = ("M0_raw", "M1_code_neighbors")
+ANCHOR_COMPILER_VARIANTS = ("V2_raw", "V2_anchor_raw")
 REGISTERED_VARIANTS = (
     ATTRIBUTION_VARIANTS
     + EXPERIENCE_VARIANTS
     + CODING_MATRIX_VARIANTS
     + CLEAN_RERANK_VARIANTS
     + CODE_AWARE_VARIANTS
+    + ANCHOR_COMPILER_VARIANTS
 )
 
 # Measured 2026-09-18 on VPS2: a valid idempotent Add needed all three compiler attempts and
@@ -342,6 +344,11 @@ def run_replay(
                 raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
 
     add_latencies: list[float] = []
+    add_request_count = 0
+    typed_add_count = 0
+    compiled_record_count = 0
+    typed_sessions: set[str] = set()
+    fallback_sessions: set[str] = set()
     compiler_fallbacks = 0
     messages_offered = 0
     for relative, content_hash in sorted(corpus.sessions.items()):
@@ -367,12 +374,31 @@ def run_replay(
                 }
                 if not expected.items() <= response.items():
                     raise RuntimeError("hosted Add response did not echo the request identity")
-                compiler_fallbacks += int(response.get("compiler_fallback") is True)
+                raw_count = response.get("raw_count")
+                compiled_count = response.get("compiled_count")
+                if (
+                    isinstance(raw_count, bool)
+                    or not isinstance(raw_count, int)
+                    or raw_count < 0
+                    or isinstance(compiled_count, bool)
+                    or not isinstance(compiled_count, int)
+                    or compiled_count < 0
+                ):
+                    raise RuntimeError("hosted Add response has invalid record counters")
+                compiler_fallback = response.get("compiler_fallback") is True
+                add_request_count += 1
+                typed_add_count += int(compiled_count > 0 and not compiler_fallback)
+                compiled_record_count += compiled_count
+                if compiled_count > 0 and not compiler_fallback:
+                    typed_sessions.add(relative)
+                if compiler_fallback:
+                    fallback_sessions.add(relative)
+                compiler_fallbacks += int(compiler_fallback)
             messages_offered += len(batch)
 
     corpus_status = (
         client.request("/v1/corpus/status", {"user_id": namespace})
-        if variant_name in CLEAN_RERANK_VARIANTS + CODE_AWARE_VARIANTS
+        if variant_name in CLEAN_RERANK_VARIANTS + CODE_AWARE_VARIANTS + ANCHOR_COMPILER_VARIANTS
         else None
     )
     if corpus_status is not None:
@@ -472,7 +498,9 @@ def run_replay(
     ).hexdigest()
     return {
         "schema_version": (
-            3
+            4
+            if variant_name in ANCHOR_COMPILER_VARIANTS
+            else 3
             if variant_name in CODE_AWARE_VARIANTS
             else 2
             if variant_name in CLEAN_RERANK_VARIANTS
@@ -485,6 +513,11 @@ def run_replay(
         "task_set_sha256": task_digest,
         "sessions_offered": len(corpus.sessions),
         "messages_offered": messages_offered,
+        "add_request_count": add_request_count,
+        "typed_add_count": typed_add_count,
+        "typed_session_count": len(typed_sessions),
+        "full_session_fallback_count": len(fallback_sessions),
+        "compiled_record_count": compiled_record_count,
         "task_count": len(tasks),
         "capture_count": captures,
         "request_count": len(rows),

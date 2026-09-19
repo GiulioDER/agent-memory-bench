@@ -8,6 +8,7 @@ import pytest
 
 from adapters.recall_hosted.adapter import HostedHttpResponse
 from harness.adapters.base import CorpusManifest
+import scripts.recall_hosted_replay as replay_module
 from scripts.recall_hosted_replay import _percentile, run_replay, score_items
 
 
@@ -40,6 +41,8 @@ class FakeReplayClient:
                 "request_id": payload["request_id"],
                 "user_id": payload["user_id"],
                 "session_id": payload["session_id"],
+                "raw_count": 1,
+                "compiled_count": 1 if self.variant == "V2_anchor_raw" else 0,
                 "compiler_fallback": False,
             }
         if path == "/v1/sparse/backfill":
@@ -49,7 +52,7 @@ class FakeReplayClient:
                 "status": "ready",
                 "chunk_count": 1,
                 "raw_chunk_count": 1,
-                "compiled_chunk_count": 0,
+                "compiled_chunk_count": 1 if self.variant == "V2_anchor_raw" else 0,
                 "source_session_count": 1,
                 "authored_relation_count": 0,
                 "eligible_relation_count": 0,
@@ -195,6 +198,28 @@ def test_replay_never_sends_fact_terms_to_the_memory_system(tmp_path):
     search_payload = next(payload for path, payload in client.calls if path == "/v1/search")
     assert search_payload == {"query": "exact task prompt", "user_id": "replay-a0", "top_k": 100}
     assert result["rows"][0]["metrics"]["complete_coverage"] is True
+
+
+def test_anchor_compiler_replay_records_admission_and_corpus_counters(tmp_path):
+    """RED on pre-fix: the admission variant and its counters were not registered."""
+    assert "V2_anchor_raw" in replay_module.REGISTERED_VARIANTS
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("V2_anchor_raw")
+
+    result = run_replay(
+        client,
+        variant_name="V2_anchor_raw",
+        corpus=corpus,
+        tasks=[task],
+        namespace="anchor-v2-pilot",
+    )
+
+    assert result["schema_version"] == 4
+    assert result["add_request_count"] == 1
+    assert result["typed_add_count"] == 1
+    assert result["compiled_record_count"] == 1
+    assert result["aggregate"]["compiler_fallbacks"] == 0
+    assert result["corpus_status"]["raw_chunk_count"] == 1
 
 
 def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):

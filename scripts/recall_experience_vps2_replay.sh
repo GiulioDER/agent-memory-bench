@@ -27,6 +27,15 @@ case "$variant" in
     E0_raw|E1_compiled|E2_compiled_raw)
         readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/experience-compiler.env}"
         ;;
+    V2_raw|V2_anchor_raw)
+        readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/anchor-compiler-v2.env}"
+        readonly anchor_namespace="${RECALL_ANCHOR_NAMESPACE:-}"
+        if [[ -z "$anchor_namespace" ]]; then
+            echo "RECALL_ANCHOR_NAMESPACE is required for compiler v2" >&2
+            exit 2
+        fi
+        namespace_args=(--namespace "$anchor_namespace")
+        ;;
     C0_raw_lexical|C1_splade|C2_procedure|C3_rerank|C4_task_pack)
         readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/coding-memory-matrix.env}"
         case "$variant" in
