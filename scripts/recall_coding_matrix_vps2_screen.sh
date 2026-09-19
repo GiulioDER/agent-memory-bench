@@ -7,7 +7,7 @@ readonly app_root="${1:?usage: recall_coding_matrix_vps2_screen.sh APP_ROOT APP_
 readonly app_commit="${2:?app commit is required}"
 readonly run_prefix="${3:?run prefix is required}"
 readonly setup_script="${app_root}/scripts/aml_experience_vps2_setup.sh"
-readonly runtime_env="/home/sentiment/.config/recall-aml/coding-memory-matrix.env"
+readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/coding-memory-matrix.env}"
 readonly tasks="xs-evolve-lease,xs-join-batch,xs-widen-manifest,fa-dedup-key,ts-mig-name,ts-semver-pin,ts-retry-cap,ts-config-layer,ts-atomic-write,ts-idempotent-run,ts-glob-hidden,ts-quote-shell"
 readonly retrieval_selection="${RECALL_CODING_RETRIEVAL_SELECTION:?set RECALL_CODING_RETRIEVAL_SELECTION to selection.json}"
 

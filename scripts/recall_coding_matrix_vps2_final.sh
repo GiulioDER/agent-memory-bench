@@ -9,7 +9,7 @@ readonly app_commit="${2:?app commit is required}"
 readonly run_prefix="${3:?run prefix is required}"
 readonly screen_selection="${4:?screen selection artifact is required}"
 readonly setup_script="${app_root}/scripts/aml_experience_vps2_setup.sh"
-readonly runtime_env="/home/sentiment/.config/recall-aml/coding-memory-matrix.env"
+readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/coding-memory-matrix.env}"
 
 candidate="$(.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["promoted_candidate"])' "$screen_selection")"
 case "$candidate" in
