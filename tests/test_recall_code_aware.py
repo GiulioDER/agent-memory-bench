@@ -253,6 +253,7 @@ def test_remaining_vps2_wrappers_freeze_concurrency_and_condition_order():
     assert "--price-as-of 2026-08-22" in screen
     assert 'AMB_PARTICIPANT_IMAGE_DIGEST="${AMB_PARTICIPANT_AGENT_DIGEST:' in screen
     assert 'AMB_CHECKER_IMAGE_DIGEST="sha256:${AMB_CHECKER_IMAGE_DIGEST}"' in screen
+    assert "cryptography.hazmat.primitives.asymmetric.ed25519" in screen
     assert "start_code_aware_broker" in screen
     assert "AMB_BLOCK_CONCURRENCY=3" in confirmation
     assert "--timeout 600" in confirmation
@@ -261,6 +262,7 @@ def test_remaining_vps2_wrappers_freeze_concurrency_and_condition_order():
     assert "--price-as-of 2026-08-22" in confirmation
     assert 'AMB_PARTICIPANT_IMAGE_DIGEST="${AMB_PARTICIPANT_AGENT_DIGEST:' in confirmation
     assert 'AMB_CHECKER_IMAGE_DIGEST="sha256:${AMB_CHECKER_IMAGE_DIGEST}"' in confirmation
+    assert "cryptography.hazmat.primitives.asymmetric.ed25519" in confirmation
     assert "start_code_aware_broker" in confirmation
     assert "conditions=(present absent adjacent contradictory superseded)" in robustness
     assert "--captures 3" in robustness

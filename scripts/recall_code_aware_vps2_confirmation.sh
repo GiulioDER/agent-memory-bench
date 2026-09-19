@@ -16,6 +16,12 @@ readonly artifact_root="$(pwd)/results/aml-code-aware-raw-v1/${artifact_id}"
 source "$(pwd)/scripts/recall_code_aware_broker.sh"
 trap stop_code_aware_broker EXIT
 
+.venv/bin/python -c \
+    'from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey' \
+    >/dev/null || {
+    echo "cryptography is required for signed adjudication receipts" >&2
+    exit 2
+}
 if [[ -e "$artifact_root" ]]; then
     echo "refusing to reuse confirmation artifacts" >&2
     exit 2
