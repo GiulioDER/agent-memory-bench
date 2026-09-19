@@ -33,6 +33,23 @@ _TRACE_HEADERS = (
     "x-recall-generation",
     "x-recall-corpus-sha256",
     "x-recall-variant",
+    "x-recall-code-aware-attempted",
+    "x-recall-code-aware-fallback",
+    "x-recall-code-profile",
+    "x-recall-code-rrf-weight",
+    "x-recall-code-query-tokens",
+    "x-recall-code-match-candidates",
+    "x-recall-code-top10-order-changed",
+    "x-recall-code-top10-membership-changed",
+    "x-recall-code-top100-order-changed",
+    "x-recall-code-top100-membership-changed",
+    "x-recall-neighbour-seed-limit",
+    "x-recall-neighbour-seeds",
+    "x-recall-neighbour-activated-seeds",
+    "x-recall-neighbour-ineligible-seeds",
+    "x-recall-neighbour-restored",
+    "x-recall-neighbour-invalid",
+    "x-recall-code-duplicate-outputs",
 )
 
 

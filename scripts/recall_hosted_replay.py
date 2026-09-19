@@ -38,8 +38,13 @@ CODING_MATRIX_VARIANTS = (
     "C4_task_pack",
 )
 CLEAN_RERANK_VARIANTS = ("B0_raw", "B1_raw_rerank")
+CODE_AWARE_VARIANTS = ("M0_raw", "M1_code_neighbors")
 REGISTERED_VARIANTS = (
-    ATTRIBUTION_VARIANTS + EXPERIENCE_VARIANTS + CODING_MATRIX_VARIANTS + CLEAN_RERANK_VARIANTS
+    ATTRIBUTION_VARIANTS
+    + EXPERIENCE_VARIANTS
+    + CODING_MATRIX_VARIANTS
+    + CLEAN_RERANK_VARIANTS
+    + CODE_AWARE_VARIANTS
 )
 
 # Measured 2026-09-18 on VPS2: a valid idempotent Add needed all three compiler attempts and
@@ -235,6 +240,40 @@ def _reranker_telemetry(headers: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def _code_aware_telemetry(headers: dict[str, str]) -> dict[str, Any]:
+    return {
+        "attempted": _bool_header(headers, "x-recall-code-aware-attempted"),
+        "fallback": _bool_header(headers, "x-recall-code-aware-fallback"),
+        "profile": _required_header(headers, "x-recall-code-profile"),
+        "rrf_weight": _float_header(headers, "x-recall-code-rrf-weight"),
+        "query_token_count": _int_header(headers, "x-recall-code-query-tokens"),
+        "match_candidate_count": _int_header(headers, "x-recall-code-match-candidates"),
+        "top_10_order_changed": _bool_header(headers, "x-recall-code-top10-order-changed"),
+        "top_10_membership_changed": _bool_header(
+            headers, "x-recall-code-top10-membership-changed"
+        ),
+        "top_100_order_changed": _bool_header(headers, "x-recall-code-top100-order-changed"),
+        "top_100_membership_changed": _bool_header(
+            headers, "x-recall-code-top100-membership-changed"
+        ),
+        "neighbour_seed_limit": _int_header(headers, "x-recall-neighbour-seed-limit"),
+        "neighbour_seed_count": _int_header(headers, "x-recall-neighbour-seeds"),
+        "neighbour_activated_seed_count": _int_header(
+            headers, "x-recall-neighbour-activated-seeds"
+        ),
+        "neighbour_ineligible_seed_count": _int_header(
+            headers, "x-recall-neighbour-ineligible-seeds"
+        ),
+        "neighbour_restored_count": _int_header(headers, "x-recall-neighbour-restored"),
+        "neighbour_invalid_count": _int_header(headers, "x-recall-neighbour-invalid"),
+        "duplicate_output_count": _int_header(headers, "x-recall-code-duplicate-outputs"),
+        "served_commit": _required_header(headers, "x-recall-served-commit"),
+        "generation_id": _required_header(headers, "x-recall-generation"),
+        "corpus_sha256": _required_header(headers, "x-recall-corpus-sha256"),
+        "variant": _required_header(headers, "x-recall-variant"),
+    }
+
+
 def run_replay(
     client: Client,
     *,
@@ -272,15 +311,16 @@ def run_replay(
             "C3_rerank",
             "C4_task_pack",
             "B1_raw_rerank",
+            "M1_code_neighbors",
         }
     ):
         raise ValueError(f"{variant_name} is not a registered corpus-reuse arm")
 
     if reuse_corpus:
         preparation_client = sparse_backfill_client or client
-        if variant_name == "B1_raw_rerank":
+        if variant_name in {"B1_raw_rerank", "M1_code_neighbors"}:
             if expected_corpus_sha256 is None or len(expected_corpus_sha256) != 64:
-                raise ValueError("B1 reuse requires the expected B0 corpus SHA-256")
+                raise ValueError("clean reuse requires the expected baseline corpus SHA-256")
             prepared = preparation_client.request("/v1/corpus/status", {"user_id": namespace})
             if (
                 prepared.get("status") != "ready"
@@ -332,7 +372,7 @@ def run_replay(
 
     corpus_status = (
         client.request("/v1/corpus/status", {"user_id": namespace})
-        if variant_name in CLEAN_RERANK_VARIANTS
+        if variant_name in CLEAN_RERANK_VARIANTS + CODE_AWARE_VARIANTS
         else None
     )
     if corpus_status is not None:
@@ -367,6 +407,11 @@ def run_replay(
                 if variant_name in CLEAN_RERANK_VARIANTS
                 else None
             )
+            code_aware = (
+                _code_aware_telemetry(http_response.headers)
+                if variant_name in CODE_AWARE_VARIANTS
+                else None
+            )
             facet_fallbacks += int(facet_fallback)
             reranker_fallbacks += int(reranker_fallback)
             items = _validated_items(response)
@@ -384,6 +429,7 @@ def run_replay(
                     "reranker_fallback": reranker_fallback,
                     "task_type": task_type,
                     "reranker": telemetry,
+                    "code_aware": code_aware,
                     "metrics": score_items(
                         items,
                         task.fact_terms,
@@ -425,7 +471,13 @@ def run_replay(
         ).encode()
     ).hexdigest()
     return {
-        "schema_version": 2 if variant_name in CLEAN_RERANK_VARIANTS else 1,
+        "schema_version": (
+            3
+            if variant_name in CODE_AWARE_VARIANTS
+            else 2
+            if variant_name in CLEAN_RERANK_VARIANTS
+            else 1
+        ),
         "variant": variant_name,
         "namespace": namespace,
         "version": version,
@@ -493,6 +545,61 @@ def run_replay(
             ),
             "estimated_reranker_cost_usd": sum(
                 float(row["reranker"]["estimated_cost_usd"]) for row in rows if row["reranker"]
+            ),
+            "code_aware_attempts": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["attempted"])) for row in rows
+            ),
+            "code_aware_fallbacks": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["fallback"])) for row in rows
+            ),
+            "code_eligible_requests": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["query_token_count"] > 0))
+                for row in rows
+            ),
+            "code_match_candidate_count": sum(
+                int(row["code_aware"]["match_candidate_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "code_top_10_order_changes": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["top_10_order_changed"]))
+                for row in rows
+            ),
+            "code_top_10_membership_changes": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["top_10_membership_changed"]))
+                for row in rows
+            ),
+            "code_top_100_membership_changes": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["top_100_membership_changed"]))
+                for row in rows
+            ),
+            "neighbour_seed_count": sum(
+                int(row["code_aware"]["neighbour_seed_count"]) for row in rows if row["code_aware"]
+            ),
+            "neighbour_activated_seed_count": sum(
+                int(row["code_aware"]["neighbour_activated_seed_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "neighbour_ineligible_seed_count": sum(
+                int(row["code_aware"]["neighbour_ineligible_seed_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "neighbour_restored_count": sum(
+                int(row["code_aware"]["neighbour_restored_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "neighbour_invalid_count": sum(
+                int(row["code_aware"]["neighbour_invalid_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "code_duplicate_output_count": sum(
+                int(row["code_aware"]["duplicate_output_count"])
+                for row in rows
+                if row["code_aware"]
             ),
         },
         "rows": rows,

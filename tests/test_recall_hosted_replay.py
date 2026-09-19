@@ -28,6 +28,11 @@ class FakeReplayClient:
                 "reranker_model": "rerank-2.5",
                 "candidate_width": 100,
                 "rrf_constant": 60,
+                "code_profile": "aml-code-exact-v1",
+                "code_rrf_weight": 0.5,
+                "code_neighbour_seed_limit": 8,
+                "code_neighbour_predecessor_radius": 1,
+                "code_neighbour_successor_radius": 1,
             }
         if path == "/v1/add":
             return {
@@ -73,8 +78,15 @@ class FakeReplayClient:
 
     def request_with_headers(self, path, payload=None):
         response = self.request(path, payload)
-        clean = self.variant in {"B0_raw", "B1_raw_rerank"}
+        clean = self.variant in {
+            "B0_raw",
+            "B1_raw_rerank",
+            "M0_raw",
+            "M1_code_neighbors",
+        }
         reranked = self.variant == "B1_raw_rerank"
+        code_variant = self.variant in {"M0_raw", "M1_code_neighbors"}
+        code_enabled = self.variant == "M1_code_neighbors"
         headers = {
             "x-recall-facet-fallback": "1" if not clean else "0",
             "x-recall-reranker-fallback": "1" if not clean else "0",
@@ -98,6 +110,32 @@ class FakeReplayClient:
                     "x-recall-search-ms": "10.0",
                     "x-recall-reranker-candidate-chars": "100",
                     "x-recall-reranker-estimated-cost-usd": ("0.000001" if reranked else "0"),
+                    "x-recall-served-commit": "abc123",
+                    "x-recall-generation": "aml-clean-reranker-v1",
+                    "x-recall-corpus-sha256": "a" * 64,
+                    "x-recall-variant": self.variant,
+                }
+            )
+        if code_variant:
+            headers.update(
+                {
+                    "x-recall-code-aware-attempted": str(int(code_enabled)),
+                    "x-recall-code-aware-fallback": "0",
+                    "x-recall-code-profile": "aml-code-exact-v1" if code_enabled else "none",
+                    "x-recall-code-rrf-weight": "0.5" if code_enabled else "0",
+                    "x-recall-code-query-tokens": "3" if code_enabled else "0",
+                    "x-recall-code-match-candidates": "2" if code_enabled else "0",
+                    "x-recall-code-top10-order-changed": str(int(code_enabled)),
+                    "x-recall-code-top10-membership-changed": str(int(code_enabled)),
+                    "x-recall-code-top100-order-changed": str(int(code_enabled)),
+                    "x-recall-code-top100-membership-changed": "0",
+                    "x-recall-neighbour-seed-limit": "8" if code_enabled else "0",
+                    "x-recall-neighbour-seeds": "1" if code_enabled else "0",
+                    "x-recall-neighbour-activated-seeds": "1" if code_enabled else "0",
+                    "x-recall-neighbour-ineligible-seeds": "0",
+                    "x-recall-neighbour-restored": "2" if code_enabled else "0",
+                    "x-recall-neighbour-invalid": "0",
+                    "x-recall-code-duplicate-outputs": "0",
                     "x-recall-served-commit": "abc123",
                     "x-recall-generation": "aml-clean-reranker-v1",
                     "x-recall-corpus-sha256": "a" * 64,
@@ -220,6 +258,39 @@ def test_clean_reranker_replay_reuses_exact_corpus_and_captures_three_times(tmp_
         ("task", 1),
         ("task", 2),
     }
+
+
+def test_code_aware_replay_reuses_exact_raw_corpus_and_records_mechanism(tmp_path):
+    corpus, task = _fixture(tmp_path)
+    client = FakeReplayClient("M1_code_neighbors")
+
+    result = run_replay(
+        client,
+        variant_name="M1_code_neighbors",
+        corpus=corpus,
+        tasks=[task],
+        namespace="code-present",
+        reuse_corpus=True,
+        captures=3,
+        expected_corpus_sha256="a" * 64,
+    )
+
+    paths = [path for path, _ in client.calls]
+    assert "/v1/delete" not in paths
+    assert "/v1/add" not in paths
+    assert paths.count("/v1/search") == 3
+    assert result["schema_version"] == 3
+    assert result["corpus_reused"] is True
+    assert result["dense_embedding_pass"] is False
+    assert result["aggregate"]["code_aware_attempts"] == 3
+    assert result["aggregate"]["code_aware_fallbacks"] == 0
+    assert result["aggregate"]["code_eligible_requests"] == 3
+    assert result["aggregate"]["code_top_10_order_changes"] == 3
+    assert result["aggregate"]["neighbour_activated_seed_count"] == 3
+    assert result["aggregate"]["neighbour_restored_count"] == 6
+    assert result["aggregate"]["neighbour_invalid_count"] == 0
+    assert result["aggregate"]["code_duplicate_output_count"] == 0
+    assert all(row["code_aware"]["profile"] == "aml-code-exact-v1" for row in result["rows"])
 
 
 def test_replay_resumes_partial_ingest_without_delete_or_dense_reembedding(tmp_path):

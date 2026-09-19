@@ -180,7 +180,12 @@ class RecallHostedAdapter(MemoryAdapter):
         if reuse_corpus:
             started = time.monotonic()
             version = client.request("/version")
-            if version.get("variant") in {"B0_raw", "B1_raw_rerank"}:
+            if version.get("variant") in {
+                "B0_raw",
+                "B1_raw_rerank",
+                "M0_raw",
+                "M1_code_neighbors",
+            }:
                 if len(expected_hash) != 64:
                     raise RuntimeError(
                         "clean corpus reuse requires AMB_RECALL_HOSTED_EXPECTED_CORPUS_SHA256"
@@ -264,7 +269,12 @@ class RecallHostedAdapter(MemoryAdapter):
         exact_note: tuple[str, ...] = ()
         if expected_hash:
             version = client.request("/version")
-            if version.get("variant") in {"B0_raw", "B1_raw_rerank"}:
+            if version.get("variant") in {
+                "B0_raw",
+                "B1_raw_rerank",
+                "M0_raw",
+                "M1_code_neighbors",
+            }:
                 status = client.request("/v1/corpus/status", {"user_id": namespace})
                 chunk_count = status.get("chunk_count")
                 if (
