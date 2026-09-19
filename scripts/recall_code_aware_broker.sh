@@ -25,9 +25,11 @@ start_code_aware_broker() {
     export RECALL_HOSTED_API_KEY="${AMB_RECALL_HOSTED_API_KEY:?hosted API key is required}"
     # VPS2 blocks Docker bridge-to-host traffic. Keep the authenticated API
     # private and route the broker over the host's Tailscale address.
+    # Rootless Docker maps container UID 0 to the unprivileged host user that
+    # owns the mounted trace directory; arbitrary container UIDs cannot write it.
     docker run --detach --rm \
         --name "$broker_container" \
-        --user "$(id -u):$(id -g)" \
+        --user 0:0 \
         --network bridge \
         --publish 127.0.0.1:18085:8080 \
         --volume "$(pwd):/app:ro" \
