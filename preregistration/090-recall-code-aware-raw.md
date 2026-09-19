@@ -243,3 +243,20 @@ selector that differs from these rules is not this experiment.
 
 <!-- results are appended below this line; everything above is frozen -->
 
+## Pre-execution implementation clarification, 2026-09-19
+
+This clarification was committed before any M0 or M1 measurement was inspected. It makes the
+mechanism counts and latency gate mechanically unambiguous without changing an arm or threshold.
+
+1. A distinct query counts toward the 17-query Top 10 mechanism gate only when all three captures
+   report a Top 10 order or membership change.
+2. A distinct query counts toward the 10-query neighbour gate only when all three captures restore
+   at least one neighbour.
+3. The prediction that every query is tokenized means all three captures report at least one
+   query token. It is reported as a prediction and is not an additional promotion gate.
+4. An ineligible seed is a code-matched raw candidate whose own ordinal or segment is missing or
+   malformed, or whose identifier is absent from the exact-source raw ordering. It is reported but
+   is not itself an invalid output. An invalid neighbour is a served structural addition that is
+   not raw or does not have the seed's exact source. The invalid-neighbour count must be zero.
+5. The p95 gate uses the replay client's outer HTTP wall-clock latency, not the server's internal
+   Search header. Nearest-rank p95 is used over all 102 requests in an arm.
