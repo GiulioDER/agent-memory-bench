@@ -260,3 +260,41 @@ mechanism counts and latency gate mechanically unambiguous without changing an a
    not raw or does not have the seed's exact source. The invalid-neighbour count must be zero.
 5. The p95 gate uses the replay client's outer HTTP wall-clock latency, not the server's internal
    Search header. Nearest-rank p95 is used over all 102 requests in an arm.
+
+## Measured result, 2026-09-19
+
+The retrieval screen completed under RE-call commit
+`016a11ebe007139cf1cb3522c88b629c4a3deeef` and AMB commit
+`c6182e9ef71d5e3b91fa0fae57d338c9bb490dbb`. All frozen retrieval and mechanism gates passed, so
+M1 was authorized for the executable screen. M0 mean reciprocal rank was `0.3222308789`; M1 was
+`0.3274630897`. Complete coverage at 10 improved from `0.1764705882` to `0.3529411765`, complete
+coverage at 100 improved from `0.9411764706` to `0.9705882353`, and source-session recall remained
+`1.0`. M1 changed all-three-capture Top 10 results on 30 tasks and restored neighbours on 30
+tasks. Outer HTTP p95 was `386.585 ms` for M0 and `531.006 ms` for M1.
+
+The final executable attempt used RE-call commit
+`33e61c8c760424d741cc0f30d5a491b5e8e07187` and AMB commit
+`ca97d4ace962f82606a9bc957dc779d57a06256c`. It completed 36 sessions per arm with signed
+adjudication receipts, but did not produce a valid paired screen:
+
+1. M0 admitted 35 of 36 cells. `xs-widen-manifest` seed 2 had no result event.
+2. M1 admitted 34 of 36 cells. `fa-dedup-key` seed 2 and `xs-evolve-lease` seed 1 had no result
+   event.
+3. The frozen requirement that every expected cell be valid and paired therefore failed.
+4. On the 33 descriptively paired admitted cells, M0 solved 14 and M1 solved 13. M0-only cell wins
+   were 3 and M1-only cell wins were 2. By task, M0 won 2, M1 won 1, and 9 tied. These figures are
+   diagnostic only because the screen was invalid.
+5. Search was called successfully in 19 of the 33 paired M0 cells and 13 of the 33 paired M1
+   cells, so the independent all-cells Search-use gate also failed.
+6. The frozen selector then refused to emit `selection.json` because the hosted trace contains
+   the mandatory real preflight Search in addition to participant Searches: M0 expected 24 trace
+   rows under its current accounting and observed 25. The selector was not changed after outcomes
+   were visible.
+
+The executable attempts consumed 3,154,840 tokens and an estimated `$0.1886`: M0 used 1,660,351
+tokens for `$0.0993`, and M1 used 1,494,489 tokens for `$0.0893`. Earlier `r6` through `r11`
+directories are preserved infrastructure failures and are excluded from the measured comparison.
+
+**Verdict:** M1 is not promoted. Confirmation and five-condition robustness were not run. M0
+remains the raw base. This closes the exact-token plus immediate-source-neighbour configuration;
+its retrieval improvement did not translate into a valid positive executable result.
