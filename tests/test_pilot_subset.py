@@ -224,3 +224,23 @@ def test_the_default_task_set_is_unchanged():
     )
     assert set(GRID_PREFIXES) <= set(SELECTABLE_PREFIXES)
     assert not (set(SELECTABLE_PREFIXES) & set(EXCLUDED_PREFIXES))
+
+
+def test_preregistered_coding_screen_can_explicitly_select_cross_session_tasks():
+    from scripts.pilot import GRID_PREFIXES, SELECTABLE_PREFIXES
+
+    assert "xs-" not in GRID_PREFIXES
+    assert "xs-" in SELECTABLE_PREFIXES
+
+
+def test_hosted_coding_screen_serializes_add_and_uses_measured_timeout_envelope():
+    import json
+
+    config = json.loads(
+        (REPO / "adapters" / "recall_hosted" / "config.frozen.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert config["add_concurrency"] == 1
+    assert config["add_timeout_seconds"] == 180
+    assert config["search_timeout_seconds"] == 60
