@@ -6,13 +6,13 @@ import argparse
 import hashlib
 import json
 import os
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from adapters.recall_hosted.adapter import session_messages
 from harness.adapters.base import CorpusManifest, resolve_corpus_path
-
 
 FACT_FIELDS = ("task_shape", "problem", "action", "outcome", "validation")
 
@@ -76,9 +76,7 @@ def audit_record(
         if valid:
             content = messages[ordinal].get("content")
             valid = (
-                isinstance(content, str)
-                and end <= len(content)
-                and content[start:end] == quote
+                isinstance(content, str) and end <= len(content) and content[start:end] == quote
             )
         if valid:
             supported_quotes.append(quote)
@@ -87,14 +85,20 @@ def audit_record(
 
     for field in FACT_FIELDS:
         value = record.get(field, "")
-        if isinstance(value, str) and value and not any(value in quote for quote in supported_quotes):
+        if (
+            isinstance(value, str)
+            and value
+            and not any(value in quote for quote in supported_quotes)
+        ):
             issues.append(f"unsupported_field:{field}")
 
     entities = record.get("entities", [])
     if isinstance(entities, list):
         for index, entity in enumerate(entities):
-            if not isinstance(entity, str) or not entity or not any(
-                entity in quote for quote in supported_quotes
+            if (
+                not isinstance(entity, str)
+                or not entity
+                or not any(entity in quote for quote in supported_quotes)
             ):
                 issues.append(f"unsupported_entity:{index}")
     else:
@@ -114,16 +118,14 @@ def audit_record(
 
 def audit_corpus(
     *,
-    store: Any,
+    tenant_store: Any,
     corpus: CorpusManifest,
     namespace: str,
 ) -> dict[str, Any]:
     """Audit all stored compiler v2 records without calling a model or product endpoint."""
-    from recall_aml.identity import session_digest, tenant_for
+    from recall_aml.identity import session_digest
 
     corpus.verify()
-    tenant = tenant_for(namespace)
-    tenant_store = store.for_tenant(tenant)
     eligible_sessions = 0
     compiled_sessions = 0
     fallback_sessions = 0
@@ -140,9 +142,7 @@ def audit_corpus(
         source = "aml://session/" + session_digest(relative)
         chunks = list(tenant_store.chunks_for_source(source))
         raw = [chunk for chunk in chunks if chunk.metadata.get("record_type") == "raw"]
-        compiled = [
-            chunk for chunk in chunks if chunk.metadata.get("record_type") == "compiled"
-        ]
+        compiled = [chunk for chunk in chunks if chunk.metadata.get("record_type") == "compiled"]
         raw_sessions += int(bool(raw))
         states = [compiler_record_state(chunk.metadata)[0] for chunk in compiled]
         compiled_sessions += int("accepted" in states)
@@ -200,6 +200,7 @@ def audit_corpus(
 
 def main() -> None:
     from recall.store import PgVectorStore
+    from recall_aml.identity import tenant_for
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--corpus", type=Path, default=Path("corpus"))
@@ -218,12 +219,12 @@ def main() -> None:
         database_url,
         args.dimension,
         table=args.table,
-        tenant="aml_anchor_audit",
+        tenant=tenant_for(args.namespace),
         generation_id=args.generation,
     )
     try:
         result = audit_corpus(
-            store=store,
+            tenant_store=store,
             corpus=CorpusManifest.load(args.corpus),
             namespace=args.namespace,
         )
