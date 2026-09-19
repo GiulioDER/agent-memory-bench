@@ -51,6 +51,9 @@ for variant in M0_raw M1_code_neighbors; do
         --model deepseek/deepseek-v4-flash \
         --seeds 3 \
         --timeout 600 \
+        --price-in 0.0574 \
+        --price-out 0.1148 \
+        --price-as-of 2026-08-22 \
         --namespace "$namespace" \
         --memory-instruction protocol \
         --condition present \

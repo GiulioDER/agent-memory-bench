@@ -248,10 +248,17 @@ def test_remaining_vps2_wrappers_freeze_concurrency_and_condition_order():
 
     assert "AMB_BLOCK_CONCURRENCY=3" in screen
     assert "--timeout 600" in screen
+    assert "--price-in 0.0574" in screen
+    assert "--price-out 0.1148" in screen
+    assert "--price-as-of 2026-08-22" in screen
     assert "start_code_aware_broker" in screen
     assert "AMB_BLOCK_CONCURRENCY=3" in confirmation
     assert "--timeout 600" in confirmation
+    assert "--price-in 0.0574" in confirmation
+    assert "--price-out 0.1148" in confirmation
+    assert "--price-as-of 2026-08-22" in confirmation
     assert "start_code_aware_broker" in confirmation
     assert "conditions=(present absent adjacent contradictory superseded)" in robustness
     assert "--captures 3" in robustness
     assert 'local broker_run_dir="$1" broker_artifact_id="$2"' in broker
+    assert "--user 0:0" in broker
