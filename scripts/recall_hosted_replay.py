@@ -1,0 +1,694 @@
+"""Deterministic retrieval replay for the preregistered RE-call Hosted variants."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import os
+import statistics
+import time
+from pathlib import Path
+from typing import Any, Protocol
+
+from adapters.recall_hosted.adapter import HostedHttpClient, HostedHttpResponse, session_messages
+from harness.adapters.base import CorpusManifest, resolve_corpus_path
+from harness.tasks import TaskSpec, discover_tasks
+
+ATTRIBUTION_VARIANTS = (
+    "A0_raw",
+    "A1_compiler",
+    "A2_facets",
+    "A3_rerank",
+    "A4_pack_5000",
+    "A4_pack_7000",
+    "A4_pack_9000",
+)
+EXPERIENCE_VARIANTS = (
+    "E0_raw",
+    "E1_compiled",
+    "E2_compiled_raw",
+)
+CODING_MATRIX_VARIANTS = (
+    "C0_raw_lexical",
+    "C1_splade",
+    "C2_procedure",
+    "C3_rerank",
+    "C4_task_pack",
+)
+CLEAN_RERANK_VARIANTS = ("B0_raw", "B1_raw_rerank")
+CODE_AWARE_VARIANTS = ("M0_raw", "M1_code_neighbors")
+ANCHOR_COMPILER_VARIANTS = ("V2_raw", "V2_anchor_raw", "V3_raw", "V3_anchor_raw")
+MULTIVIEW_RETRIEVAL_VARIANTS = (
+    "M0_multiview_raw",
+    "M2_repository_raw",
+    "M3_experience_raw",
+)
+REGISTERED_VARIANTS = (
+    ATTRIBUTION_VARIANTS
+    + EXPERIENCE_VARIANTS
+    + CODING_MATRIX_VARIANTS
+    + CLEAN_RERANK_VARIANTS
+    + CODE_AWARE_VARIANTS
+    + ANCHOR_COMPILER_VARIANTS
+    + MULTIVIEW_RETRIEVAL_VARIANTS
+)
+
+# Measured 2026-09-18 on VPS2: a valid idempotent Add needed all three compiler attempts and
+# completed in 88 seconds.  The old 60 second transport timeout abandoned the response while the
+# server continued and durably committed it.  Keep this above the observed retry envelope without
+# changing the product's compiler timeout, retry policy, or deterministic fallback.
+REPLAY_HTTP_TIMEOUT_SECONDS = 180.0
+
+# Measured 2026-09-18 on VPS2: the CPU SPLADE sidecar had completed 576 of 2,284 chunks after
+# 13 minutes, projecting to about 52 minutes.  This endpoint is an explicit corpus preparation
+# operation, not Add or Search, so give only it a two-hour transport window.
+SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS = 7_200.0
+
+
+class Client(Protocol):
+    def request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]: ...
+    def request_with_headers(
+        self, path: str, payload: dict[str, Any] | None = None
+    ) -> HostedHttpResponse: ...
+
+
+def build_replay_client(base_url: str, api_key: str) -> HostedHttpClient:
+    """Construct the frozen replay transport with room for the product retry envelope."""
+    return HostedHttpClient(base_url, api_key, timeout=REPLAY_HTTP_TIMEOUT_SECONDS)
+
+
+def build_sparse_backfill_client(base_url: str, api_key: str) -> HostedHttpClient:
+    """Construct the corpus-preparation transport without changing Add or Search timeouts."""
+    return HostedHttpClient(
+        base_url,
+        api_key,
+        timeout=SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS,
+    )
+
+
+def _digest_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _request_id(namespace: str, relative: str, content_hash: str, offset: int) -> str:
+    material = f"{namespace}\0{relative}\0{content_hash}\0{offset}"
+    return hashlib.sha256(material.encode()).hexdigest()
+
+
+def _percentile(values: list[float], quantile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = max(0, min(len(ordered) - 1, math.ceil(len(ordered) * quantile) - 1))
+    return ordered[index]
+
+
+def _complete_at(texts: list[str], terms: tuple[str, ...], limit: int) -> bool:
+    joined = "\n".join(texts[:limit]).casefold()
+    return bool(terms) and all(term in joined for term in terms)
+
+
+def score_items(
+    items: list[dict[str, Any]],
+    fact_terms: tuple[str, ...],
+    *,
+    relevant_sources: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Score only after retrieval, using terms that are never sent to the memory system."""
+    folded_terms = tuple(term.casefold() for term in fact_terms)
+    texts = [str(item["content"]) for item in items]
+    answer_bearing = [any(term in text.casefold() for term in folded_terms) for text in texts]
+    first = next((index for index, hit in enumerate(answer_bearing, start=1) if hit), None)
+    returned_sources = tuple(str(item["session_id"]) for item in items)
+    unique_sources = set(returned_sources)
+    expected_sources = set(relevant_sources)
+    return {
+        "hit_at_1": any(answer_bearing[:1]),
+        "hit_at_5": any(answer_bearing[:5]),
+        "hit_at_10": any(answer_bearing[:10]),
+        "hit_at_100": any(answer_bearing[:100]),
+        "hit_in_returned_budget": any(answer_bearing),
+        "complete_coverage_at_5": _complete_at(texts, folded_terms, 5),
+        "complete_coverage_at_10": _complete_at(texts, folded_terms, 10),
+        "complete_coverage_at_100": _complete_at(texts, folded_terms, 100),
+        "complete_coverage": _complete_at(texts, folded_terms, len(texts)),
+        "reciprocal_rank": 0.0 if first is None else 1.0 / first,
+        "source_session_recall": (
+            None
+            if not expected_sources
+            else len(unique_sources & expected_sources) / len(expected_sources)
+        ),
+        "duplicate_session_concentration": (
+            0.0 if not returned_sources else 1.0 - len(unique_sources) / len(returned_sources)
+        ),
+        "item_count": len(items),
+        "character_count": sum(len(text) for text in texts),
+    }
+
+
+def _validated_items(response: dict[str, Any]) -> list[dict[str, Any]]:
+    data = response.get("data")
+    if not isinstance(data, list):
+        raise TypeError("hosted Search response has no data array")
+    items: list[dict[str, Any]] = []
+    for item in data:
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
+            raise TypeError("hosted Search item has no string id")
+        if not isinstance(item.get("content"), str):
+            raise TypeError("hosted Search item has no string content")
+        if not isinstance(item.get("session_id"), str) or not item["session_id"]:
+            raise TypeError("hosted Search item has no string session_id")
+        items.append(item)
+    return items
+
+
+def _relevant_sources(corpus: CorpusManifest, fact_terms: tuple[str, ...]) -> tuple[str, ...]:
+    """Resolve labeled source sessions only after Search for diagnostic scoring."""
+    folded_terms = tuple(term.casefold() for term in fact_terms)
+    relevant: list[str] = []
+    for relative in sorted(corpus.sessions):
+        messages = session_messages(resolve_corpus_path(corpus.root, relative))
+        text = "\n".join(str(message["content"]) for message in messages).casefold()
+        if any(term in text for term in folded_terms):
+            relevant.append(relative)
+    return tuple(relevant)
+
+
+def _fallback_header(headers: dict[str, str], name: str) -> bool:
+    value = headers.get(name)
+    if value not in {"0", "1"}:
+        raise RuntimeError(
+            f"hosted Search response has invalid or missing fallback telemetry: {name}"
+        )
+    return value == "1"
+
+
+def _task_type_header(headers: dict[str, str]) -> str:
+    value = headers.get("x-recall-task-type")
+    if value not in {"feature", "bugfix", "unknown"}:
+        raise RuntimeError("hosted Search response has invalid or missing task routing telemetry")
+    return value
+
+
+def _required_header(headers: dict[str, str], name: str) -> str:
+    value = headers.get(name)
+    if value is None or not value.strip():
+        raise RuntimeError(f"hosted Search response has missing telemetry: {name}")
+    return value
+
+
+def _bool_header(headers: dict[str, str], name: str) -> bool:
+    value = _required_header(headers, name)
+    if value not in {"0", "1"}:
+        raise RuntimeError(f"hosted Search response has invalid boolean telemetry: {name}")
+    return value == "1"
+
+
+def _int_header(headers: dict[str, str], name: str) -> int:
+    value = int(_required_header(headers, name))
+    if value < 0:
+        raise RuntimeError(f"hosted Search response has negative telemetry: {name}")
+    return value
+
+
+def _float_header(headers: dict[str, str], name: str) -> float:
+    value = float(_required_header(headers, name))
+    if not math.isfinite(value) or value < 0:
+        raise RuntimeError(f"hosted Search response has invalid numeric telemetry: {name}")
+    return value
+
+
+def _reranker_telemetry(headers: dict[str, str]) -> dict[str, Any]:
+    return {
+        "attempted": _bool_header(headers, "x-recall-reranker-attempted"),
+        "completed": _bool_header(headers, "x-recall-reranker-completed"),
+        "provider": _required_header(headers, "x-recall-reranker-provider"),
+        "model": _required_header(headers, "x-recall-reranker-model"),
+        "input_count": _int_header(headers, "x-recall-reranker-input-count"),
+        "output_count": _int_header(headers, "x-recall-reranker-output-count"),
+        "permutation_valid": _bool_header(headers, "x-recall-reranker-permutation-valid"),
+        "top_10_order_changed": _bool_header(headers, "x-recall-reranker-top10-order-changed"),
+        "top_10_membership_changed": _bool_header(
+            headers, "x-recall-reranker-top10-membership-changed"
+        ),
+        "top_100_order_changed": _bool_header(headers, "x-recall-reranker-top100-order-changed"),
+        "top_100_membership_changed": _bool_header(
+            headers, "x-recall-reranker-top100-membership-changed"
+        ),
+        "rerank_ms": _float_header(headers, "x-recall-reranker-ms"),
+        "search_ms": _float_header(headers, "x-recall-search-ms"),
+        "candidate_character_count": _int_header(headers, "x-recall-reranker-candidate-chars"),
+        "estimated_cost_usd": _float_header(headers, "x-recall-reranker-estimated-cost-usd"),
+        "served_commit": _required_header(headers, "x-recall-served-commit"),
+        "generation_id": _required_header(headers, "x-recall-generation"),
+        "corpus_sha256": _required_header(headers, "x-recall-corpus-sha256"),
+        "variant": _required_header(headers, "x-recall-variant"),
+    }
+
+
+def _code_aware_telemetry(headers: dict[str, str]) -> dict[str, Any]:
+    return {
+        "attempted": _bool_header(headers, "x-recall-code-aware-attempted"),
+        "fallback": _bool_header(headers, "x-recall-code-aware-fallback"),
+        "profile": _required_header(headers, "x-recall-code-profile"),
+        "rrf_weight": _float_header(headers, "x-recall-code-rrf-weight"),
+        "query_token_count": _int_header(headers, "x-recall-code-query-tokens"),
+        "match_candidate_count": _int_header(headers, "x-recall-code-match-candidates"),
+        "top_10_order_changed": _bool_header(headers, "x-recall-code-top10-order-changed"),
+        "top_10_membership_changed": _bool_header(
+            headers, "x-recall-code-top10-membership-changed"
+        ),
+        "top_100_order_changed": _bool_header(headers, "x-recall-code-top100-order-changed"),
+        "top_100_membership_changed": _bool_header(
+            headers, "x-recall-code-top100-membership-changed"
+        ),
+        "neighbour_seed_limit": _int_header(headers, "x-recall-neighbour-seed-limit"),
+        "neighbour_seed_count": _int_header(headers, "x-recall-neighbour-seeds"),
+        "neighbour_activated_seed_count": _int_header(
+            headers, "x-recall-neighbour-activated-seeds"
+        ),
+        "neighbour_ineligible_seed_count": _int_header(
+            headers, "x-recall-neighbour-ineligible-seeds"
+        ),
+        "neighbour_restored_count": _int_header(headers, "x-recall-neighbour-restored"),
+        "neighbour_invalid_count": _int_header(headers, "x-recall-neighbour-invalid"),
+        "duplicate_output_count": _int_header(headers, "x-recall-code-duplicate-outputs"),
+        "served_commit": _required_header(headers, "x-recall-served-commit"),
+        "generation_id": _required_header(headers, "x-recall-generation"),
+        "corpus_sha256": _required_header(headers, "x-recall-corpus-sha256"),
+        "variant": _required_header(headers, "x-recall-variant"),
+    }
+
+
+def run_replay(
+    client: Client,
+    *,
+    variant_name: str,
+    corpus: CorpusManifest,
+    tasks: list[TaskSpec],
+    namespace: str,
+    reuse_corpus: bool = False,
+    sparse_backfill_client: Client | None = None,
+    resume_ingest: bool = False,
+    captures: int = 1,
+    expected_corpus_sha256: str | None = None,
+) -> dict[str, Any]:
+    if variant_name not in REGISTERED_VARIANTS:
+        raise ValueError(f"unregistered hosted variant {variant_name!r}")
+    if captures < 1:
+        raise ValueError("captures must be positive")
+    corpus.verify()
+    version = client.request("/version")
+    if version.get("variant") != variant_name:
+        raise RuntimeError(
+            f"hosted variant mismatch: expected {variant_name}, got {version.get('variant')!r}"
+        )
+    if reuse_corpus and resume_ingest:
+        raise ValueError("resume ingest cannot be combined with corpus reuse")
+    if resume_ingest and variant_name != "C2_procedure":
+        raise ValueError("resume ingest is registered only for the amended C2 procedure run")
+    if not reuse_corpus and not resume_ingest:
+        client.request("/v1/delete", {"user_id": namespace})
+    if (
+        reuse_corpus
+        and variant_name != "C1_splade"
+        and variant_name
+        not in {
+            "C3_rerank",
+            "C4_task_pack",
+            "B1_raw_rerank",
+            "M1_code_neighbors",
+        }
+    ):
+        raise ValueError(f"{variant_name} is not a registered corpus-reuse arm")
+
+    if reuse_corpus:
+        preparation_client = sparse_backfill_client or client
+        if variant_name in {"B1_raw_rerank", "M1_code_neighbors"}:
+            if expected_corpus_sha256 is None or len(expected_corpus_sha256) != 64:
+                raise ValueError("clean reuse requires the expected baseline corpus SHA-256")
+            prepared = preparation_client.request("/v1/corpus/status", {"user_id": namespace})
+            if (
+                prepared.get("status") != "ready"
+                or prepared.get("corpus_sha256") != expected_corpus_sha256
+                or isinstance(prepared.get("chunk_count"), bool)
+                or not isinstance(prepared.get("chunk_count"), int)
+                or int(prepared["chunk_count"]) <= 0
+            ):
+                raise RuntimeError("hosted corpus status did not prove exact cache lineage")
+        else:
+            prepared = preparation_client.request("/v1/sparse/backfill", {"user_id": namespace})
+            sparse_count = prepared.get("sparse_chunk_count")
+            if (
+                prepared.get("status") != "ready"
+                or isinstance(sparse_count, bool)
+                or not isinstance(sparse_count, int)
+                or sparse_count <= 0
+            ):
+                raise RuntimeError("hosted sparse backfill did not prove corpus readiness")
+
+    add_latencies: list[float] = []
+    add_request_count = 0
+    typed_add_count = 0
+    compiled_record_count = 0
+    typed_sessions: set[str] = set()
+    fallback_sessions: set[str] = set()
+    compiler_fallbacks = 0
+    messages_offered = 0
+    for relative, content_hash in sorted(corpus.sessions.items()):
+        messages = session_messages(resolve_corpus_path(corpus.root, relative))
+        for offset in range(0, len(messages), 256):
+            batch = messages[offset : offset + 256]
+            request_id = _request_id(namespace, relative, content_hash, offset)
+            payload = {
+                "request_id": request_id,
+                "messages": batch,
+                "user_id": namespace,
+                "session_id": relative,
+            }
+            if not reuse_corpus:
+                started = time.perf_counter()
+                response = client.request("/v1/add", payload)
+                add_latencies.append((time.perf_counter() - started) * 1_000)
+                expected = {
+                    "success": True,
+                    "request_id": request_id,
+                    "user_id": namespace,
+                    "session_id": relative,
+                }
+                if not expected.items() <= response.items():
+                    raise RuntimeError("hosted Add response did not echo the request identity")
+                raw_count = response.get("raw_count")
+                compiled_count = response.get("compiled_count")
+                if (
+                    isinstance(raw_count, bool)
+                    or not isinstance(raw_count, int)
+                    or raw_count < 0
+                    or isinstance(compiled_count, bool)
+                    or not isinstance(compiled_count, int)
+                    or compiled_count < 0
+                ):
+                    raise RuntimeError("hosted Add response has invalid record counters")
+                compiler_fallback = response.get("compiler_fallback") is True
+                add_request_count += 1
+                typed_add_count += int(compiled_count > 0 and not compiler_fallback)
+                compiled_record_count += compiled_count
+                if compiled_count > 0 and not compiler_fallback:
+                    typed_sessions.add(relative)
+                if compiler_fallback:
+                    fallback_sessions.add(relative)
+                compiler_fallbacks += int(compiler_fallback)
+            messages_offered += len(batch)
+
+    corpus_status = (
+        client.request("/v1/corpus/status", {"user_id": namespace})
+        if variant_name
+        in (
+            CLEAN_RERANK_VARIANTS
+            + CODE_AWARE_VARIANTS
+            + ANCHOR_COMPILER_VARIANTS
+            + MULTIVIEW_RETRIEVAL_VARIANTS
+        )
+        else None
+    )
+    if corpus_status is not None:
+        if (
+            corpus_status.get("status") != "ready"
+            or not isinstance(corpus_status.get("chunk_count"), int)
+            or int(corpus_status["chunk_count"]) <= 0
+        ):
+            raise RuntimeError("clean replay corpus status is not ready")
+        if expected_corpus_sha256 and corpus_status.get("corpus_sha256") != expected_corpus_sha256:
+            raise RuntimeError("clean replay corpus identity drifted")
+
+    search_latencies: list[float] = []
+    facet_fallbacks = 0
+    reranker_fallbacks = 0
+    rows: list[dict[str, Any]] = []
+    for task in sorted(tasks, key=lambda item: item.task_id):
+        for capture in range(captures):
+            payload = {"query": task.prompt, "user_id": namespace, "top_k": 100}
+            started = time.perf_counter()
+            http_response = client.request_with_headers("/v1/search", payload)
+            response = http_response.payload
+            latency_ms = (time.perf_counter() - started) * 1_000
+            search_latencies.append(latency_ms)
+            facet_fallback = _fallback_header(http_response.headers, "x-recall-facet-fallback")
+            reranker_fallback = _fallback_header(
+                http_response.headers, "x-recall-reranker-fallback"
+            )
+            task_type = _task_type_header(http_response.headers)
+            telemetry = (
+                _reranker_telemetry(http_response.headers)
+                if variant_name in CLEAN_RERANK_VARIANTS
+                else None
+            )
+            code_aware = (
+                _code_aware_telemetry(http_response.headers)
+                if variant_name in CODE_AWARE_VARIANTS
+                else None
+            )
+            facet_fallbacks += int(facet_fallback)
+            reranker_fallbacks += int(reranker_fallback)
+            items = _validated_items(response)
+            rows.append(
+                {
+                    "task_id": task.task_id,
+                    "capture": capture,
+                    "kind": task.kind,
+                    "query_sha256": hashlib.sha256(task.prompt.encode()).hexdigest(),
+                    "fact_terms_sha256": hashlib.sha256(
+                        json.dumps(task.fact_terms, separators=(",", ":")).encode()
+                    ).hexdigest(),
+                    "latency_ms": latency_ms,
+                    "facet_fallback": facet_fallback,
+                    "reranker_fallback": reranker_fallback,
+                    "task_type": task_type,
+                    "reranker": telemetry,
+                    "code_aware": code_aware,
+                    "metrics": score_items(
+                        items,
+                        task.fact_terms,
+                        relevant_sources=_relevant_sources(corpus, task.fact_terms),
+                    ),
+                    "items": items,
+                }
+            )
+
+    def mean(metric: str) -> float:
+        return statistics.fmean(float(row["metrics"][metric]) for row in rows)
+
+    def optional_mean(metric: str) -> float | None:
+        values = [row["metrics"][metric] for row in rows]
+        present = [float(value) for value in values if value is not None]
+        return statistics.fmean(present) if present else None
+
+    routing_aggregate: dict[str, dict[str, Any]] = {}
+    for task_type in ("feature", "bugfix", "unknown"):
+        routed = [row for row in rows if row["task_type"] == task_type]
+        if not routed:
+            continue
+        routing_aggregate[task_type] = {
+            "task_count": len(routed),
+            "complete_coverage_at_10": statistics.fmean(
+                float(row["metrics"]["complete_coverage_at_10"]) for row in routed
+            ),
+            "mean_reciprocal_rank": statistics.fmean(
+                float(row["metrics"]["reciprocal_rank"]) for row in routed
+            ),
+            "mean_character_count": statistics.fmean(
+                float(row["metrics"]["character_count"]) for row in routed
+            ),
+        }
+
+    task_digest = hashlib.sha256(
+        "".join(
+            f"{task.task_id}\0{_digest_file(task.path / 'task.json')}\n" for task in tasks
+        ).encode()
+    ).hexdigest()
+    return {
+        "schema_version": (
+            5
+            if variant_name in MULTIVIEW_RETRIEVAL_VARIANTS
+            else 4
+            if variant_name in ANCHOR_COMPILER_VARIANTS
+            else 3
+            if variant_name in CODE_AWARE_VARIANTS
+            else 2
+            if variant_name in CLEAN_RERANK_VARIANTS
+            else 1
+        ),
+        "variant": variant_name,
+        "namespace": namespace,
+        "version": version,
+        "corpus_manifest_sha256": _digest_file(corpus.root / "manifest.json"),
+        "task_set_sha256": task_digest,
+        "sessions_offered": len(corpus.sessions),
+        "messages_offered": messages_offered,
+        "add_request_count": add_request_count,
+        "typed_add_count": typed_add_count,
+        "typed_session_count": len(typed_sessions),
+        "full_session_fallback_count": len(fallback_sessions),
+        "compiled_record_count": compiled_record_count,
+        "task_count": len(tasks),
+        "capture_count": captures,
+        "request_count": len(rows),
+        "http_timeout_seconds": REPLAY_HTTP_TIMEOUT_SECONDS,
+        "sparse_backfill_timeout_seconds": (
+            SPARSE_BACKFILL_HTTP_TIMEOUT_SECONDS if reuse_corpus else None
+        ),
+        "corpus_reused": reuse_corpus,
+        "dense_embedding_pass": not reuse_corpus,
+        "ingest_resumed": resume_ingest,
+        "corpus_status": corpus_status,
+        "routing_aggregate": routing_aggregate,
+        "aggregate": {
+            "hit_at_1": mean("hit_at_1"),
+            "hit_at_5": mean("hit_at_5"),
+            "hit_at_10": mean("hit_at_10"),
+            "hit_at_100": mean("hit_at_100"),
+            "hit_in_returned_budget": mean("hit_in_returned_budget"),
+            "complete_coverage_at_5": mean("complete_coverage_at_5"),
+            "complete_coverage_at_10": mean("complete_coverage_at_10"),
+            "complete_coverage_at_100": mean("complete_coverage_at_100"),
+            "complete_coverage": mean("complete_coverage"),
+            "mean_reciprocal_rank": mean("reciprocal_rank"),
+            "mean_source_session_recall": optional_mean("source_session_recall"),
+            "mean_duplicate_session_concentration": mean("duplicate_session_concentration"),
+            "mean_item_count": mean("item_count"),
+            "mean_character_count": mean("character_count"),
+            "add_p50_ms": _percentile(add_latencies, 0.50),
+            "add_p95_ms": _percentile(add_latencies, 0.95),
+            "search_p50_ms": _percentile(search_latencies, 0.50),
+            "search_p95_ms": _percentile(search_latencies, 0.95),
+            "compiler_fallbacks": compiler_fallbacks,
+            "facet_fallbacks": facet_fallbacks,
+            "reranker_fallbacks": reranker_fallbacks,
+            "sparse_failures": 0,
+            "reranker_attempts": sum(
+                int(bool(row["reranker"] and row["reranker"]["attempted"])) for row in rows
+            ),
+            "reranker_completions": sum(
+                int(bool(row["reranker"] and row["reranker"]["completed"])) for row in rows
+            ),
+            "invalid_permutations": sum(
+                int(bool(row["reranker"] and not row["reranker"]["permutation_valid"]))
+                for row in rows
+            ),
+            "top_10_order_changes": sum(
+                int(bool(row["reranker"] and row["reranker"]["top_10_order_changed"]))
+                for row in rows
+            ),
+            "top_100_membership_changes": sum(
+                int(bool(row["reranker"] and row["reranker"]["top_100_membership_changed"]))
+                for row in rows
+            ),
+            "candidate_character_count": sum(
+                int(row["reranker"]["candidate_character_count"])
+                for row in rows
+                if row["reranker"]
+            ),
+            "estimated_reranker_cost_usd": sum(
+                float(row["reranker"]["estimated_cost_usd"]) for row in rows if row["reranker"]
+            ),
+            "code_aware_attempts": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["attempted"])) for row in rows
+            ),
+            "code_aware_fallbacks": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["fallback"])) for row in rows
+            ),
+            "code_eligible_requests": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["query_token_count"] > 0))
+                for row in rows
+            ),
+            "code_match_candidate_count": sum(
+                int(row["code_aware"]["match_candidate_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "code_top_10_order_changes": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["top_10_order_changed"]))
+                for row in rows
+            ),
+            "code_top_10_membership_changes": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["top_10_membership_changed"]))
+                for row in rows
+            ),
+            "code_top_100_membership_changes": sum(
+                int(bool(row["code_aware"] and row["code_aware"]["top_100_membership_changed"]))
+                for row in rows
+            ),
+            "neighbour_seed_count": sum(
+                int(row["code_aware"]["neighbour_seed_count"]) for row in rows if row["code_aware"]
+            ),
+            "neighbour_activated_seed_count": sum(
+                int(row["code_aware"]["neighbour_activated_seed_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "neighbour_ineligible_seed_count": sum(
+                int(row["code_aware"]["neighbour_ineligible_seed_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "neighbour_restored_count": sum(
+                int(row["code_aware"]["neighbour_restored_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "neighbour_invalid_count": sum(
+                int(row["code_aware"]["neighbour_invalid_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+            "code_duplicate_output_count": sum(
+                int(row["code_aware"]["duplicate_output_count"])
+                for row in rows
+                if row["code_aware"]
+            ),
+        },
+        "rows": rows,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--variant", choices=REGISTERED_VARIANTS, required=True)
+    parser.add_argument("--base-url", required=True)
+    parser.add_argument("--corpus", type=Path, default=Path("corpus"))
+    parser.add_argument("--tasks", type=Path, default=Path("tasks"))
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--namespace")
+    parser.add_argument("--reuse-corpus", action="store_true")
+    parser.add_argument("--resume-ingest", action="store_true")
+    parser.add_argument("--captures", type=int, default=1)
+    parser.add_argument("--expected-corpus-sha256")
+    args = parser.parse_args()
+    if args.output.exists():
+        raise SystemExit(f"refusing to overwrite replay artifact: {args.output}")
+    api_key = os.environ.get("AMB_RECALL_HOSTED_API_KEY", "")
+    if not api_key:
+        raise SystemExit("AMB_RECALL_HOSTED_API_KEY is required")
+    namespace = args.namespace or f"aml-replay-{args.variant.casefold().replace('_', '-')}"
+    result = run_replay(
+        build_replay_client(args.base_url, api_key),
+        variant_name=args.variant,
+        corpus=CorpusManifest.load(args.corpus),
+        tasks=discover_tasks(args.tasks),
+        namespace=namespace,
+        reuse_corpus=args.reuse_corpus,
+        sparse_backfill_client=(
+            build_sparse_backfill_client(args.base_url, api_key) if args.reuse_corpus else None
+        ),
+        resume_ingest=args.resume_ingest,
+        captures=args.captures,
+        expected_corpus_sha256=args.expected_corpus_sha256,
+    )
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
