@@ -11,6 +11,10 @@ readonly base_url="http://127.0.0.1:18004"
 readonly tasks="xs-evolve-lease,xs-join-batch,xs-widen-manifest,fa-dedup-key,ts-mig-name,ts-semver-pin,ts-retry-cap,ts-config-layer,ts-atomic-write,ts-idempotent-run,ts-glob-hidden,ts-quote-shell"
 readonly artifact_root="$(pwd)/results/aml-code-aware-raw-v1/${artifact_id}"
 
+# shellcheck source=scripts/recall_code_aware_broker.sh
+source "$(pwd)/scripts/recall_code_aware_broker.sh"
+trap stop_code_aware_broker EXIT
+
 if [[ -e "$artifact_root" ]]; then
     echo "refusing to reuse screen artifacts" >&2
     exit 2
@@ -39,6 +43,7 @@ for variant in M0_raw M1_code_neighbors; do
     export AMB_RECALL_HOSTED_API_KEY="$api_key"
     export AMB_RECALL_HOSTED_TRACE_PATH="${run_dir}/search-trace.jsonl"
     mkdir -p -- "$run_dir"
+    start_code_aware_broker "$run_dir" "$artifact_id" "$variant"
     started_at="$(date --iso-8601=seconds)"
     curl --fail --silent --show-error "$base_url/version" >"${run_dir}/service-version.json"
     .venv/bin/python -m scripts.pilot \
@@ -51,6 +56,7 @@ for variant in M0_raw M1_code_neighbors; do
         --condition present \
         --arms recall_hosted \
         --tasks "$tasks"
+    stop_code_aware_broker
     curl --fail --silent --show-error \
         -H "Authorization: Bearer ${api_key}" -H 'Content-Type: application/json' \
         -d "{\"user_id\":\"${namespace}\"}" "$base_url/v1/corpus/status" \

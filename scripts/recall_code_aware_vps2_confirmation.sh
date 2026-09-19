@@ -12,6 +12,10 @@ readonly base_url="http://127.0.0.1:18004"
 readonly tasks="fa-dedup-key,ts-append-only,ts-atomic-write,ts-base36-id,ts-bom-merge,ts-bool-env,ts-casefold-sort,ts-cli-exitcode,ts-config-layer,ts-crlf-export,ts-csv-quote,ts-dedup-order,ts-empty-input,ts-glob-hidden,ts-golden-regen,ts-idempotent-run,ts-ignore-gen,ts-json-sorted,ts-legacy-hash,ts-log-mask,ts-manifest-rel,ts-mig-name,ts-natural-order,ts-nfc-count,ts-quote-shell,ts-retry-cap,ts-round-money,ts-schema-additive,ts-semver-pin,ts-stable-sort,ts-tz-utc,xs-evolve-lease,xs-join-batch,xs-widen-manifest"
 readonly artifact_root="$(pwd)/results/aml-code-aware-raw-v1/${artifact_id}"
 
+# shellcheck source=scripts/recall_code_aware_broker.sh
+source "$(pwd)/scripts/recall_code_aware_broker.sh"
+trap stop_code_aware_broker EXIT
+
 if [[ -e "$artifact_root" ]]; then
     echo "refusing to reuse confirmation artifacts" >&2
     exit 2
@@ -40,6 +44,7 @@ for variant in M0_raw M1_code_neighbors; do
     export AMB_RECALL_HOSTED_API_KEY="$api_key"
     export AMB_RECALL_HOSTED_TRACE_PATH="${run_dir}/search-trace.jsonl"
     mkdir -p -- "$run_dir"
+    start_code_aware_broker "$run_dir" "$artifact_id" "$variant"
     started_at="$(date --iso-8601=seconds)"
     curl --fail --silent --show-error "$base_url/version" >"${run_dir}/service-version.json"
     .venv/bin/python -m scripts.pilot \
@@ -52,6 +57,7 @@ for variant in M0_raw M1_code_neighbors; do
         --condition present \
         --arms recall_hosted \
         --tasks "$tasks"
+    stop_code_aware_broker
     curl --fail --silent --show-error \
         -H "Authorization: Bearer ${api_key}" -H 'Content-Type: application/json' \
         -d "{\"user_id\":\"${namespace}\"}" "$base_url/v1/corpus/status" \

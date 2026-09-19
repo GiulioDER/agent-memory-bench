@@ -247,7 +247,9 @@ def test_remaining_vps2_wrappers_freeze_concurrency_and_condition_order():
 
     assert "AMB_BLOCK_CONCURRENCY=3" in screen
     assert "--timeout 600" in screen
+    assert "start_code_aware_broker" in screen
     assert "AMB_BLOCK_CONCURRENCY=3" in confirmation
     assert "--timeout 600" in confirmation
+    assert "start_code_aware_broker" in confirmation
     assert "conditions=(present absent adjacent contradictory superseded)" in robustness
     assert "--captures 3" in robustness
