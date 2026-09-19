@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
+import scripts.recall_hosted_replay as replay_module
 from adapters.recall_hosted.adapter import HostedHttpResponse
 from harness.adapters.base import CorpusManifest
-import scripts.recall_hosted_replay as replay_module
 from scripts.recall_hosted_replay import _percentile, run_replay, score_items
 
 
@@ -34,6 +34,22 @@ class FakeReplayClient:
                 "code_neighbour_seed_limit": 8,
                 "code_neighbour_predecessor_radius": 1,
                 "code_neighbour_successor_radius": 1,
+                "compiled_kinds": (
+                    ["architectural decision", "constraint", "repository fact"]
+                    if self.variant == "M2_repository_raw"
+                    else [
+                        "failed attempt",
+                        "procedure",
+                        "root cause",
+                        "successful repair",
+                        "symptom",
+                        "validation",
+                    ]
+                    if self.variant == "M3_experience_raw"
+                    else []
+                ),
+                "drop_compiler_fallback": self.variant
+                in {"M2_repository_raw", "M3_experience_raw"},
             }
         if path == "/v1/add":
             return {
@@ -42,7 +58,11 @@ class FakeReplayClient:
                 "user_id": payload["user_id"],
                 "session_id": payload["session_id"],
                 "raw_count": 1,
-                "compiled_count": 1 if self.variant == "V2_anchor_raw" else 0,
+                "compiled_count": (
+                    1
+                    if self.variant in {"V2_anchor_raw", "M2_repository_raw", "M3_experience_raw"}
+                    else 0
+                ),
                 "compiler_fallback": False,
             }
         if path == "/v1/sparse/backfill":
@@ -52,13 +72,35 @@ class FakeReplayClient:
                 "status": "ready",
                 "chunk_count": 1,
                 "raw_chunk_count": 1,
-                "compiled_chunk_count": 1 if self.variant == "V2_anchor_raw" else 0,
+                "compiled_chunk_count": (
+                    1
+                    if self.variant in {"V2_anchor_raw", "M2_repository_raw", "M3_experience_raw"}
+                    else 0
+                ),
                 "source_session_count": 1,
                 "authored_relation_count": 0,
                 "eligible_relation_count": 0,
                 "store_relation_count": 0,
                 "generation_id": "aml-clean-reranker-v1",
                 "corpus_sha256": "a" * 64,
+                "raw_corpus_sha256": "b" * 64,
+                "compiled_corpus_sha256": (
+                    "c" * 64
+                    if self.variant in {"V2_anchor_raw", "M2_repository_raw", "M3_experience_raw"}
+                    else None
+                ),
+                "compiled_kind_counts": (
+                    {"repository fact": 1}
+                    if self.variant == "M2_repository_raw"
+                    else {"procedure": 1}
+                    if self.variant == "M3_experience_raw"
+                    else {}
+                ),
+                "compiler_profile_counts": (
+                    {"anchor-v2": 1}
+                    if self.variant in {"M2_repository_raw", "M3_experience_raw"}
+                    else {}
+                ),
                 "variant": self.variant,
                 "served_commit": "abc123",
             }
@@ -220,6 +262,50 @@ def test_anchor_compiler_replay_records_admission_and_corpus_counters(tmp_path):
     assert result["compiled_record_count"] == 1
     assert result["aggregate"]["compiler_fallbacks"] == 0
     assert result["corpus_status"]["raw_chunk_count"] == 1
+
+
+@pytest.mark.parametrize(
+    ("variant", "expected_kinds", "compiled_count"),
+    [
+        ("M0_multiview_raw", [], 0),
+        (
+            "M2_repository_raw",
+            ["architectural decision", "constraint", "repository fact"],
+            1,
+        ),
+        (
+            "M3_experience_raw",
+            [
+                "failed attempt",
+                "procedure",
+                "root cause",
+                "successful repair",
+                "symptom",
+                "validation",
+            ],
+            1,
+        ),
+    ],
+)
+def test_multiview_replay_records_frozen_view_identity(
+    tmp_path, variant, expected_kinds, compiled_count
+):
+    assert variant in replay_module.REGISTERED_VARIANTS
+    corpus, task = _fixture(tmp_path)
+    result = run_replay(
+        FakeReplayClient(variant),
+        variant_name=variant,
+        corpus=corpus,
+        tasks=[task],
+        namespace="multiview-present",
+        captures=3,
+    )
+
+    assert result["schema_version"] == 5
+    assert result["capture_count"] == 3
+    assert result["compiled_record_count"] == compiled_count
+    assert result["version"]["compiled_kinds"] == expected_kinds
+    assert result["corpus_status"]["raw_corpus_sha256"] == "b" * 64
 
 
 def test_replay_reuses_frozen_dense_corpus_and_backfills_only_sparse(tmp_path):

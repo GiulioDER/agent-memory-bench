@@ -36,6 +36,15 @@ case "$variant" in
         fi
         namespace_args=(--namespace "$anchor_namespace")
         ;;
+    M0_multiview_raw|M2_repository_raw|M3_experience_raw)
+        readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/multiview-retrieval.env}"
+        readonly multiview_namespace="${RECALL_MULTIVIEW_NAMESPACE:-}"
+        if [[ -z "$multiview_namespace" ]]; then
+            echo "RECALL_MULTIVIEW_NAMESPACE is required for the multiview retrieval screen" >&2
+            exit 2
+        fi
+        namespace_args=(--namespace "$multiview_namespace")
+        ;;
     C0_raw_lexical|C1_splade|C2_procedure|C3_rerank|C4_task_pack)
         readonly runtime_env="${RECALL_AML_RUNTIME_ENV:-${HOME}/.config/recall-aml/coding-memory-matrix.env}"
         case "$variant" in

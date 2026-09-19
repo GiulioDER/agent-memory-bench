@@ -40,6 +40,11 @@ CODING_MATRIX_VARIANTS = (
 CLEAN_RERANK_VARIANTS = ("B0_raw", "B1_raw_rerank")
 CODE_AWARE_VARIANTS = ("M0_raw", "M1_code_neighbors")
 ANCHOR_COMPILER_VARIANTS = ("V2_raw", "V2_anchor_raw")
+MULTIVIEW_RETRIEVAL_VARIANTS = (
+    "M0_multiview_raw",
+    "M2_repository_raw",
+    "M3_experience_raw",
+)
 REGISTERED_VARIANTS = (
     ATTRIBUTION_VARIANTS
     + EXPERIENCE_VARIANTS
@@ -47,6 +52,7 @@ REGISTERED_VARIANTS = (
     + CLEAN_RERANK_VARIANTS
     + CODE_AWARE_VARIANTS
     + ANCHOR_COMPILER_VARIANTS
+    + MULTIVIEW_RETRIEVAL_VARIANTS
 )
 
 # Measured 2026-09-18 on VPS2: a valid idempotent Add needed all three compiler attempts and
@@ -398,7 +404,13 @@ def run_replay(
 
     corpus_status = (
         client.request("/v1/corpus/status", {"user_id": namespace})
-        if variant_name in CLEAN_RERANK_VARIANTS + CODE_AWARE_VARIANTS + ANCHOR_COMPILER_VARIANTS
+        if variant_name
+        in (
+            CLEAN_RERANK_VARIANTS
+            + CODE_AWARE_VARIANTS
+            + ANCHOR_COMPILER_VARIANTS
+            + MULTIVIEW_RETRIEVAL_VARIANTS
+        )
         else None
     )
     if corpus_status is not None:
@@ -498,7 +510,9 @@ def run_replay(
     ).hexdigest()
     return {
         "schema_version": (
-            4
+            5
+            if variant_name in MULTIVIEW_RETRIEVAL_VARIANTS
+            else 4
             if variant_name in ANCHOR_COMPILER_VARIANTS
             else 3
             if variant_name in CODE_AWARE_VARIANTS
