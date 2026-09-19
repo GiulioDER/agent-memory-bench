@@ -13,11 +13,11 @@ stop_code_aware_broker() {
 }
 
 start_code_aware_broker() {
-    local run_dir="$1" artifact_id="$2" variant="$3"
+    local broker_run_dir="$1" broker_artifact_id="$2" broker_variant="$3"
     local safe_id
-    safe_id="$(printf '%s-%s' "$artifact_id" "$variant" | tr -c 'A-Za-z0-9_.-' '-')"
+    safe_id="$(printf '%s-%s' "$broker_artifact_id" "$broker_variant" | tr -c 'A-Za-z0-9_.-' '-')"
     broker_container="amb-code-aware-${safe_id}"
-    broker_log="${run_dir}/broker.log"
+    broker_log="${broker_run_dir}/broker.log"
     if docker container inspect "$broker_container" >/dev/null 2>&1; then
         echo "refusing to replace existing broker ${broker_container}" >&2
         exit 2
@@ -30,7 +30,7 @@ start_code_aware_broker() {
         --add-host host.docker.internal:host-gateway \
         --publish 127.0.0.1:18085:8080 \
         --volume "$(pwd):/app:ro" \
-        --volume "${run_dir}:/trace" \
+        --volume "${broker_run_dir}:/trace" \
         --workdir /app \
         --env AMB_BROKER_SIGNING_SECRET \
         --env AMB_BROKER_TOKEN_TTL_S \

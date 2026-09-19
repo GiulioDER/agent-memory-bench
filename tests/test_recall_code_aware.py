@@ -244,6 +244,7 @@ def test_remaining_vps2_wrappers_freeze_concurrency_and_condition_order():
     screen = (root / "recall_code_aware_vps2_screen.sh").read_text(encoding="utf-8")
     confirmation = (root / "recall_code_aware_vps2_confirmation.sh").read_text(encoding="utf-8")
     robustness = (root / "recall_code_aware_vps2_robustness.sh").read_text(encoding="utf-8")
+    broker = (root / "recall_code_aware_broker.sh").read_text(encoding="utf-8")
 
     assert "AMB_BLOCK_CONCURRENCY=3" in screen
     assert "--timeout 600" in screen
@@ -253,3 +254,4 @@ def test_remaining_vps2_wrappers_freeze_concurrency_and_condition_order():
     assert "start_code_aware_broker" in confirmation
     assert "conditions=(present absent adjacent contradictory superseded)" in robustness
     assert "--captures 3" in robustness
+    assert 'local broker_run_dir="$1" broker_artifact_id="$2"' in broker
