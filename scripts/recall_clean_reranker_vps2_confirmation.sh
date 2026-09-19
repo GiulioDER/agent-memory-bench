@@ -25,7 +25,7 @@ export AMB_BLOCK_CONCURRENCY=3
 export AMB_RECALL_HOSTED_URL="$base_url"
 
 for condition in "${conditions[@]}"; do
-    corpus_root="corpus/conditions/${run_prefix}/${condition}/seed-0"
+    corpus_root="$(pwd)/corpus/conditions/${run_prefix}/${condition}/seed-0"
     if [[ -e "$corpus_root" ]]; then
         echo "refusing to reuse confirmation corpus ${corpus_root}" >&2
         exit 2

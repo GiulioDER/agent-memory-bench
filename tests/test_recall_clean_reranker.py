@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from scripts.recall_clean_graph_preflight import preflight
 from scripts.recall_clean_reranker_confirmation_select import (
     EXPECTED_CELLS as CONFIRMATION_CELLS,
@@ -21,6 +23,8 @@ from scripts.recall_clean_reranker_select import (
 from scripts.recall_clean_reranker_select import (
     main as retrieval_main,
 )
+
+REPO = Path(__file__).resolve().parents[1]
 
 
 def _retrieval_artifact(condition: str, variant: str) -> dict:
@@ -265,3 +269,12 @@ def test_retrieval_selector_refuses_to_overwrite_an_immutable_artifact(monkeypat
     with pytest.raises(SystemExit, match="refusing to overwrite"):
         retrieval_main()
     assert output.read_text(encoding="utf-8") == "frozen\n"
+
+
+def test_vps2_wrappers_pass_absolute_condition_corpus_paths():
+    for name in (
+        "recall_clean_reranker_vps2_replay.sh",
+        "recall_clean_reranker_vps2_confirmation.sh",
+    ):
+        script = (REPO / "scripts" / name).read_text(encoding="utf-8")
+        assert 'corpus_root="$(pwd)/corpus/conditions/' in script

@@ -234,3 +234,18 @@ were introduced one at a time, observed red, and reverted before the green suite
 After restoring production behavior, the focused AMB validation completed with 37 passed and five
 skipped. Ruff and `git diff --check` passed. The skipped checks require external execution state and
 do not weaken the selector, cache, telemetry, or task-grid proofs above.
+
+## Pre-execution amendment 1, 2026-09-19
+
+The first VPS2 wrapper invocation failed before service setup, Add, embedding, reranking, Search,
+or task execution. `assemble_condition_corpus` received a relative output path and rejected it
+while formatting its completion message because the path was not relative to the absolute
+repository root. The excluded attempt is preserved under:
+
+* `results/aml-clean-reranker-v1/7b54c04e-0c8031e-retrieval`
+* `results/aml-clean-reranker-v1/7b54c04e-0c8031e-graph-preflight`
+* `corpus/conditions/7b54c04e-0c8031e-retrieval`
+
+The repair makes the wrapper pass an absolute condition-corpus path and adds a regression test for
+both retrieval and confirmation wrappers. No frozen configuration, task, metric, gate, stopping
+rule, identity, cost rule, or prediction changes. The valid rerun uses new paths with suffix `r2`.

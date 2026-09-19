@@ -51,7 +51,7 @@ run_variant() {
 }
 
 for condition in "${conditions[@]}"; do
-    corpus_root="corpus/conditions/${run_tag}/${condition}/seed-0"
+    corpus_root="$(pwd)/corpus/conditions/${run_tag}/${condition}/seed-0"
     if [[ -e "$corpus_root" ]]; then
         echo "refusing to reuse condition corpus ${corpus_root}" >&2
         exit 2
