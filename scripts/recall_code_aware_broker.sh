@@ -23,11 +23,12 @@ start_code_aware_broker() {
         exit 2
     fi
     export RECALL_HOSTED_API_KEY="${AMB_RECALL_HOSTED_API_KEY:?hosted API key is required}"
+    # VPS2 blocks Docker bridge-to-host traffic. Keep the authenticated API
+    # private and route the broker over the host's Tailscale address.
     docker run --detach --rm \
         --name "$broker_container" \
         --user "$(id -u):$(id -g)" \
         --network bridge \
-        --add-host host.docker.internal:host-gateway \
         --publish 127.0.0.1:18085:8080 \
         --volume "$(pwd):/app:ro" \
         --volume "${broker_run_dir}:/trace" \
@@ -36,7 +37,7 @@ start_code_aware_broker() {
         --env AMB_BROKER_TOKEN_TTL_S \
         --env AMB_NETWORK_POLICY_DIGEST \
         --env RECALL_HOSTED_API_KEY \
-        --env RECALL_HOSTED_URL=http://host.docker.internal:18004 \
+        --env RECALL_HOSTED_URL=http://100.91.148.25:18004 \
         --env RECALL_HOSTED_TRACE_PATH=/trace/search-trace.jsonl \
         --env AMB_RECALL_HOSTED_BROKER_PORT=8080 \
         "${AMB_RUNNER_IMAGE_DIGEST:?runner image digest is required}" \

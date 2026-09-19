@@ -7,7 +7,7 @@ readonly artifact_id="${3:?fresh robustness artifact id is required}"
 readonly confirmation_selection="${4:?confirmation selection is required}"
 readonly setup_script="${app_root}/scripts/aml_experience_vps2_setup.sh"
 readonly runtime_env="${HOME}/.config/recall-aml/code-aware.env"
-readonly base_url="http://172.17.0.1:18004"
+readonly base_url="http://100.91.148.25:18004"
 readonly artifact_root="$(pwd)/results/aml-code-aware-raw-v1/${artifact_id}"
 readonly conditions=(present absent adjacent contradictory superseded)
 

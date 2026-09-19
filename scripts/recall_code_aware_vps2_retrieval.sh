@@ -8,7 +8,7 @@ readonly run_tag="${4:?run tag is required}"
 readonly setup_script="${app_root}/scripts/aml_experience_vps2_setup.sh"
 readonly runtime_env="${HOME}/.config/recall-aml/code-aware.env"
 readonly service="recall-aml-experiment.service"
-readonly base_url="http://172.17.0.1:18004"
+readonly base_url="http://100.91.148.25:18004"
 readonly corpus_root="$(pwd)/corpus/conditions/${run_tag}/present/seed-0"
 readonly namespace="amb-code-${run_tag}-present"
 
