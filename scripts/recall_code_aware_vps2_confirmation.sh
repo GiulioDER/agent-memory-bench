@@ -31,6 +31,13 @@ export AMB_BLOCK_CONCURRENCY=3
 # The VPS2 EnvironmentFile still carries a legacy bare image hash. The
 # adjudicated agent identity is already required and fully qualified.
 export AMB_PARTICIPANT_IMAGE_DIGEST="${AMB_PARTICIPANT_AGENT_DIGEST:?participant agent digest is required}"
+if [[ "${AMB_CHECKER_IMAGE_DIGEST:-}" =~ ^[0-9a-f]{64}$ ]]; then
+    export AMB_CHECKER_IMAGE_DIGEST="sha256:${AMB_CHECKER_IMAGE_DIGEST}"
+fi
+[[ "${AMB_CHECKER_IMAGE_DIGEST:-}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+    echo "checker image digest is not a pinned sha256 reference" >&2
+    exit 2
+}
 export AMB_RECALL_HOSTED_URL="$base_url"
 export AMB_RECALL_HOSTED_REUSE_CORPUS=1
 export AMB_RECALL_HOSTED_EXPECTED_CORPUS_SHA256="$expected_hash"
