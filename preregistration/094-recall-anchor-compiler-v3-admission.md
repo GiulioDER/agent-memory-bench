@@ -137,3 +137,40 @@ explicit retry assertion. The same node must pass before a fresh immutable retry
 
 The registered population, arms, compiler treatment, gates, predictions, and stopping rule remain
 unchanged. Every retry uses a fresh output directory and exact newly committed apparatus identity.
+
+## Measured result: pilot 97fdc2a8-5b1cff30-pilot-r2
+
+Measured on 2026-09-19 from frozen RE-call commit
+`97fdc2a8d160a559d78e496f49315d23d6116bb3` and repaired AMB commit
+`5b1cff3017e1180f56c43d3781569946ee5d9fc6`.
+
+The fresh retry completed both arms, the independent audit, and the mechanical selector. The
+checksum manifest verifies every expected artifact. Its `selection.json` SHA-256 is
+`2e4b55d8b8fe8e4227ea431b56ee81943d9a476faf14fdc1a5eb7547204d9357` and its `identity.json`
+SHA-256 is `194ec04a313e4347232fd0c2dcd5d0043051d022554091e1bf4769458dcb7675`.
+
+Compiler v3 passed four of the five admission gates:
+
+1. accepted typed records covered 194 of 196 eligible sessions, or `0.9897959184`;
+2. two sessions used whole-session fallback, or `0.0102040816`;
+3. the independent audit checked 1,230 compiled records and found zero unsupported claims, zero
+   invalid spans, and zero wrong profiles;
+4. raw records remained present for all 196 eligible sessions; and
+5. candidate complete coverage at rank 100 declined from `0.9411764706` to `0.9117647059`, so the
+   frozen rank-100 gate failed.
+
+The single complete-coverage loss was `ts-golden-regen`. Mean reciprocal rank also declined from
+`0.3217095592` to `0.2748844943`, a descriptive absolute change of `-0.0468250649`, so prediction
+6 failed as well. Add p95 increased from `660.261 ms` to `20,973.655 ms`, while Search p95
+increased from `388.225 ms` to `532.347 ms`.
+
+The selector therefore chose `V3_raw`, set `admission_pass` and
+`authorize_m2_m3_retrieval` to false, and stopped this lane. The result does not authorize the
+draft M2/M3 retrieval experiment or any official AML run.
+
+The useful result is narrower than rejection of typed memory. Compiler acceptance, grounding,
+fallback, record accounting, and raw retention are now strong. The failure occurs when compiled
+records compete with raw evidence inside the same bounded candidate and Top-K budget. A future,
+separately preregistered experiment may use compiled retrieval only as a source-session sidecar
+signal over an unchanged raw candidate membership. It must not reopen this measured arm or weaken
+the rank-100 preservation gate.
