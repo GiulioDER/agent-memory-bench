@@ -65,6 +65,7 @@ def _append_trace(query: str, top_k: int, response) -> None:
         "user_id_sha256": hashlib.sha256(os.environ["RECALL_HOSTED_USER_ID"].encode()).hexdigest(),
         "top_k": top_k,
         "items_returned": len(response.payload.get("data", [])),
+        "wall_time_ms": response.wall_time_ms,
         "headers": {name: response.headers.get(name) for name in _TRACE_HEADERS},
     }
     encoded = (json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n").encode()

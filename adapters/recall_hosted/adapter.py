@@ -35,6 +35,7 @@ _REPO = Path(__file__).resolve().parents[2]
 class HostedHttpResponse:
     payload: dict[str, Any]
     headers: dict[str, str]
+    wall_time_ms: float = 0.0
 
 
 def _config() -> dict[str, Any]:
@@ -93,6 +94,7 @@ class HostedHttpClient:
     def request_with_headers(
         self, path: str, payload: dict[str, Any] | None = None
     ) -> HostedHttpResponse:
+        started = time.monotonic()
         body = None if payload is None else json.dumps(payload).encode("utf-8")
         request = Request(
             self.base_url + path,
@@ -114,7 +116,7 @@ class HostedHttpClient:
             raise RuntimeError(f"hosted API {path} is unreachable: {exc.reason}") from exc
         if not isinstance(result, dict):
             raise TypeError(f"hosted API {path} returned a non-object response")
-        return HostedHttpResponse(result, headers)
+        return HostedHttpResponse(result, headers, (time.monotonic() - started) * 1_000)
 
     def request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         return self.request_with_headers(path, payload).payload

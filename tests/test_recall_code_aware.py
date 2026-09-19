@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from scripts.recall_code_aware_confirmation_select import (
+    EXPECTED_CELLS as CONFIRMATION_CELLS,
+)
+from scripts.recall_code_aware_confirmation_select import select_confirmation
+from scripts.recall_code_aware_robustness_select import CONDITIONS, select_robustness
+from scripts.recall_code_aware_screen_select import EXPECTED_CELLS as SCREEN_CELLS
+from scripts.recall_code_aware_screen_select import select_screen
 from scripts.recall_code_aware_select import select_code_aware
 
 
@@ -129,3 +136,118 @@ def test_vps2_wrapper_uses_fresh_absolute_condition_corpus_and_exact_reuse():
     assert 'run_variant M1_code_neighbors "$corpus_hash"' in source
     assert "--expected-corpus-sha256" in source
     assert "--captures 3" in source
+
+
+def _execution_run(cells: frozenset[tuple[str, int]], *, candidate: bool) -> dict:
+    records = {}
+    for task, seed in cells:
+        records[(task, seed)] = {
+            "success": seed <= (1 if candidate else 0),
+            "memory_call_count": 1,
+            "retrieved_contexts": ["evidence"],
+            "metadata": {"outcome": "correct"},
+        }
+    return {
+        "records": records,
+        "admitted": set(cells),
+        "traces": [
+            {
+                "wall_time_ms": 400.0 if candidate else 300.0,
+                "headers": {"x-recall-code-aware-fallback": "0"},
+            }
+            for _ in cells
+        ],
+        "estimated_usd": 0.01,
+    }
+
+
+def test_screen_selector_promotes_positive_cell_and_task_wins():
+    selected = select_screen(
+        {
+            "M0_raw": _execution_run(SCREEN_CELLS, candidate=False),
+            "M1_code_neighbors": _execution_run(SCREEN_CELLS, candidate=True),
+        },
+        {"screen_authorized": True, "selected": "M1_code_neighbors"},
+    )
+
+    assert selected["selected"] == "M1_code_neighbors"
+    assert selected["confirmation_authorized"] is True
+    assert selected["paired_cells"] == 36
+    assert selected["candidate_only_wins"] == 12
+    assert selected["baseline_only_wins"] == 0
+    assert all(selected["gates"].values())
+
+
+def test_screen_selector_stops_when_one_task_regresses_by_two_seeds():
+    baseline = _execution_run(SCREEN_CELLS, candidate=False)
+    candidate = _execution_run(SCREEN_CELLS, candidate=True)
+    task = next(iter(sorted(task for task, _ in SCREEN_CELLS)))
+    for seed in range(3):
+        baseline["records"][(task, seed)]["success"] = seed < 2
+        candidate["records"][(task, seed)]["success"] = False
+
+    selected = select_screen(
+        {"M0_raw": baseline, "M1_code_neighbors": candidate},
+        {"screen_authorized": True, "selected": "M1_code_neighbors"},
+    )
+
+    assert selected["confirmation_authorized"] is False
+    assert selected["gates"]["no_task_regresses_by_more_than_one_seed"] is False
+
+
+def test_confirmation_selector_requires_positive_clustered_present_result():
+    selected = select_confirmation(
+        {
+            "M0_raw": _execution_run(CONFIRMATION_CELLS, candidate=False),
+            "M1_code_neighbors": _execution_run(CONFIRMATION_CELLS, candidate=True),
+        },
+        {
+            "retrieval_gates": {
+                "mrr": True,
+                "coverage": True,
+                "latency": True,
+            }
+        },
+        {"confirmation_authorized": True, "selected": "M1_code_neighbors"},
+    )
+
+    assert selected["selected"] == "M1_code_neighbors"
+    assert selected["robustness_authorized"] is True
+    assert selected["paired_cells"] == 102
+    assert selected["task_clustered_bootstrap_95_ci"][0] > 0
+    assert all(selected["gates"].values())
+
+
+def test_robustness_selector_requires_every_condition_to_hold():
+    artifacts = {}
+    for index, condition in enumerate(CONDITIONS):
+        baseline = _artifact("M0_raw", candidate=False)
+        candidate = _artifact("M1_code_neighbors", candidate=True)
+        namespace = f"condition-{index}"
+        baseline["namespace"] = namespace
+        candidate["namespace"] = namespace
+        artifacts[(condition, "M0_raw")] = baseline
+        artifacts[(condition, "M1_code_neighbors")] = candidate
+
+    selected = select_robustness(
+        artifacts,
+        {"robustness_authorized": True, "selected": "M1_code_neighbors"},
+    )
+
+    assert selected["selected"] == "M1_code_neighbors"
+    assert selected["raw_base_promoted"] is True
+    assert all(value["passed"] for value in selected["conditions"].values())
+
+
+def test_remaining_vps2_wrappers_freeze_concurrency_and_condition_order():
+    root = Path(__file__).parents[1] / "scripts"
+    screen = (root / "recall_code_aware_vps2_screen.sh").read_text(encoding="utf-8")
+    confirmation = (root / "recall_code_aware_vps2_confirmation.sh").read_text(encoding="utf-8")
+    robustness = (root / "recall_code_aware_vps2_robustness.sh").read_text(encoding="utf-8")
+
+    assert "AMB_BLOCK_CONCURRENCY=3" in screen
+    assert "--timeout 600" in screen
+    assert "AMB_BLOCK_CONCURRENCY=3" in confirmation
+    assert "--timeout 600" in confirmation
+    assert "conditions=(present absent adjacent contradictory superseded)" in robustness
+    assert "--captures 3" in robustness
