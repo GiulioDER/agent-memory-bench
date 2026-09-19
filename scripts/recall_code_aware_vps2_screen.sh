@@ -7,7 +7,7 @@ readonly artifact_id="${3:?fresh screen artifact id is required}"
 readonly retrieval_selection="${4:?retrieval selection is required}"
 readonly setup_script="${app_root}/scripts/aml_experience_vps2_setup.sh"
 readonly runtime_env="${HOME}/.config/recall-aml/code-aware.env"
-readonly base_url="http://127.0.0.1:18004"
+readonly base_url="http://172.17.0.1:18004"
 readonly tasks="xs-evolve-lease,xs-join-batch,xs-widen-manifest,fa-dedup-key,ts-mig-name,ts-semver-pin,ts-retry-cap,ts-config-layer,ts-atomic-write,ts-idempotent-run,ts-glob-hidden,ts-quote-shell"
 readonly artifact_root="$(pwd)/results/aml-code-aware-raw-v1/${artifact_id}"
 

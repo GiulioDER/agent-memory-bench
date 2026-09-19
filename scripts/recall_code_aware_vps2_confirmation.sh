@@ -8,7 +8,7 @@ readonly retrieval_selection="${4:?retrieval selection is required}"
 readonly screen_selection="${5:?screen selection is required}"
 readonly setup_script="${app_root}/scripts/aml_experience_vps2_setup.sh"
 readonly runtime_env="${HOME}/.config/recall-aml/code-aware.env"
-readonly base_url="http://127.0.0.1:18004"
+readonly base_url="http://172.17.0.1:18004"
 readonly tasks="fa-dedup-key,ts-append-only,ts-atomic-write,ts-base36-id,ts-bom-merge,ts-bool-env,ts-casefold-sort,ts-cli-exitcode,ts-config-layer,ts-crlf-export,ts-csv-quote,ts-dedup-order,ts-empty-input,ts-glob-hidden,ts-golden-regen,ts-idempotent-run,ts-ignore-gen,ts-json-sorted,ts-legacy-hash,ts-log-mask,ts-manifest-rel,ts-mig-name,ts-natural-order,ts-nfc-count,ts-quote-shell,ts-retry-cap,ts-round-money,ts-schema-additive,ts-semver-pin,ts-stable-sort,ts-tz-utc,xs-evolve-lease,xs-join-batch,xs-widen-manifest"
 readonly artifact_root="$(pwd)/results/aml-code-aware-raw-v1/${artifact_id}"
 

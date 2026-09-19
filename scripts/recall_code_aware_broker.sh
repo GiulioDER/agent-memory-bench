@@ -26,7 +26,7 @@ start_code_aware_broker() {
     docker run --detach --rm \
         --name "$broker_container" \
         --user "$(id -u):$(id -g)" \
-        --network "${AMB_BROKER_NETWORK:-amb-broker-net}" \
+        --network bridge \
         --add-host host.docker.internal:host-gateway \
         --publish 127.0.0.1:18085:8080 \
         --volume "$(pwd):/app:ro" \
@@ -41,6 +41,8 @@ start_code_aware_broker() {
         --env AMB_RECALL_HOSTED_BROKER_PORT=8080 \
         "${AMB_RUNNER_IMAGE_DIGEST:?runner image digest is required}" \
         python -m scripts.recall_hosted_broker >/dev/null
+    docker network connect --alias "$broker_container" \
+        "${AMB_BROKER_NETWORK:-amb-broker-net}" "$broker_container"
     for _ in $(seq 1 30); do
         if curl --silent --output /dev/null --request POST --data '{}' \
             http://127.0.0.1:18085/; then
