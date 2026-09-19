@@ -27,6 +27,9 @@ fi
 expected_hash="$(.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["lineage"]["corpus_sha256"])' "$retrieval_selection")"
 namespace="$(.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["lineage"]["namespace"])' "$retrieval_selection")"
 export AMB_BLOCK_CONCURRENCY=3
+# The VPS2 EnvironmentFile still carries a legacy bare image hash. The
+# adjudicated agent identity is already required and fully qualified.
+export AMB_PARTICIPANT_IMAGE_DIGEST="${AMB_PARTICIPANT_AGENT_DIGEST:?participant agent digest is required}"
 export AMB_RECALL_HOSTED_URL="$base_url"
 export AMB_RECALL_HOSTED_REUSE_CORPUS=1
 export AMB_RECALL_HOSTED_EXPECTED_CORPUS_SHA256="$expected_hash"
