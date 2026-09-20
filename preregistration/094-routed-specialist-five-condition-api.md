@@ -264,3 +264,9 @@ The shared cache held 3,028 vectors after preparation. Repeated Add latency stay
 11.3 seconds per hosted arm and condition. This is operational evidence only; provider call count
 remains unmeasured. All frozen preconditions are satisfied for the private scored run. This does
 not authorize an official AML Smoke or official evaluation.
+
+The private scored run uses run id `specialist-conditions-002` and namespace
+`amb-specialist-conditions-002`, matching the valid preparation receipts. This is an operational
+correction to the frozen command example because the `001` preparation is retained as refused
+diagnostic evidence. It changes no condition, task, system arm, seed, model, price, concurrency,
+endpoint, or decision rule.
