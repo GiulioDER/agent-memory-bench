@@ -322,3 +322,25 @@ zero-model five-condition preparation. Before any participant session, a real is
 canary must grade an informed reference successfully with the pinned checker image. This correction
 changes no condition, corpus, task, arm, seed, model, price, concurrency, endpoint, prediction, or
 decision rule. It does not authorize an official AML Smoke or official evaluation.
+
+## Private checker repair smoke passed
+
+Before preparing run `003`, the repaired checkout passed two private checks with the pinned checker
+image. A zero-model canary applied the committed informed reference for `ts-bom-merge` and received
+the expected checker verdict, `5 rows merged, BOM header handled`. A separate one-task, one-seed,
+three-arm DeepSeek Flash smoke then completed three participant sessions through the specialist
+model broker.
+
+The smoke admitted its one paired cell with zero discards. C6 and C7 each returned 10 hosted Search
+hits, recorded `prefetch_status=ok`, injected a prompt whose hash was bound into the private record,
+and passed the repaired checker. C7 reported route `code`, embedding profile
+`voyage-code-4-v1`, variant `C7_routed_specialists`, and served commit
+`4334084d13e38d02d881b2207c85152858e608d9`. C6 and C7 had the same ordered result hash and each
+scored 1 of 1. The `claude_md` session scored 0 of 1 for a real task failure involving the BOM
+header, not an infrastructure error.
+
+The smoke's adjudication receipt verified, the run verifier passed every applicable check, and the
+artifact recorded 75,067 total tokens with an estimated model spend of $0.0046. No HTTP
+authorization, provider, participant, or checker infrastructure failure occurred. This was a
+private AMB smoke named `specialist-fusion-smoke-001`; it was not the official AML Smoke and grants
+no authorization for one.
