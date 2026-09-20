@@ -27,11 +27,12 @@ from harness.adapters.base import CorpusManifest, resolve_corpus_path
 from harness.tasks import discover_tasks
 from scripts.audit_corpus import readable_text
 from scripts.code_embedding_replacement_experiment import fused_ranking, rank_scores
-from scripts.retrieval_probe import BM25, load_windows
+from scripts.retrieval_probe import BM25, Window, load_windows
 
 MODEL = "voyage-code-4"
 DIMENSION = 1024
 TOP_K = 100
+POSTGRES_NUL_REPLACEMENT = "\u2400"
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,10 @@ def expected_chunk_id(session_id: str, segment: int, content: str) -> str:
     )
 
 
+def postgres_safe_window(window: Window) -> Window:
+    return Window(doc=window.doc, text=window.text.replace("\x00", POSTGRES_NUL_REPLACEMENT))
+
+
 def first_gold_rank(ranking: list[int], gold: set[int]) -> int | None:
     for rank, index in enumerate(ranking, start=1):
         if index in gold:
@@ -136,7 +141,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     manifest = CorpusManifest.load(args.corpus)
     manifest.verify()
-    windows = load_windows(args.corpus)
+    screen_windows = load_windows(args.corpus)
+    windows = [postgres_safe_window(window) for window in screen_windows]
+    nul_normalized_windows = sum(
+        screen.text != candidate.text
+        for screen, candidate in zip(screen_windows, windows, strict=True)
+    )
     historical = json.loads(args.historical.read_text(encoding="utf-8"))
     if historical["provenance"]["manifest_sha256"] != hashlib.sha256(
         (args.corpus / "manifest.json").read_bytes()
@@ -276,6 +286,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "candidate_generation": version.get("generation_id"),
                 "corpus_sessions": len(manifest.sessions),
                 "raw_windows": len(windows),
+                "postgres_nul_normalized_windows": nul_normalized_windows,
             },
             "configuration": {
                 "model": MODEL,
