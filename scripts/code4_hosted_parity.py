@@ -282,7 +282,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "manifest_sha256": historical["provenance"]["manifest_sha256"],
                 "historical_git_head": historical["provenance"]["git_head"],
                 "verifier_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                "candidate_commit": version.get("commit"),
+                "candidate_commit": version.get("git_commit"),
                 "candidate_generation": version.get("generation_id"),
                 "corpus_sessions": len(manifest.sessions),
                 "raw_windows": len(windows),
