@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import time
@@ -72,6 +73,28 @@ class HostedAmlClient:
         return HostedResult(body, headers, (time.monotonic() - started) * 1_000)
 
 
+def resolve_hosted_api_key(api_key_env: str, peer_api_key_env: str) -> str:
+    """Resolve one endpoint credential without guessing that two identities share a key.
+
+    The endpoint-specific variable is authoritative. The legacy shared variable may fill one
+    missing endpoint only when the peer endpoint-specific variable is present and byte equal to
+    it. A lone legacy value proves no relationship between the two deployed services and is
+    therefore refused.
+    """
+
+    specific = os.environ.get(api_key_env, "").strip()
+    if specific:
+        return specific
+    legacy = os.environ.get("RECALL_AML_API_KEY", "").strip()
+    peer = os.environ.get(peer_api_key_env, "").strip()
+    if legacy and peer and hmac.compare_digest(legacy, peer):
+        return legacy
+    raise RuntimeError(
+        f"{api_key_env} is required; legacy RECALL_AML_API_KEY fallback is allowed only when "
+        f"it explicitly equals {peer_api_key_env}"
+    )
+
+
 def _manifest_digest(corpus: CorpusManifest) -> str:
     encoded = json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
@@ -106,6 +129,8 @@ class HostedAmlPrefetchAdapter(MemoryAdapter):
         base_url_env: str,
         staging_root: str | Path,
         base_prompt_file: str | Path,
+        api_key_env: str | None = None,
+        peer_api_key_env: str | None = None,
         client: HostedAmlClient | None = None,
         add_workers: int | None = None,
         top_k: int = 10,
@@ -113,6 +138,8 @@ class HostedAmlPrefetchAdapter(MemoryAdapter):
         self.name = name
         self.expected_variant = expected_variant
         self.base_url_env = base_url_env
+        self.api_key_env = api_key_env
+        self.peer_api_key_env = peer_api_key_env
         self.staging_root = Path(staging_root)
         self.base_prompt_file = Path(base_prompt_file)
         self.top_k = top_k
@@ -122,9 +149,11 @@ class HostedAmlPrefetchAdapter(MemoryAdapter):
         self.add_workers = workers
         if client is None:
             base_url = os.environ.get(base_url_env, "").strip()
-            api_key = os.environ.get("RECALL_AML_API_KEY", "").strip()
-            if not base_url or not api_key:
-                raise RuntimeError(f"{base_url_env} and RECALL_AML_API_KEY are required")
+            if not base_url:
+                raise RuntimeError(f"{base_url_env} is required")
+            if not api_key_env or not peer_api_key_env:
+                raise RuntimeError("endpoint-specific hosted AML API key variables are required")
+            api_key = resolve_hosted_api_key(api_key_env, peer_api_key_env)
             client = HostedAmlClient(base_url, api_key)
         self.client = client
 
@@ -197,6 +226,8 @@ class HostedAmlPrefetchAdapter(MemoryAdapter):
         data = result.payload.get("data")
         if not isinstance(data, list):
             raise TypeError("hosted AML Search response has no data list")
+        if not data:
+            raise RuntimeError(f"{self.name} returned no evidence for task {task_id}")
         evidence = _ranked_evidence(data)
         prompt = namespace_path(self.staging_root, namespace, task_id, self.name, "prompt.md")
         prompt.parent.mkdir(parents=True, exist_ok=True)
@@ -259,6 +290,7 @@ class HostedAmlPrefetchAdapter(MemoryAdapter):
             "memory": "hosted AML exact prompt prefetch",
             "expected_variant": self.expected_variant,
             "base_url_env": self.base_url_env,
+            "api_key_env": self.api_key_env,
             "top_k": self.top_k,
             "add_workers": self.add_workers,
             "version": self._version(),

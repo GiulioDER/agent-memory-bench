@@ -260,6 +260,7 @@ SELF_INGESTING_ARMS = (
     "fs_grep", "mempalace", "cachly", "graphiti", "supermemory", "claude_mem",
     "aml_c6_prefetch", "aml_c7_prefetch",
 )
+HOSTED_AML_PREFETCH_ARMS = ("aml_c6_prefetch", "aml_c7_prefetch")
 
 #: Arms that are a static system-prompt file and nothing else.
 STATIC_ARMS = frozenset({"placebo", "claude_md", "protocol"})
@@ -878,9 +879,19 @@ def adapter_for(
             static,
         )
     if arm in {"aml_c6_prefetch", "aml_c7_prefetch"}:
-        expected, env_name = {
-            "aml_c6_prefetch": ("C6_code4_exact_bm25", "RECALL_AML_C6_BASE_URL"),
-            "aml_c7_prefetch": ("C7_routed_specialists", "RECALL_AML_C7_BASE_URL"),
+        expected, env_name, api_key_env, peer_api_key_env = {
+            "aml_c6_prefetch": (
+                "C6_code4_exact_bm25",
+                "RECALL_AML_C6_BASE_URL",
+                "RECALL_AML_C6_API_KEY",
+                "RECALL_AML_C7_API_KEY",
+            ),
+            "aml_c7_prefetch": (
+                "C7_routed_specialists",
+                "RECALL_AML_C7_BASE_URL",
+                "RECALL_AML_C7_API_KEY",
+                "RECALL_AML_C6_API_KEY",
+            ),
         }[arm]
         return HostedAmlPrefetchAdapter(
             name=arm,
@@ -888,6 +899,8 @@ def adapter_for(
             base_url_env=env_name,
             staging_root=staging,
             base_prompt_file=static,
+            api_key_env=api_key_env,
+            peer_api_key_env=peer_api_key_env,
         )
     raise ValueError(f"no adapter for arm {arm!r}")
 
@@ -915,6 +928,49 @@ def build_registry(
             adapter_for(arm, any_bundle, staging, texts, oracle_catalog)
         )
     return registry
+
+
+def prepare_hosted_prefetch(
+    *,
+    registry: AdapterRegistry,
+    corpus: CorpusManifest,
+    tasks: list[Any],
+    run_arms: tuple[str, ...],
+    bundles: dict[str, dict[str, Path]],
+    staging: Path,
+    texts: dict[str, str],
+    namespace: str,
+    output_dir: Path,
+    oracle_catalog: MemoryBundleCatalog | None = None,
+) -> tuple[list[IngestReport], dict[tuple[str, str], ArmSpec]]:
+    """Ingest both hosted candidates and Search each distinct task prompt exactly once."""
+
+    missing = [arm for arm in HOSTED_AML_PREFETCH_ARMS if arm not in run_arms]
+    if missing:
+        raise ValueError(
+            "--prepare-only requires both hosted AML arms; missing " + ", ".join(missing)
+        )
+    reports: list[IngestReport] = []
+    for arm in HOSTED_AML_PREFETCH_ARMS:
+        reports.append(registry.get(arm).ingest(corpus, namespace))
+
+    specs: dict[tuple[str, str], ArmSpec] = {}
+    for task in tasks:
+        for arm in HOSTED_AML_PREFETCH_ARMS:
+            adapter = adapter_for(
+                arm,
+                bundles[task.task_id],
+                staging,
+                texts,
+                oracle_catalog,
+            )
+            specs[(task.task_id, arm)] = adapter.build_for_task(
+                output_dir / "cfg" / task.task_id / arm,
+                namespace,
+                task.task_id,
+                task.prompt,
+            )
+    return reports, specs
 
 
 def classify_cell(
@@ -1340,6 +1396,12 @@ async def main() -> int:
         "executing anything. This is how you check a command line; running it with a "
         "placeholder API key instead executes the whole grid and burns the run id.",
     )
+    parser.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help="ingest both hosted AML candidates and Search every distinct task prompt once, "
+        "write a preparation receipt, and stop before any model session",
+    )
     add_pricing_arguments(parser)
     args = parser.parse_args()
 
@@ -1357,8 +1419,10 @@ async def main() -> int:
     if args.finalize_existing and args.continue_existing:
         raise SystemExit("--finalize-existing already implies --continue-existing")
     continuation = args.continue_existing or args.finalize_existing
-    if continuation and args.dry_run:
-        raise SystemExit("continuation modes cannot be combined with --dry-run")
+    if continuation and (args.dry_run or args.prepare_only):
+        raise SystemExit("continuation modes cannot be combined with --dry-run or --prepare-only")
+    if args.dry_run and args.prepare_only:
+        raise SystemExit("--dry-run and --prepare-only are mutually exclusive")
     if args.emit_decision_stages and not args.emit_decisions:
         raise SystemExit("--emit-decision-stages requires --emit-decisions")
 
@@ -1368,7 +1432,7 @@ async def main() -> int:
     # A real recall run with no DSN would have its treatment silently absent, which is exactly what
     # the admission gate exists to catch 216 sessions later.
     assert_preregistered(REPO)
-    if not args.dry_run and not os.environ.get("OPENROUTER_API_KEY"):
+    if not args.dry_run and not args.prepare_only and not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
     run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
     unknown = [arm for arm in run_arms if arm not in ARMS]
@@ -1376,6 +1440,8 @@ async def main() -> int:
         raise SystemExit(f"unknown arms {unknown}; choose from {ARMS}")
     if bool(args.sequence_plan) != bool(args.heldout_manifest):
         raise SystemExit("--sequence-plan and --heldout-manifest must be supplied together")
+    if args.prepare_only and args.sequence_plan:
+        raise SystemExit("--prepare-only does not support sequence plans")
     sequence_plan = load_plan_file(args.sequence_plan) if args.sequence_plan else None
     heldout_manifest = (
         FrozenEvaluationManifest.load(args.heldout_manifest, root=REPO)
@@ -1579,6 +1645,92 @@ async def main() -> int:
             f"scripts/assemble_condition_corpus.py, which writes one; running against a feed "
             f"whose bytes nothing has hashed is how two arms end up ingesting different corpora."
         )
+
+    if args.prepare_only:
+        preparation_dir = REPO / "results" / "preparations" / args.run_id
+        if preparation_dir.exists():
+            raise SystemExit(
+                f"{preparation_dir} already exists; refusing to overwrite a preparation receipt"
+            )
+        preparation_work_root = (
+            Path(args.work_root)
+            if args.work_root
+            else sandbox.default_work_root() / f"{args.run_id}-prepare"
+        )
+        _refuse_a_dirty_work_root(preparation_work_root, f"{args.run_id}-prepare")
+        preparation_staging = preparation_work_root / "staging"
+        preparation_bundles = {
+            task.task_id: build_bundles(
+                task,
+                preparation_work_root / "cfg" / task.task_id,
+                texts,
+            )
+            for task in tasks
+        }
+        preparation_registry = build_registry(
+            preparation_staging,
+            preparation_bundles[tasks[0].task_id],
+            texts,
+            run_arms,
+            oracle_catalog,
+        )
+        corpus = CorpusManifest.load(corpus_root)
+        try:
+            reports, specs = prepare_hosted_prefetch(
+                registry=preparation_registry,
+                corpus=corpus,
+                tasks=tasks,
+                run_arms=run_arms,
+                bundles=preparation_bundles,
+                staging=preparation_staging,
+                texts=texts,
+                namespace=args.namespace,
+                output_dir=preparation_work_root,
+                oracle_catalog=oracle_catalog,
+            )
+        except (OSError, RuntimeError, TypeError, ValueError) as error:
+            raise SystemExit(f"hosted AML preparation failed: {error}") from error
+
+        searches = []
+        for (task_id, arm), spec in sorted(specs.items()):
+            diagnostic = spec.metadata["memory_diagnostic"]
+            searches.append(
+                {
+                    "task_id": task_id,
+                    "arm": arm,
+                    "query_sha256": diagnostic["query_sha256"],
+                    "result_sha256": diagnostic["result_sha256"],
+                    "hit_count": diagnostic["hit_count"],
+                    "prefetch_wall_time_ms": diagnostic["prefetch_wall_time_ms"],
+                }
+            )
+        manifest_sha256 = hashlib.sha256(
+            json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":")).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+        receipt = {
+            "mode": "prepare-only",
+            "run_id": args.run_id,
+            "namespace": args.namespace,
+            "corpus_manifest_sha256": manifest_sha256,
+            "task_ids": [task.task_id for task in tasks],
+            "ingest_reports": [report.to_dict() for report in reports],
+            "searches": searches,
+            "model_sessions_launched": 0,
+        }
+        preparation_dir.mkdir(parents=True)
+        (preparation_dir / "prepare.json").write_text(
+            json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        print(
+            f"[prepare-only] verified {len(searches)} nonempty Search result(s) after "
+            f"{len(reports)} ingestion(s); launched 0 model sessions"
+        )
+        print(f"[prepare-only] receipt {preparation_dir / 'prepare.json'}")
+        return 0
 
     run_dir = REPO / "results" / args.run_id
     existing_records = []
