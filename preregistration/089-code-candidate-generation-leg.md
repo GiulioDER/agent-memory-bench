@@ -129,3 +129,80 @@ The next sequential comparison after a retrieval pass is
 preregistration and may not be inferred from this result.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Measured result, 2026-09-20
+
+The retrieval screen **failed**. The deterministic leg often reached relevant evidence, but the
+baseline top 100 was already saturated and adding the leg harmed early ordering.
+
+Measurement provenance:
+
+- Implementation commit: `de83bbf4ca38e5db4482660afb1cc062fec57309`.
+- Manifest SHA-256: `58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814`.
+- Experiment script SHA-256:
+  `f19eff670af37efccf44f18f5d72d78f0d09ce4b31350e5d5addc7492b42fcb8`.
+- Result artifact SHA-256:
+  `40a788c0b4bc15541f7d76f7c1d248651afd7c625ff0c543d94488ff62dcf2fe`.
+- Measured at `2026-09-20T08:33:40.514075+00:00` on VPS2 under the shared embedding
+  lock. The vendor tokenizer counted 347,634 document tokens, below the frozen 500,000 token
+  ceiling.
+- Remeasure command:
+  `python -m scripts.code_candidate_experiment --corpus corpus --model voyage-code-3
+  --max-tokens 500000 --out results/retrieval/089-code-candidate-generation.json`.
+
+### Code token oracle
+
+| Endpoint | Result |
+|---|---:|
+| Queries with an identifier also present in relevant evidence | 28 / 34 |
+| Queries where the code leg reached relevant evidence in its top 100 | 26 / 34 |
+| Queries where the code leg found relevant evidence absent from M0 top 100 | 1 / 34 |
+| Behavior-only queries under the frozen zero-identifier definition | 0 / 34 |
+
+The only query with genuinely new relevant raw windows was `xs-widen-manifest`, where M1 added
+three windows and moved the first relevant rank from 7 to 2. Because all 34 prompts emitted at
+least one identifier, the recorded zero false activations is vacuous rather than evidence about
+behavior-only questions.
+
+### Paired retrieval
+
+| Metric | M0 raw | M1 code candidate leg | Delta |
+|---|---:|---:|---:|
+| Relevant source recall at 10 | 28 / 34 (0.8235) | 24 / 34 (0.7059) | -4 queries |
+| Relevant source recall at 100 | 34 / 34 (1.0000) | 34 / 34 (1.0000) | 0 |
+| MRR | 0.5210 | 0.4145 | -0.1065 |
+| Mean estimated response tokens at 10 | 3,102.3 | 3,140.5 | +1.23% |
+| Mean estimated response tokens at 100 | 30,395.4 | 30,531.5 | +0.45% |
+
+At the binary recall-at-10 endpoint there were 0 M1 wins, 30 ties, and 4 regressions. At rank
+100 all 34 queries tied. Comparing exact first-relevant ranks produced 3 wins, 13 ties, and 18
+regressions.
+
+Exact relevant-identifier micro recall at 10 was unchanged for paths (22/27), symbols (9/10),
+modules (22/27), and config keys (1/3). It fell for commands from 4/7 to 3/7 and packages from
+4/6 to 3/6. At 100 both arms covered every relevant identifier with a nonzero denominator. No
+relevant error, flag, environment-variable, constant, or test identifier occurred, so those
+classes had no denominator.
+
+The deterministic index built 2,044 unique identifier keys in 1,309 ms. Per-query added latency
+was 1.111 ms median and 2.116 ms p95. Total M1 latency was 255.295 ms median and 326.601 ms p95,
+including the shared query embedding call.
+
+### Prediction and decision record
+
+Predictions 1, 2, 5, 7, and 8 passed. Predictions 3 and 4 failed. Prediction 6 is mechanically
+true but uninformative because the roster contained no zero-identifier query. The mandatory
+candidate novelty and early-ranking conditions therefore failed, so the retrieval screen did not
+license Task Solve or the M2 compiler-sidecar comparison.
+
+The result localizes the failure to fusion and baseline saturation, not extractor reach: the code
+leg reached relevant evidence on 26 queries, but only one query had relevant evidence outside M0's
+top 100. Treating the code ranking as an equal RRF peer displaced strong dense and lexical results
+more often than it improved them.
+
+### Append-only corpus-count correction
+
+The frozen prediction text calls this a 206-session corpus. The manifest pinned by the correct
+SHA-256 above contains 196 session entries and generated 1,220 raw windows. This is a
+preregistration transcription error, not a corpus change; the hash, task roster, retrieval arms,
+and thresholds used in the measurement were the frozen ones.
