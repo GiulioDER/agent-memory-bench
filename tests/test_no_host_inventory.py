@@ -129,6 +129,11 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/082-official-005-graphiti-bare-vps2.md",
         "preregistration/084-official-008-recall-context4.md",
         "preregistration/086-official-010-recall-context4-graph-rerank.md",
+        # Frozen private specialist experiment records name the execution host only to document
+        # the shared embedding lock topology. They contain no host value or connection detail.
+        "preregistration/089-code-candidate-generation-leg.md",
+        "preregistration/090-voyage-code4-direct-replacement.md",
+        "preregistration/094-routed-specialist-five-condition-api.md",
         "preregistration/timestamps/manifest-20260907T172420Z.json",
         "preregistration/timestamps/manifest-20260907T191609Z.json",
         "preregistration/timestamps/manifest-20260907T221701Z.json",
