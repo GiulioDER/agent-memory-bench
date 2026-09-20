@@ -1045,6 +1045,16 @@ def task_prefixes(*, explicit: bool, run_arms: tuple[str, ...]) -> tuple[str, ..
     return SELECTABLE_PREFIXES
 
 
+def instruction_arms_are_matched(
+    memory_instruction: str, run_arms: tuple[str, ...]
+) -> bool:
+    """Whether the run claims equal instruction treatment across its compared arms."""
+
+    return memory_instruction in {"protocol", PREMUTATION_CHECKPOINT_PAIRED_VARIANT} or (
+        set(run_arms) == set(CODE_RETRIEVAL_REPLAY_ARMS)
+    )
+
+
 def diagnostic_metadata(spec: Any) -> dict[str, Any]:
     """The adapter's `memory_diagnostic`, to be merged into the session record.
 
@@ -2056,9 +2066,9 @@ async def main() -> int:
                 "instruction_excess_bytes": instructions.excess_over_protocol(
                     texts, neutral=args.neutral_protocol
                 ),
-                "instruction_arms_matched": args.memory_instruction in {
-                    "protocol", PREMUTATION_CHECKPOINT_PAIRED_VARIANT
-                },
+                "instruction_arms_matched": instruction_arms_are_matched(
+                    args.memory_instruction, run_arms
+                ),
                 "quality_gate_pair": (
                     quality_gate_pair_metadata(texts)
                     if args.memory_instruction == QUALITY_GATE_PAIRED_VARIANT

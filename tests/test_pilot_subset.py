@@ -236,3 +236,14 @@ def test_synthesis_tasks_are_explicitly_selectable_only_for_replay_arms():
     assert "xs-" in task_prefixes(
         explicit=True, run_arms=("code3_replay", "code4_replay")
     )
+
+
+def test_replay_pair_reports_its_identical_zero_instruction_treatment():
+    """Setup admission must recognize that both replay arms receive the same instruction budget."""
+
+    from scripts.pilot import instruction_arms_are_matched
+
+    assert instruction_arms_are_matched(
+        "oneliner", ("code3_replay", "code4_replay")
+    )
+    assert not instruction_arms_are_matched("oneliner", ("bare", "code4_replay"))
