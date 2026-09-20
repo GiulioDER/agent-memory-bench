@@ -187,3 +187,13 @@ image copies only `harness/` and `tasks/`, runs as uid 65532, receives the artif
 through read only mounts, and rejects task or path injection. Its focused worker and isolation
 suite passed 23 tests with 2 platform skips. The full run must use this commit or a direct
 descendant.
+
+### Trusted broker image restoration, before model spend
+
+The next rootless Docker preflight found that the committed Compose file also referenced
+`docker/Dockerfile.broker` and `docker/Dockerfile.egress-proxy`, while their runtime entrypoints
+were absent from this branch. Existing host images had hidden the incomplete source tree. No Task
+Solve session had started. The restoration adds the least privilege broker and allowlist proxy
+images, their controller entrypoints, and regression coverage. It does not change any task,
+oracle, prompt, arm, model, seed, endpoint, prediction, or analysis rule. The full run must use the
+restoration commit or a direct descendant and must rebuild the trusted images from that source.
