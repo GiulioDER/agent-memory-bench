@@ -114,3 +114,53 @@ dense replacement. If candidate novelty passes while replacement fails, Code 4 m
 as a shadow input to a newly preregistered protected-rescue policy.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Result: direct replacement passed
+
+Measured 2026-09-20 at `09:24:42Z` on VPS2 under the shared embedding lock. The exact
+apparatus commit was `9c98a49eb87e97f2f1a853efb1abdca8367f13e3`. The run used
+`voyageai==0.5.0` and `numpy==2.5.3`. Both vendor token counts were 347,634, below the frozen
+500,000 token ceiling per model.
+
+The frozen predictions all passed:
+
+| Endpoint | C0 Code 3 | C1 Code 4 | Change |
+| --- | ---: | ---: | ---: |
+| source recall at 1 | 13/34 | 27/34 | +14 queries |
+| source recall at 3 | 18/34 | 28/34 | +10 queries |
+| source recall at 5 | 21/34 | 32/34 | +11 queries |
+| source recall at 10 | 28/34 | 34/34 | +6 queries |
+| source recall at 20 | 33/34 | 34/34 | +1 query |
+| source recall at 100 | 34/34 | 34/34 | no change |
+| mean reciprocal rank | 0.5063 | 0.8464 | +0.3401 |
+| median query plus fusion latency | 267.7 ms | 276.8 ms | 1.034x |
+| p95 query plus fusion latency | 306.0 ms | 330.1 ms | 1.079x |
+| mean estimated response tokens at 100 | 30,391.2 | 29,589.4 | 0.974x |
+
+Exact first-relevant rank improved for 21 queries, tied for 13, and regressed for zero. Code 4
+introduced at least one relevant raw window absent from the Code 3 top 100 for five queries. The
+symmetric Code 3-only count was 11 queries, and mean top-100 Jaccard similarity was 0.5118. The
+novelty result means the models are not interchangeable candidate generators, but the rank result
+shows that Code 4 is the stronger direct retrieval model under the frozen fusion policy.
+
+The direct-replacement decision passed, so a separately preregistered Task Solve screen is
+licensed. The candidate-novelty decision also passed, so a separately preregistered protected
+rescue experiment is licensed. This result does not itself license cross-model production fusion.
+The first next experiment should be Task Solve with Code 4 as the single dense replacement. Any
+fusion follow-up remains secondary and must protect the Code 4 baseline prefix.
+
+Evidence:
+
+* `results/retrieval/090-voyage-code4-direct-replacement.json`, SHA-256
+  `9ada30c51c6fcbddede0a122d39a3239c05204a661d72a63683ed34d5fcf582a`
+* `results/retrieval/090-voyage-code4-direct-replacement.log`, SHA-256
+  `104b074450eb265000d1afddfd9d8710b4472b502319b1b4d53dc88bc6aee244`
+* script SHA-256
+  `c26e5461b62dc5ab5b0afbef061e67ba8ab21607ceef04a1aabc7ae1164d07fd`
+* corpus manifest SHA-256
+  `58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814`
+
+The focused experiment and prior candidate-leg tests passed 9/9. The repository-wide suite
+reported 1,331 passed, 18 skipped, and one inherited failure: `test_no_new_file_names_the_serving_host`
+already rejects `preregistration/089-code-candidate-generation-leg.md`, which predates this
+experiment and is unrelated to its runner or result.

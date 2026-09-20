@@ -1,0 +1,142 @@
+voyage: 1220 windows, about 370,808 tokens to embed (pre-flight)
+voyage: 347,634 tokens by the vendor tokenizer
+  embedded     96 / 1220
+  embedded    192 / 1220
+  embedded    288 / 1220
+  embedded    384 / 1220
+  embedded    480 / 1220
+  embedded    576 / 1220
+  embedded    672 / 1220
+  embedded    768 / 1220
+  embedded    864 / 1220
+  embedded    960 / 1220
+  embedded   1056 / 1220
+  embedded   1152 / 1220
+  embedded   1220 / 1220
+voyage: 1220 windows, about 370,808 tokens to embed (pre-flight)
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+voyage: 347,634 tokens by the vendor tokenizer
+  embedded     96 / 1220
+  embedded    192 / 1220
+  embedded    288 / 1220
+  embedded    384 / 1220
+  embedded    480 / 1220
+  embedded    576 / 1220
+  embedded    672 / 1220
+  embedded    768 / 1220
+  embedded    864 / 1220
+  embedded    960 / 1220
+  embedded   1056 / 1220
+  embedded   1152 / 1220
+  embedded   1220 / 1220
+{
+  "decision": {
+    "direct_replacement_passed": true,
+    "protected_rescue_preregistration_licensed": true,
+    "task_solve_screen_licensed": true
+  },
+  "metrics": {
+    "queries": 34,
+    "source_recall": {
+      "at_1": {
+        "control_count": 13,
+        "treatment_count": 27,
+        "control": 0.38235294117647056,
+        "treatment": 0.7941176470588235,
+        "delta_queries": 14,
+        "paired": {
+          "wins": 14,
+          "ties": 20,
+          "regressions": 0
+        }
+      },
+      "at_3": {
+        "control_count": 18,
+        "treatment_count": 28,
+        "control": 0.5294117647058824,
+        "treatment": 0.8235294117647058,
+        "delta_queries": 10,
+        "paired": {
+          "wins": 10,
+          "ties": 24,
+          "regressions": 0
+        }
+      },
+      "at_5": {
+        "control_count": 21,
+        "treatment_count": 32,
+        "control": 0.6176470588235294,
+        "treatment": 0.9411764705882353,
+        "delta_queries": 11,
+        "paired": {
+          "wins": 11,
+          "ties": 23,
+          "regressions": 0
+        }
+      },
+      "at_10": {
+        "control_count": 28,
+        "treatment_count": 34,
+        "control": 0.8235294117647058,
+        "treatment": 1.0,
+        "delta_queries": 6,
+        "paired": {
+          "wins": 6,
+          "ties": 28,
+          "regressions": 0
+        }
+      },
+      "at_20": {
+        "control_count": 33,
+        "treatment_count": 34,
+        "control": 0.9705882352941176,
+        "treatment": 1.0,
+        "delta_queries": 1,
+        "paired": {
+          "wins": 1,
+          "ties": 33,
+          "regressions": 0
+        }
+      },
+      "at_100": {
+        "control_count": 34,
+        "treatment_count": 34,
+        "control": 1.0,
+        "treatment": 1.0,
+        "delta_queries": 0,
+        "paired": {
+          "wins": 0,
+          "ties": 34,
+          "regressions": 0
+        }
+      }
+    },
+    "mrr": {
+      "control": 0.5062568966980732,
+      "treatment": 0.8464052287581699,
+      "delta": 0.34014833206009676
+    },
+    "first_relevant_rank": {
+      "win": 21,
+      "tie": 13,
+      "regression": 0
+    },
+    "candidate_novelty": {
+      "treatment_new_relevant_queries": 5,
+      "control_new_relevant_queries": 11,
+      "mean_top100_jaccard": 0.5117556950061133
+    },
+    "latency_ms": {
+      "control_median": 267.65454979613423,
+      "control_p95": 306.01682560518384,
+      "treatment_median": 276.8225164618343,
+      "treatment_p95": 330.11517487466335,
+      "p95_ratio": 1.0787484453569578
+    },
+    "mean_response_tokens_at_100": {
+      "control": 30391.235294117647,
+      "treatment": 29589.441176470587,
+      "ratio": 0.9736175871139319
+    }
+  }
+}
