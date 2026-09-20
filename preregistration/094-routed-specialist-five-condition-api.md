@@ -344,3 +344,24 @@ artifact recorded 75,067 total tokens with an estimated model spend of $0.0046. 
 authorization, provider, participant, or checker infrastructure failure occurred. This was a
 private AMB smoke named `specialist-fusion-smoke-001`; it was not the official AML Smoke and grants
 no authorization for one.
+
+## Preparation 003 passed after checker repair
+
+Preparation `specialist-conditions-003` ran all five conditions sequentially at AMB commit
+`95fb6b6688661968cc424849817734e38b16f9c1` and launched zero model sessions. It recorded 138
+nonempty Search artifacts across 69 distinct condition-task prompts, with 10 hits in every
+artifact. All 69 C6/C7 ordered result payload hashes were identical. Every C7 Search reported
+route `code`, embedding profile `voyage-code-4-v1`, variant `C7_routed_specialists`, and served
+commit `4334084d13e38d02d881b2207c85152858e608d9`.
+
+The preparation receipt SHA256 values are:
+
+* `contradictory`: `dec7fd404aa0907bb069b087071420af3785fa1cedef7a297da64c5cb39156dd`.
+* `present`: `6270dcbf3d68a263fcc552356ac7a5a56517c3d05fc2feb127c90caa805ad071`.
+* `adjacent`: `d09b1c05ab98e5998dd91096517874ff4c3617a4ed18e6b92c06a770b7960498`.
+* `superseded`: `59e5274339c9587d496642028ac92ff1cccfde40e274d9241ffbfbac8375f407`.
+* `absent`: `097ac8106107a09409d462a197df80f4b7019cbe31244b703d32c474db18f44d`.
+
+The eligible private scored run uses run id `specialist-conditions-003` and namespace
+`amb-specialist-conditions-003`. All other frozen parameters remain unchanged. This preparation
+does not authorize an official AML Smoke or official evaluation.
