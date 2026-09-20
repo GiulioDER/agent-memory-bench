@@ -62,6 +62,17 @@ class HostedClient:
             result = json.loads(response.read().decode())
         return HttpResult(result, (time.perf_counter() - started) * 1_000)
 
+    def get(self, path: str) -> dict[str, Any]:
+        request = Request(
+            self.base_url + path,
+            method="GET",
+            headers={"Authorization": f"Bearer {self.key}"},
+        )
+        with urlopen(request, timeout=30) as response:
+            if response.status != 200:
+                raise RuntimeError(f"{path} returned HTTP {response.status}")
+            return json.loads(response.read().decode())
+
 
 def tenant_for(user_id: str) -> str:
     return "aml_" + hashlib.sha256(user_id.encode()).hexdigest()
@@ -139,6 +150,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise SystemExit("hosted, database, and Voyage credentials are required")
 
     client = HostedClient(args.base_url, api_key)
+    version = client.get("/version")
+    if not (
+        version.get("variant") == "C6_code4_exact_bm25"
+        and version.get("exact_dense") is True
+        and version.get("ordering_profile") == "source-session-c-collation-segment-v1"
+        and version.get("window_renderer_profile") == "message-content-only-v1"
+    ):
+        raise ValueError("endpoint does not expose the frozen C6 parity contract")
     user_id = "code4-parity-" + uuid4().hex
     tenant = tenant_for(user_id)
     session_text = {
@@ -252,6 +271,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "provenance": {
                 "manifest_sha256": historical["provenance"]["manifest_sha256"],
                 "historical_git_head": historical["provenance"]["git_head"],
+                "verifier_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                "candidate_commit": version.get("commit"),
+                "candidate_generation": version.get("generation_id"),
                 "corpus_sessions": len(manifest.sessions),
                 "raw_windows": len(windows),
             },
