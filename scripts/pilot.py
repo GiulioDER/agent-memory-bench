@@ -973,6 +973,19 @@ def prepare_hosted_prefetch(
     return reports, specs
 
 
+def preparation_corpus_digests(
+    corpus: CorpusManifest, manifest_path: Path
+) -> tuple[str, str]:
+    """Return the frozen manifest file SHA and the normalized session mapping digest."""
+    file_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    sessions_digest = hashlib.sha256(
+        json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":")).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    return file_digest, sessions_digest
+
+
 def classify_cell(
     task, workdir: Path, condition: str, checker_ok: bool, verdict: str, response: str
 ) -> dict[str, object]:
@@ -1704,16 +1717,15 @@ async def main() -> int:
                     "prefetch_wall_time_ms": diagnostic["prefetch_wall_time_ms"],
                 }
             )
-        manifest_sha256 = hashlib.sha256(
-            json.dumps(dict(sorted(corpus.sessions.items())), separators=(",", ":")).encode(
-                "utf-8"
-            )
-        ).hexdigest()
+        manifest_sha256, sessions_digest = preparation_corpus_digests(
+            corpus, corpus_root / "manifest.json"
+        )
         receipt = {
             "mode": "prepare-only",
             "run_id": args.run_id,
             "namespace": args.namespace,
             "corpus_manifest_sha256": manifest_sha256,
+            "corpus_sessions_digest": sessions_digest,
             "task_ids": [task.task_id for task in tasks],
             "ingest_reports": [report.to_dict() for report in reports],
             "searches": searches,

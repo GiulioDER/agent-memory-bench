@@ -318,6 +318,28 @@ def test_prepare_hosted_prefetch_ingests_both_and_searches_each_unique_task_once
     ]
 
 
+def test_preparation_receipt_distinguishes_manifest_file_and_session_digests(
+    tmp_path: Path,
+) -> None:
+    """The frozen file SHA must not be mislabeled with the normalized mapping digest."""
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        '{\n  "sessions": {"sessions/one.jsonl": "abc"}\n}\n', encoding="utf-8"
+    )
+    corpus = CorpusManifest(
+        root=tmp_path,
+        sessions={"sessions/one.jsonl": "abc"},
+    )
+
+    file_digest, sessions_digest = pilot.preparation_corpus_digests(corpus, manifest)
+
+    assert file_digest == __import__("hashlib").sha256(manifest.read_bytes()).hexdigest()
+    assert sessions_digest == __import__("hashlib").sha256(
+        b'{"sessions/one.jsonl":"abc"}'
+    ).hexdigest()
+    assert file_digest != sessions_digest
+
+
 def test_hosted_prefetch_refuses_the_wrong_deployed_variant(tmp_path: Path) -> None:
     """An endpoint label mismatch must stop before destructive namespace cleanup.
 
