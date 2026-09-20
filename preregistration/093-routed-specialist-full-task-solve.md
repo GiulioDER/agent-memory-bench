@@ -154,3 +154,11 @@ model, seeds, endpoints, or predictions:
 The full 306 session command remains the frozen command above. It may start only after the
 preparation receipt passes and the separate RE-call nine gate qualification passes. This
 amendment does not authorize an official AML Smoke or official AML evaluation.
+
+### Preparation provenance correction, before model spend
+
+The first zero session preparation completed both ingestions and all 68 nonempty Searches, but
+its `corpus_manifest_sha256` field was mislabeled: it contained the normalized session mapping
+digest rather than the frozen manifest file SHA 256. It launched zero model sessions. Commit
+`ba60e204` records both values separately and restores the file digest to the manifest field. A
+new preparation receipt from that commit or a direct descendant is required before Task Solve.
