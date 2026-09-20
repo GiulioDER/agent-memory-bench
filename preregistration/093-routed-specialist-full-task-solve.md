@@ -213,3 +213,17 @@ frozen benchmark field unchanged. The apparatus adds a bounded
 `AMB_HOSTED_REQUEST_TIMEOUT_S` setting, default 180 seconds, and the retry sets it to 600 seconds
 so queued Add workers can wait behind the serialized provider boundary. Values at or below zero
 or above 1,800 seconds are refused. No official AML Smoke or evaluation is authorized.
+
+### Attempt 2 setup gate failure
+
+Attempt 2 completed both ingestions with 196 sessions and 1,220 items per hosted arm and wrote all
+136 task scoped Search artifacts. It then stopped at the pre session setup gate with no task
+records. The generic `instruction_arms_matched` check treated its false harness flag as a failure
+even though the recorded instruction manifest contains zero bytes for every arm. The C6 and C7
+retrieved prompts are task scoped treatment evidence, not shared product instruction appendices.
+
+The gate is amended to skip instruction parity only when an instruction manifest is present and
+contains no instruction carrying arm. Existing instruction carrying comparisons retain their
+arithmetic parity checks and harness flag enforcement. This changes no task, prompt, evidence,
+arm, model, seed, endpoint, prediction, or analysis rule. A further retry remains a wiring retry
+before any scored outcome. No official AML Smoke or evaluation is authorized.

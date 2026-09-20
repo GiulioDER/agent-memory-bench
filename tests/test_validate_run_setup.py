@@ -18,6 +18,7 @@ import pytest
 from scripts.validate_run_setup import (
     DEFAULT_MAX_APPENDIX_FRACTION,
     check_appendix_proportion,
+    check_arms_matched_flag,
     check_claude_mem_preflight,
     check_corpus_reached,
     check_shared_protocol_identical,
@@ -142,6 +143,24 @@ def test_a_mismatched_base_fails_even_when_the_harness_flag_says_matched() -> No
 def test_an_arm_with_no_instruction_is_not_an_offender() -> None:
     assert check_shared_protocol_identical(FAIR).ok is True
     assert "bare" not in check_shared_protocol_identical(FAIR).detail
+
+
+def test_instruction_match_flag_skips_when_no_arm_carries_an_instruction() -> None:
+    """Retrieved task evidence is not a shared memory instruction appendix."""
+    env = {
+        "memory_instruction": "oneliner",
+        "instruction_manifest": {
+            "claude_md": {"bytes": 0},
+            "aml_c6_prefetch": {"bytes": 0},
+            "aml_c7_prefetch": {"bytes": 0},
+        },
+        "instruction_arms_matched": False,
+    }
+
+    check = check_arms_matched_flag(env)
+
+    assert check.ok is None
+    assert "no instruction carrying arms" in check.detail
 
 
 # --- a SKIP is never a PASS ------------------------------------------------------------------
