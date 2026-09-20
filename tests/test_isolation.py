@@ -294,6 +294,38 @@ def test_production_checker_calls_select_the_isolated_worker() -> None:
                 assert isolated.value.value is True, path
 
 
+def test_production_isolated_checker_mounts_the_task_oracle_directory() -> None:
+    """The worker receives /oracle as one task's oracle, not the shared parent.
+
+    Mounting ``task.oracle_dir.parent`` puts the task data under
+    ``/oracle/<task-id>/`` while every bundled checker reads paths such as
+    ``/oracle/data`` directly. That turns otherwise correct sessions into a
+    systematic zero score.
+    """
+
+    import ast
+
+    scripts = Path(__file__).parents[1] / "scripts"
+    calls = 0
+    for path in scripts.glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "run_isolated_checker"
+            ):
+                continue
+            calls += 1
+            assert len(node.args) >= 2, path
+            oracle_argument = ast.unparse(node.args[1])
+            assert oracle_argument.endswith(".oracle_dir"), (
+                f"{path} mounts {oracle_argument!r}; the checker image expects the "
+                "task-specific oracle at /oracle"
+            )
+    assert calls >= 2
+
+
 def test_participant_build_context_cannot_bake_benchmark_sources() -> None:
     root = Path(__file__).parents[1]
     dockerfile = (root / "docker" / "Dockerfile.participant").read_text(encoding="utf-8")
