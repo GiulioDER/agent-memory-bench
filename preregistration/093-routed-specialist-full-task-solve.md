@@ -134,3 +134,23 @@ Retries are permitted only for a documented wiring failure before a scored outco
 timeout, or an unfavorable result is never retried.
 
 <!-- results and append only corrections go below this line; everything above is frozen -->
+
+## Append only safety apparatus amendment, before live calls
+
+No live hosted call or model session had run when this amendment was written. Apparatus commit
+`df67fcf0` adds three fail closed controls without changing the frozen task roster, arms, prompts,
+model, seeds, endpoints, or predictions:
+
+1. C6 and C7 use endpoint specific credentials named `RECALL_AML_C6_API_KEY` and
+   `RECALL_AML_C7_API_KEY`. A legacy shared key may fill one missing side only when it is byte
+   equal to the other side's explicit key.
+2. An empty hosted Search is a setup failure and cannot become an empty prompt or a scored model
+   session.
+3. The frozen command is first run with `--prepare-only`. That mode ingests both hosted arms,
+   searches each of the 34 distinct prompts once per arm, writes a nonoverwriting preparation
+   receipt with 68 searches and `model_sessions_launched: 0`, then returns before broker,
+   adjudication, or task runner construction.
+
+The full 306 session command remains the frozen command above. It may start only after the
+preparation receipt passes and the separate RE-call nine gate qualification passes. This
+amendment does not authorize an official AML Smoke or official AML evaluation.
