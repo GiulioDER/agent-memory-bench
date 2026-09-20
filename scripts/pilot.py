@@ -67,6 +67,7 @@ except ModuleNotFoundError as exc:
 from adapters.mempalace.adapter import MemPalaceAdapter
 from adapters.oracle_memory.adapter import OracleMemoryAdapter
 from adapters.recall.adapter import RecallAdapter
+from adapters.recall_aml_prefetch.adapter import HostedAmlPrefetchAdapter
 from adapters.recall_checkpoint.adapter import (
     RecallGraphFullToolsCheckpointAdapter,
     RecallGraphFullToolsCheckpointPlaceboAdapter,
@@ -178,6 +179,7 @@ ARMS = (
     "recall_graph_fulltools_checkpoint_placebo", "recall_graph_fulltools_checkpoint",
     "mempalace", "recall_prefetch", "oracle_memory", "cachly", "graphiti", "supermemory",
     "claude_mem",
+    "aml_c6_prefetch", "aml_c7_prefetch",
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM = "recall_graph_fulltools_protocol"
@@ -255,7 +257,8 @@ MEMORY_ARMS = frozenset(
 #: Memory arms whose store THIS runner fills, in-process, before the grid. `recall` is absent
 #: because its tenant is indexed out of band against the frozen corpus manifest.
 SELF_INGESTING_ARMS = (
-    "fs_grep", "mempalace", "cachly", "graphiti", "supermemory", "claude_mem"
+    "fs_grep", "mempalace", "cachly", "graphiti", "supermemory", "claude_mem",
+    "aml_c6_prefetch", "aml_c7_prefetch",
 )
 
 #: Arms that are a static system-prompt file and nothing else.
@@ -874,6 +877,18 @@ def adapter_for(
             staging,
             static,
         )
+    if arm in {"aml_c6_prefetch", "aml_c7_prefetch"}:
+        expected, env_name = {
+            "aml_c6_prefetch": ("C6_code4_exact_bm25", "RECALL_AML_C6_BASE_URL"),
+            "aml_c7_prefetch": ("C7_routed_specialists", "RECALL_AML_C7_BASE_URL"),
+        }[arm]
+        return HostedAmlPrefetchAdapter(
+            name=arm,
+            expected_variant=expected,
+            base_url_env=env_name,
+            staging_root=staging,
+            base_prompt_file=static,
+        )
     raise ValueError(f"no adapter for arm {arm!r}")
 
 
@@ -1007,6 +1022,13 @@ EXCLUDED_PREFIXES = {
         "it changes what every run measures"
     ),
 }
+
+
+def task_prefixes(*, explicit: bool, include_synthesis: bool) -> tuple[str, ...]:
+    """Resolve the task class boundary without changing the historical default grid."""
+    if not explicit:
+        return GRID_PREFIXES
+    return SELECTABLE_PREFIXES + (("xs-",) if include_synthesis else ())
 
 
 def diagnostic_metadata(spec: Any) -> dict[str, Any]:
@@ -1284,6 +1306,11 @@ async def main() -> int:
         "fixed by its record.",
     )
     parser.add_argument(
+        "--include-synthesis",
+        action="store_true",
+        help="allow explicitly named xs-* tasks without changing the historical default grid",
+    )
+    parser.add_argument(
         "--corpus-root",
         default="",
         help="the corpus feed to ingest. Defaults to corpus/. Point it at a directory built by "
@@ -1470,7 +1497,9 @@ async def main() -> int:
             raise SystemExit(f"sequence plan names unknown task(s) {missing}")
         tasks = [discovered[task_id] for task_id in plan_task_ids]
     else:
-        prefixes = SELECTABLE_PREFIXES if args.tasks else GRID_PREFIXES
+        prefixes = task_prefixes(
+            explicit=bool(args.tasks), include_synthesis=args.include_synthesis
+        )
         tasks = [task for task in discover_tasks() if task.task_id.startswith(prefixes)]
     if args.tasks:
         wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]
@@ -1479,6 +1508,10 @@ async def main() -> int:
         if missing:
             raise SystemExit(f"unknown task(s) {missing}; a silent subset is a different run")
         tasks = [task for task in tasks if task.task_id in set(wanted)]
+    if args.include_synthesis and not args.tasks:
+        raise SystemExit("--include-synthesis requires an explicit --tasks roster")
+    if args.condition and any(task.task_id.startswith("xs-") for task in tasks):
+        raise SystemExit("xs-* tasks are supported only against the frozen base corpus")
     if not tasks:
         raise SystemExit("no tasks selected")
 
