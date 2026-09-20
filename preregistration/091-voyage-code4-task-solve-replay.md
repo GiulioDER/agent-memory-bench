@@ -144,3 +144,20 @@ this experiment licenses equal-peer fusion, concatenating vectors from different
 spaces, or applying Code 4 to conversational or multimodal corpora.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Evidence build result
+
+Measured 2026-09-20 at 10:22:58 UTC from apparatus commit
+`a26c3fb13963fcea952cfd4ed77109ef105c37ec`. The one shot build completed with status 0 and all
+five frozen gates passed.
+
+* Code 3 source recall at 10 was 28/34.
+* Code 4 source recall at 10 was 34/34, a gain of six queries.
+* Mean reciprocal rank rose from 0.5063 to 0.8464.
+* Exact first relevant rank produced 21 Code 4 wins, 13 ties, and zero regressions.
+* Every task and arm contains exactly ten replay windows, and the replay catalog validated all 34
+  task prompts, window indices, source paths, text hashes, model names, and corpus identity.
+
+The evidence artifact is `results/retrieval/091-code4-task-solve-evidence.json`, SHA-256
+`ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df`. The frozen retrieval
+gate therefore licenses the Task Solve grid. It does not determine the Task Solve result.
