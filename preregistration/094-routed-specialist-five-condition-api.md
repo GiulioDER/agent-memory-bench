@@ -270,3 +270,16 @@ The private scored run uses run id `specialist-conditions-002` and namespace
 correction to the frozen command example because the `001` preparation is retained as refused
 diagnostic evidence. It changes no condition, task, system arm, seed, model, price, concurrency,
 endpoint, or decision rule.
+
+## Scored attempt 1 data policy gate
+
+The first scored launch stopped during the `contradictory` setup, after both hosted Add operations
+and before any participant model session, because `AMB_DATA_POLICY_FILE` was unset. The partial
+condition contains only the trusted challenge and initial execution event. It has no participant
+record, model token, score, or adjudication receipt.
+
+This is a wiring failure under the frozen zero-model retry rule. The retry supplies the existing
+synthetic-only provider policy file already used by the private benchmark host. It changes no
+condition, corpus, task, system arm, model, seed, price, concurrency, endpoint, prediction, or
+decision rule. The partial result, work directory, log, and pid record are preserved under an
+attempt 1 data policy archive name.
