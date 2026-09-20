@@ -1,0 +1,171 @@
+voyage: 1220 windows, about 370,808 tokens to embed (pre-flight)
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+voyage: 347,634 tokens by the vendor tokenizer
+  embedded     96 / 1220
+  embedded    192 / 1220
+  embedded    288 / 1220
+  embedded    384 / 1220
+  embedded    480 / 1220
+  embedded    576 / 1220
+  embedded    672 / 1220
+  embedded    768 / 1220
+  embedded    864 / 1220
+  embedded    960 / 1220
+  embedded   1056 / 1220
+  embedded   1152 / 1220
+  embedded   1220 / 1220
+voyage-context: 1220 windows, about 370,808 tokens to embed (pre-flight)
+voyage-context: 347,634 tokens by the vendor tokenizer
+  contextualized request   1 / 21
+  contextualized request   2 / 21
+  contextualized request   3 / 21
+  contextualized request   4 / 21
+  contextualized request   5 / 21
+  contextualized request   6 / 21
+  contextualized request   7 / 21
+  contextualized request   8 / 21
+  contextualized request   9 / 21
+  contextualized request  10 / 21
+  contextualized request  11 / 21
+  contextualized request  12 / 21
+  contextualized request  13 / 21
+  contextualized request  14 / 21
+  contextualized request  15 / 21
+  contextualized request  16 / 21
+  contextualized request  17 / 21
+  contextualized request  18 / 21
+  contextualized request  19 / 21
+  contextualized request  20 / 21
+  contextualized request  21 / 21
+{
+  "decision": {
+    "direct_replacement_passed": false,
+    "protected_fusion_preregistration_licensed": true,
+    "task_solve_screen_licensed": false
+  },
+  "metrics": {
+    "queries": 34,
+    "source_recall": {
+      "at_1": {
+        "control_count": 27,
+        "treatment_count": 17,
+        "control": 0.7941176470588235,
+        "treatment": 0.5,
+        "delta_queries": -10,
+        "paired": {
+          "wins": 0,
+          "ties": 24,
+          "regressions": 10
+        }
+      },
+      "at_3": {
+        "control_count": 28,
+        "treatment_count": 21,
+        "control": 0.8235294117647058,
+        "treatment": 0.6176470588235294,
+        "delta_queries": -7,
+        "paired": {
+          "wins": 0,
+          "ties": 27,
+          "regressions": 7
+        }
+      },
+      "at_5": {
+        "control_count": 32,
+        "treatment_count": 23,
+        "control": 0.9411764705882353,
+        "treatment": 0.6764705882352942,
+        "delta_queries": -9,
+        "paired": {
+          "wins": 0,
+          "ties": 25,
+          "regressions": 9
+        }
+      },
+      "at_10": {
+        "control_count": 34,
+        "treatment_count": 30,
+        "control": 1.0,
+        "treatment": 0.8823529411764706,
+        "delta_queries": -4,
+        "paired": {
+          "wins": 0,
+          "ties": 30,
+          "regressions": 4
+        }
+      },
+      "at_20": {
+        "control_count": 34,
+        "treatment_count": 34,
+        "control": 1.0,
+        "treatment": 1.0,
+        "delta_queries": 0,
+        "paired": {
+          "wins": 0,
+          "ties": 34,
+          "regressions": 0
+        }
+      },
+      "at_100": {
+        "control_count": 34,
+        "treatment_count": 34,
+        "control": 1.0,
+        "treatment": 1.0,
+        "delta_queries": 0,
+        "paired": {
+          "wins": 0,
+          "ties": 34,
+          "regressions": 0
+        }
+      }
+    },
+    "mrr": {
+      "control": 0.8464052287581699,
+      "treatment": 0.5996772426919486,
+      "delta": -0.24672798606622137
+    },
+    "first_relevant_rank": {
+      "win": 0,
+      "tie": 18,
+      "regression": 16
+    },
+    "prefix_comparison": {
+      "at_10": {
+        "treatment_new_relevant_queries": 16,
+        "control_new_relevant_queries": 26,
+        "mean_overlap": 4.705882352941177,
+        "mean_jaccard": 0.326983282000583,
+        "control_complete_shards": 33,
+        "treatment_complete_shards": 28
+      },
+      "at_20": {
+        "treatment_new_relevant_queries": 21,
+        "control_new_relevant_queries": 14,
+        "mean_overlap": 11.941176470588236,
+        "mean_jaccard": 0.4468422943438519,
+        "control_complete_shards": 34,
+        "treatment_complete_shards": 34
+      },
+      "at_100": {
+        "treatment_new_relevant_queries": 16,
+        "control_new_relevant_queries": 2,
+        "mean_overlap": 67.55882352941177,
+        "mean_jaccard": 0.5125510889004312,
+        "control_complete_shards": 34,
+        "treatment_complete_shards": 34
+      }
+    },
+    "latency_ms": {
+      "control_median": 289.7607439663261,
+      "control_p95": 362.8700990229845,
+      "treatment_median": 308.2363153807819,
+      "treatment_p95": 367.4263940192759,
+      "p95_ratio": 1.012556270159925
+    },
+    "mean_response_tokens_at_100": {
+      "control": 29589.441176470587,
+      "treatment": 30228.176470588234,
+      "ratio": 1.0215865953773255
+    }
+  }
+}

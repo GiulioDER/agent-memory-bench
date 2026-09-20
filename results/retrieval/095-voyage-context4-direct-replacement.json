@@ -1,0 +1,2567 @@
+{
+  "schema_version": 1,
+  "experiment": "095-voyage-context4-direct-replacement",
+  "measured_at": "2026-09-20T13:38:33.168688+00:00",
+  "provenance": {
+    "git_head": "cc447cc0893fa2ba05c9bf7895d1e2211cf14df5",
+    "manifest_sha256": "58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814",
+    "script_sha256": "086bb446a106bc7c326858850344bd92db1a6974f62378824cf0ccf8faa7c819",
+    "corpus_sessions": 196,
+    "raw_windows": 1220
+  },
+  "configuration": {
+    "control_model": "voyage-code-4",
+    "treatment_model": "voyage-context-4",
+    "context_grouping": "ordered_raw_windows_by_manifest_session",
+    "context_output_dimension": 1024,
+    "candidate_k_per_leg": 100,
+    "result_k": 100,
+    "rrf_k": 60,
+    "window_words": 160,
+    "window_stride": 120,
+    "max_tokens_per_model": 500000
+  },
+  "add_time_ms": {
+    "lexical": 83.924,
+    "control_dense": 21963.538,
+    "treatment_dense": 14015.894
+  },
+  "context_grouping_diagnostics": {
+    "documents": 196,
+    "document_parts": 196,
+    "requests": 21,
+    "split_documents": 0,
+    "max_request_chars": 60000,
+    "max_request_chunks": 1000
+  },
+  "metrics": {
+    "queries": 34,
+    "source_recall": {
+      "at_1": {
+        "control_count": 27,
+        "treatment_count": 17,
+        "control": 0.7941176470588235,
+        "treatment": 0.5,
+        "delta_queries": -10,
+        "paired": {
+          "wins": 0,
+          "ties": 24,
+          "regressions": 10
+        }
+      },
+      "at_3": {
+        "control_count": 28,
+        "treatment_count": 21,
+        "control": 0.8235294117647058,
+        "treatment": 0.6176470588235294,
+        "delta_queries": -7,
+        "paired": {
+          "wins": 0,
+          "ties": 27,
+          "regressions": 7
+        }
+      },
+      "at_5": {
+        "control_count": 32,
+        "treatment_count": 23,
+        "control": 0.9411764705882353,
+        "treatment": 0.6764705882352942,
+        "delta_queries": -9,
+        "paired": {
+          "wins": 0,
+          "ties": 25,
+          "regressions": 9
+        }
+      },
+      "at_10": {
+        "control_count": 34,
+        "treatment_count": 30,
+        "control": 1.0,
+        "treatment": 0.8823529411764706,
+        "delta_queries": -4,
+        "paired": {
+          "wins": 0,
+          "ties": 30,
+          "regressions": 4
+        }
+      },
+      "at_20": {
+        "control_count": 34,
+        "treatment_count": 34,
+        "control": 1.0,
+        "treatment": 1.0,
+        "delta_queries": 0,
+        "paired": {
+          "wins": 0,
+          "ties": 34,
+          "regressions": 0
+        }
+      },
+      "at_100": {
+        "control_count": 34,
+        "treatment_count": 34,
+        "control": 1.0,
+        "treatment": 1.0,
+        "delta_queries": 0,
+        "paired": {
+          "wins": 0,
+          "ties": 34,
+          "regressions": 0
+        }
+      }
+    },
+    "mrr": {
+      "control": 0.8464052287581699,
+      "treatment": 0.5996772426919486,
+      "delta": -0.24672798606622137
+    },
+    "first_relevant_rank": {
+      "win": 0,
+      "tie": 18,
+      "regression": 16
+    },
+    "prefix_comparison": {
+      "at_10": {
+        "treatment_new_relevant_queries": 16,
+        "control_new_relevant_queries": 26,
+        "mean_overlap": 4.705882352941177,
+        "mean_jaccard": 0.326983282000583,
+        "control_complete_shards": 33,
+        "treatment_complete_shards": 28
+      },
+      "at_20": {
+        "treatment_new_relevant_queries": 21,
+        "control_new_relevant_queries": 14,
+        "mean_overlap": 11.941176470588236,
+        "mean_jaccard": 0.4468422943438519,
+        "control_complete_shards": 34,
+        "treatment_complete_shards": 34
+      },
+      "at_100": {
+        "treatment_new_relevant_queries": 16,
+        "control_new_relevant_queries": 2,
+        "mean_overlap": 67.55882352941177,
+        "mean_jaccard": 0.5125510889004312,
+        "control_complete_shards": 34,
+        "treatment_complete_shards": 34
+      }
+    },
+    "latency_ms": {
+      "control_median": 289.7607439663261,
+      "control_p95": 362.8700990229845,
+      "treatment_median": 308.2363153807819,
+      "treatment_p95": 367.4263940192759,
+      "p95_ratio": 1.012556270159925
+    },
+    "mean_response_tokens_at_100": {
+      "control": 29589.441176470587,
+      "treatment": 30228.176470588234,
+      "ratio": 1.0215865953773255
+    }
+  },
+  "predictions": {
+    "p1_context_recall10_34_of_34": false,
+    "p2_context_mrr_within_minus_0_03": false,
+    "p3_context_recall100_34_of_34": true,
+    "p4_rank_wins_at_least_regressions": false,
+    "p5_context_new_relevant_top100_at_least_3": true,
+    "p6_mean_top100_jaccard_below_0_85": true,
+    "p7_response_tokens_within_5_percent": true,
+    "p8_context_p95_below_2x_control": true
+  },
+  "decision": {
+    "direct_replacement_passed": false,
+    "protected_fusion_preregistration_licensed": true,
+    "task_solve_screen_licensed": false
+  },
+  "per_task": [
+    {
+      "task_id": "fa-dedup-key",
+      "gold_documents": [
+        "sessions/fa-dedup-key/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 6,
+        "union": 14,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          809,
+          816
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 13,
+        "union": 27,
+        "jaccard": 0.48148148148148145,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 63,
+        "union": 137,
+        "jaccard": 0.45985401459854014,
+        "treatment_new_relevant_windows": [
+          806,
+          810,
+          811
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3005,
+      "treatment_response_tokens_at_10": 2965,
+      "control_response_tokens_at_100": 29502,
+      "treatment_response_tokens_at_100": 30347,
+      "shared_lexical_ms": 38.794,
+      "control_total_ms": 279.65,
+      "treatment_total_ms": 276.585
+    },
+    {
+      "task_id": "ts-append-only",
+      "gold_documents": [
+        "sessions/ts-append-only/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 13,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": false,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 2,
+        "union": 18,
+        "jaccard": 0.1111111111111111,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          819,
+          820,
+          821,
+          825,
+          827
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 0,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": false,
+      "at_20": {
+        "overlap": 10,
+        "union": 30,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          820,
+          821,
+          822,
+          825,
+          826,
+          827
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 64,
+        "union": 136,
+        "jaccard": 0.47058823529411764,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2693,
+      "treatment_response_tokens_at_10": 2682,
+      "control_response_tokens_at_100": 28468,
+      "treatment_response_tokens_at_100": 30097,
+      "shared_lexical_ms": 64.711,
+      "control_total_ms": 293.181,
+      "treatment_total_ms": 306.747
+    },
+    {
+      "task_id": "ts-atomic-write",
+      "gold_documents": [
+        "sessions/ts-atomic-write/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 2,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          830
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 17,
+        "union": 23,
+        "jaccard": 0.7391304347826086,
+        "treatment_new_relevant_windows": [
+          832
+        ],
+        "control_new_relevant_windows": [
+          834,
+          837
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 69,
+        "union": 131,
+        "jaccard": 0.5267175572519084,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3042,
+      "treatment_response_tokens_at_10": 3306,
+      "control_response_tokens_at_100": 29052,
+      "treatment_response_tokens_at_100": 29999,
+      "shared_lexical_ms": 87.504,
+      "control_total_ms": 300.504,
+      "treatment_total_ms": 327.679
+    },
+    {
+      "task_id": "ts-base36-id",
+      "gold_documents": [
+        "sessions/ts-base36-id/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 2,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          840
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 11,
+        "union": 29,
+        "jaccard": 0.3793103448275862,
+        "treatment_new_relevant_windows": [
+          848
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 68,
+        "union": 132,
+        "jaccard": 0.5151515151515151,
+        "treatment_new_relevant_windows": [
+          841,
+          842,
+          843,
+          848
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2785,
+      "treatment_response_tokens_at_10": 2726,
+      "control_response_tokens_at_100": 29824,
+      "treatment_response_tokens_at_100": 30554,
+      "shared_lexical_ms": 56.026,
+      "control_total_ms": 269.91,
+      "treatment_total_ms": 324.221
+    },
+    {
+      "task_id": "ts-bom-merge",
+      "gold_documents": [
+        "sessions/ts-bom-merge/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 7,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 2,
+        "union": 18,
+        "jaccard": 0.1111111111111111,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          859,
+          860,
+          862
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 8,
+        "union": 32,
+        "jaccard": 0.25,
+        "treatment_new_relevant_windows": [
+          856,
+          858
+        ],
+        "control_new_relevant_windows": [
+          850
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 62,
+        "union": 138,
+        "jaccard": 0.4492753623188406,
+        "treatment_new_relevant_windows": [
+          852,
+          853,
+          854,
+          855
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2919,
+      "treatment_response_tokens_at_10": 2888,
+      "control_response_tokens_at_100": 28946,
+      "treatment_response_tokens_at_100": 29371,
+      "shared_lexical_ms": 92.853,
+      "control_total_ms": 318.097,
+      "treatment_total_ms": 337.381
+    },
+    {
+      "task_id": "ts-bool-env",
+      "gold_documents": [
+        "sessions/ts-bool-env/p01.jsonl"
+      ],
+      "control_rank": 4,
+      "treatment_rank": 5,
+      "rank_relation": "regression",
+      "control_recall_at_1": false,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": false,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 7,
+        "union": 13,
+        "jaccard": 0.5384615384615384,
+        "treatment_new_relevant_windows": [
+          865
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 13,
+        "union": 27,
+        "jaccard": 0.48148148148148145,
+        "treatment_new_relevant_windows": [
+          865
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 72,
+        "union": 128,
+        "jaccard": 0.5625,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3161,
+      "treatment_response_tokens_at_10": 3169,
+      "control_response_tokens_at_100": 29354,
+      "treatment_response_tokens_at_100": 31040,
+      "shared_lexical_ms": 79.803,
+      "control_total_ms": 298.824,
+      "treatment_total_ms": 327.972
+    },
+    {
+      "task_id": "ts-casefold-sort",
+      "gold_documents": [
+        "sessions/ts-casefold-sort/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 4,
+        "union": 16,
+        "jaccard": 0.25,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          873
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 8,
+        "union": 32,
+        "jaccard": 0.25,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 64,
+        "union": 136,
+        "jaccard": 0.47058823529411764,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3246,
+      "treatment_response_tokens_at_10": 3128,
+      "control_response_tokens_at_100": 30245,
+      "treatment_response_tokens_at_100": 30133,
+      "shared_lexical_ms": 50.64,
+      "control_total_ms": 265.965,
+      "treatment_total_ms": 285.345
+    },
+    {
+      "task_id": "ts-cli-exitcode",
+      "gold_documents": [
+        "sessions/ts-cli-exitcode/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 7,
+        "union": 13,
+        "jaccard": 0.5384615384615384,
+        "treatment_new_relevant_windows": [
+          877,
+          882
+        ],
+        "control_new_relevant_windows": [
+          881
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 14,
+        "union": 26,
+        "jaccard": 0.5384615384615384,
+        "treatment_new_relevant_windows": [
+          877
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 70,
+        "union": 130,
+        "jaccard": 0.5384615384615384,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3065,
+      "treatment_response_tokens_at_10": 3192,
+      "control_response_tokens_at_100": 30611,
+      "treatment_response_tokens_at_100": 30631,
+      "shared_lexical_ms": 39.945,
+      "control_total_ms": 249.338,
+      "treatment_total_ms": 271.659
+    },
+    {
+      "task_id": "ts-config-layer",
+      "gold_documents": [
+        "sessions/ts-config-layer/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 8,
+        "union": 12,
+        "jaccard": 0.6666666666666666,
+        "treatment_new_relevant_windows": [
+          894
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 16,
+        "union": 24,
+        "jaccard": 0.6666666666666666,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          885
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 76,
+        "union": 124,
+        "jaccard": 0.6129032258064516,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3216,
+      "treatment_response_tokens_at_10": 3520,
+      "control_response_tokens_at_100": 29393,
+      "treatment_response_tokens_at_100": 30299,
+      "shared_lexical_ms": 48.957,
+      "control_total_ms": 266.146,
+      "treatment_total_ms": 282.85
+    },
+    {
+      "task_id": "ts-crlf-export",
+      "gold_documents": [
+        "sessions/ts-crlf-export/p01.jsonl"
+      ],
+      "control_rank": 6,
+      "treatment_rank": 12,
+      "rank_relation": "regression",
+      "control_recall_at_1": false,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": false,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": false,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": false,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 6,
+        "union": 14,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          896,
+          904
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 0,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": false,
+      "at_20": {
+        "overlap": 15,
+        "union": 25,
+        "jaccard": 0.6,
+        "treatment_new_relevant_windows": [
+          899
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 74,
+        "union": 126,
+        "jaccard": 0.5873015873015873,
+        "treatment_new_relevant_windows": [
+          900,
+          901
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2870,
+      "treatment_response_tokens_at_10": 3296,
+      "control_response_tokens_at_100": 29755,
+      "treatment_response_tokens_at_100": 29501,
+      "shared_lexical_ms": 66.218,
+      "control_total_ms": 288.365,
+      "treatment_total_ms": 305.5
+    },
+    {
+      "task_id": "ts-csv-quote",
+      "gold_documents": [
+        "sessions/ts-csv-quote/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 3,
+        "union": 17,
+        "jaccard": 0.17647058823529413,
+        "treatment_new_relevant_windows": [
+          906,
+          907,
+          908
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 11,
+        "union": 29,
+        "jaccard": 0.3793103448275862,
+        "treatment_new_relevant_windows": [
+          906,
+          907,
+          908
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 68,
+        "union": 132,
+        "jaccard": 0.5151515151515151,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3119,
+      "treatment_response_tokens_at_10": 3410,
+      "control_response_tokens_at_100": 29735,
+      "treatment_response_tokens_at_100": 29951,
+      "shared_lexical_ms": 106.849,
+      "control_total_ms": 321.283,
+      "treatment_total_ms": 351.51
+    },
+    {
+      "task_id": "ts-dedup-order",
+      "gold_documents": [
+        "sessions/ts-dedup-order/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 3,
+        "union": 17,
+        "jaccard": 0.17647058823529413,
+        "treatment_new_relevant_windows": [
+          913
+        ],
+        "control_new_relevant_windows": [
+          912,
+          916
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 10,
+        "union": 30,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [
+          913
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 64,
+        "union": 136,
+        "jaccard": 0.47058823529411764,
+        "treatment_new_relevant_windows": [
+          914
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2783,
+      "treatment_response_tokens_at_10": 3255,
+      "control_response_tokens_at_100": 30794,
+      "treatment_response_tokens_at_100": 30732,
+      "shared_lexical_ms": 89.499,
+      "control_total_ms": 307.044,
+      "treatment_total_ms": 336.385
+    },
+    {
+      "task_id": "ts-empty-input",
+      "gold_documents": [
+        "sessions/ts-empty-input/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 6,
+        "union": 14,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [
+          924
+        ],
+        "control_new_relevant_windows": [
+          925
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 13,
+        "union": 27,
+        "jaccard": 0.48148148148148145,
+        "treatment_new_relevant_windows": [
+          924
+        ],
+        "control_new_relevant_windows": [
+          920,
+          928
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 63,
+        "union": 137,
+        "jaccard": 0.45985401459854014,
+        "treatment_new_relevant_windows": [
+          923
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3174,
+      "treatment_response_tokens_at_10": 3199,
+      "control_response_tokens_at_100": 29383,
+      "treatment_response_tokens_at_100": 29109,
+      "shared_lexical_ms": 38.819,
+      "control_total_ms": 251.299,
+      "treatment_total_ms": 283.483
+    },
+    {
+      "task_id": "ts-glob-hidden",
+      "gold_documents": [
+        "sessions/ts-glob-hidden/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [
+          936,
+          939
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 8,
+        "union": 32,
+        "jaccard": 0.25,
+        "treatment_new_relevant_windows": [
+          935,
+          936,
+          937
+        ],
+        "control_new_relevant_windows": [
+          940,
+          943
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 61,
+        "union": 139,
+        "jaccard": 0.43884892086330934,
+        "treatment_new_relevant_windows": [
+          935
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3108,
+      "treatment_response_tokens_at_10": 3258,
+      "control_response_tokens_at_100": 30917,
+      "treatment_response_tokens_at_100": 30124,
+      "shared_lexical_ms": 55.12,
+      "control_total_ms": 279.721,
+      "treatment_total_ms": 298.743
+    },
+    {
+      "task_id": "ts-golden-regen",
+      "gold_documents": [
+        "sessions/ts-golden-regen/p01.jsonl"
+      ],
+      "control_rank": 4,
+      "treatment_rank": 12,
+      "rank_relation": "regression",
+      "control_recall_at_1": false,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": false,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": false,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 3,
+        "union": 17,
+        "jaccard": 0.17647058823529413,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          947,
+          948,
+          956
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 0,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": false,
+      "at_20": {
+        "overlap": 12,
+        "union": 28,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          947,
+          948
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 69,
+        "union": 131,
+        "jaccard": 0.5267175572519084,
+        "treatment_new_relevant_windows": [
+          950,
+          953,
+          955
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3019,
+      "treatment_response_tokens_at_10": 3156,
+      "control_response_tokens_at_100": 27698,
+      "treatment_response_tokens_at_100": 29661,
+      "shared_lexical_ms": 75.779,
+      "control_total_ms": 299.835,
+      "treatment_total_ms": 315.898
+    },
+    {
+      "task_id": "ts-idempotent-run",
+      "gold_documents": [
+        "sessions/ts-idempotent-run/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 6,
+        "union": 14,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [
+          962
+        ],
+        "control_new_relevant_windows": [
+          959,
+          967
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 11,
+        "union": 29,
+        "jaccard": 0.3793103448275862,
+        "treatment_new_relevant_windows": [
+          960,
+          962
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 64,
+        "union": 136,
+        "jaccard": 0.47058823529411764,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2633,
+      "treatment_response_tokens_at_10": 3067,
+      "control_response_tokens_at_100": 28832,
+      "treatment_response_tokens_at_100": 29830,
+      "shared_lexical_ms": 80.025,
+      "control_total_ms": 297.357,
+      "treatment_total_ms": 319.373
+    },
+    {
+      "task_id": "ts-ignore-gen",
+      "gold_documents": [
+        "sessions/ts-ignore-gen/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 7,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 0,
+        "union": 20,
+        "jaccard": 0.0,
+        "treatment_new_relevant_windows": [
+          981,
+          985,
+          986
+        ],
+        "control_new_relevant_windows": [
+          970,
+          972,
+          973,
+          977
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 9,
+        "union": 31,
+        "jaccard": 0.2903225806451613,
+        "treatment_new_relevant_windows": [
+          981,
+          982,
+          984
+        ],
+        "control_new_relevant_windows": [
+          968,
+          970,
+          978,
+          979,
+          980
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 73,
+        "union": 127,
+        "jaccard": 0.5748031496062992,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3629,
+      "treatment_response_tokens_at_10": 3218,
+      "control_response_tokens_at_100": 31512,
+      "treatment_response_tokens_at_100": 31486,
+      "shared_lexical_ms": 47.669,
+      "control_total_ms": 267.509,
+      "treatment_total_ms": 296.397
+    },
+    {
+      "task_id": "ts-json-sorted",
+      "gold_documents": [
+        "sessions/ts-json-sorted/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 6,
+        "union": 14,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [
+          988,
+          993
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 10,
+        "union": 30,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [
+          988
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 61,
+        "union": 139,
+        "jaccard": 0.43884892086330934,
+        "treatment_new_relevant_windows": [
+          989,
+          990,
+          991,
+          992
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2961,
+      "treatment_response_tokens_at_10": 2959,
+      "control_response_tokens_at_100": 30637,
+      "treatment_response_tokens_at_100": 31578,
+      "shared_lexical_ms": 72.411,
+      "control_total_ms": 291.156,
+      "treatment_total_ms": 309.726
+    },
+    {
+      "task_id": "ts-legacy-hash",
+      "gold_documents": [
+        "sessions/ts-legacy-hash/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 3,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [
+          1005,
+          1006,
+          1009
+        ],
+        "control_new_relevant_windows": [
+          1002
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 17,
+        "union": 23,
+        "jaccard": 0.7391304347826086,
+        "treatment_new_relevant_windows": [
+          1005
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 75,
+        "union": 125,
+        "jaccard": 0.6,
+        "treatment_new_relevant_windows": [
+          999,
+          1000
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3248,
+      "treatment_response_tokens_at_10": 3225,
+      "control_response_tokens_at_100": 30891,
+      "treatment_response_tokens_at_100": 32183,
+      "shared_lexical_ms": 55.217,
+      "control_total_ms": 273.633,
+      "treatment_total_ms": 284.937
+    },
+    {
+      "task_id": "ts-log-mask",
+      "gold_documents": [
+        "sessions/ts-log-mask/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 8,
+        "union": 12,
+        "jaccard": 0.6666666666666666,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1012,
+          1014
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 16,
+        "union": 24,
+        "jaccard": 0.6666666666666666,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1020,
+          1027
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 69,
+        "union": 131,
+        "jaccard": 0.5267175572519084,
+        "treatment_new_relevant_windows": [
+          1016,
+          1017,
+          1018
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3466,
+      "treatment_response_tokens_at_10": 3479,
+      "control_response_tokens_at_100": 29550,
+      "treatment_response_tokens_at_100": 30034,
+      "shared_lexical_ms": 39.517,
+      "control_total_ms": 259.839,
+      "treatment_total_ms": 278.542
+    },
+    {
+      "task_id": "ts-manifest-rel",
+      "gold_documents": [
+        "sessions/ts-manifest-rel/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 6,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1033
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 9,
+        "union": 31,
+        "jaccard": 0.2903225806451613,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 72,
+        "union": 128,
+        "jaccard": 0.5625,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2911,
+      "treatment_response_tokens_at_10": 3237,
+      "control_response_tokens_at_100": 31143,
+      "treatment_response_tokens_at_100": 31406,
+      "shared_lexical_ms": 74.678,
+      "control_total_ms": 293.678,
+      "treatment_total_ms": 319.19
+    },
+    {
+      "task_id": "ts-mig-name",
+      "gold_documents": [
+        "sessions/ts-mig-name/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 9,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 3,
+        "union": 17,
+        "jaccard": 0.17647058823529413,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1035,
+          1041,
+          1047,
+          1048,
+          1049,
+          1050
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 13,
+        "union": 27,
+        "jaccard": 0.48148148148148145,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1035,
+          1045,
+          1046,
+          1047,
+          1050
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 69,
+        "union": 131,
+        "jaccard": 0.5267175572519084,
+        "treatment_new_relevant_windows": [
+          1037,
+          1038
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3256,
+      "treatment_response_tokens_at_10": 3279,
+      "control_response_tokens_at_100": 30137,
+      "treatment_response_tokens_at_100": 31246,
+      "shared_lexical_ms": 36.006,
+      "control_total_ms": 245.479,
+      "treatment_total_ms": 273.211
+    },
+    {
+      "task_id": "ts-natural-order",
+      "gold_documents": [
+        "sessions/ts-natural-order/p01.jsonl"
+      ],
+      "control_rank": 9,
+      "treatment_rank": 16,
+      "rank_relation": "regression",
+      "control_recall_at_1": false,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": false,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": false,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": false,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 2,
+        "union": 18,
+        "jaccard": 0.1111111111111111,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1054
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 0,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": false,
+      "at_20": {
+        "overlap": 7,
+        "union": 33,
+        "jaccard": 0.21212121212121213,
+        "treatment_new_relevant_windows": [
+          1052
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 60,
+        "union": 140,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [
+          1053
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3146,
+      "treatment_response_tokens_at_10": 3146,
+      "control_response_tokens_at_100": 30192,
+      "treatment_response_tokens_at_100": 29890,
+      "shared_lexical_ms": 41.412,
+      "control_total_ms": 257.762,
+      "treatment_total_ms": 270.63
+    },
+    {
+      "task_id": "ts-nfc-count",
+      "gold_documents": [
+        "sessions/ts-nfc-count/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 9,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 4,
+        "union": 16,
+        "jaccard": 0.25,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1058,
+          1074
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 11,
+        "union": 29,
+        "jaccard": 0.3793103448275862,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 62,
+        "union": 138,
+        "jaccard": 0.4492753623188406,
+        "treatment_new_relevant_windows": [
+          1060,
+          1070,
+          1072
+        ],
+        "control_new_relevant_windows": [
+          1068
+        ]
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3059,
+      "treatment_response_tokens_at_10": 2919,
+      "control_response_tokens_at_100": 27947,
+      "treatment_response_tokens_at_100": 29544,
+      "shared_lexical_ms": 86.146,
+      "control_total_ms": 332.331,
+      "treatment_total_ms": 336.257
+    },
+    {
+      "task_id": "ts-quote-shell",
+      "gold_documents": [
+        "sessions/ts-quote-shell/p01.jsonl"
+      ],
+      "control_rank": 4,
+      "treatment_rank": 4,
+      "rank_relation": "tie",
+      "control_recall_at_1": false,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": false,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [
+          1076,
+          1082
+        ],
+        "control_new_relevant_windows": [
+          1085
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 12,
+        "union": 28,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [
+          1076,
+          1082,
+          1083
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 75,
+        "union": 125,
+        "jaccard": 0.6,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2879,
+      "treatment_response_tokens_at_10": 2696,
+      "control_response_tokens_at_100": 29545,
+      "treatment_response_tokens_at_100": 28931,
+      "shared_lexical_ms": 83.372,
+      "control_total_ms": 308.757,
+      "treatment_total_ms": 343.463
+    },
+    {
+      "task_id": "ts-retry-cap",
+      "gold_documents": [
+        "sessions/ts-retry-cap/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 7,
+        "union": 13,
+        "jaccard": 0.5384615384615384,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 19,
+        "union": 21,
+        "jaccard": 0.9047619047619048,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 74,
+        "union": 126,
+        "jaccard": 0.5873015873015873,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3300,
+      "treatment_response_tokens_at_10": 3484,
+      "control_response_tokens_at_100": 29311,
+      "treatment_response_tokens_at_100": 31217,
+      "shared_lexical_ms": 94.578,
+      "control_total_ms": 314.901,
+      "treatment_total_ms": 336.556
+    },
+    {
+      "task_id": "ts-round-money",
+      "gold_documents": [
+        "sessions/ts-round-money/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 3,
+        "union": 17,
+        "jaccard": 0.17647058823529413,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 5,
+        "union": 35,
+        "jaccard": 0.14285714285714285,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 60,
+        "union": 140,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2965,
+      "treatment_response_tokens_at_10": 3085,
+      "control_response_tokens_at_100": 28050,
+      "treatment_response_tokens_at_100": 28739,
+      "shared_lexical_ms": 41.09,
+      "control_total_ms": 256.654,
+      "treatment_total_ms": 299.933
+    },
+    {
+      "task_id": "ts-schema-additive",
+      "gold_documents": [
+        "sessions/ts-schema-additive/p01.jsonl"
+      ],
+      "control_rank": 2,
+      "treatment_rank": 3,
+      "rank_relation": "regression",
+      "control_recall_at_1": false,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 7,
+        "union": 13,
+        "jaccard": 0.5384615384615384,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1098,
+          1103
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 18,
+        "union": 22,
+        "jaccard": 0.8181818181818182,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 73,
+        "union": 127,
+        "jaccard": 0.5748031496062992,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3628,
+      "treatment_response_tokens_at_10": 3404,
+      "control_response_tokens_at_100": 28850,
+      "treatment_response_tokens_at_100": 30671,
+      "shared_lexical_ms": 94.087,
+      "control_total_ms": 363.258,
+      "treatment_total_ms": 350.942
+    },
+    {
+      "task_id": "ts-semver-pin",
+      "gold_documents": [
+        "sessions/ts-semver-pin/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 6,
+        "union": 14,
+        "jaccard": 0.42857142857142855,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 13,
+        "union": 27,
+        "jaccard": 0.48148148148148145,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 64,
+        "union": 136,
+        "jaccard": 0.47058823529411764,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2810,
+      "treatment_response_tokens_at_10": 2953,
+      "control_response_tokens_at_100": 27529,
+      "treatment_response_tokens_at_100": 28663,
+      "shared_lexical_ms": 22.595,
+      "control_total_ms": 241.662,
+      "treatment_total_ms": 273.96
+    },
+    {
+      "task_id": "ts-stable-sort",
+      "gold_documents": [
+        "sessions/ts-stable-sort/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [
+          1114,
+          1115
+        ],
+        "control_new_relevant_windows": [
+          1119
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 11,
+        "union": 29,
+        "jaccard": 0.3793103448275862,
+        "treatment_new_relevant_windows": [
+          1113,
+          1114,
+          1115,
+          1116
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 59,
+        "union": 141,
+        "jaccard": 0.41843971631205673,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2899,
+      "treatment_response_tokens_at_10": 3165,
+      "control_response_tokens_at_100": 30026,
+      "treatment_response_tokens_at_100": 28720,
+      "shared_lexical_ms": 99.086,
+      "control_total_ms": 317.596,
+      "treatment_total_ms": 332.654
+    },
+    {
+      "task_id": "ts-tz-utc",
+      "gold_documents": [
+        "sessions/ts-tz-utc/p01.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 8,
+      "rank_relation": "regression",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 3,
+        "union": 17,
+        "jaccard": 0.17647058823529413,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": [
+          1122,
+          1126
+        ]
+      },
+      "control_gold_docs_at_10": 1,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 7,
+        "union": 33,
+        "jaccard": 0.21212121212121213,
+        "treatment_new_relevant_windows": [
+          1123,
+          1124
+        ],
+        "control_new_relevant_windows": [
+          1122
+        ]
+      },
+      "control_gold_docs_at_20": 1,
+      "treatment_gold_docs_at_20": 1,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 62,
+        "union": 138,
+        "jaccard": 0.4492753623188406,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 1,
+      "treatment_gold_docs_at_100": 1,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2878,
+      "treatment_response_tokens_at_10": 2927,
+      "control_response_tokens_at_100": 30325,
+      "treatment_response_tokens_at_100": 30514,
+      "shared_lexical_ms": 143.38,
+      "control_total_ms": 362.87,
+      "treatment_total_ms": 390.282
+    },
+    {
+      "task_id": "xs-evolve-lease",
+      "gold_documents": [
+        "sessions/xs-evolve-lease/p01.jsonl",
+        "sessions/xs-evolve-lease/p02.jsonl",
+        "sessions/xs-evolve-lease/p03.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 4,
+        "union": 16,
+        "jaccard": 0.25,
+        "treatment_new_relevant_windows": [
+          1136,
+          1140,
+          1142,
+          1158,
+          1163
+        ],
+        "control_new_relevant_windows": [
+          1132,
+          1134,
+          1137,
+          1139,
+          1156
+        ]
+      },
+      "control_gold_docs_at_10": 2,
+      "treatment_gold_docs_at_10": 2,
+      "control_all_shards_at_10": false,
+      "treatment_all_shards_at_10": false,
+      "at_20": {
+        "overlap": 15,
+        "union": 25,
+        "jaccard": 0.6,
+        "treatment_new_relevant_windows": [
+          1141,
+          1142,
+          1160,
+          1164
+        ],
+        "control_new_relevant_windows": [
+          1134,
+          1137,
+          1143
+        ]
+      },
+      "control_gold_docs_at_20": 3,
+      "treatment_gold_docs_at_20": 3,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 77,
+        "union": 123,
+        "jaccard": 0.6260162601626016,
+        "treatment_new_relevant_windows": [],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 3,
+      "treatment_gold_docs_at_100": 3,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 3119,
+      "treatment_response_tokens_at_10": 3307,
+      "control_response_tokens_at_100": 28036,
+      "treatment_response_tokens_at_100": 30300,
+      "shared_lexical_ms": 46.638,
+      "control_total_ms": 270.675,
+      "treatment_total_ms": 293.242
+    },
+    {
+      "task_id": "xs-join-batch",
+      "gold_documents": [
+        "sessions/xs-join-batch/p01.jsonl",
+        "sessions/xs-join-batch/p02.jsonl"
+      ],
+      "control_rank": 1,
+      "treatment_rank": 1,
+      "rank_relation": "tie",
+      "control_recall_at_1": true,
+      "treatment_recall_at_1": true,
+      "control_recall_at_3": true,
+      "treatment_recall_at_3": true,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": true,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 5,
+        "union": 15,
+        "jaccard": 0.3333333333333333,
+        "treatment_new_relevant_windows": [
+          1170,
+          1178
+        ],
+        "control_new_relevant_windows": [
+          1167,
+          1183
+        ]
+      },
+      "control_gold_docs_at_10": 2,
+      "treatment_gold_docs_at_10": 2,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": true,
+      "at_20": {
+        "overlap": 13,
+        "union": 27,
+        "jaccard": 0.48148148148148145,
+        "treatment_new_relevant_windows": [
+          1169,
+          1170,
+          1182
+        ],
+        "control_new_relevant_windows": [
+          1177,
+          1183
+        ]
+      },
+      "control_gold_docs_at_20": 2,
+      "treatment_gold_docs_at_20": 2,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 69,
+        "union": 131,
+        "jaccard": 0.5267175572519084,
+        "treatment_new_relevant_windows": [
+          1176,
+          1180
+        ],
+        "control_new_relevant_windows": []
+      },
+      "control_gold_docs_at_100": 2,
+      "treatment_gold_docs_at_100": 2,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2805,
+      "treatment_response_tokens_at_10": 2984,
+      "control_response_tokens_at_100": 29508,
+      "treatment_response_tokens_at_100": 31222,
+      "shared_lexical_ms": 109.145,
+      "control_total_ms": 347.497,
+      "treatment_total_ms": 367.426
+    },
+    {
+      "task_id": "xs-widen-manifest",
+      "gold_documents": [
+        "sessions/xs-widen-manifest/p01.jsonl",
+        "sessions/xs-widen-manifest/p02.jsonl"
+      ],
+      "control_rank": 4,
+      "treatment_rank": 6,
+      "rank_relation": "regression",
+      "control_recall_at_1": false,
+      "treatment_recall_at_1": false,
+      "control_recall_at_3": false,
+      "treatment_recall_at_3": false,
+      "control_recall_at_5": true,
+      "treatment_recall_at_5": false,
+      "control_recall_at_10": true,
+      "treatment_recall_at_10": true,
+      "control_recall_at_20": true,
+      "treatment_recall_at_20": true,
+      "control_recall_at_100": true,
+      "treatment_recall_at_100": true,
+      "at_10": {
+        "overlap": 4,
+        "union": 16,
+        "jaccard": 0.25,
+        "treatment_new_relevant_windows": [
+          1188
+        ],
+        "control_new_relevant_windows": [
+          1189,
+          1215
+        ]
+      },
+      "control_gold_docs_at_10": 2,
+      "treatment_gold_docs_at_10": 1,
+      "control_all_shards_at_10": true,
+      "treatment_all_shards_at_10": false,
+      "at_20": {
+        "overlap": 11,
+        "union": 29,
+        "jaccard": 0.3793103448275862,
+        "treatment_new_relevant_windows": [
+          1188
+        ],
+        "control_new_relevant_windows": [
+          1209
+        ]
+      },
+      "control_gold_docs_at_20": 2,
+      "treatment_gold_docs_at_20": 2,
+      "control_all_shards_at_20": true,
+      "treatment_all_shards_at_20": true,
+      "at_100": {
+        "overlap": 72,
+        "union": 128,
+        "jaccard": 0.5625,
+        "treatment_new_relevant_windows": [
+          1184,
+          1185,
+          1186,
+          1187,
+          1190,
+          1191,
+          1193,
+          1194,
+          1197,
+          1198,
+          1200,
+          1201,
+          1213,
+          1216
+        ],
+        "control_new_relevant_windows": [
+          1210
+        ]
+      },
+      "control_gold_docs_at_100": 2,
+      "treatment_gold_docs_at_100": 2,
+      "control_all_shards_at_100": true,
+      "treatment_all_shards_at_100": true,
+      "control_response_tokens_at_10": 2961,
+      "treatment_response_tokens_at_10": 2820,
+      "control_response_tokens_at_100": 30343,
+      "treatment_response_tokens_at_100": 30035,
+      "shared_lexical_ms": 29.618,
+      "control_total_ms": 263.212,
+      "treatment_total_ms": 285.622
+    }
+  ]
+}

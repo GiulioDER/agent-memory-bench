@@ -136,3 +136,47 @@ ranking and Context 4 may be tested only as a bounded suffix candidate source. I
 Context 4 is closed for the coding suite on this corpus. Neither outcome makes a multimodal claim.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Measured result, 2026-09-20
+
+The direct replacement failed, while the protected-fusion license passed.
+
+The one-shot run used apparatus commit `cc447cc0893fa2ba05c9bf7895d1e2211cf14df5` on VPS2
+under the shared embedding lock. Each model processed 347,634 document tokens by the vendor
+tokenizer, below the frozen 500,000-token ceiling. Context 4 encoded all 1,220 windows as 196
+ordered session groups in 21 requests. No session required splitting, and every response preserved
+group, window, and vector alignment.
+
+| Endpoint | Code 4 | Context 4 | Change |
+| --- | ---: | ---: | ---: |
+| source recall at 1 | 27/34 | 17/34 | -10 queries |
+| source recall at 3 | 28/34 | 21/34 | -7 queries |
+| source recall at 5 | 32/34 | 23/34 | -9 queries |
+| source recall at 10 | 34/34 | 30/34 | -4 queries |
+| source recall at 20 | 34/34 | 34/34 | no change |
+| source recall at 100 | 34/34 | 34/34 | no change |
+| mean reciprocal rank | 0.8464 | 0.5997 | -0.2467 |
+
+Exact first-relevant rank produced zero Context 4 wins, 18 ties, and 16 regressions. The four
+rank-10 regressions were `ts-append-only`, `ts-crlf-export`, `ts-golden-regen`, and
+`ts-natural-order`. Context 4 therefore failed predictions 1, 2, and 4 and cannot advance as a
+direct replacement or receive a direct Task Solve replay.
+
+The models were nevertheless strongly complementary at the raw-window level. Context 4 returned
+at least one relevant window absent from the Code 4 top 100 for 16 of 34 queries, while mean
+top-100 Jaccard similarity was 0.5126. Both models retained source recall 34/34 at rank 100 and
+complete-shard coverage 34/34. This passes the frozen protected-fusion license. It does not permit
+equal-peer fusion or any displacement of the proven Code 4 prefix.
+
+Search latency was comparable: p95 query plus fusion latency was 362.9 ms for Code 4 and 367.4 ms
+for Context 4. Mean estimated rank-100 response tokens increased by 2.16 percent. Predictions 3,
+5, 6, 7, and 8 passed.
+
+Evidence:
+
+* `results/retrieval/095-voyage-context4-direct-replacement.json`, SHA-256
+  `4deadffe747453a256e8da46dad83d38d95b6fb8ce6b0aad981870cbdb886389`
+* `results/retrieval/095-voyage-context4-direct-replacement.log`, SHA-256
+  `f2bf79e3de0466cce150b23b490948fc383bb29490e0c3c3f30c6180e590664e`
+* experiment script SHA-256
+  `086bb446a106bc7c326858850344bd92db1a6974f62378824cf0ccf8faa7c819`
