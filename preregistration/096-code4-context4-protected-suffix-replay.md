@@ -169,3 +169,46 @@ policy. It does not reopen equal-peer fusion, direct Context 4 replacement, vect
 or multimodal routing.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Evidence build result, 2026-09-20
+
+The one-shot evidence build failed gate 6 and stopped before Task Solve. No participant model call
+was made.
+
+The build ran from apparatus commit `4077865bf4f0b8c57acbe4954e9aabcc5d671d18` on VPS2 under
+the shared embedding lock. Each model processed 347,634 document tokens by the vendor tokenizer.
+Context 4 encoded all 1,220 windows as 196 intact session groups in 21 requests, with no split
+session or alignment error.
+
+Seven of eight frozen gates passed:
+
+| Evidence endpoint | Result | Gate |
+| --- | ---: | --- |
+| tasks with 12 windows per arm | 34/34 | pass |
+| tasks with identical Code 4 top-10 prefix | 34/34 | pass |
+| tasks with two unique Context 4 suffix windows | 34/34 | pass |
+| Code 4 source recall at 10 | 34/34 | pass |
+| source recall at 12, control and treatment | 34/34, 34/34 | pass |
+| complete-shard coverage at 12, control and treatment | 33/34, 33/34 | pass |
+| queries with a relevant Context 4 suffix | 11/34 | **fail, required 12** |
+| queries with new relevant evidence versus control top 12 | 9/34 | pass, required 8 |
+| mean treatment to control evidence-token ratio | 1.0082 | pass |
+
+Because gate 6 missed by one query, the preregistered stop rule applies. The 204-session
+three-worker Task Solve grid is not licensed and was not started. The threshold is not lowered
+after inspection.
+
+All 34 queries selected at least one suffix candidate that also appeared somewhere in the Code 4
+top 100. The tested policy therefore acted primarily as a Context 4 reprioritizer over Code 4's
+existing candidate pool. It did not isolate the genuinely model-specific candidates observed in
+preregistration 095. A future experiment, if pursued, must receive a new preregistration and use
+an explicit gold-blind novelty rule rather than modifying this result.
+
+Evidence:
+
+* `results/retrieval/096-code4-context4-suffix-evidence.json`, SHA-256
+  `12549dbc27e37ab2d6a2d9a40ad0ce0953bd3cda5e0392fdf9d730aac71aa509`
+* `results/retrieval/096-code4-context4-suffix-evidence.log`, SHA-256
+  `2178585918c94390add77ca892db8707c4d508b091e31a8bf33516d24dcbd836`
+* evidence builder SHA-256
+  `2b28c54ee52a75eba38383a6c3cab5ac82b0900c8fcabdebb84b6aaf2e37c663`
