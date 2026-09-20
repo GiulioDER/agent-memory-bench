@@ -10,6 +10,7 @@ rule committed in preregistration 091.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
 from collections import defaultdict
@@ -17,12 +18,20 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-from adapters.code_retrieval_replay.adapter import ARM_MODELS, ARMS, EVIDENCE_K
+from adapters.code_retrieval_replay.adapter import (
+    ARM_MODELS,
+    ARMS,
+    EVIDENCE_K,
+    CodeRetrievalReplayCatalog,
+    format_ranked_evidence,
+)
 from harness.io import read_jsonl
+from harness.memory_prompt import estimated_input_tokens, sha256_text
 from harness.memory_startup import TIMEOUT, classify_failure
 from harness.schema import SessionRecord
 
 REPO = Path(__file__).resolve().parents[1]
+REPLAY_ARTIFACT = REPO / "results" / "retrieval" / "091-code4-task-solve-evidence.json"
 CONTROL, TREATMENT = ARMS
 
 MODIFICATION_TASKS = frozenset(
@@ -133,10 +142,58 @@ def _arm_metrics(records: list[SessionRecord]) -> dict[str, Any]:
     }
 
 
-def _diagnostic(record: SessionRecord, artifact_sha256: str) -> Mapping[str, Any]:
+def _artifact_diagnostics(
+    artifact_sha256: str, tasks: set[str]
+) -> dict[tuple[str, str], Mapping[str, Any]]:
+    """Reconstruct bounded replay receipts from the immutable ranked evidence artifact.
+
+    The first Code 4 Task Solve run carried these receipts through admission, but the public
+    receipt allowlist omitted ``memory_diagnostic`` when it sealed ``records.final.jsonl``.  The
+    evidence artifact and corpus are sufficient to reconstruct the same values without changing
+    the signed run artifact.
+    """
+
+    actual_sha256 = hashlib.sha256(REPLAY_ARTIFACT.read_bytes()).hexdigest()
+    if actual_sha256 != artifact_sha256:
+        raise ValueError("frozen Code retrieval artifact hash mismatch")
+    catalog = CodeRetrievalReplayCatalog.load(REPLAY_ARTIFACT, REPO / "corpus")
+    if not tasks <= set(catalog.tasks):
+        raise ValueError(
+            f"replay artifact is missing tasks: {sorted(tasks - set(catalog.tasks))}"
+        )
+    diagnostics: dict[tuple[str, str], Mapping[str, Any]] = {}
+    for task_id in tasks:
+        task = catalog.tasks[task_id]
+        for arm in ARMS:
+            windows = task.arms[arm]
+            evidence_text = format_ranked_evidence(windows)
+            diagnostics[(task_id, arm)] = {
+                "kind": arm,
+                "model": ARM_MODELS[arm],
+                "artifact_sha256": artifact_sha256,
+                "task_id": task_id,
+                "status": "ok",
+                "query_sha256": task.query_sha256,
+                "window_indices": [window.index for window in windows],
+                "source_paths": [window.source_path for window in windows],
+                "injected_text_sha256": sha256_text(evidence_text),
+                "injected_input_tokens": estimated_input_tokens(evidence_text),
+            }
+    return diagnostics
+
+
+def _diagnostic(
+    record: SessionRecord,
+    artifact_sha256: str,
+    artifact_diagnostics: Mapping[tuple[str, str], Mapping[str, Any]],
+) -> Mapping[str, Any]:
     value = record.metadata.get("memory_diagnostic")
     if not isinstance(value, Mapping):
-        raise TypeError(f"{record.task_id} seed {record.seed} {record.arm}: missing diagnostic")
+        value = artifact_diagnostics.get((record.task_id, record.arm))
+    if not isinstance(value, Mapping):
+        raise TypeError(
+            f"{record.task_id} seed {record.seed} {record.arm}: missing diagnostic"
+        )
     expected = {
         "kind": record.arm,
         "model": ARM_MODELS[record.arm],
@@ -183,6 +240,14 @@ def analyze(run_dir: Path, *, require_full_roster: bool = True) -> dict[str, Any
     artifact_sha256 = str(environment.get("code_retrieval_artifact_sha256", ""))
     if len(artifact_sha256) != 64:
         raise ValueError("environment artifact has no Code retrieval artifact digest")
+    missing_diagnostics = any(
+        not isinstance(record.metadata.get("memory_diagnostic"), Mapping)
+        for record in records
+    )
+    artifact_diagnostics = (
+        _artifact_diagnostics(artifact_sha256, tasks) if missing_diagnostics else {}
+    )
+    prompt_hashes = environment.get("prompt_sha256_by_task", {})
     discarded = {tuple(cell) for cell in admission.get("discarded_cells", ())}
     by_cell: dict[tuple[str, int], dict[str, SessionRecord]] = defaultdict(dict)
     all_by_arm = {arm: [] for arm in ARMS}
@@ -193,7 +258,18 @@ def analyze(run_dir: Path, *, require_full_roster: bool = True) -> dict[str, Any
             raise ValueError(f"duplicate record for {key} and {record.arm}")
         by_cell[key][record.arm] = record
         all_by_arm[record.arm].append(record)
-        diagnostic = _diagnostic(record, artifact_sha256)
+        diagnostic = _diagnostic(record, artifact_sha256, artifact_diagnostics)
+        if missing_diagnostics:
+            expected_prompt_hash = (
+                prompt_hashes.get(record.arm, {}).get(record.task_id)
+                if isinstance(prompt_hashes, Mapping)
+                and isinstance(prompt_hashes.get(record.arm), Mapping)
+                else None
+            )
+            if record.metadata.get("prompt_sha256") != expected_prompt_hash:
+                raise ValueError(
+                    f"{record.task_id} seed {record.seed} {record.arm}: prompt hash mismatch"
+                )
         task_evidence = evidence.setdefault(record.task_id, {})
         existing = task_evidence.get(record.arm)
         identity = {

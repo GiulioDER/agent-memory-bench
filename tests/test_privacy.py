@@ -79,6 +79,18 @@ def test_public_receipt_keeps_bounded_checkpoint_diagnostics_only() -> None:
     assert "permission_denials" not in metadata
 
 
+def test_public_receipt_keeps_bounded_memory_diagnostic() -> None:
+    diagnostic = {
+        "kind": "code4_replay",
+        "artifact_sha256": "a" * 64,
+        "query_sha256": "b" * 64,
+        "window_indices": list(range(10)),
+        "source_paths": [f"sessions/{index}.json" for index in range(10)],
+    }
+    receipt = public_receipt(_record(metadata={"memory_diagnostic": diagnostic}))
+    assert receipt["metadata"]["memory_diagnostic"] == diagnostic
+
+
 def test_public_jsonl_writer_emits_receipts_only(tmp_path: Path) -> None:
     path = tmp_path / "records.jsonl"
     write_public_jsonl(path, [_record()])

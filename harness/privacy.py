@@ -54,6 +54,7 @@ _SAFE_METADATA_FIELDS = frozenset(
         "init_present",
         "instruction_bytes",
         "memory_checkpoint",
+        "memory_diagnostic",
         "memory_error_codes",
         "memory_retrieval",
         "memory_tools_available",

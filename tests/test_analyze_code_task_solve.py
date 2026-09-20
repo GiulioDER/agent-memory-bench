@@ -112,3 +112,31 @@ def test_analyzer_refuses_replay_drift_across_seeds(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="replay identity changed"):
         analyze(run, require_full_roster=False)
+
+
+def test_analyzer_reconstructs_diagnostic_omitted_by_public_receipt(tmp_path: Path) -> None:
+    task = min(ALL_TASKS)
+    outcomes = {
+        (task, 0, "code3_replay"): False,
+        (task, 0, "code4_replay"): True,
+    }
+    run = _write_run(tmp_path, outcomes)
+    rows = [json.loads(line) for line in (run / "records.final.jsonl").read_text().splitlines()]
+    prompt_hashes = {arm: {task: None} for arm in ARMS}
+    for row in rows:
+        row["metadata"].pop("memory_diagnostic")
+        prompt_hashes[row["arm"]][task] = row["metadata"]["prompt_sha256"]
+    (run / "records.final.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    artifact_path = Path(__file__).parents[1] / "results/retrieval/091-code4-task-solve-evidence.json"
+    environment = {
+        "code_retrieval_artifact_sha256": hashlib.sha256(artifact_path.read_bytes()).hexdigest(),
+        "prompt_sha256_by_task": prompt_hashes,
+    }
+    (run / "environment.json").write_text(json.dumps(environment), encoding="utf-8")
+
+    result = analyze(run, require_full_roster=False)
+
+    assert result["overall"]["net_wins"] == 1
+    assert result["evidence_by_task"][task]["code4_replay"]["window_indices"]
