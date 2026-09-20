@@ -242,3 +242,25 @@ The receipts and work directories are retained as zero model diagnostic evidence
 regression test failed with the pre-repair `KeyError` and passes after the repair. Qualification
 and all five preparation conditions must be repeated at that commit under a new run id before any
 participant model session.
+
+## Preparation 002 passed
+
+Preparation `specialist-conditions-002` repeated all five conditions sequentially against RE-call
+commit `4334084d13e38d02d881b2207c85152858e608d9` and launched zero model sessions. It recorded
+69 task prompts, 138 nonempty hosted Search artifacts, and 10 hits for every Search. Every C7
+artifact reported route `code`, embedding profile `voyage-code-4-v1`, variant
+`C7_routed_specialists`, and the exact served commit. C6 and C7 had identical ordered result
+payload hashes for all 69 prompts.
+
+The preparation receipt SHA256 values are:
+
+* `contradictory`: `fb391abf62e52767eaa6150d3907e7acc9958a0538bac156be114e42c3b4a3c2`.
+* `present`: `4a135991585ca03d65778c2940e01aac8bc6d48c15d24f74a11ad3bacca0f87a`.
+* `adjacent`: `c8c32a0d48d7d7ce0bdf6b675fb62e45455107e8fcdc2ec6a2df231218e11d7a`.
+* `superseded`: `3fe17173c5dc5f811026c1a334b55d62d850d1025f3ffb96cb428be046f55198`.
+* `absent`: `ecfd17a9d9e24d2c8c84c9b538f68a96717939a6a971902e7a9f9cad60cf524e`.
+
+The shared cache held 3,028 vectors after preparation. Repeated Add latency stayed between 6.5 and
+11.3 seconds per hosted arm and condition. This is operational evidence only; provider call count
+remains unmeasured. All frozen preconditions are satisfied for the private scored run. This does
+not authorize an official AML Smoke or official evaluation.
