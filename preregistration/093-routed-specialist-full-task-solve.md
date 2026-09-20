@@ -197,3 +197,19 @@ Solve session had started. The restoration adds the least privilege broker and a
 images, their controller entrypoints, and regression coverage. It does not change any task,
 oracle, prompt, arm, model, seed, endpoint, prediction, or analysis rule. The full run must use the
 restoration commit or a direct descendant and must rebuild the trusted images from that source.
+
+### Attempt 1 wiring failure and timeout amendment
+
+Attempt 1 stopped during C6 ingestion before C7 ingestion, task restoration, or any scored model
+session. Its result directory contains only `challenge.json` and `execution-events.jsonl`; it has
+no records or task work directory. One of three concurrent Add requests exceeded the adapter's
+fixed 180 second HTTP timeout while waiting behind the required shared embedding lock. The C6
+service completed the in flight Add requests successfully immediately around the controller
+timeout.
+
+This is a documented wiring failure before a scored outcome, so the frozen retry rule permits one
+retry after preserving the partial attempt. The retry keeps `AMB_HOSTED_ADD_WORKERS=3` and every
+frozen benchmark field unchanged. The apparatus adds a bounded
+`AMB_HOSTED_REQUEST_TIMEOUT_S` setting, default 180 seconds, and the retry sets it to 600 seconds
+so queued Add workers can wait behind the serialized provider boundary. Values at or below zero
+or above 1,800 seconds are refused. No official AML Smoke or evaluation is authorized.

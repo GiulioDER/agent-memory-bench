@@ -113,6 +113,41 @@ def test_hosted_prefetch_ingests_the_verified_corpus_through_public_add(tmp_path
     assert all(call[2]["user_id"] == "amb-specialist-full" for call in adds)
 
 
+def test_hosted_client_uses_the_configured_request_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Three Add workers must be able to wait behind the shared embedding lock."""
+    observed: dict[str, float] = {}
+
+    class Response:
+        status = 200
+
+        def __init__(self) -> None:
+            self.headers: dict[str, str] = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"success":true}'
+
+    def fake_urlopen(_request: object, *, timeout: float):
+        observed["timeout"] = timeout
+        return Response()
+
+    monkeypatch.setenv("AMB_HOSTED_REQUEST_TIMEOUT_S", "600")
+    monkeypatch.setattr(hosted_module, "urlopen", fake_urlopen)
+
+    hosted_module.HostedAmlClient("https://hosted.invalid", "secret").request(
+        "/v1/add", {"messages": []}
+    )
+
+    assert observed == {"timeout": 600.0}
+
+
 def test_hosted_prefetch_preserves_search_rank_in_the_injected_prompt(tmp_path: Path) -> None:
     """Task Solve must see Search order, not an id sorted rewrite of the evidence.
 

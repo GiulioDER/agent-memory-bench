@@ -37,6 +37,16 @@ class HostedAmlClient:
     def __init__(self, base_url: str, api_key: str) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
+        try:
+            self.request_timeout_s = float(
+                os.environ.get("AMB_HOSTED_REQUEST_TIMEOUT_S", "180")
+            )
+        except ValueError as error:
+            raise ValueError("AMB_HOSTED_REQUEST_TIMEOUT_S must be numeric") from error
+        if self.request_timeout_s <= 0 or self.request_timeout_s > 1_800:
+            raise ValueError(
+                "AMB_HOSTED_REQUEST_TIMEOUT_S must be greater than 0 and at most 1800"
+            )
 
     def request(self, path: str, payload: dict[str, Any]) -> HostedResult:
         request = Request(
@@ -49,7 +59,7 @@ class HostedAmlClient:
             },
         )
         started = time.monotonic()
-        with urlopen(request, timeout=180) as response:
+        with urlopen(request, timeout=self.request_timeout_s) as response:
             body = json.loads(response.read().decode("utf-8"))
             headers = {key.casefold(): value for key, value in response.headers.items()}
             status = response.status
