@@ -162,3 +162,17 @@ its `corpus_manifest_sha256` field was mislabeled: it contained the normalized s
 digest rather than the frozen manifest file SHA 256. It launched zero model sessions. Commit
 `ba60e204` records both values separately and restores the file digest to the manifest field. A
 new preparation receipt from that commit or a direct descendant is required before Task Solve.
+
+## Preparation result
+
+The corrected preparation ran from apparatus commit
+`67c4164a60553310de5da73fb7c12f35e9019701` and passed. The machine readable receipt is
+`results/preparations/specialist-full-001/prepare.json`, SHA 256
+`87bbad5c74e458a8b8842b6aca7f961d95632811bffb5538cc6c43951dbb7fd6`.
+
+It records the frozen manifest file SHA 256
+`58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814`, 196 sessions and 1,220
+stored items for each hosted arm, 34 tasks, 68 nonempty Searches with 10 hits each, and
+`model_sessions_launched: 0`. Together with the passed RE-call nine gate qualification, this
+licenses the frozen 306 session local AMB Task Solve run. It does not authorize an official AML
+Smoke or official AML evaluation.
