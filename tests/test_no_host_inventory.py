@@ -135,6 +135,7 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/090-voyage-code4-direct-replacement.md",
         "preregistration/091-voyage-code4-task-solve-replay.md",
         "preregistration/095-voyage-context4-direct-replacement.md",
+        "preregistration/096-code4-context4-protected-suffix-replay.md",
         "preregistration/timestamps/manifest-20260907T172420Z.json",
         "preregistration/timestamps/manifest-20260907T191609Z.json",
         "preregistration/timestamps/manifest-20260907T221701Z.json",
