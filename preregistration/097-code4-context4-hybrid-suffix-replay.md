@@ -128,3 +128,36 @@ preregistration 091. A failure closes this exact promotion-plus-novelty suffix p
 reopen equal-peer fusion, direct Context 4 replacement, or vector-space mixing.
 
 <!-- results and append-only corrections go below this line; everything above is frozen -->
+
+## Evidence build result, 2026-09-20
+
+The one-shot build failed gate 6 and stopped before Task Solve. No participant model call was
+made.
+
+The build ran from apparatus commit `5837a37a0a2d56c4096219e943b9f7e94caca456` on VPS2 under
+the shared embedding lock. Each model processed 347,634 document tokens by the vendor tokenizer.
+All 1,220 Context 4 windows retained their 196 session groups and response alignment.
+
+Seven of eight gates passed. All 34 tasks had equal 12-window arms, identical Code 4 top-10
+prefixes, distinct promotion and Code-4-unique suffix slots, Code 4 recall 34/34 at rank 10, equal
+source recall 34/34 at rank 12, equal complete-shard coverage 33/34, and a mean treatment to
+control evidence-token ratio of 1.0055.
+
+The treatment introduced relevant evidence absent from the control top 12 for 10 queries, above
+the frozen minimum of eight. The promotion slot itself was relevant for seven queries. The
+explicitly Code-4-unique slot was relevant for only five queries, below the frozen minimum of
+eight, so gate 6 failed and the three-worker Task Solve grid was not licensed.
+
+Together with preregistrations 095 and 096, this localizes the limitation. Context 4 has broad
+candidate novelty, but its earliest model-specific candidates are not precise enough to consume a
+scarce coding evidence slot under a gold-blind rule. The exact hybrid policy is closed. The
+single-model Code 4 configuration from preregistration 091 remains the official coding candidate.
+
+Evidence:
+
+* `results/retrieval/097-code4-context4-hybrid-evidence.json`, SHA-256
+  `44f145e839dfd0f0cbdad7ff2b04f37952fb0fc28f1f4a4263fd8edc7a329661`
+* `results/retrieval/097-code4-context4-hybrid-evidence.log`, SHA-256
+  `772afb5e80b179dd239ec7ce44e1995a338167c3bfdb8bbd76a0df0de0d94537`
+* evidence builder SHA-256
+  `61733f04a6c061bc8e190cf03e7942dc25f3f73647dda7a5a214157afa272029`
