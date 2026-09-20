@@ -1019,14 +1019,30 @@ GRID_PREFIXES = ("ts-",)
 #: would rest on. Selecting one is explicit and leaves the default grid alone.
 SELECTABLE_PREFIXES = ("ts-", "fa-")
 
-#: Classes in neither, with the reason, so an absence is a decision on the record rather than an
-#: oversight.
+#: Cross-session synthesis tasks remain outside every ordinary grid. The replay experiment is a
+#: narrow exception because its validated artifact supplies the multi-session corpus shape before
+#: the participant starts, and preregistration 091 names all three tasks explicitly.
+REPLAY_SELECTABLE_PREFIXES = ("xs-",)
+
+#: Classes excluded from ordinary default and explicit selection, with the reason, so the absence
+#: is a decision on the record rather than an oversight. A preregistered adapter may declare a
+#: narrower explicit exception without changing the default grid.
 EXCLUDED_PREFIXES = {
     "xs-": (
         "cross-session synthesis; needs a corpus shape the grid does not assemble, and admitting "
         "it changes what every run measures"
     ),
 }
+
+
+def task_prefixes(*, explicit: bool, run_arms: tuple[str, ...]) -> tuple[str, ...]:
+    """Task prefixes available to this invocation without changing the default grid."""
+
+    if not explicit:
+        return GRID_PREFIXES
+    if any(arm in CODE_RETRIEVAL_REPLAY_ARMS for arm in run_arms):
+        return (*SELECTABLE_PREFIXES, *REPLAY_SELECTABLE_PREFIXES)
+    return SELECTABLE_PREFIXES
 
 
 def diagnostic_metadata(spec: Any) -> dict[str, Any]:
@@ -1496,7 +1512,7 @@ async def main() -> int:
             raise SystemExit(f"sequence plan names unknown task(s) {missing}")
         tasks = [discovered[task_id] for task_id in plan_task_ids]
     else:
-        prefixes = SELECTABLE_PREFIXES if args.tasks else GRID_PREFIXES
+        prefixes = task_prefixes(explicit=bool(args.tasks), run_arms=run_arms)
         tasks = [task for task in discover_tasks() if task.task_id.startswith(prefixes)]
     if args.tasks:
         wanted = [item.strip() for item in args.tasks.split(",") if item.strip()]

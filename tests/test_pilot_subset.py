@@ -224,3 +224,15 @@ def test_the_default_task_set_is_unchanged():
     )
     assert set(GRID_PREFIXES) <= set(SELECTABLE_PREFIXES)
     assert not (set(SELECTABLE_PREFIXES) & set(EXCLUDED_PREFIXES))
+
+
+def test_synthesis_tasks_are_explicitly_selectable_only_for_replay_arms():
+    """The preregistered replay carries the corpus shape that ordinary grids lack."""
+
+    from scripts.pilot import task_prefixes
+
+    assert "xs-" not in task_prefixes(explicit=False, run_arms=("code4_replay",))
+    assert "xs-" not in task_prefixes(explicit=True, run_arms=("bare",))
+    assert "xs-" in task_prefixes(
+        explicit=True, run_arms=("code3_replay", "code4_replay")
+    )
