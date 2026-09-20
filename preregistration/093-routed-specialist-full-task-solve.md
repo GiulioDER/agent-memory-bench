@@ -176,3 +176,14 @@ stored items for each hosted arm, 34 tasks, 68 nonempty Searches with 10 hits ea
 `model_sessions_launched: 0`. Together with the passed RE-call nine gate qualification, this
 licenses the frozen 306 session local AMB Task Solve run. It does not authorize an official AML
 Smoke or official AML evaluation.
+
+### Trusted checker restoration, before model spend
+
+The trusted runner preflight found that the committed Compose file referenced
+`docker/Dockerfile.checker` and `harness.checker_worker`, but neither file existed on this branch.
+No Task Solve session had started. Commit `73c2752b` restores the already required networkless
+checker boundary without changing any task, oracle, prompt, arm, model, seed, or prediction. The
+image copies only `harness/` and `tasks/`, runs as uid 65532, receives the artifact and oracle only
+through read only mounts, and rejects task or path injection. Its focused worker and isolation
+suite passed 23 tests with 2 platform skips. The full run must use this commit or a direct
+descendant.
