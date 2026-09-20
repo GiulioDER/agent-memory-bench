@@ -345,10 +345,9 @@ class BrokerApplication:
         scheme, _, token = headers.get("Authorization", "").partition(" ")
         if scheme.lower() != "bearer":
             raise BrokerError("bearer capability required")
-        method = str(
-            request.get("method")
-            or str(headers.get("X-AMB-Path", "")).rstrip("/").rsplit("/", 1)[-1]
-        )
+        raw_path = str(headers.get("X-AMB-Path", ""))
+        path_method = urllib.parse.urlsplit(raw_path).path.rstrip("/").rsplit("/", 1)[-1]
+        method = str(request.get("method") or path_method)
         return self.authority.validate(
             token,
             run_id=self.run_context["run_id"],

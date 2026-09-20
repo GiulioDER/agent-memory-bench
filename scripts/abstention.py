@@ -28,11 +28,11 @@ strengthen the comparison, being a memory arm with no vendor behind it, but addi
 preregistered grid changes the record rather than the run. It goes in the NEXT record, alongside
 whatever else that one adds; decided 2026-08-28.
 
-## `bare` is mandatory and this refuses without it
+## The reference arm is mandatory and this refuses without it
 
-Damage is "the arm failed a cell `bare` solved". Without that arm the primary and secondary
-endpoints are undefined, and 005 says so in terms. `diagnostic-003` onward dropped `bare` and
-that is exactly how the suite lost the ability to express harm.
+Damage is "the arm failed a cell the declared reference solved". The historical default remains
+`bare`, because preregistration 005 says so in terms. A later experiment may explicitly name a
+different reference, but the runner records that choice and refuses when it is absent.
 """
 
 from __future__ import annotations
@@ -381,10 +381,14 @@ def run_condition(args, condition: str) -> Path:
             command += [flag, str(value)]
     if args.dry_run:
         command.append("--dry-run")
+    if args.prepare_only:
+        command.append("--prepare-only")
     print(f"[{condition}] {' '.join(command[2:])}", flush=True)
     result = subprocess.run(command, cwd=str(REPO), check=False)
     if result.returncode != 0:
         raise SystemExit(f"[{condition}] pilot exited {result.returncode}; stopping")
+    if args.prepare_only:
+        return REPO / "results" / "preparations" / run_id
     return REPO / "results" / run_id
 
 
@@ -440,7 +444,16 @@ MEMORY_ARMS = frozenset(
 # had already run. The guard was right and the registry was incomplete; that is the same shape as
 # the `mempalace` omission it was written to prevent, one arm class further out.
 NON_MEMORY_ARMS = frozenset(
-    {"bare", "placebo", "claude_md", "protocol", "oracle_memory", "recall_prefetch"}
+    {
+        "bare",
+        "placebo",
+        "claude_md",
+        "protocol",
+        "oracle_memory",
+        "recall_prefetch",
+        "aml_c6_prefetch",
+        "aml_c7_prefetch",
+    }
 )
 
 
@@ -458,6 +471,18 @@ def _classify_arms(arms: Iterable[str]) -> None:
             f"Add them to MEMORY_ARMS or NON_MEMORY_ARMS in scripts/abstention.py. An "
             f"unclassified arm silently gets no search rate and no interpretability floor, which "
             f"is how official-001 published endpoints for an arm whose search rate nobody knew."
+        )
+
+
+def validate_reference_arm(
+    arms: Sequence[str], reference_arm: str, *, recall_only: bool
+) -> None:
+    """Require the explicitly declared comparison reference before any condition is assembled."""
+    if not recall_only and reference_arm not in arms:
+        raise SystemExit(
+            f"the declared reference arm `{reference_arm}` is mandatory for this suite. "
+            "Damage and benefit are paired against it, so its absence makes the endpoints "
+            "undefined."
         )
 
 
@@ -615,6 +640,11 @@ def main() -> int:
     parser.add_argument("--conditions", default="absent,superseded")
     parser.add_argument("--arms", default="bare,claude_md,recall")
     parser.add_argument(
+        "--reference-arm",
+        default="bare",
+        help="arm used for paired damage and benefit endpoints; defaults to bare",
+    )
+    parser.add_argument(
         "--recall-only",
         action="store_true",
         help="run the corpus conditions with one RE-call arm or a preregistered paired RE-call "
@@ -664,18 +694,28 @@ def main() -> int:
         action="store_true",
         help="recompute the endpoints from conditions that already finished; run nothing",
     )
+    parser.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help="assemble each condition sequentially, ingest both hosted AML arms through Add, "
+        "Search every selected task once, and stop before any participant model session",
+    )
     parser.add_argument("--dry-run", action="store_true")
     add_pricing_arguments(parser)
     args = parser.parse_args()
 
     if args.emit_decision_stages and not args.emit_decisions:
         raise SystemExit("--emit-decision-stages requires --emit-decisions")
+    if args.prepare_only and (args.dry_run or args.analyse_only or args.resume):
+        raise SystemExit(
+            "--prepare-only cannot be combined with --dry-run, --analyse-only, or --resume"
+        )
 
     # Validated HERE, before the first ingest, even though this script prices nothing itself and
     # only forwards the rates to pilot. Letting pilot refuse would be correct and far too late:
     # each condition ingests its own corpus into its own tenant first, so the run would spend the
     # embedding cost of every condition before dying on a missing flag.
-    if not args.dry_run:
+    if not args.dry_run and not args.prepare_only:
         pricing_from_args(args, model=args.model)
 
     conditions = [c.strip() for c in args.conditions.split(",") if c.strip()]
@@ -709,12 +749,7 @@ def main() -> int:
             f"{RECALL_ORACLE_CEILING_PAIRED_ARMS} or "
             f"{RECALL_PREMUTATION_CHECKPOINT_PAIRED_ARMS}"
         )
-    if not args.recall_only and "bare" not in arms:
-        raise SystemExit(
-            "the `bare` arm is mandatory for this suite. Damage is defined as failing a cell "
-            "bare solved, so without it the primary and secondary endpoints are undefined rather "
-            "than merely weaker. Preregistration 005 says so in terms."
-        )
+    validate_reference_arm(arms, args.reference_arm, recall_only=args.recall_only)
 
     _classify_arms(arms)
 
@@ -731,6 +766,13 @@ def main() -> int:
     if not args.analyse_only:
         for condition in plan_conditions(args.run_id, requested, resume=args.resume):
             run_dirs[condition] = run_condition(args, condition)
+
+    if args.prepare_only:
+        print(
+            f"\n[prepare-only] completed {len(run_dirs)} condition preparation(s) "
+            "sequentially; launched 0 model sessions"
+        )
+        return 0
 
     if not args.dry_run:
         for condition in requested:
@@ -755,7 +797,7 @@ def main() -> int:
     # An arm with NO records never reaches `search_rates`, so without this the floor cannot see it.
     search_rates = fill_missing_search_rates(search_rates, arms, conditions)
 
-    report = endpoints(cells, arms)
+    report = endpoints(cells, arms, reference=args.reference_arm)
     report["conditions"] = conditions
     report["n_cells"] = len(cells)
     # Both, under distinct names, so a reader can see the gap rather than take one on trust.
@@ -774,14 +816,18 @@ def main() -> int:
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
     print(f"\n[abstention] {len(cells)} admitted cell(s) across {len(conditions)} condition(s)")
-    for label, rate in sorted(search_rates.items()):
-        if rate is None:
+    for label, display_rate in sorted(search_rates.items()):
+        if display_rate is None:
             print(
                 f"  search rate {label:26s}   none  <-- NO RECORDS, ENDPOINTS NOT INTERPRETABLE"
             )
             continue
-        flag = "" if rate >= SEARCH_RATE_FLOOR else "  <-- BELOW FLOOR, ENDPOINTS NOT INTERPRETABLE"
-        print(f"  search rate {label:26s} {rate:.3f}{flag}")
+        flag = (
+            ""
+            if display_rate >= SEARCH_RATE_FLOOR
+            else "  <-- BELOW FLOOR, ENDPOINTS NOT INTERPRETABLE"
+        )
+        print(f"  search rate {label:26s} {display_rate:.3f}{flag}")
     if below_the_floor(search_rates):
         print(
             f"\n  A memory arm searched in fewer than {SEARCH_RATE_FLOOR:.0%} of its cells. It "

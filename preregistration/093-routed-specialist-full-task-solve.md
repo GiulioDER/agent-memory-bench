@@ -227,3 +227,20 @@ contains no instruction carrying arm. Existing instruction carrying comparisons 
 arithmetic parity checks and harness flag enforcement. This changes no task, prompt, evidence,
 arm, model, seed, endpoint, prediction, or analysis rule. A further retry remains a wiring retry
 before any scored outcome. No official AML Smoke or evaluation is authorized.
+
+### Attempt 3 broker capability failure
+
+Attempt 3 completed the two hosted ingestions, all task scoped Searches, and wrote 306 participant
+records, but every record was rejected before a model response with the same HTTP 403 capability
+error. The trusted broker treated Claude Code's `/v1/messages?beta=true` request target as the
+literal method `messages?beta=true`, while the signed capability correctly allowed `messages`.
+The run used zero model tokens, spent zero estimated model dollars, admitted zero cells, and
+therefore contains no scored outcome.
+
+The preserved artifacts are under
+`results/archive/specialist-full-001-attempt-3-broker-capability` on the benchmark host. The repair
+normalizes the request target to its URL path before extracting the capability method and carries a
+mutation proved regression test. The user's later request for all five AMB corpus conditions
+supersedes this present only grid. That expanded experiment receives a new preregistration rather
+than being represented as another retry of this record. No official AML Smoke or evaluation was
+run or authorized.
