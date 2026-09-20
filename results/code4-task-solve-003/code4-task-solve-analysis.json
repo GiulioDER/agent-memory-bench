@@ -1,0 +1,2663 @@
+{
+  "admitted_cells": 100,
+  "advance_to_official_cambench": true,
+  "arm_metrics_all_attempted_sessions": {
+    "code3_replay": {
+      "evaluator_cost_usd": 0,
+      "failed_tool_calls": 55,
+      "mean_input_tokens": 33576.7525,
+      "mean_model_turns": 8.0,
+      "mean_output_tokens": 1538.2376,
+      "mean_wall_time_ms": 49916.0585,
+      "participant_errors": 1,
+      "sessions": 102,
+      "successes": 59,
+      "system_cost_usd": 0,
+      "timeouts": 0
+    },
+    "code4_replay": {
+      "evaluator_cost_usd": 0,
+      "failed_tool_calls": 47,
+      "mean_input_tokens": 33870.8515,
+      "mean_model_turns": 8.3861,
+      "mean_output_tokens": 1686.1089,
+      "mean_wall_time_ms": 51256.3888,
+      "participant_errors": 1,
+      "sessions": 102,
+      "successes": 68,
+      "system_cost_usd": 0,
+      "timeouts": 0
+    }
+  },
+  "artifact_sha256": "ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df",
+  "cost_artifact_arms": {
+    "code3_replay": {
+      "arm": "code3_replay",
+      "estimated_usd": 0.2125,
+      "ingest_input_tokens": 0,
+      "ingest_items_stored": 0,
+      "ingest_local_model": null,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "notes": [],
+      "priced_cache_separately": false,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "session_cache_creation_tokens": 0,
+      "session_cache_read_tokens": 2636214,
+      "session_input_tokens": 3391252,
+      "session_output_tokens": 155362,
+      "session_wall_time_ms": 5091437.967799604,
+      "sessions": 102,
+      "sessions_unmetered": 1,
+      "total_tokens": 3546614,
+      "usd_per_mtok_cache_creation": null,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148
+    },
+    "code4_replay": {
+      "arm": "code4_replay",
+      "estimated_usd": 0.2159,
+      "ingest_input_tokens": 0,
+      "ingest_items_stored": 0,
+      "ingest_local_model": null,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "notes": [],
+      "priced_cache_separately": false,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "session_cache_creation_tokens": 0,
+      "session_cache_read_tokens": 2666637,
+      "session_input_tokens": 3420956,
+      "session_output_tokens": 170297,
+      "session_wall_time_ms": 5228151.65970847,
+      "sessions": 102,
+      "sessions_unmetered": 1,
+      "total_tokens": 3591253,
+      "usd_per_mtok_cache_creation": null,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148
+    }
+  },
+  "decision_checks": {
+    "at_least_3_net_wins": true,
+    "at_least_90_admitted_cells": true,
+    "errors_or_timeouts_within_one": true,
+    "neither_stratum_worse_by_more_than_one": true
+  },
+  "discarded_cells": 2,
+  "evidence_by_task": {
+    "fa-dedup-key": {
+      "code3_replay": {
+        "injected_input_tokens": 1630,
+        "prompt_sha256": "110064e9c0294db0fd0113357742203b05ffc0bd5d5e32163ea3cd59c797af20",
+        "query_sha256": "8cf8e9188bcb87f2fb94caf5d97350a7df257e0cd623001bbb1bcc8c73951c01",
+        "source_paths": [
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl"
+        ],
+        "window_indices": [
+          807,
+          808,
+          813,
+          814,
+          815,
+          878,
+          1119,
+          1120,
+          552,
+          997
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1613,
+        "prompt_sha256": "b2e3350775a4b2849c497f1fa81a7a1bc52a135fb0c14d119c5c8400f865c4b9",
+        "query_sha256": "8cf8e9188bcb87f2fb94caf5d97350a7df257e0cd623001bbb1bcc8c73951c01",
+        "source_paths": [
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl"
+        ],
+        "window_indices": [
+          808,
+          807,
+          813,
+          814,
+          815,
+          552,
+          997,
+          809,
+          816,
+          1120
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.8,
+        "union": 5
+      }
+    },
+    "ts-append-only": {
+      "code3_replay": {
+        "injected_input_tokens": 1572,
+        "prompt_sha256": "642479cf95e43e426f5dc69081c1ce38848dd6fa82ed4a5da8ad7ea3f6d10774",
+        "query_sha256": "05f386f347b11e85a6bc833428e0c04c1a96d83cfee390678f543c2d13c0b3c1",
+        "source_paths": [
+          "distractors/d133.jsonl",
+          "distractors/d028.jsonl",
+          "distractors/d100.jsonl",
+          "distractors/d028.jsonl",
+          "distractors/d004.jsonl",
+          "distractors/d100.jsonl",
+          "distractors/d028.jsonl",
+          "distractors/d133.jsonl",
+          "distractors/d028.jsonl",
+          "distractors/d052.jsonl"
+        ],
+        "window_indices": [
+          695,
+          139,
+          513,
+          141,
+          15,
+          514,
+          142,
+          696,
+          136,
+          277
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1417,
+        "prompt_sha256": "098d030991619a87891af91599929212877b22b36f7ff6ee6d08d622e7b91a1e",
+        "query_sha256": "05f386f347b11e85a6bc833428e0c04c1a96d83cfee390678f543c2d13c0b3c1",
+        "source_paths": [
+          "sessions/ts-append-only/p01.jsonl",
+          "distractors/d100.jsonl",
+          "distractors/d133.jsonl",
+          "distractors/d133.jsonl",
+          "distractors/d052.jsonl",
+          "sessions/ts-append-only/p01.jsonl",
+          "sessions/ts-append-only/p01.jsonl",
+          "sessions/ts-append-only/p01.jsonl",
+          "sessions/ts-append-only/p01.jsonl",
+          "distractors/d100.jsonl"
+        ],
+        "window_indices": [
+          819,
+          514,
+          696,
+          693,
+          276,
+          820,
+          827,
+          825,
+          821,
+          517
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.5,
+        "union": 6
+      }
+    },
+    "ts-atomic-write": {
+      "code3_replay": {
+        "injected_input_tokens": 1634,
+        "prompt_sha256": "1fa8b06be0398a8e96258c2f550ec0e4c37e2d024e760521eadac7d6ed8da561",
+        "query_sha256": "34a4d00a88eb1405e0cf1da8d7a1e5fba366ada8a56a9cb925e330cc8925a4e2",
+        "source_paths": [
+          "distractors/d005.jsonl",
+          "distractors/d101.jsonl",
+          "distractors/d101.jsonl",
+          "distractors/d101.jsonl",
+          "distractors/d053.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "distractors/d005.jsonl",
+          "distractors/d053.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "distractors/d005.jsonl"
+        ],
+        "window_indices": [
+          21,
+          523,
+          520,
+          522,
+          281,
+          835,
+          23,
+          279,
+          830,
+          24
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1529,
+        "prompt_sha256": "950af8faca1c81fe534ac01516e44be5ffce25b0036e5b97c37ec57c612a43f6",
+        "query_sha256": "34a4d00a88eb1405e0cf1da8d7a1e5fba366ada8a56a9cb925e330cc8925a4e2",
+        "source_paths": [
+          "sessions/ts-atomic-write/p01.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "distractors/d005.jsonl",
+          "distractors/d101.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "distractors/d077.jsonl",
+          "distractors/d053.jsonl",
+          "distractors/d005.jsonl",
+          "distractors/d077.jsonl",
+          "distractors/d005.jsonl"
+        ],
+        "window_indices": [
+          835,
+          830,
+          21,
+          520,
+          836,
+          413,
+          282,
+          23,
+          414,
+          24
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.8,
+        "union": 5
+      }
+    },
+    "ts-base36-id": {
+      "code3_replay": {
+        "injected_input_tokens": 1644,
+        "prompt_sha256": "67070c4063d6cbdef36e671cf2dd0f52bbe533de5d49b6b77129c7821544085a",
+        "query_sha256": "98677db0be7128726b664d088e7f9382aff7a14cda40034c537e87e08be7f8b8",
+        "source_paths": [
+          "distractors/d135.jsonl",
+          "distractors/d078.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "distractors/d135.jsonl",
+          "distractors/d030.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "distractors/d030.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl"
+        ],
+        "window_indices": [
+          705,
+          416,
+          849,
+          703,
+          152,
+          847,
+          845,
+          839,
+          150,
+          1120
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1627,
+        "prompt_sha256": "593235d641e3995a22676654bf62b93c515a4fea21dcb3dfeb91534d222585a8",
+        "query_sha256": "98677db0be7128726b664d088e7f9382aff7a14cda40034c537e87e08be7f8b8",
+        "source_paths": [
+          "sessions/ts-base36-id/p01.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "distractors/d078.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d030.jsonl",
+          "sessions/ts-base36-id/p01.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl",
+          "sessions/fa-dedup-key/p01.jsonl"
+        ],
+        "window_indices": [
+          849,
+          845,
+          839,
+          847,
+          416,
+          1120,
+          152,
+          840,
+          1106,
+          816
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.5714,
+        "union": 7
+      }
+    },
+    "ts-bom-merge": {
+      "code3_replay": {
+        "injected_input_tokens": 1621,
+        "prompt_sha256": "6f8c4c933a0e7ad8c09a9cefa242c26638972f6fe3c1da6b4f8f6e6d6ba47594",
+        "query_sha256": "1cdb683500e4fd7e894268deaa27457111572ed9469a33614cbf178698cf08b2",
+        "source_paths": [
+          "distractors/d007.jsonl",
+          "distractors/d103.jsonl",
+          "distractors/d103.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d055.jsonl",
+          "sessions/ts-bom-merge/p01.jsonl",
+          "distractors/d055.jsonl",
+          "distractors/d103.jsonl",
+          "distractors/d007.jsonl",
+          "sessions/ts-bom-merge/p01.jsonl"
+        ],
+        "window_indices": [
+          28,
+          526,
+          528,
+          1118,
+          291,
+          861,
+          288,
+          529,
+          30,
+          856
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1638,
+        "prompt_sha256": "b7e14e9fcdec3bb867ea56e767e6ba3984a45b649328974b1cf80c3a3f65ff7a",
+        "query_sha256": "1cdb683500e4fd7e894268deaa27457111572ed9469a33614cbf178698cf08b2",
+        "source_paths": [
+          "sessions/ts-bom-merge/p01.jsonl",
+          "distractors/d103.jsonl",
+          "sessions/ts-bom-merge/p01.jsonl",
+          "sessions/ts-bom-merge/p01.jsonl",
+          "sessions/ts-bom-merge/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d007.jsonl",
+          "distractors/d007.jsonl"
+        ],
+        "window_indices": [
+          861,
+          530,
+          860,
+          862,
+          859,
+          1121,
+          1118,
+          1120,
+          29,
+          28
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.8,
+        "union": 5
+      }
+    },
+    "ts-bool-env": {
+      "code3_replay": {
+        "injected_input_tokens": 1673,
+        "prompt_sha256": "4e80d827bace89315ce809af7738957e97ad8300157a55cdfafbad0fda051ee3",
+        "query_sha256": "fa27f5131e9c534e7e899a3ef9da7722f1d70386960eb2de11eb08beb58fdc0e",
+        "source_paths": [
+          "distractors/d137.jsonl",
+          "distractors/d104.jsonl",
+          "distractors/d137.jsonl",
+          "distractors/d137.jsonl",
+          "distractors/d104.jsonl",
+          "sessions/ts-bool-env/p01.jsonl",
+          "distractors/d033.jsonl",
+          "sessions/ts-bool-env/p01.jsonl",
+          "sessions/ts-bool-env/p01.jsonl",
+          "distractors/d081.jsonl"
+        ],
+        "window_indices": [
+          712,
+          532,
+          713,
+          711,
+          531,
+          863,
+          164,
+          865,
+          864,
+          427
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1673,
+        "prompt_sha256": "7500ca26db34197427d658806f98821a56524482c5d6479b15f8c485042385c6",
+        "query_sha256": "fa27f5131e9c534e7e899a3ef9da7722f1d70386960eb2de11eb08beb58fdc0e",
+        "source_paths": [
+          "distractors/d137.jsonl",
+          "distractors/d104.jsonl",
+          "distractors/d137.jsonl",
+          "sessions/ts-bool-env/p01.jsonl",
+          "sessions/ts-bool-env/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "distractors/d104.jsonl",
+          "distractors/d137.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl"
+        ],
+        "window_indices": [
+          713,
+          531,
+          712,
+          863,
+          864,
+          886,
+          532,
+          711,
+          889,
+          890
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.5,
+        "union": 6
+      }
+    },
+    "ts-casefold-sort": {
+      "code3_replay": {
+        "injected_input_tokens": 1645,
+        "prompt_sha256": "8858a61bf8f896c154262e3550ca2d41d05ccad60431333a8444470a5a6da23f",
+        "query_sha256": "c07ecb2af4b78628aeb5396c6a09a9e060d7f18a29a6a52e14b62e75cf790aa2",
+        "source_paths": [
+          "distractors/d080.jsonl",
+          "sessions/ts-casefold-sort/p01.jsonl",
+          "distractors/d105.jsonl",
+          "distractors/d032.jsonl",
+          "distractors/d105.jsonl",
+          "distractors/d080.jsonl",
+          "sessions/ts-casefold-sort/p01.jsonl",
+          "distractors/d032.jsonl",
+          "distractors/d080.jsonl",
+          "distractors/d056.jsonl"
+        ],
+        "window_indices": [
+          425,
+          870,
+          540,
+          162,
+          539,
+          424,
+          869,
+          160,
+          422,
+          294
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1610,
+        "prompt_sha256": "438442832ce44f20933e9a4e6ad5514eb1095cc6c0d40ec7636ce8464984e103",
+        "query_sha256": "c07ecb2af4b78628aeb5396c6a09a9e060d7f18a29a6a52e14b62e75cf790aa2",
+        "source_paths": [
+          "sessions/ts-casefold-sort/p01.jsonl",
+          "sessions/ts-casefold-sort/p01.jsonl",
+          "sessions/ts-casefold-sort/p01.jsonl",
+          "sessions/ts-casefold-sort/p01.jsonl",
+          "distractors/d032.jsonl",
+          "distractors/d148.jsonl",
+          "distractors/d105.jsonl",
+          "distractors/d148.jsonl",
+          "distractors/d056.jsonl",
+          "sessions/ts-empty-input/p01.jsonl"
+        ],
+        "window_indices": [
+          870,
+          869,
+          872,
+          873,
+          162,
+          767,
+          540,
+          766,
+          294,
+          927
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.5714,
+        "union": 7
+      }
+    },
+    "ts-cli-exitcode": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "557aec6e8bb851e2282f15b3836316aede6cf2a27b531bed5b4e6f1eaaf4115d",
+        "query_sha256": "368676c8bba0369329119487623e696f974483a24f238af8c527cc3710e53e91",
+        "source_paths": [
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "distractors/d139.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "distractors/d139.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d082.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl"
+        ],
+        "window_indices": [
+          875,
+          878,
+          877,
+          717,
+          874,
+          718,
+          876,
+          732,
+          434,
+          880
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1620,
+        "prompt_sha256": "79351667ba8d8cb4a3d454705c43fe882a37883cf04a54fe52ea2d86e1e69afb",
+        "query_sha256": "368676c8bba0369329119487623e696f974483a24f238af8c527cc3710e53e91",
+        "source_paths": [
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "distractors/d034.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl"
+        ],
+        "window_indices": [
+          878,
+          874,
+          875,
+          876,
+          552,
+          880,
+          167,
+          553,
+          879,
+          881
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 1,
+        "jaccard": 0.1667,
+        "union": 6
+      }
+    },
+    "ts-config-layer": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "6c18cc023b99a985f5caa8bfbd032855b496e711ca3239e72208f9c53665e34a",
+        "query_sha256": "7c94dcb5d0f4f7b02faff180ae4d77172e917bcc9b6cee44d6658afbe753e156",
+        "source_paths": [
+          "distractors/d009.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "distractors/d033.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "distractors/d081.jsonl",
+          "distractors/d009.jsonl",
+          "distractors/d009.jsonl",
+          "sessions/ts-config-layer/p01.jsonl"
+        ],
+        "window_indices": [
+          39,
+          889,
+          887,
+          164,
+          890,
+          886,
+          427,
+          37,
+          38,
+          888
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1612,
+        "prompt_sha256": "09d6d31a2da92ab680f93b42dfe054a6d768ae05daf45436203786c27715ceb0",
+        "query_sha256": "7c94dcb5d0f4f7b02faff180ae4d77172e917bcc9b6cee44d6658afbe753e156",
+        "source_paths": [
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "sessions/ts-config-layer/p01.jsonl",
+          "distractors/d081.jsonl",
+          "distractors/d009.jsonl",
+          "distractors/d033.jsonl",
+          "distractors/d033.jsonl"
+        ],
+        "window_indices": [
+          888,
+          889,
+          890,
+          886,
+          887,
+          891,
+          427,
+          40,
+          165,
+          163
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 1.0,
+        "union": 4
+      }
+    },
+    "ts-crlf-export": {
+      "code3_replay": {
+        "injected_input_tokens": 1534,
+        "prompt_sha256": "8402d71d4e4a9838b982d090725cf4cf828c337beedc273486f80724911a8dfc",
+        "query_sha256": "437f5d5d7b86545230ad8b8a426cd939125e82a0a8bd56d73d692859cff331a7",
+        "source_paths": [
+          "distractors/d082.jsonl",
+          "distractors/d034.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d082.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d108.jsonl",
+          "distractors/d141.jsonl"
+        ],
+        "window_indices": [
+          435,
+          167,
+          728,
+          434,
+          729,
+          731,
+          732,
+          733,
+          552,
+          730
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1437,
+        "prompt_sha256": "c048adf95bad11a2083f2cbf5a1d6b3d5f8d825df750a5466c50e063f8b27331",
+        "query_sha256": "437f5d5d7b86545230ad8b8a426cd939125e82a0a8bd56d73d692859cff331a7",
+        "source_paths": [
+          "distractors/d034.jsonl",
+          "distractors/d108.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d082.jsonl",
+          "distractors/d141.jsonl",
+          "sessions/ts-crlf-export/p01.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-crlf-export/p01.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d108.jsonl"
+        ],
+        "window_indices": [
+          167,
+          552,
+          728,
+          434,
+          729,
+          896,
+          553,
+          904,
+          733,
+          551
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.8,
+        "union": 5
+      }
+    },
+    "ts-csv-quote": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "5ba91e0b74835c4e056591431b2d2c7c31a2663dfe5abaf008a563e1215e9e50",
+        "query_sha256": "ad07a56b60ae60b1a38bf61cb56f0b73b5340ebf52415bea11d5216cee37998f",
+        "source_paths": [
+          "sessions/ts-csv-quote/p01.jsonl",
+          "distractors/d109.jsonl",
+          "sessions/ts-csv-quote/p01.jsonl",
+          "distractors/d141.jsonl",
+          "sessions/ts-csv-quote/p01.jsonl",
+          "sessions/ts-csv-quote/p01.jsonl",
+          "distractors/d108.jsonl",
+          "distractors/d141.jsonl",
+          "distractors/d128.jsonl",
+          "distractors/d082.jsonl"
+        ],
+        "window_indices": [
+          908,
+          555,
+          907,
+          732,
+          910,
+          909,
+          552,
+          728,
+          662,
+          434
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1589,
+        "prompt_sha256": "fe0f8b42c30e95052d596bae9f96d386d4ec4a64277d9128ea231587e58b357e",
+        "query_sha256": "ad07a56b60ae60b1a38bf61cb56f0b73b5340ebf52415bea11d5216cee37998f",
+        "source_paths": [
+          "sessions/ts-csv-quote/p01.jsonl",
+          "sessions/ts-csv-quote/p01.jsonl",
+          "distractors/d108.jsonl",
+          "distractors/d108.jsonl",
+          "distractors/d034.jsonl",
+          "distractors/d109.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-cli-exitcode/p01.jsonl",
+          "sessions/ts-dedup-order/p01.jsonl",
+          "distractors/d141.jsonl"
+        ],
+        "window_indices": [
+          909,
+          910,
+          552,
+          553,
+          167,
+          554,
+          1112,
+          878,
+          919,
+          728
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.4,
+        "union": 10
+      }
+    },
+    "ts-dedup-order": {
+      "code3_replay": {
+        "injected_input_tokens": 1684,
+        "prompt_sha256": "34b96097aa17f943c5174a5ed0085f90f9648d3abb002eb1b4824088090688c1",
+        "query_sha256": "5faab4d9291f8bb3b6ed11d0cd1df28a018a258d4154673141ee2597e76675ad",
+        "source_paths": [
+          "sessions/ts-dedup-order/p01.jsonl",
+          "sessions/ts-dedup-order/p01.jsonl",
+          "distractors/d110.jsonl",
+          "distractors/d001.jsonl",
+          "sessions/ts-dedup-order/p01.jsonl",
+          "distractors/d083.jsonl",
+          "distractors/d110.jsonl",
+          "distractors/d083.jsonl",
+          "distractors/d143.jsonl",
+          "distractors/d143.jsonl"
+        ],
+        "window_indices": [
+          919,
+          918,
+          567,
+          1,
+          915,
+          438,
+          563,
+          440,
+          738,
+          737
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1516,
+        "prompt_sha256": "f8346053dc5e483d034aca40a1c015bd322b320d240b610792c688d810793862",
+        "query_sha256": "5faab4d9291f8bb3b6ed11d0cd1df28a018a258d4154673141ee2597e76675ad",
+        "source_paths": [
+          "sessions/ts-dedup-order/p01.jsonl",
+          "sessions/ts-dedup-order/p01.jsonl",
+          "sessions/ts-dedup-order/p01.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "distractors/d110.jsonl",
+          "distractors/d083.jsonl",
+          "sessions/ts-dedup-order/p01.jsonl",
+          "sessions/ts-dedup-order/p01.jsonl"
+        ],
+        "window_indices": [
+          919,
+          918,
+          915,
+          553,
+          834,
+          838,
+          561,
+          442,
+          916,
+          912
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.4286,
+        "union": 7
+      }
+    },
+    "ts-empty-input": {
+      "code3_replay": {
+        "injected_input_tokens": 1692,
+        "prompt_sha256": "80a4d3a28288017223b17a76c5b90831205083bb57cff8f6540b31f1b7794f70",
+        "query_sha256": "13d33ddd862b2d240f06cb3d4c802023fd35fbde316a7f86ca8807fb7fb83732",
+        "source_paths": [
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d036.jsonl",
+          "distractors/d036.jsonl",
+          "distractors/d111.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d144.jsonl",
+          "distractors/d111.jsonl"
+        ],
+        "window_indices": [
+          929,
+          181,
+          182,
+          576,
+          932,
+          927,
+          926,
+          924,
+          745,
+          570
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1675,
+        "prompt_sha256": "ccfcbfe2e9ef992dbd9c5fd3c19e7b82b9eee02a1eb1e335ae8e44d6c3303959",
+        "query_sha256": "13d33ddd862b2d240f06cb3d4c802023fd35fbde316a7f86ca8807fb7fb83732",
+        "source_paths": [
+          "sessions/ts-empty-input/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d036.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d111.jsonl",
+          "distractors/d111.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d036.jsonl",
+          "sessions/ts-empty-input/p01.jsonl"
+        ],
+        "window_indices": [
+          932,
+          929,
+          180,
+          926,
+          927,
+          570,
+          573,
+          921,
+          185,
+          925
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.75,
+        "union": 4
+      }
+    },
+    "ts-glob-hidden": {
+      "code3_replay": {
+        "injected_input_tokens": 1680,
+        "prompt_sha256": "3a0b7354b7da4ede80dd3e65b1e06250b84fd8a9fc6b467d50c08e42fa2221d3",
+        "query_sha256": "7ef773a492a10089ccb12de9e27b35311679418c5e022386204cfbd1df3982b1",
+        "source_paths": [
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "distractors/d077.jsonl",
+          "distractors/d060.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "distractors/d060.jsonl"
+        ],
+        "window_indices": [
+          933,
+          934,
+          944,
+          942,
+          938,
+          412,
+          308,
+          936,
+          939,
+          309
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1648,
+        "prompt_sha256": "5f3550d97ec5bf7324168e78dc4d5136e1d8ef53b7c47abd321b28dad7f75366",
+        "query_sha256": "7ef773a492a10089ccb12de9e27b35311679418c5e022386204cfbd1df3982b1",
+        "source_paths": [
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "distractors/d139.jsonl",
+          "distractors/d015.jsonl",
+          "sessions/ts-glob-hidden/p01.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "distractors/d063.jsonl",
+          "distractors/d111.jsonl"
+        ],
+        "window_indices": [
+          944,
+          933,
+          934,
+          938,
+          716,
+          69,
+          942,
+          838,
+          334,
+          570
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 1,
+        "jaccard": 0.125,
+        "union": 8
+      }
+    },
+    "ts-golden-regen": {
+      "code3_replay": {
+        "injected_input_tokens": 1687,
+        "prompt_sha256": "1fdcf66d24cb9079bb8971ec3b8a07e3846cb17294ab970a23e79c2be73ab72c",
+        "query_sha256": "a77786db23a6c7359120853e120986da12c0416e1a5d838a05aaa60c66adfdfb",
+        "source_paths": [
+          "distractors/d014.jsonl",
+          "distractors/d062.jsonl",
+          "distractors/d062.jsonl",
+          "distractors/d062.jsonl",
+          "distractors/d038.jsonl",
+          "distractors/d014.jsonl",
+          "distractors/d014.jsonl",
+          "distractors/d014.jsonl",
+          "distractors/d113.jsonl",
+          "distractors/d038.jsonl"
+        ],
+        "window_indices": [
+          68,
+          329,
+          327,
+          325,
+          201,
+          64,
+          59,
+          66,
+          584,
+          204
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1622,
+        "prompt_sha256": "eee1f09e9151a5ad42f903d2cac5562ac265dc0e28e3288393e6678f513a6ab5",
+        "query_sha256": "a77786db23a6c7359120853e120986da12c0416e1a5d838a05aaa60c66adfdfb",
+        "source_paths": [
+          "distractors/d014.jsonl",
+          "distractors/d062.jsonl",
+          "distractors/d113.jsonl",
+          "sessions/ts-golden-regen/p01.jsonl",
+          "distractors/d038.jsonl",
+          "sessions/ts-crlf-export/p01.jsonl",
+          "distractors/d014.jsonl",
+          "sessions/ts-crlf-export/p01.jsonl",
+          "sessions/ts-golden-regen/p01.jsonl",
+          "sessions/ts-golden-regen/p01.jsonl"
+        ],
+        "window_indices": [
+          68,
+          319,
+          584,
+          956,
+          204,
+          903,
+          60,
+          904,
+          947,
+          948
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.6667,
+        "union": 6
+      }
+    },
+    "ts-idempotent-run": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "38364f9b79b934033f329286739d5fc0230c34e9be0c201d0888564674fd4f8b",
+        "query_sha256": "6419a98b8a769a41685aa85c2c7cdccecd0f7bf66dca6fd91a07158d0a66cbf1",
+        "source_paths": [
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "distractors/d114.jsonl",
+          "distractors/d147.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "distractors/d147.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl"
+        ],
+        "window_indices": [
+          966,
+          965,
+          599,
+          763,
+          962,
+          964,
+          761,
+          963,
+          451,
+          959
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1459,
+        "prompt_sha256": "4a1ef3fdf49938c9dd893b09bdabd386c85c4b61450123baffb57535d5a9e6bd",
+        "query_sha256": "6419a98b8a769a41685aa85c2c7cdccecd0f7bf66dca6fd91a07158d0a66cbf1",
+        "source_paths": [
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "distractors/d114.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "distractors/d147.jsonl",
+          "distractors/d090.jsonl",
+          "distractors/d147.jsonl"
+        ],
+        "window_indices": [
+          966,
+          965,
+          964,
+          963,
+          959,
+          600,
+          967,
+          763,
+          475,
+          764
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.6,
+        "union": 5
+      }
+    },
+    "ts-ignore-gen": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "0a54b0d0c27d65ea82565404cafb3c27ee89c70bcc1a8b259393dc6476028fb3",
+        "query_sha256": "4be7a8108faeb0112f3f7be6b6131a8ac95a68da2e4abc79a6b5e662e12f472d",
+        "source_paths": [
+          "distractors/d115.jsonl",
+          "distractors/d015.jsonl",
+          "distractors/d063.jsonl",
+          "sessions/ts-ignore-gen/p01.jsonl",
+          "sessions/ts-ignore-gen/p01.jsonl",
+          "distractors/d063.jsonl",
+          "sessions/ts-ignore-gen/p01.jsonl",
+          "distractors/d039.jsonl",
+          "distractors/d015.jsonl",
+          "sessions/ts-ignore-gen/p01.jsonl"
+        ],
+        "window_indices": [
+          602,
+          72,
+          336,
+          973,
+          977,
+          335,
+          974,
+          205,
+          73,
+          978
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "402eb793da759199c2cd2ffb8f8cb892858347fea5eeb6cbf1508666682aad5f",
+        "query_sha256": "4be7a8108faeb0112f3f7be6b6131a8ac95a68da2e4abc79a6b5e662e12f472d",
+        "source_paths": [
+          "sessions/ts-ignore-gen/p01.jsonl",
+          "distractors/d015.jsonl",
+          "sessions/ts-ignore-gen/p01.jsonl",
+          "distractors/d039.jsonl",
+          "distractors/d015.jsonl",
+          "distractors/d063.jsonl",
+          "distractors/d148.jsonl",
+          "sessions/ts-ignore-gen/p01.jsonl",
+          "sessions/ts-ignore-gen/p01.jsonl",
+          "distractors/d115.jsonl"
+        ],
+        "window_indices": [
+          972,
+          69,
+          977,
+          206,
+          70,
+          334,
+          767,
+          970,
+          973,
+          603
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 5,
+        "jaccard": 0.8333,
+        "union": 6
+      }
+    },
+    "ts-json-sorted": {
+      "code3_replay": {
+        "injected_input_tokens": 1594,
+        "prompt_sha256": "1747940a86ebad71fe55b6dc8426904674d6249c1017402fb4333247294b22a5",
+        "query_sha256": "2fe91f182719e16803a16fb0c0462dfceda89a0fc9b4405d512d98c9cebea5e8",
+        "source_paths": [
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "distractors/d149.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "distractors/d053.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl"
+        ],
+        "window_indices": [
+          995,
+          996,
+          993,
+          994,
+          769,
+          987,
+          997,
+          282,
+          988,
+          830
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1499,
+        "prompt_sha256": "9ce1a18a611c89c17050798a317695817a6f88e464cc5156809056de0a5c8df7",
+        "query_sha256": "2fe91f182719e16803a16fb0c0462dfceda89a0fc9b4405d512d98c9cebea5e8",
+        "source_paths": [
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "sessions/ts-json-sorted/p01.jsonl",
+          "distractors/d108.jsonl",
+          "distractors/d053.jsonl"
+        ],
+        "window_indices": [
+          996,
+          994,
+          997,
+          553,
+          995,
+          836,
+          830,
+          987,
+          552,
+          282
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.6,
+        "union": 5
+      }
+    },
+    "ts-legacy-hash": {
+      "code3_replay": {
+        "injected_input_tokens": 1671,
+        "prompt_sha256": "cf3d3308f2a90db5ceee0b372afad6b12dc4f06876456280425409b3bd375441",
+        "query_sha256": "93900ecc9b2d82a40584b8d30a6c85788f4d882a5c102c588d7911348107d379",
+        "source_paths": [
+          "distractors/d150.jsonl",
+          "distractors/d040.jsonl",
+          "distractors/d150.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "distractors/d150.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl"
+        ],
+        "window_indices": [
+          777,
+          209,
+          778,
+          1007,
+          1006,
+          998,
+          776,
+          1009,
+          1011,
+          1001
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1654,
+        "prompt_sha256": "1ca62e5835301b209b71ba5c3694c9191863ceb116a7be112000da85feffd5e7",
+        "query_sha256": "93900ecc9b2d82a40584b8d30a6c85788f4d882a5c102c588d7911348107d379",
+        "source_paths": [
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "distractors/d040.jsonl",
+          "distractors/d088.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "distractors/d150.jsonl",
+          "distractors/d150.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "sessions/ts-legacy-hash/p01.jsonl",
+          "distractors/d088.jsonl"
+        ],
+        "window_indices": [
+          1007,
+          209,
+          464,
+          1011,
+          778,
+          775,
+          1008,
+          1010,
+          1002,
+          465
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.75,
+        "union": 4
+      }
+    },
+    "ts-log-mask": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "7c2a39556f31f5c9d17e639192d31c20e243fe26306b28a9a3151a8c6e549c73",
+        "query_sha256": "2dadd08252b75e98e03bd052dd65f6d6380efdcd2fdb6f978fc3c2a2b90027b9",
+        "source_paths": [
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "distractors/d017.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "distractors/d089.jsonl",
+          "distractors/d065.jsonl",
+          "distractors/d151.jsonl",
+          "distractors/d151.jsonl"
+        ],
+        "window_indices": [
+          1021,
+          1013,
+          1025,
+          1022,
+          77,
+          1014,
+          467,
+          346,
+          779,
+          780
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "37d169a58fbea35daac8b417c274167142c23f960a62da5932124f503e663c89",
+        "query_sha256": "2dadd08252b75e98e03bd052dd65f6d6380efdcd2fdb6f978fc3c2a2b90027b9",
+        "source_paths": [
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "distractors/d118.jsonl",
+          "distractors/d118.jsonl",
+          "distractors/d151.jsonl"
+        ],
+        "window_indices": [
+          1013,
+          1021,
+          1022,
+          1025,
+          1012,
+          1014,
+          1026,
+          614,
+          613,
+          780
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 2,
+        "jaccard": 0.3333,
+        "union": 6
+      }
+    },
+    "ts-manifest-rel": {
+      "code3_replay": {
+        "injected_input_tokens": 1666,
+        "prompt_sha256": "2fc6ff88188e4204a485c3ff77bf134bddadae41d8b4625d6b5f0d2c871f46e1",
+        "query_sha256": "570df14b7e4effe684a4db80f922c7b11c8d3627f487d20c49bcf72833ebe14b",
+        "source_paths": [
+          "distractors/d085.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d085.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d090.jsonl",
+          "distractors/d119.jsonl"
+        ],
+        "window_indices": [
+          453,
+          452,
+          1031,
+          454,
+          1030,
+          451,
+          455,
+          1029,
+          474,
+          616
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1467,
+        "prompt_sha256": "c2bc987aabedfbf22f10d2eb31b4f58f9933f9ddced24b692efeb46b3bf025bf",
+        "query_sha256": "570df14b7e4effe684a4db80f922c7b11c8d3627f487d20c49bcf72833ebe14b",
+        "source_paths": [
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/xs-widen-manifest/p01.jsonl",
+          "distractors/d042.jsonl",
+          "sessions/ts-atomic-write/p01.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "sessions/xs-widen-manifest/p01.jsonl"
+        ],
+        "window_indices": [
+          1031,
+          455,
+          1030,
+          1029,
+          454,
+          1207,
+          219,
+          834,
+          1033,
+          1205
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 2,
+        "jaccard": 0.2857,
+        "union": 7
+      }
+    },
+    "ts-mig-name": {
+      "code3_replay": {
+        "injected_input_tokens": 1629,
+        "prompt_sha256": "29a730c7230265357fbb72b72574b0425d2e396d16a03511e6d4817182bca54a",
+        "query_sha256": "8fec4dc0f5b858f424e869cc9edfb6486d9a8619b59a7443ddb3f084727927e1",
+        "source_paths": [
+          "distractors/d120.jsonl",
+          "distractors/d067.jsonl",
+          "distractors/d120.jsonl",
+          "distractors/d019.jsonl",
+          "distractors/d120.jsonl",
+          "distractors/d120.jsonl",
+          "distractors/d091.jsonl",
+          "distractors/d019.jsonl",
+          "distractors/d019.jsonl",
+          "distractors/d091.jsonl"
+        ],
+        "window_indices": [
+          627,
+          357,
+          628,
+          93,
+          625,
+          626,
+          482,
+          90,
+          91,
+          481
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1556,
+        "prompt_sha256": "6002a41289f3cbb8fd01026451fb4320c2d2d983aecb9c048a5f0b5d47274557",
+        "query_sha256": "8fec4dc0f5b858f424e869cc9edfb6486d9a8619b59a7443ddb3f084727927e1",
+        "source_paths": [
+          "sessions/ts-mig-name/p01.jsonl",
+          "distractors/d120.jsonl",
+          "sessions/ts-mig-name/p01.jsonl",
+          "sessions/ts-mig-name/p01.jsonl",
+          "distractors/d091.jsonl",
+          "sessions/ts-mig-name/p01.jsonl",
+          "distractors/d091.jsonl",
+          "sessions/ts-mig-name/p01.jsonl",
+          "sessions/ts-mig-name/p01.jsonl",
+          "sessions/ts-mig-name/p01.jsonl"
+        ],
+        "window_indices": [
+          1034,
+          625,
+          1048,
+          1049,
+          482,
+          1041,
+          483,
+          1035,
+          1047,
+          1050
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 2,
+        "jaccard": 0.4,
+        "union": 5
+      }
+    },
+    "ts-natural-order": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "328a898974e7f07109be590a221935098b66e4f971bed081d2d6cc57ca238f01",
+        "query_sha256": "b30b17d9664efe1670de8b5827cab49a0f1047b443824fe5d77f7cb386cbbc08",
+        "source_paths": [
+          "distractors/d121.jsonl",
+          "distractors/d121.jsonl",
+          "distractors/d121.jsonl",
+          "distractors/d121.jsonl",
+          "distractors/d036.jsonl",
+          "distractors/d036.jsonl",
+          "distractors/d121.jsonl",
+          "distractors/d111.jsonl",
+          "distractors/d121.jsonl",
+          "distractors/d154.jsonl"
+        ],
+        "window_indices": [
+          633,
+          634,
+          635,
+          632,
+          182,
+          181,
+          629,
+          575,
+          636,
+          794
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1677,
+        "prompt_sha256": "793e25dbd49bcab8d5ef7401dcc587c9ef86c8a66ec85c25fb3b9f5d53a75b4a",
+        "query_sha256": "b30b17d9664efe1670de8b5827cab49a0f1047b443824fe5d77f7cb386cbbc08",
+        "source_paths": [
+          "distractors/d036.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d111.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d154.jsonl",
+          "distractors/d154.jsonl",
+          "distractors/d036.jsonl",
+          "sessions/ts-natural-order/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl"
+        ],
+        "window_indices": [
+          185,
+          1121,
+          570,
+          1112,
+          1119,
+          796,
+          793,
+          180,
+          1054,
+          921
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.4286,
+        "union": 7
+      }
+    },
+    "ts-nfc-count": {
+      "code3_replay": {
+        "injected_input_tokens": 1589,
+        "prompt_sha256": "617160c896ced812ee42ed2e2a6d32c3a4acdd14342bb19f4c2f4769206c1003",
+        "query_sha256": "dfad32d92d37f4b1b783f8c8d5c402a682805b0b300cdf06e1565b9b77fb023a",
+        "source_paths": [
+          "distractors/d020.jsonl",
+          "distractors/d068.jsonl",
+          "distractors/d020.jsonl",
+          "distractors/d041.jsonl",
+          "distractors/d068.jsonl",
+          "distractors/d058.jsonl",
+          "sessions/ts-nfc-count/p01.jsonl",
+          "distractors/d126.jsonl",
+          "distractors/d106.jsonl",
+          "distractors/d068.jsonl"
+        ],
+        "window_indices": [
+          99,
+          369,
+          98,
+          217,
+          366,
+          305,
+          1065,
+          657,
+          548,
+          368
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1632,
+        "prompt_sha256": "83ae880775eacebfe13e9340b2cbfbde31e0e20bb821bdb2d8ccf4490a210142",
+        "query_sha256": "dfad32d92d37f4b1b783f8c8d5c402a682805b0b300cdf06e1565b9b77fb023a",
+        "source_paths": [
+          "sessions/ts-nfc-count/p01.jsonl",
+          "sessions/ts-nfc-count/p01.jsonl",
+          "sessions/ts-nfc-count/p01.jsonl",
+          "distractors/d058.jsonl",
+          "distractors/d020.jsonl",
+          "distractors/d020.jsonl",
+          "distractors/d036.jsonl",
+          "distractors/d146.jsonl",
+          "distractors/d111.jsonl",
+          "distractors/d032.jsonl"
+        ],
+        "window_indices": [
+          1065,
+          1074,
+          1058,
+          305,
+          98,
+          99,
+          185,
+          759,
+          573,
+          162
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.2727,
+        "union": 11
+      }
+    },
+    "ts-quote-shell": {
+      "code3_replay": {
+        "injected_input_tokens": 1587,
+        "prompt_sha256": "2dc4867dd58f0a5f6a0d0bf2a7190a8a07b5ea896c1bdafdac0add68d7720a95",
+        "query_sha256": "70077627407d0a81f6192d570deae41214f8b83781862f57f9eced3668b68e88",
+        "source_paths": [
+          "distractors/d069.jsonl",
+          "distractors/d021.jsonl",
+          "distractors/d045.jsonl",
+          "distractors/d045.jsonl",
+          "distractors/d021.jsonl",
+          "distractors/d045.jsonl",
+          "distractors/d069.jsonl",
+          "distractors/d069.jsonl",
+          "sessions/ts-quote-shell/p01.jsonl",
+          "sessions/ts-quote-shell/p01.jsonl"
+        ],
+        "window_indices": [
+          375,
+          101,
+          230,
+          229,
+          103,
+          232,
+          371,
+          372,
+          1077,
+          1076
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1631,
+        "prompt_sha256": "f91e8ab6780940f47d0de814a225eb0d9ba65adeeedabef51f068f0d54b2f01e",
+        "query_sha256": "70077627407d0a81f6192d570deae41214f8b83781862f57f9eced3668b68e88",
+        "source_paths": [
+          "distractors/d045.jsonl",
+          "distractors/d021.jsonl",
+          "distractors/d021.jsonl",
+          "sessions/ts-quote-shell/p01.jsonl",
+          "distractors/d045.jsonl",
+          "distractors/d069.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d069.jsonl",
+          "sessions/ts-quote-shell/p01.jsonl",
+          "sessions/ts-quote-shell/p01.jsonl"
+        ],
+        "window_indices": [
+          230,
+          102,
+          101,
+          1084,
+          231,
+          371,
+          1031,
+          375,
+          1077,
+          1085
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 4,
+        "jaccard": 0.8,
+        "union": 5
+      }
+    },
+    "ts-retry-cap": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "e347a539734e11b54f94cc0d77cc82e288602cf7bfcda5885e616227966cfd69",
+        "query_sha256": "5462a9f2c3e3e6c13a39e7a4b46eb6df160d716505bf16740a6fc7da7ed2ea7f",
+        "source_paths": [
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "distractors/d046.jsonl",
+          "distractors/d022.jsonl",
+          "distractors/d094.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "distractors/d046.jsonl"
+        ],
+        "window_indices": [
+          1092,
+          1088,
+          1091,
+          1090,
+          1089,
+          236,
+          106,
+          493,
+          1093,
+          241
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1648,
+        "prompt_sha256": "22c6a4cf9b7f11b5a111fc03c6532cfd381964054c64d602bdf44da71cc9b5c9",
+        "query_sha256": "5462a9f2c3e3e6c13a39e7a4b46eb6df160d716505bf16740a6fc7da7ed2ea7f",
+        "source_paths": [
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "distractors/d046.jsonl",
+          "sessions/ts-retry-cap/p01.jsonl",
+          "distractors/d046.jsonl",
+          "distractors/d022.jsonl",
+          "distractors/d022.jsonl"
+        ],
+        "window_indices": [
+          1092,
+          1090,
+          1089,
+          1088,
+          1091,
+          236,
+          1093,
+          238,
+          107,
+          104
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.75,
+        "union": 4
+      }
+    },
+    "ts-round-money": {
+      "code3_replay": {
+        "injected_input_tokens": 1689,
+        "prompt_sha256": "46b89e0caf8bbf7ed088c63371f9b6ce2dc0f4508abe69a006a22fcf0f230cc8",
+        "query_sha256": "8742dd85adc1a0ab6486a4ba9f33ddabd755d76e26d4c41e48181dc41cd8e7b3",
+        "source_paths": [
+          "distractors/d125.jsonl",
+          "distractors/d095.jsonl",
+          "distractors/d002.jsonl",
+          "sessions/ts-round-money/p01.jsonl",
+          "sessions/ts-round-money/p01.jsonl",
+          "distractors/d023.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d071.jsonl",
+          "sessions/ts-round-money/p01.jsonl",
+          "distractors/d002.jsonl"
+        ],
+        "window_indices": [
+          652,
+          497,
+          5,
+          1097,
+          1095,
+          108,
+          929,
+          379,
+          1096,
+          7
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1571,
+        "prompt_sha256": "9b67004c73315a59b3f460b3e83a8e975cbc09aae3d3e58d4da2589533f79511",
+        "query_sha256": "8742dd85adc1a0ab6486a4ba9f33ddabd755d76e26d4c41e48181dc41cd8e7b3",
+        "source_paths": [
+          "sessions/ts-round-money/p01.jsonl",
+          "sessions/ts-round-money/p01.jsonl",
+          "sessions/ts-round-money/p01.jsonl",
+          "distractors/d071.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d108.jsonl",
+          "sessions/ts-empty-input/p01.jsonl",
+          "distractors/d108.jsonl"
+        ],
+        "window_indices": [
+          1097,
+          1095,
+          1096,
+          379,
+          932,
+          927,
+          921,
+          552,
+          926,
+          553
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.375,
+        "union": 8
+      }
+    },
+    "ts-schema-additive": {
+      "code3_replay": {
+        "injected_input_tokens": 1636,
+        "prompt_sha256": "d8b899af049ff5afe1c7662100a0064c1f891ca4cd7640b7e8c731155d0914a5",
+        "query_sha256": "01e599469beaf70331854dceeafcee7a468aa33fece58061834ed0e9f784a55a",
+        "source_paths": [
+          "distractors/d024.jsonl",
+          "distractors/d024.jsonl",
+          "distractors/d048.jsonl",
+          "distractors/d072.jsonl",
+          "distractors/d024.jsonl",
+          "distractors/d048.jsonl",
+          "distractors/d072.jsonl",
+          "distractors/d024.jsonl",
+          "distractors/d048.jsonl",
+          "distractors/d072.jsonl"
+        ],
+        "window_indices": [
+          117,
+          115,
+          249,
+          387,
+          116,
+          248,
+          389,
+          114,
+          247,
+          388
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1704,
+        "prompt_sha256": "0b6b40d010b796c213a3790751ef5d1d53b52a2e80a1716a00bd643a9e3acac3",
+        "query_sha256": "01e599469beaf70331854dceeafcee7a468aa33fece58061834ed0e9f784a55a",
+        "source_paths": [
+          "distractors/d048.jsonl",
+          "sessions/ts-schema-additive/p01.jsonl",
+          "distractors/d048.jsonl",
+          "sessions/ts-schema-additive/p01.jsonl",
+          "distractors/d024.jsonl",
+          "distractors/d072.jsonl",
+          "distractors/d024.jsonl",
+          "sessions/ts-schema-additive/p01.jsonl",
+          "sessions/ts-schema-additive/p01.jsonl",
+          "distractors/d072.jsonl"
+        ],
+        "window_indices": [
+          248,
+          1102,
+          249,
+          1098,
+          115,
+          385,
+          114,
+          1105,
+          1103,
+          389
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.75,
+        "union": 4
+      }
+    },
+    "ts-semver-pin": {
+      "code3_replay": {
+        "injected_input_tokens": 1413,
+        "prompt_sha256": "5b58558c0b435fcdd0f6ac16f2561245705c6432e5037bfccaf75bb1aff12508",
+        "query_sha256": "52c85459450548174bbaea628ee093767d1638e83755467d3e32316ceed23217",
+        "source_paths": [
+          "sessions/ts-semver-pin/p01.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl",
+          "distractors/d025.jsonl",
+          "distractors/d127.jsonl",
+          "distractors/d025.jsonl",
+          "distractors/d097.jsonl",
+          "distractors/d025.jsonl",
+          "distractors/d097.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl"
+        ],
+        "window_indices": [
+          1111,
+          1110,
+          1106,
+          122,
+          659,
+          120,
+          505,
+          119,
+          504,
+          1109
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1413,
+        "prompt_sha256": "4a7b5333bc12b28c55876254e989e37c9c20e1742f02c7889111908c797fa143",
+        "query_sha256": "52c85459450548174bbaea628ee093767d1638e83755467d3e32316ceed23217",
+        "source_paths": [
+          "sessions/ts-semver-pin/p01.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl",
+          "distractors/d127.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl",
+          "distractors/d097.jsonl",
+          "distractors/d073.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl",
+          "distractors/d049.jsonl",
+          "sessions/ts-semver-pin/p01.jsonl",
+          "distractors/d097.jsonl"
+        ],
+        "window_indices": [
+          1111,
+          1106,
+          659,
+          1109,
+          505,
+          391,
+          1108,
+          259,
+          1110,
+          504
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.5,
+        "union": 6
+      }
+    },
+    "ts-stable-sort": {
+      "code3_replay": {
+        "injected_input_tokens": 1653,
+        "prompt_sha256": "cadd0e7054a54e89fad89caf122ad9565441ca570a5398db83ea47e77375658f",
+        "query_sha256": "47924a3f88151cf5d2f7d3af75adf6056a906b4db5da77b57ceedcb141d16607",
+        "source_paths": [
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d050.jsonl",
+          "distractors/d128.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d074.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d074.jsonl"
+        ],
+        "window_indices": [
+          1121,
+          265,
+          662,
+          1115,
+          1117,
+          1118,
+          1114,
+          398,
+          1120,
+          399
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1627,
+        "prompt_sha256": "2b9111ccfa6fd42f3f57fa4c45692f8a22238b6710a9ff6fa9efbd31837809bd",
+        "query_sha256": "47924a3f88151cf5d2f7d3af75adf6056a906b4db5da77b57ceedcb141d16607",
+        "source_paths": [
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d128.jsonl",
+          "distractors/d036.jsonl",
+          "sessions/ts-stable-sort/p01.jsonl",
+          "distractors/d098.jsonl",
+          "sessions/xs-widen-manifest/p02.jsonl"
+        ],
+        "window_indices": [
+          1121,
+          1112,
+          1120,
+          1117,
+          1119,
+          663,
+          185,
+          1118,
+          507,
+          1215
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 2,
+        "jaccard": 0.2857,
+        "union": 7
+      }
+    },
+    "ts-tz-utc": {
+      "code3_replay": {
+        "injected_input_tokens": 1658,
+        "prompt_sha256": "b0f96171ef94e208c4cf0a35a613ecdee3b083f56f8076f98d484edd9fbd3e29",
+        "query_sha256": "afff26f8531e8836b6f86532d14fe6f9a1489d64ec0e170d0968d29ac4f33637",
+        "source_paths": [
+          "distractors/d027.jsonl",
+          "distractors/d075.jsonl",
+          "distractors/d027.jsonl",
+          "distractors/d027.jsonl",
+          "distractors/d075.jsonl",
+          "distractors/d075.jsonl",
+          "distractors/d075.jsonl",
+          "distractors/d027.jsonl",
+          "distractors/d027.jsonl",
+          "sessions/ts-tz-utc/p01.jsonl"
+        ],
+        "window_indices": [
+          133,
+          405,
+          134,
+          132,
+          407,
+          404,
+          401,
+          130,
+          131,
+          1125
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1538,
+        "prompt_sha256": "d8b7824dc1d6173203b8ca14377da55a10d8cdf7dfba68b511590c7400172434",
+        "query_sha256": "afff26f8531e8836b6f86532d14fe6f9a1489d64ec0e170d0968d29ac4f33637",
+        "source_paths": [
+          "sessions/ts-tz-utc/p01.jsonl",
+          "distractors/d075.jsonl",
+          "distractors/d027.jsonl",
+          "sessions/ts-tz-utc/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-tz-utc/p01.jsonl",
+          "sessions/ts-log-mask/p01.jsonl",
+          "sessions/ts-idempotent-run/p01.jsonl",
+          "distractors/d075.jsonl",
+          "sessions/ts-log-mask/p01.jsonl"
+        ],
+        "window_indices": [
+          1125,
+          402,
+          134,
+          1126,
+          1027,
+          1122,
+          1024,
+          966,
+          408,
+          1025
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.6,
+        "union": 5
+      }
+    },
+    "xs-evolve-lease": {
+      "code3_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "20bfeed017112001cc19e380beb3f9fec21e728c15e0e6a13b070443b2b4b2f7",
+        "query_sha256": "07aa56644b3022adf3ec27f7baec617cfd48504133be31b75faec625be71d294",
+        "source_paths": [
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p03.jsonl",
+          "distractors/d130.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "distractors/d130.jsonl",
+          "distractors/d130.jsonl",
+          "sessions/xs-evolve-lease/p03.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl"
+        ],
+        "window_indices": [
+          1145,
+          1132,
+          1158,
+          673,
+          1134,
+          672,
+          669,
+          1156,
+          1137,
+          1139
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1715,
+        "prompt_sha256": "2260d2606f4ca8cec68cbc7d7f22bfd3528637c1b7ab9ac678ccaaa54e72c69c",
+        "query_sha256": "07aa56644b3022adf3ec27f7baec617cfd48504133be31b75faec625be71d294",
+        "source_paths": [
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "distractors/d130.jsonl",
+          "sessions/xs-evolve-lease/p03.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl",
+          "sessions/xs-evolve-lease/p01.jsonl"
+        ],
+        "window_indices": [
+          1132,
+          1145,
+          669,
+          1156,
+          1144,
+          1138,
+          1137,
+          1134,
+          1131,
+          1139
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 1.0,
+        "union": 3
+      }
+    },
+    "xs-join-batch": {
+      "code3_replay": {
+        "injected_input_tokens": 1668,
+        "prompt_sha256": "84a83cd2a60a5d83d404486c14334fde95f69a9cc7306ecde807891876ec48f2",
+        "query_sha256": "7ff36419d013403fcd7a80b2789b571af28aec77945ae46eeec2b09eeb9b518c",
+        "source_paths": [
+          "distractors/d131.jsonl",
+          "distractors/d131.jsonl",
+          "sessions/xs-join-batch/p02.jsonl",
+          "distractors/d131.jsonl",
+          "sessions/xs-join-batch/p01.jsonl",
+          "distractors/d131.jsonl",
+          "sessions/xs-join-batch/p02.jsonl",
+          "distractors/d131.jsonl",
+          "distractors/d131.jsonl",
+          "sessions/xs-join-batch/p01.jsonl"
+        ],
+        "window_indices": [
+          683,
+          684,
+          1178,
+          681,
+          1173,
+          685,
+          1179,
+          682,
+          680,
+          1167
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1480,
+        "prompt_sha256": "2dbd2f8cb5e7a96580285067e4dbbc5826d28a7a1e609673f0651dd752f6e8d7",
+        "query_sha256": "7ff36419d013403fcd7a80b2789b571af28aec77945ae46eeec2b09eeb9b518c",
+        "source_paths": [
+          "sessions/xs-join-batch/p01.jsonl",
+          "distractors/d131.jsonl",
+          "distractors/d131.jsonl",
+          "sessions/xs-join-batch/p01.jsonl",
+          "distractors/d131.jsonl",
+          "sessions/xs-join-batch/p01.jsonl",
+          "sessions/xs-join-batch/p01.jsonl",
+          "sessions/xs-join-batch/p01.jsonl",
+          "sessions/xs-join-batch/p02.jsonl",
+          "sessions/ts-crlf-export/p01.jsonl"
+        ],
+        "window_indices": [
+          1173,
+          685,
+          683,
+          1174,
+          678,
+          1167,
+          1172,
+          1168,
+          1183,
+          904
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.75,
+        "union": 4
+      }
+    },
+    "xs-widen-manifest": {
+      "code3_replay": {
+        "injected_input_tokens": 1590,
+        "prompt_sha256": "b1c868dea706920775aec0d1c127601042816f2551baedb3ae1ca781ace61031",
+        "query_sha256": "2f0013b6840a0ddd367d4dc41ac46458d650d5e44a4913c2c5a44bce38ce798d",
+        "source_paths": [
+          "distractors/d085.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d085.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "sessions/xs-widen-manifest/p01.jsonl",
+          "distractors/d085.jsonl",
+          "distractors/d132.jsonl",
+          "sessions/xs-widen-manifest/p01.jsonl"
+        ],
+        "window_indices": [
+          452,
+          454,
+          1031,
+          453,
+          451,
+          1030,
+          1188,
+          455,
+          688,
+          1207
+        ]
+      },
+      "code4_replay": {
+        "injected_input_tokens": 1478,
+        "prompt_sha256": "474ccc7a32e331c19bdc87c2fd26d85f679d49ea724cc08217887ae84482c77f",
+        "query_sha256": "2f0013b6840a0ddd367d4dc41ac46458d650d5e44a4913c2c5a44bce38ce798d",
+        "source_paths": [
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d108.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/xs-widen-manifest/p02.jsonl",
+          "sessions/ts-manifest-rel/p01.jsonl",
+          "distractors/d088.jsonl",
+          "sessions/xs-widen-manifest/p01.jsonl",
+          "distractors/d085.jsonl",
+          "sessions/xs-widen-manifest/p01.jsonl",
+          "distractors/d148.jsonl"
+        ],
+        "window_indices": [
+          1031,
+          553,
+          454,
+          1215,
+          1030,
+          465,
+          1207,
+          455,
+          1189,
+          767
+        ]
+      },
+      "source_path_overlap": {
+        "intersection": 3,
+        "jaccard": 0.375,
+        "union": 8
+      }
+    }
+  },
+  "experiment": "091-voyage-code4-task-solve-replay",
+  "mechanism_subgroup": {
+    "both_fail": 3,
+    "both_success": 13,
+    "code3_only": 1,
+    "code4_only": 0,
+    "net_wins": -1,
+    "paired_cells": 17,
+    "success_rate_difference": -0.0588
+  },
+  "overall": {
+    "both_fail": 29,
+    "both_success": 55,
+    "code3_only": 4,
+    "code4_only": 12,
+    "net_wins": 8,
+    "paired_cells": 100,
+    "success_rate_difference": 0.08
+  },
+  "per_task": {
+    "fa-dedup-key": {
+      "both_fail": 1,
+      "both_success": 1,
+      "code3_only": 1,
+      "code4_only": 0,
+      "net_wins": -1,
+      "paired_cells": 3,
+      "success_rate_difference": -0.3333
+    },
+    "ts-append-only": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-atomic-write": {
+      "both_fail": 1,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 2,
+      "net_wins": 2,
+      "paired_cells": 3,
+      "success_rate_difference": 0.6667
+    },
+    "ts-base36-id": {
+      "both_fail": 1,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 2,
+      "net_wins": 2,
+      "paired_cells": 3,
+      "success_rate_difference": 0.6667
+    },
+    "ts-bom-merge": {
+      "both_fail": 0,
+      "both_success": 2,
+      "code3_only": 0,
+      "code4_only": 1,
+      "net_wins": 1,
+      "paired_cells": 3,
+      "success_rate_difference": 0.3333
+    },
+    "ts-bool-env": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-casefold-sort": {
+      "both_fail": 3,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-cli-exitcode": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-config-layer": {
+      "both_fail": 3,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-crlf-export": {
+      "both_fail": 3,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-csv-quote": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-dedup-order": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-empty-input": {
+      "both_fail": 3,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-glob-hidden": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-golden-regen": {
+      "both_fail": 0,
+      "both_success": 1,
+      "code3_only": 1,
+      "code4_only": 0,
+      "net_wins": -1,
+      "paired_cells": 2,
+      "success_rate_difference": -0.5
+    },
+    "ts-idempotent-run": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-ignore-gen": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-json-sorted": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-legacy-hash": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-log-mask": {
+      "both_fail": 3,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-manifest-rel": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-mig-name": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-natural-order": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-nfc-count": {
+      "both_fail": 3,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-quote-shell": {
+      "both_fail": 0,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 3,
+      "net_wins": 3,
+      "paired_cells": 3,
+      "success_rate_difference": 1.0
+    },
+    "ts-retry-cap": {
+      "both_fail": 2,
+      "both_success": 1,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-round-money": {
+      "both_fail": 0,
+      "both_success": 2,
+      "code3_only": 0,
+      "code4_only": 1,
+      "net_wins": 1,
+      "paired_cells": 3,
+      "success_rate_difference": 0.3333
+    },
+    "ts-schema-additive": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "ts-semver-pin": {
+      "both_fail": 0,
+      "both_success": 2,
+      "code3_only": 1,
+      "code4_only": 0,
+      "net_wins": -1,
+      "paired_cells": 3,
+      "success_rate_difference": -0.3333
+    },
+    "ts-stable-sort": {
+      "both_fail": 1,
+      "both_success": 1,
+      "code3_only": 1,
+      "code4_only": 0,
+      "net_wins": -1,
+      "paired_cells": 3,
+      "success_rate_difference": -0.3333
+    },
+    "ts-tz-utc": {
+      "both_fail": 0,
+      "both_success": 3,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "xs-evolve-lease": {
+      "both_fail": 3,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 3,
+      "success_rate_difference": 0.0
+    },
+    "xs-join-batch": {
+      "both_fail": 0,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 3,
+      "net_wins": 3,
+      "paired_cells": 3,
+      "success_rate_difference": 1.0
+    },
+    "xs-widen-manifest": {
+      "both_fail": 2,
+      "both_success": 0,
+      "code3_only": 0,
+      "code4_only": 0,
+      "net_wins": 0,
+      "paired_cells": 2,
+      "success_rate_difference": 0.0
+    }
+  },
+  "predictions": {
+    "code4_net_wins_at_least_3": true,
+    "errors_or_timeouts_within_one": true,
+    "mean_input_tokens_within_10_percent": true,
+    "mean_wall_time_within_20_percent": true,
+    "mechanism_net_wins_at_least_2": false,
+    "neither_stratum_negative": true
+  },
+  "run_id": "code4-task-solve-003",
+  "schema_version": 1,
+  "strata": {
+    "modification": {
+      "both_fail": 15,
+      "both_success": 19,
+      "code3_only": 2,
+      "code4_only": 5,
+      "net_wins": 3,
+      "paired_cells": 41,
+      "success_rate_difference": 0.0732
+    },
+    "new_artifact": {
+      "both_fail": 14,
+      "both_success": 36,
+      "code3_only": 2,
+      "code4_only": 7,
+      "net_wins": 5,
+      "paired_cells": 59,
+      "success_rate_difference": 0.0847
+    }
+  }
+}

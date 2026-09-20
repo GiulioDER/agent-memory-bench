@@ -161,3 +161,68 @@ five frozen gates passed.
 The evidence artifact is `results/retrieval/091-code4-task-solve-evidence.json`, SHA-256
 `ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df`. The frozen retrieval
 gate therefore licenses the Task Solve grid. It does not determine the Task Solve result.
+
+## Task Solve result
+
+Measured 2026-09-20 from run `code4-task-solve-003`, executed from apparatus commit
+`e66e58d8fad444916e86ca2c4048d52406c9de26`. The run completed all 204 sessions in 112 minutes
+with zero runner errors and an estimated participant spend of $0.4284 for 7,137,867 tokens.
+
+The signed artifact contains 204 public session records and 204 raw session streams. Independent
+verification rederived its session count, token count, two-cell discard set, 100 admitted paired
+cells, and two-arm completeness, then verified the adjudication receipt against the external
+Ed25519 public key. The principal artifact hashes are:
+
+* `records.final.jsonl`: `2379acb89d41bc81214528032df30156ab68c0c910d5847baf46c3371a15ba6c`
+* `adjudication.receipt.json`: `3fd9b2dc37e2c751c0ee94a2c26ee557d767819398096e315b38adef312d38c1`
+* `code4-task-solve-analysis.json`: `31b8cc7dee888211561f12707024d40ae1d0df19e21bf0f5f446258fb7d1c9ec`
+
+Two cells were excluded by the frozen admission rule. `ts-golden-regen` seed 1 had no terminal
+result event in the Code 3 stream, and `xs-widen-manifest` seed 2 had no terminal result event in
+the Code 4 stream. This left one participant error in each arm, zero classified timeouts, and 100
+paired cells, above the preregistered minimum of 90.
+
+The primary paired endpoint was:
+
+| Outcome | Cells |
+| --- | ---: |
+| Both succeeded | 55 |
+| Code 4 only | 12 |
+| Code 3 only | 4 |
+| Both failed | 29 |
+
+Code 4 therefore produced eight net paired wins and an 0.08 paired success-rate difference.
+Among admitted cells, Code 3 succeeded in 59/100 and Code 4 in 67/100. Across all attempted
+sessions, including discarded cells, the counts were 59/102 and 68/102 respectively.
+
+Both frozen strata were positive. The modification stratum produced five Code 4 only cells and
+two Code 3 only cells, for three net wins across 41 admitted pairs. The new-artifact stratum
+produced seven Code 4 only cells and two Code 3 only cells, for five net wins across 59 admitted
+pairs. The six-task mechanism subgroup did not support its secondary prediction: it produced zero
+Code 4 only cells and one Code 3 only cell across 17 admitted pairs, for one net loss.
+
+The balance checks passed. Mean input tokens were 33,576.8 for Code 3 and 33,870.9 for Code 4,
+within 0.9 percent. Mean wall time was 49,916 ms and 51,256 ms respectively, within 2.7 percent.
+Each arm had one participant error, and neither had a classified timeout. All four frozen decision
+checks passed, so Code 4 advances as the coding retrieval candidate for an official CAMBench
+Coding run.
+
+This result supports direct Code 4 replacement for this coding retrieval lane. It does not license
+equal-peer fusion, vector concatenation across embedding spaces, Code 4 routing for conversational
+memory, or any multimodal claim.
+
+## Append-only apparatus correction
+
+The first analysis attempt found that `memory_diagnostic` was available during execution and
+admission but was removed by the public receipt allowlist during sealing. The signed run artifact
+was not modified. Commit `10a76ef6c4cb577f05d5dd2aed81075edc421caf` repaired the analyzer to
+reconstruct the same bounded replay identity from the immutable evidence artifact, pinned corpus,
+and published prompt hashes, and added the bounded diagnostic to future public receipts. The
+repair passed 1,344 tests with 17 skips before it was applied to the result.
+
+Two earlier bring-up directories are retained on VPS2 under the isolated checkout's
+`results/archive/` directory. Run 001 stopped at setup because the replay arms were not yet
+declared instruction matched. Run 002 stopped at the first isolation checks because the pinned
+image digests lacked their required `sha256:` prefixes. Neither attempt made a participant model
+call or produced a session record. Run 003 used a fresh challenge and is the only Task Solve result
+analyzed above.

@@ -1,0 +1,12 @@
+{
+  "challenge_id": "4ee5a3f9-3070-44bf-9402-0f73d7daf50f",
+  "challenge_version": 1,
+  "expires_at": "2026-09-21T10:45:05.601Z",
+  "issued_at": "2026-09-20T10:45:05.601Z",
+  "nonce": "EE7_GQfm_OVindmv9pE2mgcADBI9I1EIGEdZRbjSTYc",
+  "oracle_version": "sha256:abb63a2e9259db22927b0c4c55c9db9bb9a7d691543bf69671daf2dc5fb3c83b",
+  "participant_agent_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+  "run_id": "code4-task-solve-003",
+  "runner_image_digest": "sha256:fe029bc864585bc2d453757d293eff168047151a093b79a63a3a6d2169c0e34f",
+  "schema": "amb-execution-challenge-v1"
+}

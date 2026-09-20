@@ -1,0 +1,524 @@
+{
+  "run_id": "code4-task-solve-003",
+  "model": "deepseek/deepseek-v4-flash",
+  "base_url": "https://openrouter.ai/api",
+  "execution_mode": "rootless-docker",
+  "runtime_name": "docker",
+  "participant_image_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+  "checker_image_digest": "sha256:d993e22e1453f05dd02d56fa29289f50be778c27d463857fa141348335274f07",
+  "isolation_policy_digest": "e2ff80964c0d94d92de4fe822f35c636316a37bf46d876977bc26b62931fb22c",
+  "network_policy_digest": "1c525e95987ba6d234eeeac53c355b7114ec1b48a4e41d37275e4b8d8db8e0ef",
+  "participant_isolation_verified": true,
+  "oracle_visible_to_participant": false,
+  "arms": [
+    "code3_replay",
+    "code4_replay"
+  ],
+  "sequence_evaluation": null,
+  "memory_instruction": "oneliner",
+  "condition": "",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "code3_replay": {
+      "bytes": 0,
+      "chars": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "code4_replay": {
+      "bytes": 0,
+      "chars": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "instruction_excess_bytes": {
+    "code3_replay": 0,
+    "code4_replay": 0
+  },
+  "instruction_arms_matched": true,
+  "quality_gate_pair": null,
+  "decision_protocol_pair": null,
+  "oracle_ceiling_pair": null,
+  "premutation_checkpoint_pair": null,
+  "shared_tool_prefix_groups": [],
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "fa-dedup-key": {
+      "match": true,
+      "reference_whitespace_tokens": 71,
+      "placebo_whitespace_tokens": 71,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-append-only": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 7,
+      "placebo_lines": 7
+    },
+    "ts-atomic-write": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bool-env": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-casefold-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-cli-exitcode": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-config-layer": {
+      "match": true,
+      "reference_whitespace_tokens": 33,
+      "placebo_whitespace_tokens": 33,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-crlf-export": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-csv-quote": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-empty-input": {
+      "match": true,
+      "reference_whitespace_tokens": 48,
+      "placebo_whitespace_tokens": 48,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-glob-hidden": {
+      "match": true,
+      "reference_whitespace_tokens": 47,
+      "placebo_whitespace_tokens": 47,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-idempotent-run": {
+      "match": true,
+      "reference_whitespace_tokens": 70,
+      "placebo_whitespace_tokens": 70,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-json-sorted": {
+      "match": true,
+      "reference_whitespace_tokens": 52,
+      "placebo_whitespace_tokens": 52,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-log-mask": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-nfc-count": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-quote-shell": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-retry-cap": {
+      "match": true,
+      "reference_whitespace_tokens": 47,
+      "placebo_whitespace_tokens": 47,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-round-money": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-stable-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "xs-evolve-lease": {
+      "match": true,
+      "reference_whitespace_tokens": 79,
+      "placebo_whitespace_tokens": 79,
+      "reference_lines": 12,
+      "placebo_lines": 12
+    },
+    "xs-join-batch": {
+      "match": true,
+      "reference_whitespace_tokens": 58,
+      "placebo_whitespace_tokens": 58,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "xs-widen-manifest": {
+      "match": true,
+      "reference_whitespace_tokens": 83,
+      "placebo_whitespace_tokens": 83,
+      "reference_lines": 12,
+      "placebo_lines": 12
+    }
+  },
+  "prompt_sha256_by_task": {
+    "code3_replay": {
+      "fa-dedup-key": "110064e9c0294db0fd0113357742203b05ffc0bd5d5e32163ea3cd59c797af20",
+      "ts-append-only": "642479cf95e43e426f5dc69081c1ce38848dd6fa82ed4a5da8ad7ea3f6d10774",
+      "ts-atomic-write": "1fa8b06be0398a8e96258c2f550ec0e4c37e2d024e760521eadac7d6ed8da561",
+      "ts-base36-id": "67070c4063d6cbdef36e671cf2dd0f52bbe533de5d49b6b77129c7821544085a",
+      "ts-bom-merge": "6f8c4c933a0e7ad8c09a9cefa242c26638972f6fe3c1da6b4f8f6e6d6ba47594",
+      "ts-bool-env": "4e80d827bace89315ce809af7738957e97ad8300157a55cdfafbad0fda051ee3",
+      "ts-casefold-sort": "8858a61bf8f896c154262e3550ca2d41d05ccad60431333a8444470a5a6da23f",
+      "ts-cli-exitcode": "557aec6e8bb851e2282f15b3836316aede6cf2a27b531bed5b4e6f1eaaf4115d",
+      "ts-config-layer": "6c18cc023b99a985f5caa8bfbd032855b496e711ca3239e72208f9c53665e34a",
+      "ts-crlf-export": "8402d71d4e4a9838b982d090725cf4cf828c337beedc273486f80724911a8dfc",
+      "ts-csv-quote": "5ba91e0b74835c4e056591431b2d2c7c31a2663dfe5abaf008a563e1215e9e50",
+      "ts-dedup-order": "34b96097aa17f943c5174a5ed0085f90f9648d3abb002eb1b4824088090688c1",
+      "ts-empty-input": "80a4d3a28288017223b17a76c5b90831205083bb57cff8f6540b31f1b7794f70",
+      "ts-glob-hidden": "3a0b7354b7da4ede80dd3e65b1e06250b84fd8a9fc6b467d50c08e42fa2221d3",
+      "ts-golden-regen": "1fdcf66d24cb9079bb8971ec3b8a07e3846cb17294ab970a23e79c2be73ab72c",
+      "ts-idempotent-run": "38364f9b79b934033f329286739d5fc0230c34e9be0c201d0888564674fd4f8b",
+      "ts-ignore-gen": "0a54b0d0c27d65ea82565404cafb3c27ee89c70bcc1a8b259393dc6476028fb3",
+      "ts-json-sorted": "1747940a86ebad71fe55b6dc8426904674d6249c1017402fb4333247294b22a5",
+      "ts-legacy-hash": "cf3d3308f2a90db5ceee0b372afad6b12dc4f06876456280425409b3bd375441",
+      "ts-log-mask": "7c2a39556f31f5c9d17e639192d31c20e243fe26306b28a9a3151a8c6e549c73",
+      "ts-manifest-rel": "2fc6ff88188e4204a485c3ff77bf134bddadae41d8b4625d6b5f0d2c871f46e1",
+      "ts-mig-name": "29a730c7230265357fbb72b72574b0425d2e396d16a03511e6d4817182bca54a",
+      "ts-natural-order": "328a898974e7f07109be590a221935098b66e4f971bed081d2d6cc57ca238f01",
+      "ts-nfc-count": "617160c896ced812ee42ed2e2a6d32c3a4acdd14342bb19f4c2f4769206c1003",
+      "ts-quote-shell": "2dc4867dd58f0a5f6a0d0bf2a7190a8a07b5ea896c1bdafdac0add68d7720a95",
+      "ts-retry-cap": "e347a539734e11b54f94cc0d77cc82e288602cf7bfcda5885e616227966cfd69",
+      "ts-round-money": "46b89e0caf8bbf7ed088c63371f9b6ce2dc0f4508abe69a006a22fcf0f230cc8",
+      "ts-schema-additive": "d8b899af049ff5afe1c7662100a0064c1f891ca4cd7640b7e8c731155d0914a5",
+      "ts-semver-pin": "5b58558c0b435fcdd0f6ac16f2561245705c6432e5037bfccaf75bb1aff12508",
+      "ts-stable-sort": "cadd0e7054a54e89fad89caf122ad9565441ca570a5398db83ea47e77375658f",
+      "ts-tz-utc": "b0f96171ef94e208c4cf0a35a613ecdee3b083f56f8076f98d484edd9fbd3e29",
+      "xs-evolve-lease": "20bfeed017112001cc19e380beb3f9fec21e728c15e0e6a13b070443b2b4b2f7",
+      "xs-join-batch": "84a83cd2a60a5d83d404486c14334fde95f69a9cc7306ecde807891876ec48f2",
+      "xs-widen-manifest": "b1c868dea706920775aec0d1c127601042816f2551baedb3ae1ca781ace61031"
+    },
+    "code4_replay": {
+      "fa-dedup-key": "b2e3350775a4b2849c497f1fa81a7a1bc52a135fb0c14d119c5c8400f865c4b9",
+      "ts-append-only": "098d030991619a87891af91599929212877b22b36f7ff6ee6d08d622e7b91a1e",
+      "ts-atomic-write": "950af8faca1c81fe534ac01516e44be5ffce25b0036e5b97c37ec57c612a43f6",
+      "ts-base36-id": "593235d641e3995a22676654bf62b93c515a4fea21dcb3dfeb91534d222585a8",
+      "ts-bom-merge": "b7e14e9fcdec3bb867ea56e767e6ba3984a45b649328974b1cf80c3a3f65ff7a",
+      "ts-bool-env": "7500ca26db34197427d658806f98821a56524482c5d6479b15f8c485042385c6",
+      "ts-casefold-sort": "438442832ce44f20933e9a4e6ad5514eb1095cc6c0d40ec7636ce8464984e103",
+      "ts-cli-exitcode": "79351667ba8d8cb4a3d454705c43fe882a37883cf04a54fe52ea2d86e1e69afb",
+      "ts-config-layer": "09d6d31a2da92ab680f93b42dfe054a6d768ae05daf45436203786c27715ceb0",
+      "ts-crlf-export": "c048adf95bad11a2083f2cbf5a1d6b3d5f8d825df750a5466c50e063f8b27331",
+      "ts-csv-quote": "fe0f8b42c30e95052d596bae9f96d386d4ec4a64277d9128ea231587e58b357e",
+      "ts-dedup-order": "f8346053dc5e483d034aca40a1c015bd322b320d240b610792c688d810793862",
+      "ts-empty-input": "ccfcbfe2e9ef992dbd9c5fd3c19e7b82b9eee02a1eb1e335ae8e44d6c3303959",
+      "ts-glob-hidden": "5f3550d97ec5bf7324168e78dc4d5136e1d8ef53b7c47abd321b28dad7f75366",
+      "ts-golden-regen": "eee1f09e9151a5ad42f903d2cac5562ac265dc0e28e3288393e6678f513a6ab5",
+      "ts-idempotent-run": "4a1ef3fdf49938c9dd893b09bdabd386c85c4b61450123baffb57535d5a9e6bd",
+      "ts-ignore-gen": "402eb793da759199c2cd2ffb8f8cb892858347fea5eeb6cbf1508666682aad5f",
+      "ts-json-sorted": "9ce1a18a611c89c17050798a317695817a6f88e464cc5156809056de0a5c8df7",
+      "ts-legacy-hash": "1ca62e5835301b209b71ba5c3694c9191863ceb116a7be112000da85feffd5e7",
+      "ts-log-mask": "37d169a58fbea35daac8b417c274167142c23f960a62da5932124f503e663c89",
+      "ts-manifest-rel": "c2bc987aabedfbf22f10d2eb31b4f58f9933f9ddced24b692efeb46b3bf025bf",
+      "ts-mig-name": "6002a41289f3cbb8fd01026451fb4320c2d2d983aecb9c048a5f0b5d47274557",
+      "ts-natural-order": "793e25dbd49bcab8d5ef7401dcc587c9ef86c8a66ec85c25fb3b9f5d53a75b4a",
+      "ts-nfc-count": "83ae880775eacebfe13e9340b2cbfbde31e0e20bb821bdb2d8ccf4490a210142",
+      "ts-quote-shell": "f91e8ab6780940f47d0de814a225eb0d9ba65adeeedabef51f068f0d54b2f01e",
+      "ts-retry-cap": "22c6a4cf9b7f11b5a111fc03c6532cfd381964054c64d602bdf44da71cc9b5c9",
+      "ts-round-money": "9b67004c73315a59b3f460b3e83a8e975cbc09aae3d3e58d4da2589533f79511",
+      "ts-schema-additive": "0b6b40d010b796c213a3790751ef5d1d53b52a2e80a1716a00bd643a9e3acac3",
+      "ts-semver-pin": "4a7b5333bc12b28c55876254e989e37c9c20e1742f02c7889111908c797fa143",
+      "ts-stable-sort": "2b9111ccfa6fd42f3f57fa4c45692f8a22238b6710a9ff6fa9efbd31837809bd",
+      "ts-tz-utc": "d8b7824dc1d6173203b8ca14377da55a10d8cdf7dfba68b511590c7400172434",
+      "xs-evolve-lease": "2260d2606f4ca8cec68cbc7d7f22bfd3528637c1b7ab9ac678ccaaa54e72c69c",
+      "xs-join-batch": "2dbd2f8cb5e7a96580285067e4dbbc5826d28a7a1e609673f0651dd752f6e8d7",
+      "xs-widen-manifest": "474ccc7a32e331c19bdc87c2fd26d85f679d49ea724cc08217887ae84482c77f"
+    }
+  },
+  "code_retrieval_artifact_sha256": "ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df",
+  "namespace": "code4-task-solve-001",
+  "cell_namespace_policy": {
+    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion"
+  },
+  "work_root": "external-disposable-storage",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "code3_replay": {
+      "arm": "code3_replay",
+      "memory": "frozen ranked evidence replay",
+      "model": "voyage-code-3",
+      "artifact_sha256": "ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df",
+      "manifest_sha256": "58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814"
+    },
+    "code4_replay": {
+      "arm": "code4_replay",
+      "memory": "frozen ranked evidence replay",
+      "model": "voyage-code-4",
+      "artifact_sha256": "ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df",
+      "manifest_sha256": "58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814"
+    }
+  },
+  "ingest": [],
+  "recall_preflight": {
+    "status": "not_required"
+  },
+  "claude_mem_preflight": {
+    "status": "not_required"
+  },
+  "graphiti_preflight": {
+    "status": "not_required"
+  },
+  "provider_data_policy": {
+    "schema_version": 1,
+    "data_classification": "synthetic-only",
+    "providers": [
+      "openrouter"
+    ],
+    "retention": "zero",
+    "training": false,
+    "reuse": false,
+    "policy_sha256": "31caf087411714b6166781e89b07233661a596da6be16d75241f2770dcf311ae"
+  },
+  "admission_signals": {
+    "code3_replay": {
+      "arm": "code3_replay",
+      "mcp_tool_prefixes": [],
+      "required_hooks": [],
+      "sandbox_paths": [],
+      "prompt_sha256": null,
+      "forbidden_prefixes": [],
+      "metadata": {
+        "diagnostic_kind": "code3_replay",
+        "artifact_sha256": "ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df",
+        "manifest_sha256": "58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814",
+        "model": "voyage-code-3",
+        "prompt_sha256_by_task": {
+          "fa-dedup-key": "110064e9c0294db0fd0113357742203b05ffc0bd5d5e32163ea3cd59c797af20",
+          "ts-append-only": "642479cf95e43e426f5dc69081c1ce38848dd6fa82ed4a5da8ad7ea3f6d10774",
+          "ts-atomic-write": "1fa8b06be0398a8e96258c2f550ec0e4c37e2d024e760521eadac7d6ed8da561",
+          "ts-base36-id": "67070c4063d6cbdef36e671cf2dd0f52bbe533de5d49b6b77129c7821544085a",
+          "ts-bom-merge": "6f8c4c933a0e7ad8c09a9cefa242c26638972f6fe3c1da6b4f8f6e6d6ba47594",
+          "ts-bool-env": "4e80d827bace89315ce809af7738957e97ad8300157a55cdfafbad0fda051ee3",
+          "ts-casefold-sort": "8858a61bf8f896c154262e3550ca2d41d05ccad60431333a8444470a5a6da23f",
+          "ts-cli-exitcode": "557aec6e8bb851e2282f15b3836316aede6cf2a27b531bed5b4e6f1eaaf4115d",
+          "ts-config-layer": "6c18cc023b99a985f5caa8bfbd032855b496e711ca3239e72208f9c53665e34a",
+          "ts-crlf-export": "8402d71d4e4a9838b982d090725cf4cf828c337beedc273486f80724911a8dfc",
+          "ts-csv-quote": "5ba91e0b74835c4e056591431b2d2c7c31a2663dfe5abaf008a563e1215e9e50",
+          "ts-dedup-order": "34b96097aa17f943c5174a5ed0085f90f9648d3abb002eb1b4824088090688c1",
+          "ts-empty-input": "80a4d3a28288017223b17a76c5b90831205083bb57cff8f6540b31f1b7794f70",
+          "ts-glob-hidden": "3a0b7354b7da4ede80dd3e65b1e06250b84fd8a9fc6b467d50c08e42fa2221d3",
+          "ts-golden-regen": "1fdcf66d24cb9079bb8971ec3b8a07e3846cb17294ab970a23e79c2be73ab72c",
+          "ts-idempotent-run": "38364f9b79b934033f329286739d5fc0230c34e9be0c201d0888564674fd4f8b",
+          "ts-ignore-gen": "0a54b0d0c27d65ea82565404cafb3c27ee89c70bcc1a8b259393dc6476028fb3",
+          "ts-json-sorted": "1747940a86ebad71fe55b6dc8426904674d6249c1017402fb4333247294b22a5",
+          "ts-legacy-hash": "cf3d3308f2a90db5ceee0b372afad6b12dc4f06876456280425409b3bd375441",
+          "ts-log-mask": "7c2a39556f31f5c9d17e639192d31c20e243fe26306b28a9a3151a8c6e549c73",
+          "ts-manifest-rel": "2fc6ff88188e4204a485c3ff77bf134bddadae41d8b4625d6b5f0d2c871f46e1",
+          "ts-mig-name": "29a730c7230265357fbb72b72574b0425d2e396d16a03511e6d4817182bca54a",
+          "ts-natural-order": "328a898974e7f07109be590a221935098b66e4f971bed081d2d6cc57ca238f01",
+          "ts-nfc-count": "617160c896ced812ee42ed2e2a6d32c3a4acdd14342bb19f4c2f4769206c1003",
+          "ts-quote-shell": "2dc4867dd58f0a5f6a0d0bf2a7190a8a07b5ea896c1bdafdac0add68d7720a95",
+          "ts-retry-cap": "e347a539734e11b54f94cc0d77cc82e288602cf7bfcda5885e616227966cfd69",
+          "ts-round-money": "46b89e0caf8bbf7ed088c63371f9b6ce2dc0f4508abe69a006a22fcf0f230cc8",
+          "ts-schema-additive": "d8b899af049ff5afe1c7662100a0064c1f891ca4cd7640b7e8c731155d0914a5",
+          "ts-semver-pin": "5b58558c0b435fcdd0f6ac16f2561245705c6432e5037bfccaf75bb1aff12508",
+          "ts-stable-sort": "cadd0e7054a54e89fad89caf122ad9565441ca570a5398db83ea47e77375658f",
+          "ts-tz-utc": "b0f96171ef94e208c4cf0a35a613ecdee3b083f56f8076f98d484edd9fbd3e29",
+          "xs-evolve-lease": "20bfeed017112001cc19e380beb3f9fec21e728c15e0e6a13b070443b2b4b2f7",
+          "xs-join-batch": "84a83cd2a60a5d83d404486c14334fde95f69a9cc7306ecde807891876ec48f2",
+          "xs-widen-manifest": "b1c868dea706920775aec0d1c127601042816f2551baedb3ae1ca781ace61031"
+        }
+      }
+    },
+    "code4_replay": {
+      "arm": "code4_replay",
+      "mcp_tool_prefixes": [],
+      "required_hooks": [],
+      "sandbox_paths": [],
+      "prompt_sha256": null,
+      "forbidden_prefixes": [],
+      "metadata": {
+        "diagnostic_kind": "code4_replay",
+        "artifact_sha256": "ef85baa699a1a9e0d769d39e028b3b5eac317b542e31a7288451e86e016d79df",
+        "manifest_sha256": "58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814",
+        "model": "voyage-code-4",
+        "prompt_sha256_by_task": {
+          "fa-dedup-key": "b2e3350775a4b2849c497f1fa81a7a1bc52a135fb0c14d119c5c8400f865c4b9",
+          "ts-append-only": "098d030991619a87891af91599929212877b22b36f7ff6ee6d08d622e7b91a1e",
+          "ts-atomic-write": "950af8faca1c81fe534ac01516e44be5ffce25b0036e5b97c37ec57c612a43f6",
+          "ts-base36-id": "593235d641e3995a22676654bf62b93c515a4fea21dcb3dfeb91534d222585a8",
+          "ts-bom-merge": "b7e14e9fcdec3bb867ea56e767e6ba3984a45b649328974b1cf80c3a3f65ff7a",
+          "ts-bool-env": "7500ca26db34197427d658806f98821a56524482c5d6479b15f8c485042385c6",
+          "ts-casefold-sort": "438442832ce44f20933e9a4e6ad5514eb1095cc6c0d40ec7636ce8464984e103",
+          "ts-cli-exitcode": "79351667ba8d8cb4a3d454705c43fe882a37883cf04a54fe52ea2d86e1e69afb",
+          "ts-config-layer": "09d6d31a2da92ab680f93b42dfe054a6d768ae05daf45436203786c27715ceb0",
+          "ts-crlf-export": "c048adf95bad11a2083f2cbf5a1d6b3d5f8d825df750a5466c50e063f8b27331",
+          "ts-csv-quote": "fe0f8b42c30e95052d596bae9f96d386d4ec4a64277d9128ea231587e58b357e",
+          "ts-dedup-order": "f8346053dc5e483d034aca40a1c015bd322b320d240b610792c688d810793862",
+          "ts-empty-input": "ccfcbfe2e9ef992dbd9c5fd3c19e7b82b9eee02a1eb1e335ae8e44d6c3303959",
+          "ts-glob-hidden": "5f3550d97ec5bf7324168e78dc4d5136e1d8ef53b7c47abd321b28dad7f75366",
+          "ts-golden-regen": "eee1f09e9151a5ad42f903d2cac5562ac265dc0e28e3288393e6678f513a6ab5",
+          "ts-idempotent-run": "4a1ef3fdf49938c9dd893b09bdabd386c85c4b61450123baffb57535d5a9e6bd",
+          "ts-ignore-gen": "402eb793da759199c2cd2ffb8f8cb892858347fea5eeb6cbf1508666682aad5f",
+          "ts-json-sorted": "9ce1a18a611c89c17050798a317695817a6f88e464cc5156809056de0a5c8df7",
+          "ts-legacy-hash": "1ca62e5835301b209b71ba5c3694c9191863ceb116a7be112000da85feffd5e7",
+          "ts-log-mask": "37d169a58fbea35daac8b417c274167142c23f960a62da5932124f503e663c89",
+          "ts-manifest-rel": "c2bc987aabedfbf22f10d2eb31b4f58f9933f9ddced24b692efeb46b3bf025bf",
+          "ts-mig-name": "6002a41289f3cbb8fd01026451fb4320c2d2d983aecb9c048a5f0b5d47274557",
+          "ts-natural-order": "793e25dbd49bcab8d5ef7401dcc587c9ef86c8a66ec85c25fb3b9f5d53a75b4a",
+          "ts-nfc-count": "83ae880775eacebfe13e9340b2cbfbde31e0e20bb821bdb2d8ccf4490a210142",
+          "ts-quote-shell": "f91e8ab6780940f47d0de814a225eb0d9ba65adeeedabef51f068f0d54b2f01e",
+          "ts-retry-cap": "22c6a4cf9b7f11b5a111fc03c6532cfd381964054c64d602bdf44da71cc9b5c9",
+          "ts-round-money": "9b67004c73315a59b3f460b3e83a8e975cbc09aae3d3e58d4da2589533f79511",
+          "ts-schema-additive": "0b6b40d010b796c213a3790751ef5d1d53b52a2e80a1716a00bd643a9e3acac3",
+          "ts-semver-pin": "4a7b5333bc12b28c55876254e989e37c9c20e1742f02c7889111908c797fa143",
+          "ts-stable-sort": "2b9111ccfa6fd42f3f57fa4c45692f8a22238b6710a9ff6fa9efbd31837809bd",
+          "ts-tz-utc": "d8b7824dc1d6173203b8ca14377da55a10d8cdf7dfba68b511590c7400172434",
+          "xs-evolve-lease": "2260d2606f4ca8cec68cbc7d7f22bfd3528637c1b7ab9ac678ccaaa54e72c69c",
+          "xs-join-batch": "2dbd2f8cb5e7a96580285067e4dbbc5826d28a7a1e609673f0651dd752f6e8d7",
+          "xs-widen-manifest": "474ccc7a32e331c19bdc87c2fd26d85f679d49ea724cc08217887ae84482c77f"
+        }
+      }
+    }
+  },
+  "adjudication": {
+    "schema": "amb-adjudication-receipt-v1",
+    "required": true,
+    "challenge_version": 1,
+    "challenge_id": "4ee5a3f9-3070-44bf-9402-0f73d7daf50f",
+    "nonce": "EE7_GQfm_OVindmv9pE2mgcADBI9I1EIGEdZRbjSTYc",
+    "runner_image_digest": "sha256:fe029bc864585bc2d453757d293eff168047151a093b79a63a3a6d2169c0e34f",
+    "participant_agent_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+    "oracle_version": "sha256:abb63a2e9259db22927b0c4c55c9db9bb9a7d691543bf69671daf2dc5fb3c83b",
+    "event_log": "execution-events.jsonl",
+    "receipt": "adjudication.receipt.json"
+  }
+}
