@@ -204,3 +204,26 @@ python -m scripts.abstention `
 ```
 
 <!-- results and append only corrections go below this line; everything above is frozen -->
+
+## Frozen execution manifest before preparation
+
+The preparation uses these immutable inputs:
+
+* AMB implementation commit: `32d1214874dbc6567af6be314e60ac6f115d0a5d`. Later append only
+  evidence commits do not change executable harness code.
+* RE-call commit: `28ed55c77928f3526f0c2c52ffc5d32dce0b7303`.
+* Participant image: `sha256:698458737825cf2586e44ae7188093979afff1950599f957bc7a8bd1edf9ba73`.
+* Checker image: `sha256:4f3696c7511979164cdf23828c066dad90878859a783db80ecc5bbf63f6a2079`.
+* Runner image: `sha256:f9160a82ca0a0acbe4a6729977f7a4f37244eb15e151160537b7285548d6532d`.
+* Model broker image: `sha256:ee9864c6a5ab7f846cb3a0a80f0c74bc508a3e2580506106f720a18a7404f266`.
+* Egress proxy image: `sha256:8484e02e54f3e2648b504f2f4f1e87025ee714b608324e252cc9cec3c17e905b`.
+* Network policy: `sha256:1c525e95987ba6d234eeeac53c355b7114ec1b48a4e41d37275e4b8d8db8e0ef`.
+* Oracle version: `sha256:abb63a2e9259db22927b0c4c55c9db9bb9a7d691543bf69671daf2dc5fb3c83b`.
+* C6 endpoint: private loopback port 18009, dedicated credential.
+* C7 endpoint: private loopback port 18008, distinct dedicated credential.
+
+The rebuilt model broker artifact accepted `/v1/messages?beta=true` with a signed `messages`
+capability and refused both a wrong method and an unsigned token with HTTP 403. The private C6
+versus C7 qualification passed all nine gates, including exact top 100 parity on all 34 coding
+queries and rank 1 Code4, Context4, and MM2 canaries. It recorded
+`official_aml_launched: false`.
