@@ -227,3 +227,18 @@ capability and refused both a wrong method and an unsigned token with HTTP 403. 
 versus C7 qualification passed all nine gates, including exact top 100 parity on all 34 coding
 queries and rank 1 Code4, Context4, and MM2 canaries. It recorded
 `official_aml_launched: false`.
+
+## Preparation 001 observability refusal
+
+Preparation `specialist-conditions-001` completed all five conditions sequentially, wrote 138
+nonempty hosted Search artifacts with 10 hits each, and launched zero model sessions. It is not
+eligible to authorize the scored run because the public Search response omitted the selected
+specialist route and embedding profile headers. The service had verified Code4 internally during
+qualification, but the AMB artifacts could not independently prove prediction 1 for every task.
+
+The receipts and work directories are retained as zero model diagnostic evidence. RE-call commit
+`4334084d13e38d02d881b2207c85152858e608d9` adds
+`X-Recall-Specialist-Route` and `X-Recall-Specialist-Embedding-Profile`. A mutation proved HTTP
+regression test failed with the pre-repair `KeyError` and passes after the repair. Qualification
+and all five preparation conditions must be repeated at that commit under a new run id before any
+participant model session.
