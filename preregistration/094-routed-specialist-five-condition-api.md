@@ -283,3 +283,42 @@ synthetic-only provider policy file already used by the private benchmark host. 
 condition, corpus, task, system arm, model, seed, price, concurrency, endpoint, prediction, or
 decision rule. The partial result, work directory, log, and pid record are preserved under an
 attempt 1 data policy archive name.
+
+## Scored attempt 2 checker mount refusal
+
+The second scored launch completed all 90 `contradictory` participant sessions and began
+`present`, but its scores are invalid and must not be analyzed as model outcomes. Every one of the
+90 contradictory checker verdicts failed because the production launchers passed
+`task.oracle_dir.parent` to the isolated checker. The worker mounts that directory at `/oracle`,
+while each bundled checker reads its task-specific files directly below `/oracle`. The recorded
+verdicts therefore contain missing paths such as `/oracle/data`, `/oracle/as_of.txt`, and
+`/oracle/catalog.json`.
+
+This is systematic infrastructure failure, not a zero score. On the exact same 10 tasks and seeds
+0 through 2, official run 003 scored `claude_md` at 23 of 30 and `recall_prefetch` at 19 of 30.
+The invalid run's participants also produced apparently correct deliverables in sampled private
+records before the checker failed. The controller and its child runner were terminated as soon as
+the fault was established, and 12 current-run participant containers left by the interruption were
+removed. Unrelated long-running containers were not touched.
+
+The hosted memory path itself passed its audit. Both C6 and C7 recorded 10 nonempty Search hits for
+all 10 contradictory task prompts and `prefetch_status=ok` for all 30 sessions per hosted arm. The
+ranked prompt files exist and their hashes match the session records. Every C7 Search reported
+route `code`, profile `voyage-code-4-v1`, variant `C7_routed_specialists`, and served commit
+`4334084d13e38d02d881b2207c85152858e608d9`. C6 and C7 result hashes were identical for all 10
+prompts, which is consistent with the preregistered prediction that this coding grid uses Code4 in
+both arms. A zero in-session memory-call count is expected for these harness-prefetch arms and is
+not evidence that Search was skipped.
+
+AMB commit `4aa0a394e5fb9295ca92aad517251ba760eb253d` changes both production call sites to pass the exact
+task oracle directory. Its new regression test failed against the pre-repair `.oracle_dir.parent`
+calls and passed after the repair; the full isolation test file passed with four workers, 20 passed
+and 2 skipped.
+
+The invalid `specialist-conditions-002` scored artifacts are retained only as refusal and wiring
+evidence. They cannot be resumed or combined with a valid result. Any retry uses a new run id and
+namespace, `specialist-conditions-003` and `amb-specialist-conditions-003`, and first repeats the
+zero-model five-condition preparation. Before any participant session, a real isolated-checker
+canary must grade an informed reference successfully with the pinned checker image. This correction
+changes no condition, corpus, task, arm, seed, model, price, concurrency, endpoint, prediction, or
+decision rule. It does not authorize an official AML Smoke or official evaluation.
