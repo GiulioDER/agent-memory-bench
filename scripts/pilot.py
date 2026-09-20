@@ -56,6 +56,13 @@ from adapters.bare.adapter import BareAdapter
 from adapters.cachly.adapter import CachlyAdapter
 from adapters.claude_md.adapter import ClaudeMdAdapter
 from adapters.claude_mem.adapter import ClaudeMemAdapter
+from adapters.code_retrieval_replay.adapter import (
+    ARMS as CODE_RETRIEVAL_REPLAY_ARMS,
+)
+from adapters.code_retrieval_replay.adapter import (
+    CodeRetrievalReplayAdapter,
+    CodeRetrievalReplayCatalog,
+)
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 
 try:
@@ -177,7 +184,7 @@ ARMS = (
     "recall_graph_fulltools_quality_gate", "recall_graph_fulltools_decision_protocol",
     "recall_graph_fulltools_checkpoint_placebo", "recall_graph_fulltools_checkpoint",
     "mempalace", "recall_prefetch", "oracle_memory", "cachly", "graphiti", "supermemory",
-    "claude_mem",
+    "claude_mem", *CODE_RETRIEVAL_REPLAY_ARMS,
 )
 DEFAULT_ARMS = ("bare", "claude_md", "recall")
 RECALL_GRAPH_FULLTOOLS_PROTOCOL_ARM = "recall_graph_fulltools_protocol"
@@ -788,6 +795,7 @@ def adapter_for(
     staging: Path,
     texts: dict[str, str],
     oracle_catalog: MemoryBundleCatalog | None = None,
+    code_retrieval_catalog: CodeRetrievalReplayCatalog | None = None,
 ) -> MemoryAdapter:
     """The adapter instance that builds ONE arm for ONE task.
 
@@ -852,6 +860,10 @@ def adapter_for(
         if oracle_catalog is None:
             raise ValueError("oracle_memory requires a validated memory bundle catalog")
         return OracleMemoryAdapter(staging, static, oracle_catalog)
+    if arm in CODE_RETRIEVAL_REPLAY_ARMS:
+        if code_retrieval_catalog is None:
+            raise ValueError(f"{arm} requires a validated code retrieval replay artifact")
+        return CodeRetrievalReplayAdapter(arm, code_retrieval_catalog, staging, static)
     if arm == "mempalace":
         return MemPalaceAdapter(staging, static, instruction=texts.get("mempalace") or None)
     if arm == "cachly":
@@ -883,6 +895,7 @@ def build_registry(
     texts: dict[str, str],
     arms: tuple[str, ...],
     oracle_catalog: MemoryBundleCatalog | None = None,
+    code_retrieval_catalog: CodeRetrievalReplayCatalog | None = None,
 ) -> AdapterRegistry:
     """A registry holding one instance per arm IN THIS RUN, for admission signals and `describe()`.
 
@@ -897,7 +910,14 @@ def build_registry(
         if arm in ("placebo", "protocol") and arm not in any_bundle:
             continue
         registry.register(
-            adapter_for(arm, any_bundle, staging, texts, oracle_catalog)
+            adapter_for(
+                arm,
+                any_bundle,
+                staging,
+                texts,
+                oracle_catalog,
+                code_retrieval_catalog,
+            )
         )
     return registry
 
@@ -1291,6 +1311,12 @@ async def main() -> int:
         "whose feed differs from the base corpus by design.",
     )
     parser.add_argument(
+        "--code-retrieval-artifact",
+        type=Path,
+        help="frozen preregistration-091 evidence artifact required by code3_replay and "
+        "code4_replay",
+    )
+    parser.add_argument(
         "--condition",
         default="",
         choices=("", *CORPUS_CONDITIONS),
@@ -1499,6 +1525,21 @@ async def main() -> int:
         raise SystemExit(str(error)) from None
 
     corpus_root = Path(args.corpus_root) if args.corpus_root else REPO / "corpus"
+    replay_selected = any(arm in run_arms for arm in CODE_RETRIEVAL_REPLAY_ARMS)
+    if replay_selected != bool(args.code_retrieval_artifact):
+        raise SystemExit(
+            "--code-retrieval-artifact is required exactly when a code retrieval replay arm runs"
+        )
+    code_retrieval_catalog: CodeRetrievalReplayCatalog | None = None
+    if replay_selected:
+        try:
+            code_retrieval_catalog = CodeRetrievalReplayCatalog.load(
+                args.code_retrieval_artifact,
+                corpus_root,
+                expected_task_ids={task.task_id for task in tasks},
+            )
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise SystemExit(str(error)) from None
     oracle_catalog: MemoryBundleCatalog | None = None
     if args.memory_instruction == ORACLE_CEILING_PAIRED_VARIANT:
         if not (corpus_root / "manifest.json").is_file():
@@ -1529,6 +1570,8 @@ async def main() -> int:
             print(f"[dry-run]   {arm:<10} instruction {manifest[arm]['bytes']:>5} bytes")
         if oracle_catalog is not None:
             print(f"[dry-run] oracle catalog {oracle_catalog.digest}")
+        if code_retrieval_catalog is not None:
+            print(f"[dry-run] code retrieval artifact {code_retrieval_catalog.digest}")
         print(f"[dry-run] tasks  {len(tasks)}: {', '.join(task.task_id for task in tasks)}")
         if sequence_plan is not None:
             print(
@@ -1613,6 +1656,7 @@ async def main() -> int:
         texts,
         run_arms,
         oracle_catalog,
+        code_retrieval_catalog,
     )
 
     # Ingestion, for the arms whose store this runner owns. recall's tenant is indexed out of band
@@ -1693,6 +1737,7 @@ async def main() -> int:
                 staging,
                 texts,
                 oracle_catalog,
+                code_retrieval_catalog,
             )
             namespace = cell_namespace(args.namespace, task.task_id, 0, arm)
             specs[(task.task_id, arm)] = adapter.build_for_task(
@@ -1731,6 +1776,7 @@ async def main() -> int:
                         staging,
                         texts,
                         oracle_catalog,
+                        code_retrieval_catalog,
                     )
                     namespace = sequence_namespace(
                         args.namespace, chain.chain_id, chain.seed, arm
@@ -2031,6 +2077,11 @@ async def main() -> int:
                     if "placebo" in bundle
                 },
                 "prompt_sha256_by_task": prompt_hashes,
+                "code_retrieval_artifact_sha256": (
+                    code_retrieval_catalog.digest
+                    if code_retrieval_catalog is not None
+                    else None
+                ),
                 "namespace": args.namespace,
                 "cell_namespace_policy": {
                     "claude_mem": "one cloned post-import worker namespace per task-seed cell",
