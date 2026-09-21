@@ -365,3 +365,46 @@ The preparation receipt SHA256 values are:
 The eligible private scored run uses run id `specialist-conditions-003` and namespace
 `amb-specialist-conditions-003`. All other frozen parameters remain unchanged. This preparation
 does not authorize an official AML Smoke or official evaluation.
+
+## Private scored run 003 completed and verified
+
+`specialist-conditions-003` completed the five conditions sequentially. It is a private AMB
+result, not an official AML Smoke or an official leaderboard evaluation. Its five signed
+condition receipts verified against the public adjudicator key, and `verify_run` recomputed each
+condition's sessions, tokens, admission set, endpoint values, session streams, and receipt.
+The verifier was first corrected in AMB commit `2f449070566a0e87f8da7f2342f6595c718920fa` to use
+the published `claude_md` reference arm rather than silently recomputing against `bare`; its
+regression test was red before the repair and green after it. The correction changes validation
+only, not a run input or any scored artifact.
+
+The raw record set contains 621 sessions, 207 per arm. One paired adjacent cell,
+`ts-tz-utc` seed 2, was discarded because the C6 session did not emit a result before its 600
+second request deadline. The remaining two arms completed for that cell, but the complete paired
+cell was excluded under the preregistered rule. The admitted analysis therefore contains 206
+paired cells, or 618 arm sessions. No admitted checker failure had a missing `/oracle` path.
+
+| Condition | `claude_md` | C6 Code4 | C7 routed specialists |
+| --- | ---: | ---: | ---: |
+| contradictory | 20/30 | 20/30 | 20/30 |
+| present | 33/81 | 56/81 | 55/81 |
+| adjacent raw, with one C6 timeout cell discarded | 19/33 | 22/33 | 21/33 |
+| superseded | 18/30 | 24/30 | 29/30 |
+| absent | 23/33 | 22/33 | 24/33 |
+| all raw records | 113/207 | 144/207 | 149/207 |
+
+On the 206 admitted paired cells, the corresponding totals are 113 successes for `claude_md`,
+144 for C6, and 149 for C7. C7's two-sided paired endpoint against `claude_md` is beneficial
+(`net_harm=-0.3623`, 3 harmed and 28 helped of 69 cells), but that stratum has only seven tasks
+and remains underpowered. Its damage-only endpoint is not interpretable and has
+`net_harm=+0.0674`; every per-condition damage estimate is also underpowered. These data support
+continued private evaluation, not an official-run decision.
+
+Most importantly, the expected specialist-fusion mechanism was not exercised by this coding-only
+grid: all 69 prepared C7 queries selected the `code` route and `voyage-code-4-v1`, and C6 and C7
+returned identical ordered top-10 results for every one. Consequently, the five extra C7 raw
+successes over C6 cannot be attributed to Context4 or MM2 retrieval or to late fusion. This run
+does validate the shared-identity, separate-index API path for Code4 and supports C7 as an
+operational configuration, but it supplies no causal evidence that heterogeneous specialist
+fusion improves coding retrieval. A next causal test must include prompts and corpus items that
+exercise Context4 and, after the separate multimodal qualification is complete, MM2, while holding
+task, prompt, model, and fusion policy fixed.
