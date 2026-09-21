@@ -16,7 +16,9 @@ import json
 import os
 import subprocess
 import sys
+from argparse import Namespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -63,6 +65,28 @@ def test_a_run_without_bare_is_refused():
     result = _run(["--arms", "claude_md,recall", "--dry-run"])
     assert result.returncode != 0
     assert "mandatory" in result.stdout + result.stderr
+
+
+def test_a_preregistered_nonbare_reference_is_accepted_only_when_present() -> None:
+    """A hosted comparison may pair against ``claude_md`` without weakening reference checks.
+
+    Red proof receipt ``amb-explicit-reference-01`` targets
+    ``scripts.abstention.validate_reference_arm``. Restoring the historical hard coded ``bare``
+    requirement rejected the valid hosted roster and failed the first call.
+    """
+    from scripts.abstention import validate_reference_arm
+
+    validate_reference_arm(
+        ["claude_md", "aml_c6_prefetch", "aml_c7_prefetch"],
+        "claude_md",
+        recall_only=False,
+    )
+    with pytest.raises(SystemExit, match="claude_md.*mandatory"):
+        validate_reference_arm(
+            ["aml_c6_prefetch", "aml_c7_prefetch"],
+            "claude_md",
+            recall_only=False,
+        )
 
 
 def test_an_unknown_condition_is_refused():
@@ -331,6 +355,60 @@ def test_the_dry_run_assembles_a_real_corpus_and_executes_nothing():
     assert not (REPO / "results" / "unit-probe-absent").exists()
 
 
+def test_prepare_only_is_forwarded_to_each_condition_without_model_execution(
+    monkeypatch, tmp_path
+):
+    """The outer five-condition runner must preserve pilot's zero-model preparation mode.
+
+    Red proof receipt ``amb-five-condition-prepare-01`` targets
+    ``scripts.abstention.run_condition``. Before the repair, the generated pilot command omitted
+    ``--prepare-only`` and returned the scored run directory, so this assertion failed before any
+    hosted request or model session could start.
+    """
+
+    from scripts import abstention
+
+    monkeypatch.setattr(abstention, "selection_for", lambda condition: ["ts-tz-utc"])
+    monkeypatch.setattr(
+        abstention,
+        "assemble",
+        lambda *args, **kwargs: {"sessions_total": 1},
+    )
+    monkeypatch.setattr(abstention, "haystack_root", lambda: tmp_path / "haystack")
+    commands: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(abstention.subprocess, "run", fake_run)
+    args = Namespace(
+        tasks="",
+        seed=1,
+        namespace="amb-specialist-conditions-001",
+        arms="claude_md,aml_c6_prefetch,aml_c7_prefetch",
+        run_id="specialist-conditions-001",
+        seeds=3,
+        model="deepseek/deepseek-v4-flash",
+        memory_instruction="skill",
+        emit_decisions=False,
+        emit_decision_stages=False,
+        price_in=0.0574,
+        price_out=0.1148,
+        price_as_of="2026-08-22",
+        price_cache_read=None,
+        price_cache_creation=None,
+        dry_run=False,
+        prepare_only=True,
+    )
+
+    output = abstention.run_condition(args, "present")
+
+    assert len(commands) == 1
+    assert "--prepare-only" in commands[0]
+    assert output == REPO / "results" / "preparations" / "specialist-conditions-001-present"
+
+
 def test_an_unclassified_arm_is_refused_rather_than_silently_skipped():
     """Mutation: pass an arm that is in neither MEMORY_ARMS nor NON_MEMORY_ARMS.
 
@@ -349,6 +427,7 @@ def test_an_unclassified_arm_is_refused_rather_than_silently_skipped():
     from scripts.abstention import _classify_arms
 
     _classify_arms(["bare", "claude_md", "recall", "mempalace"])  # must not raise
+    _classify_arms(["claude_md", "aml_c6_prefetch", "aml_c7_prefetch"])
 
     with pytest.raises(SystemExit) as excinfo:
         _classify_arms(["bare", "recall", "brand_new_product"])

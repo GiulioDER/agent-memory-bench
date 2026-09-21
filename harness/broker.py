@@ -315,7 +315,7 @@ def _unb64(value: str) -> bytes:
 class BrokerApplication:
     """Small HTTP application used by the model or memory broker process."""
 
-    authority: CapabilityAuthority
+    authority: CapabilityAuthority | SignedCapabilityAuthority
     policy: BrokerPolicy
     run_context: Mapping[str, str]
     upstream_url: str
@@ -345,10 +345,9 @@ class BrokerApplication:
         scheme, _, token = headers.get("Authorization", "").partition(" ")
         if scheme.lower() != "bearer":
             raise BrokerError("bearer capability required")
-        method = str(
-            request.get("method")
-            or str(headers.get("X-AMB-Path", "")).rstrip("/").rsplit("/", 1)[-1]
-        )
+        raw_path = str(headers.get("X-AMB-Path", ""))
+        path_method = urllib.parse.urlsplit(raw_path).path.rstrip("/").rsplit("/", 1)[-1]
+        method = str(request.get("method") or path_method)
         return self.authority.validate(
             token,
             run_id=self.run_context["run_id"],
@@ -369,10 +368,11 @@ class BrokerApplication:
                 raise BrokerError("request must be a JSON object")
             grant = self._authorize(headers, request, len(body))
             if self.memory_handler is not None:
-                payload = self.memory_handler(request, grant)
-                return 200, json.dumps(payload, separators=(",", ":")).encode(), "application/json"
-            payload, content_type = self._forward_raw(request)
-            return 200, payload, content_type
+                response = self.memory_handler(request, grant)
+                encoded = json.dumps(response, separators=(",", ":")).encode()
+                return 200, encoded, "application/json"
+            encoded, content_type = self._forward_raw(request)
+            return 200, encoded, content_type
         except BrokerError as error:
             return 403, json.dumps({"error": str(error)}).encode(), "application/json"
         except (ValueError, KeyError, json.JSONDecodeError) as error:

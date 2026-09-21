@@ -216,6 +216,12 @@ def check_arms_matched_flag(env: dict) -> Check:
             None,
             "quality is a standalone full coaching treatment; cross-arm matching is not claimed",
         )
+    if isinstance(env.get("instruction_manifest"), dict) and not _instruction_arms(env):
+        return Check(
+            "instruction_arms_matched",
+            None,
+            "no instruction carrying arms; task scoped retrieved evidence is checked separately",
+        )
     flag = env.get("instruction_arms_matched")
     if flag is None:
         return Check("instruction_arms_matched", None, "flag not recorded")

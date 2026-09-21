@@ -3,7 +3,9 @@ from __future__ import annotations
 import pytest
 
 from harness.broker import (
+    BrokerApplication,
     BrokerError,
+    BrokerPolicy,
     CapabilityAuthority,
     SessionCapabilityIssuer,
 )
@@ -152,3 +154,35 @@ def test_session_issuer_mints_distinct_scoped_model_and_memory_grants() -> None:
             request_bytes=1,
             max_request_bytes=100,
         )
+
+
+def test_model_capability_normalizes_the_anthropic_beta_query_path() -> None:
+    """The signed ``messages`` grant covers Claude's ``/v1/messages?beta=true`` request.
+
+    Red proof receipt ``amb-broker-query-path-01`` targets
+    ``BrokerApplication._authorize``. Commit ``4837815f`` treated the query string as part of the
+    method, returned HTTP 403, and failed the status assertion. That exact failure discarded all
+    102 cells in private AMB attempt 3 before a model token was used.
+    """
+    issuer = SessionCapabilityIssuer("s" * 32, ttl_s=60)
+    token, _ = issuer.issue(
+        run_id="run-1", arm="claude_md", namespace="cell-a", memory=False
+    )
+    app = BrokerApplication(
+        authority=issuer.authority,
+        policy=BrokerPolicy(service="model", allowed_upstreams=(), max_request_bytes=1024),
+        run_context={"run_id": "*", "arm": "*", "namespace": "*"},
+        upstream_url="",
+        memory_handler=lambda _request, _grant: {"ok": True},
+    )
+
+    status, payload = app.handle(
+        {
+            "Authorization": f"Bearer {token}",
+            "X-AMB-Path": "/v1/messages?beta=true",
+        },
+        b'{"model":"deepseek/deepseek-v4-flash"}',
+    )
+
+    assert status == 200
+    assert payload == {"ok": True}

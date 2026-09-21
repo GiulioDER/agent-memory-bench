@@ -252,7 +252,6 @@ def _check_endpoints(f, run_dir, records, condition, published_admission, publis
         f.skip(f"{run_dir.name}: cells cannot be rebuilt from these records ({exc})")
         return
     arms = sorted({r["arm"] for r in records})
-    got = endpoints(cells, arms)
 
     want = json.loads(published_endpoints.read_text(encoding="utf-8"))
     if not isinstance(want, dict):
@@ -262,6 +261,15 @@ def _check_endpoints(f, run_dir, records, condition, published_admission, publis
             f"{type(want).__name__}, not an object",
         )
         return
+
+    reference = want.get("reference_arm")
+    if not isinstance(reference, str) or reference not in arms:
+        f.check(
+            False,
+            f"{run_dir.name}: endpoints reference arm {reference!r} did not run",
+        )
+        return
+    got = endpoints(cells, arms, reference=reference)
 
     f.check(
         got.get("reference_arm") == want.get("reference_arm"),
@@ -314,7 +322,7 @@ def _check_endpoints(f, run_dir, records, condition, published_admission, publis
             )
         else:
             pooled_arms = sorted({c.arm for c in pooled})
-            pooled_got = endpoints(pooled, pooled_arms)
+            pooled_got = endpoints(pooled, pooled_arms, reference=reference)
             for arm in sorted(set(pooled_got["arms"]) & set(published_arms)):
                 bad = _leaf_mismatches(
                     pooled_got["arms"][arm].get("1_net_harm_by_stratum"),

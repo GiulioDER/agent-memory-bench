@@ -328,6 +328,41 @@ def test_an_honest_endpoints_file_verifies(harm_run):
     assert _endpoint_failures(harm_run) == []
 
 
+def test_a_non_bare_reference_arm_recomputes_from_the_published_artifact(tmp_path):
+    """A verifier must not silently replace a declared baseline with ``bare``."""
+
+    from harness.abstention import cells_from_records
+    from scripts.verify_run import endpoints as _endpoints
+
+    records = [
+        _harm_record("ts-append-only", 0, "claude_md", "solved"),
+        _harm_record("ts-append-only", 0, "recall", "damaged"),
+        _harm_record("ts-bom-merge", 0, "claude_md", "solved"),
+        _harm_record("ts-bom-merge", 0, "recall", "solved"),
+    ]
+    admission = {
+        "admitted_cells": 2,
+        "discarded_cells": [],
+        "required_arms": ["claude_md", "recall"],
+        "verdicts": [
+            {"task_id": r["task_id"], "seed": r["seed"], "arm": r["arm"], "admitted": True,
+             "reasons": []}
+            for r in records
+        ],
+    }
+    run_dir = tmp_path / "verify-003-absent"
+    _write(run_dir, records, admission, {"total_sessions": 4, "total_tokens": 440})
+    published = _endpoints(
+        cells_from_records(records, "absent"), ["claude_md", "recall"], reference="claude_md"
+    )
+    published["conditions"] = ["absent"]
+    (tmp_path / "verify-003-endpoints.json").write_text(
+        json.dumps(published, indent=1), encoding="utf-8"
+    )
+
+    assert _endpoint_failures(run_dir) == []
+
+
 def test_a_doctored_damage_rate_is_caught(harm_run):
     """RED before the fix: `bool(got)` made the check true whatever the published number said."""
 

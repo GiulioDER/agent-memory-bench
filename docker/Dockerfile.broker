@@ -1,0 +1,14 @@
+# Trusted capability broker. Only the broker runtime enters this image.
+FROM python:3.12-slim@sha256:09f7da3bc104798d0afb40bc08d23ab2da20a76130cec1f2ef170848f5d85217
+
+WORKDIR /app
+COPY harness/broker.py /app/harness/broker.py
+COPY harness/broker_main.py /app/harness/broker_main.py
+COPY harness/graphiti_broker.py /app/harness/graphiti_broker.py
+
+RUN touch /app/harness/__init__.py \
+    && groupadd --gid 65532 broker \
+    && useradd --uid 65532 --gid broker --no-create-home --shell /usr/sbin/nologin broker
+
+USER 65532:65532
+CMD ["python", "-m", "harness.broker_main"]

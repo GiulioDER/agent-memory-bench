@@ -1,0 +1,246 @@
+# Preregistration 093: routed specialist full AMB Task Solve
+
+Status: frozen when committed. No session from this run may start before the commit that adds
+this record.
+
+## Question
+
+Does the routed C7 specialist corpus preserve the full Code4 coding result while making Context4
+and Multimodal 3.5 available in isolated indexes for future noncoding routes?
+
+This run measures final executable task success. It compares the proven C6 Code4 retrieval system
+with C7 through the same public AML Add and Search contract. It is not an official AML Smoke and
+does not authorize any official AML evaluation.
+
+## Frozen implementations
+
+The RE-call candidate is commit `2098a903520dd5802e58838971bcb02ed9509bb2`.
+Its core routed specialist implementation was committed as
+`3cc8f9a1ba0beb57239b131568fec9eece97defb`.
+
+The AMB hosted prefetch apparatus is commit
+`b80b45ceb0d5a0628eb4f7bc4211f12a273b9163`.
+
+The two hosted arms are:
+
+| arm | required endpoint variant | retrieval |
+| --- | --- | --- |
+| `aml_c6_prefetch` | `C6_code4_exact_bm25` | Code4 exact dense plus canonical BM25, RRF constant 60 |
+| `aml_c7_prefetch` | `C7_routed_specialists` | conservative route, then the selected specialist plus lexical or visual rank fusion |
+
+Both arms delete only their dedicated run namespace, ingest the same committed corpus through
+public `/v1/add`, search with the exact task prompt through public `/v1/search`, preserve returned
+rank order, and inject the first 10 evidence items into the task system prompt. They do not expose
+a memory tool to the agent. This is deliberate because the official coding evaluation supplies
+the task and memory to the system. The run measures retrieval plus evidence use, not autonomous
+query formulation.
+
+The designated control is `claude_md`, using the same task specific static repository bundle and
+no memory evidence.
+
+## Frozen corpus, tasks, and grid
+
+The corpus is `corpus/manifest.json`, SHA 256
+`58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814`, containing 196 sessions.
+
+All 34 executable AMB tasks run. The exact roster is:
+
+`fa-dedup-key,ts-append-only,ts-atomic-write,ts-base36-id,ts-bom-merge,ts-bool-env,ts-casefold-sort,ts-cli-exitcode,ts-config-layer,ts-crlf-export,ts-csv-quote,ts-dedup-order,ts-empty-input,ts-glob-hidden,ts-golden-regen,ts-idempotent-run,ts-ignore-gen,ts-json-sorted,ts-legacy-hash,ts-log-mask,ts-manifest-rel,ts-mig-name,ts-natural-order,ts-nfc-count,ts-quote-shell,ts-retry-cap,ts-round-money,ts-schema-additive,ts-semver-pin,ts-stable-sort,ts-tz-utc,xs-evolve-lease,xs-join-batch,xs-widen-manifest`.
+
+The three `xs-*` tasks are admitted only through the explicit `--include-synthesis` flag. This
+does not change AMB's historical default grid, and synthesis tasks are forbidden with a mutated
+condition corpus.
+
+There are three arms, 34 tasks, and three seeds, for 102 paired cells and 306 sessions. The model
+is `deepseek/deepseek-v4-flash`. Timeout is 600 seconds. The base relevant plus noisy corpus is
+used with no adversarial condition mutation. Block concurrency is three. Hosted Add concurrency
+is three.
+
+## Qualification gate before model spend
+
+The RE-call routed specialist qualification must pass every gate in
+`docs/preregistrations/2026-09-20-aml-routed-specialist-corpus.md` before any Task Solve session.
+
+The AMB dry run must resolve exactly 306 sessions and all 34 task ids. Both endpoints must expose
+the required variant and pass ingestion. Every task must produce a nonempty Search response for
+both hosted arms. Any endpoint mismatch, missing task prompt, shared prompt refusal, corpus hash
+mismatch, or ingestion error blocks the run.
+
+## Endpoints
+
+The primary endpoint is paired executable task success for C7 minus C6 across 102 cells.
+
+Secondary endpoints are:
+
+1. Task success for each hosted arm minus `claude_md`.
+2. Per task paired wins, ties, and losses for C7 against C6.
+3. C6 and C7 source session recall at 10 from the saved Search payloads.
+4. The number of tasks whose ordered injected evidence differs between C6 and C7.
+5. Admission rate, discarded cells, timeout rate, input and output tokens, wall time, and estimated
+   cost by arm.
+6. The three synthesis task verdicts reported individually. They remain diagnostic because there
+   is only one task per synthesis shape.
+
+## Predictions
+
+1. Every one of the 34 exact task prompts selects the C7 code route during qualification.
+2. C7 task success differs from C6 by no more than three cells in either direction over 102 paired
+   cells.
+3. C7 loses no more task clusters than it wins against C6.
+4. Both hosted arms retrieve at least one relevant source session in the first 10 results for all
+   34 tasks.
+5. Ordered injected evidence differs for no more than five tasks. Small differences are permitted
+   because fresh Voyage query vectors are not byte deterministic.
+6. Both hosted arms exceed `claude_md` task success by at least five percentage points.
+7. At least 97 of 102 cells are admitted. A wiring discard in either hosted arm discards the paired
+   cell and is reported, never converted into a task failure.
+8. C7 median Search latency is no more than 1.25 times C6 median Search latency on coding prompts.
+   Add latency is reported separately because C7 intentionally writes two text indexes.
+9. The synthesis tasks do not support a product ranking. Their per task outcomes are reported as
+   mechanism diagnostics only.
+
+## Decision rules
+
+C7 passes the coding nonregression gate only if predictions 2, 3, 4, and 7 pass. Prediction 6 is
+the usefulness gate for using hosted prefetch as evidence about final task quality. If prediction
+6 fails, C6 versus C7 remains a valid nonregression comparison but does not show that either
+memory treatment helped.
+
+A pass licenses keeping C7 as the unified candidate architecture while preserving Code4 as the
+coding route. It does not license equal Code4 plus Context4 fusion, a multimodal quality claim,
+an official AML Smoke, or an official AML evaluation.
+
+## Frozen command
+
+The run uses the existing trusted model broker and the following runner arguments. Secrets and
+broker addresses remain environment supplied and are never written to results.
+
+```powershell
+$env:AMB_BLOCK_CONCURRENCY='3'
+$env:AMB_HOSTED_ADD_WORKERS='3'
+python -m scripts.pilot `
+  --run-id specialist-full-001 `
+  --namespace amb-specialist-full-001 `
+  --arms claude_md,aml_c6_prefetch,aml_c7_prefetch `
+  --tasks fa-dedup-key,ts-append-only,ts-atomic-write,ts-base36-id,ts-bom-merge,ts-bool-env,ts-casefold-sort,ts-cli-exitcode,ts-config-layer,ts-crlf-export,ts-csv-quote,ts-dedup-order,ts-empty-input,ts-glob-hidden,ts-golden-regen,ts-idempotent-run,ts-ignore-gen,ts-json-sorted,ts-legacy-hash,ts-log-mask,ts-manifest-rel,ts-mig-name,ts-natural-order,ts-nfc-count,ts-quote-shell,ts-retry-cap,ts-round-money,ts-schema-additive,ts-semver-pin,ts-stable-sort,ts-tz-utc,xs-evolve-lease,xs-join-batch,xs-widen-manifest `
+  --include-synthesis `
+  --seeds 3 `
+  --model deepseek/deepseek-v4-flash `
+  --timeout 600 `
+  --price-in 0.0574 --price-out 0.1148 --price-as-of 2026-08-22
+```
+
+Retries are permitted only for a documented wiring failure before a scored outcome. Task failure,
+timeout, or an unfavorable result is never retried.
+
+<!-- results and append only corrections go below this line; everything above is frozen -->
+
+## Append only safety apparatus amendment, before live calls
+
+No live hosted call or model session had run when this amendment was written. Apparatus commit
+`df67fcf0` adds three fail closed controls without changing the frozen task roster, arms, prompts,
+model, seeds, endpoints, or predictions:
+
+1. C6 and C7 use endpoint specific credentials named `RECALL_AML_C6_API_KEY` and
+   `RECALL_AML_C7_API_KEY`. A legacy shared key may fill one missing side only when it is byte
+   equal to the other side's explicit key.
+2. An empty hosted Search is a setup failure and cannot become an empty prompt or a scored model
+   session.
+3. The frozen command is first run with `--prepare-only`. That mode ingests both hosted arms,
+   searches each of the 34 distinct prompts once per arm, writes a nonoverwriting preparation
+   receipt with 68 searches and `model_sessions_launched: 0`, then returns before broker,
+   adjudication, or task runner construction.
+
+The full 306 session command remains the frozen command above. It may start only after the
+preparation receipt passes and the separate RE-call nine gate qualification passes. This
+amendment does not authorize an official AML Smoke or official AML evaluation.
+
+### Preparation provenance correction, before model spend
+
+The first zero session preparation completed both ingestions and all 68 nonempty Searches, but
+its `corpus_manifest_sha256` field was mislabeled: it contained the normalized session mapping
+digest rather than the frozen manifest file SHA 256. It launched zero model sessions. Commit
+`ba60e204` records both values separately and restores the file digest to the manifest field. A
+new preparation receipt from that commit or a direct descendant is required before Task Solve.
+
+## Preparation result
+
+The corrected preparation ran from apparatus commit
+`67c4164a60553310de5da73fb7c12f35e9019701` and passed. The machine readable receipt is
+`results/preparations/specialist-full-001/prepare.json`, SHA 256
+`87bbad5c74e458a8b8842b6aca7f961d95632811bffb5538cc6c43951dbb7fd6`.
+
+It records the frozen manifest file SHA 256
+`58055df1828b2c1e51bc3c7f9f82e916145c67aa58332f22ce1b86b2d849b814`, 196 sessions and 1,220
+stored items for each hosted arm, 34 tasks, 68 nonempty Searches with 10 hits each, and
+`model_sessions_launched: 0`. Together with the passed RE-call nine gate qualification, this
+licenses the frozen 306 session local AMB Task Solve run. It does not authorize an official AML
+Smoke or official AML evaluation.
+
+### Trusted checker restoration, before model spend
+
+The trusted runner preflight found that the committed Compose file referenced
+`docker/Dockerfile.checker` and `harness.checker_worker`, but neither file existed on this branch.
+No Task Solve session had started. Commit `73c2752b` restores the already required networkless
+checker boundary without changing any task, oracle, prompt, arm, model, seed, or prediction. The
+image copies only `harness/` and `tasks/`, runs as uid 65532, receives the artifact and oracle only
+through read only mounts, and rejects task or path injection. Its focused worker and isolation
+suite passed 23 tests with 2 platform skips. The full run must use this commit or a direct
+descendant.
+
+### Trusted broker image restoration, before model spend
+
+The next rootless Docker preflight found that the committed Compose file also referenced
+`docker/Dockerfile.broker` and `docker/Dockerfile.egress-proxy`, while their runtime entrypoints
+were absent from this branch. Existing host images had hidden the incomplete source tree. No Task
+Solve session had started. The restoration adds the least privilege broker and allowlist proxy
+images, their controller entrypoints, and regression coverage. It does not change any task,
+oracle, prompt, arm, model, seed, endpoint, prediction, or analysis rule. The full run must use the
+restoration commit or a direct descendant and must rebuild the trusted images from that source.
+
+### Attempt 1 wiring failure and timeout amendment
+
+Attempt 1 stopped during C6 ingestion before C7 ingestion, task restoration, or any scored model
+session. Its result directory contains only `challenge.json` and `execution-events.jsonl`; it has
+no records or task work directory. One of three concurrent Add requests exceeded the adapter's
+fixed 180 second HTTP timeout while waiting behind the required shared embedding lock. The C6
+service completed the in flight Add requests successfully immediately around the controller
+timeout.
+
+This is a documented wiring failure before a scored outcome, so the frozen retry rule permits one
+retry after preserving the partial attempt. The retry keeps `AMB_HOSTED_ADD_WORKERS=3` and every
+frozen benchmark field unchanged. The apparatus adds a bounded
+`AMB_HOSTED_REQUEST_TIMEOUT_S` setting, default 180 seconds, and the retry sets it to 600 seconds
+so queued Add workers can wait behind the serialized provider boundary. Values at or below zero
+or above 1,800 seconds are refused. No official AML Smoke or evaluation is authorized.
+
+### Attempt 2 setup gate failure
+
+Attempt 2 completed both ingestions with 196 sessions and 1,220 items per hosted arm and wrote all
+136 task scoped Search artifacts. It then stopped at the pre session setup gate with no task
+records. The generic `instruction_arms_matched` check treated its false harness flag as a failure
+even though the recorded instruction manifest contains zero bytes for every arm. The C6 and C7
+retrieved prompts are task scoped treatment evidence, not shared product instruction appendices.
+
+The gate is amended to skip instruction parity only when an instruction manifest is present and
+contains no instruction carrying arm. Existing instruction carrying comparisons retain their
+arithmetic parity checks and harness flag enforcement. This changes no task, prompt, evidence,
+arm, model, seed, endpoint, prediction, or analysis rule. A further retry remains a wiring retry
+before any scored outcome. No official AML Smoke or evaluation is authorized.
+
+### Attempt 3 broker capability failure
+
+Attempt 3 completed the two hosted ingestions, all task scoped Searches, and wrote 306 participant
+records, but every record was rejected before a model response with the same HTTP 403 capability
+error. The trusted broker treated Claude Code's `/v1/messages?beta=true` request target as the
+literal method `messages?beta=true`, while the signed capability correctly allowed `messages`.
+The run used zero model tokens, spent zero estimated model dollars, admitted zero cells, and
+therefore contains no scored outcome.
+
+The preserved artifacts are under
+`results/archive/specialist-full-001-attempt-3-broker-capability` on the benchmark host. The repair
+normalizes the request target to its URL path before extracting the capability method and carries a
+mutation proved regression test. The user's later request for all five AMB corpus conditions
+supersedes this present only grid. That expanded experiment receives a new preregistration rather
+than being represented as another retry of this record. No official AML Smoke or evaluation was
+run or authorized.

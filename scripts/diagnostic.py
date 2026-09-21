@@ -516,7 +516,7 @@ async def main() -> int:
             )
             ok, verdict = run_isolated_checker(
                 task_id,
-                by_id[task_id].oracle_dir.parent,
+                by_id[task_id].oracle_dir,
                 workdir,
             )
             extra = {
