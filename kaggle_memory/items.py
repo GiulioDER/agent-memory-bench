@@ -25,7 +25,12 @@ import json
 import random
 from pathlib import Path
 
-from kaggle_memory.scoring import RESTRAINT_CONDITIONS, TRUST_CONDITIONS, names_value
+from kaggle_memory.scoring import (
+    RESTRAINT_CONDITIONS,
+    TRUST_CONDITIONS,
+    named_readings,
+    names_value,
+)
 
 HERE = Path(__file__).resolve().parent
 SCENARIOS = HERE / "scenarios.json"
@@ -150,14 +155,15 @@ def validate(data):
         ids.add(sid)
         readings = {name: s[name] for name in READINGS}
         # Attribution: each reading's value must be named by itself and by no other reading.
+        # Judged by the scorer's own attribution, so what is validated is what is scored.
         for name, reading in readings.items():
             for token in [reading["value"], *reading.get("aliases", [])]:
-                for other, other_reading in readings.items():
-                    named = names_value(token, other_reading)
-                    if name == other and not named:
-                        errors.append(f"{sid}: {name} token {token!r} does not match itself")
-                    if name != other and named:
-                        errors.append(f"{sid}: {name} value {token!r} also names {other}")
+                named = named_readings(token, readings)
+                if name not in named:
+                    errors.append(f"{sid}: {name} token {token!r} does not match itself")
+                others = [other for other in named if other != name]
+                if others:
+                    errors.append(f"{sid}: {name} value {token!r} also names {', '.join(others)}")
             if names_value(s["task"], reading):
                 errors.append(f"{sid}: the task text names the {name} value")
             for entry in data["distractors"]:

@@ -738,7 +738,8 @@
         "date": "2026-03-23",
         "memo": "Contacts CSV export is written as utf-8-sig. The sales team's spreadsheet software needs the byte-order mark to read accented surnames correctly.",
         "aliases": [
-          "utf_8_sig"
+          "utf_8_sig",
+          "UTF-8 with BOM"
         ]
       },
       "stale": {

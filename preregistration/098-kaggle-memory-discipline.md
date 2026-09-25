@@ -163,3 +163,51 @@ composite moved to J after abstention was found to be a dominant strategy withou
 (preregistration 017). No model-varying measurement of this kind exists in the repository.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Amendment 1 (2026-09-25), before any measurement
+
+**Status:** predicted, not yet measured. No task had been pushed to Kaggle and no model had seen
+an item when this was written. Nothing above this marker was edited: the hash table in "What is
+frozen" is left as committed, and it is now superseded by the table below. The predictions,
+endpoints, exclusion rules and falsifiers are unchanged.
+
+**Why.** A code review of the committed scorer and analysis, run immediately after the commit,
+found defects that would have cost real models points for reasons unrelated to memory use, and
+one that could have merged every model into one:
+
+1. An afterthought below the answer overrode it ("VALUE: 6" then "Value: 3 was the stale one").
+   Directives now have three strengths (line-initial upper case, line-initial any case, inline
+   upper case) and the last of the strongest present wins.
+2. An identifier such as `DEFAULT_VALUE:` was read as a directive. The inline lookbehind now
+   excludes digits and underscores.
+3. `VALUE:` with the answer on the next line, a fullwidth colon, `python3.12`, `v3.12` and `35MiB`
+   were misread; each is now accepted.
+4. "VALUE: 6 (replaces 3)" and "UTF-8 with BOM (utf-8-sig)" scored `value:multiple`. Two
+   tie-breaks now apply: a reading matched only inside a longer match of another is dropped, and
+   a parenthetical aside is ignored when that leaves exactly one reading. "UTF-8 with BOM" is an
+   alias of `utf-8-sig`. The validator now judges attribution with the same function.
+5. The analysis scored only the last assistant content of a reply; it now scores all of them.
+   A run file without a model slug is refused instead of being merged. Retries are ordered by
+   parsed time, not by string. `report.json` is strict JSON. Any re-scoring disagreement is
+   printed in the report and makes the analysis exit 1.
+
+The review also found that `enable_cache` might reuse one model's answers for another. It does
+not: run files are keyed by row and model slug, and every Kaggle run is a fresh notebook.
+
+Each fix has a regression test that was shown to fail against a named mutation before being
+trusted; they are listed in `tests/test_kaggle_memory_discipline.py`.
+
+**The frozen set is now these bytes:**
+
+| file | sha256 |
+|---|---|
+| `kaggle_memory/scenarios.json` | `a72d464898de03344541de0d348eb15e3b12add7a721adc89ce53a0d6ca7d248` |
+| `kaggle_memory/items.json` | `e8010a1d904668527c8389aaca06ac22be11776aac338ffb5f2290ef64835a7a` |
+| `kaggle_memory/scoring.py` | `284bb96980bd48496c2e88c82e302ea6be492af32ffd75e636fc6c5b67c74ec6` |
+| `kaggle_memory/items.py` | `07534d4cf06428ca6488e66f081f5bb152974662eb81dc7716f44111173aa438` |
+| `kaggle_memory/tasks/memory_discipline_trust.py` | `3db340a6e208f82eedd67a40b233c1f4cfd61eedbb95392eedfaf1c4aed6a888` |
+| `kaggle_memory/tasks/memory_discipline_restraint.py` | `1a8e7d0a0a382408dd8536a6ff8522be488d20157827b3de6a645b91d3b14097` |
+| `scripts/analyze_kaggle_memory.py` | `1541c34c98b83c8051727042ab0622dd9873dddea6ccf8bbb778782832e56795` |
+
+Nothing may change after the first push; a second amendment of this kind is not available once
+any model has answered.

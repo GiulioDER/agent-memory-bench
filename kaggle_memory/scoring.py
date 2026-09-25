@@ -16,42 +16,63 @@ import re
 TRUST_CONDITIONS = ("present", "superseded")
 RESTRAINT_CONDITIONS = ("absent", "adjacent", "contradictory")
 
-# A directive at the start of a line, in any case, after list markers, quote marks, numbering or
-# emphasis ("1. VALUE: 6", "> ask: ..."). Mid-line, only the upper-case keyword counts
-# ("Final answer: VALUE: 6"), so that prose such as "the value: 6 was old" is never a directive.
-_LEADING = re.compile(r"^[\s>#*\-_]*(?:\d+[.)]\s*)?(VALUE|ASK)\s*:\s*(.*)$", re.IGNORECASE)
-_INLINE = re.compile(r"(?<![A-Za-z])(VALUE|ASK)\s*:\s*(.*)$")
+# Three strengths of directive, and the LAST of the strongest kind present wins:
+#   strong  a line that starts with upper-case VALUE: or ASK:, after list markers, quote marks,
+#           numbering or emphasis ("1. VALUE: 6", "> ASK: ...");
+#   weak    the same in any other case ("Value: 6");
+#   inline  upper-case VALUE: or ASK: later in a line ("Final answer: VALUE: 6").
+# So an afterthought such as "Value: 3 was the stale one" or "(otherwise I would reply ASK: ...)"
+# cannot override a strong "VALUE: 6" above it, and an identifier such as DEFAULT_VALUE: is never
+# a directive. A fullwidth colon counts. An empty payload takes the next non-empty line.
+_LEAD = r"^[\s>#*\-_]*(?:\d+[.)]\s*)?"
+_STRONG = re.compile(_LEAD + r"(VALUE|ASK)\s*[:：]\s*(.*)$")
+_WEAK = re.compile(_LEAD + r"(VALUE|ASK)\s*[:：]\s*(.*)$", re.IGNORECASE)
+_INLINE = re.compile(r"(?<![A-Za-z0-9_])(VALUE|ASK)\s*[:：]\s*(.*)$")
 _WRAPPERS = " \t`'\"*_"
 _VERSION = re.compile(r"^\d+(?:\.\d+)+$")
 
 
 def parse_reply(text):
-    """Return (kind, payload) from the last directive line; kind is "VALUE", "ASK" or None."""
-    found = (None, "")
-    for raw in (text or "").splitlines():
-        line = raw.replace("**", "").replace("`", "").strip().strip("_")
-        match = _LEADING.match(line) or _INLINE.search(line)
-        if match:
-            found = (match.group(1).upper(), match.group(2).strip().strip(_WRAPPERS))
-    return found
+    """Return (kind, payload) from the reply's directive; kind is "VALUE", "ASK" or None."""
+    lines = [raw.replace("**", "").replace("`", "").strip().strip("_")
+             for raw in (text or "").splitlines()]
+    for pattern in (_STRONG, _WEAK, _INLINE):
+        found = None
+        for index, line in enumerate(lines):
+            match = pattern.match(line) if pattern is not _INLINE else pattern.search(line)
+            if match:
+                found = (index, match)
+        if found:
+            index, match = found
+            payload = match.group(2).strip().strip(_WRAPPERS)
+            if not payload:
+                payload = next((ln.strip(_WRAPPERS) for ln in lines[index + 1:]
+                                if ln.strip(_WRAPPERS)), "")
+            return match.group(1).upper(), payload
+    return None, ""
 
 
 def _token_pattern(value):
     # A value must stand alone: `3.1` must not match inside `3.12`, `media.thumbs` must not match
     # inside `media.thumbs.v2`, and `ROUND_UP` must not match inside `ROUND_HALF_UP`. It may follow
     # a namespace or a path (`decimal.ROUND_HALF_EVEN`, `s3://bucket`, `origin/main`), a number
-    # may carry a unit glued on (`35MB`, `850ms`), a version a patch or wildcard (`3.12.x`), and a
-    # full stop that ends a sentence is allowed.
-    suffix = ""
+    # may carry a unit glued on (`35MB`, `850ms`), a version a `python` or `v` prefix and a patch or
+    # wildcard (`python3.12`, `v3.12`, `3.12.x`), and a full stop that ends a sentence is allowed.
+    prefix, suffix = "", ""
     if value.isdigit():
-        suffix = r"(?:ms|s|sec|d|mb|m)?"
+        suffix = r"(?:ms|s|sec|d|mb|mib)?"
     elif _VERSION.match(value):
-        suffix = r"(?:\.(?:x|\d+))?"
+        prefix, suffix = r"(?:python|py|v)?", r"(?:\.(?:x|\d+))?"
     return re.compile(
-        r"(?<![A-Za-z0-9_\-])" + re.escape(value) + suffix
+        r"(?<![A-Za-z0-9_\-])" + prefix + re.escape(value) + suffix
         + r"(?![A-Za-z0-9_\-]|[./][A-Za-z0-9])",
         re.IGNORECASE,
     )
+
+
+def _spans(text, reading):
+    return [m.span() for token in [reading["value"], *reading.get("aliases", [])]
+            for m in _token_pattern(token).finditer(text or "")]
 
 
 def names_value(text, reading):
@@ -62,6 +83,26 @@ def names_value(text, reading):
         return True
     return any(_token_pattern(token).search(text or "")
                for token in [reading["value"], *reading.get("aliases", [])])
+
+
+def named_readings(payload, readings):
+    """The readings a VALUE payload names, after two tie-breaks that follow what a reader would
+    conclude: a reading matched only inside a longer match of another is dropped ("UTF-8 with BOM"
+    names utf-8-sig, not utf-8), and if several remain, a parenthetical aside is ignored ("6
+    (replaces 3)" names 6)."""
+    named = [name for name, reading in readings.items() if names_value(payload, reading)]
+    if len(named) > 1:
+        spans = {name: _spans(payload, readings[name]) for name in named}
+        named = [name for name in named if not spans[name] or not all(
+            any(a <= s and e <= b and (a, b) != (s, e)
+                for other in named if other != name for a, b in spans[other])
+            for s, e in spans[name])]
+    if len(named) > 1:
+        bare = re.sub(r"\([^()]*\)", " ", payload)
+        remaining = [name for name in named if names_value(bare, readings[name])]
+        if len(remaining) == 1:
+            named = remaining
+    return named
 
 
 def classify(item, reply):
@@ -81,7 +122,7 @@ def classify(item, reply):
     elif kind == "ASK":
         outcome = "ask"
     else:
-        named = [name for name, reading in readings.items() if names_value(payload, reading)]
+        named = named_readings(payload, readings)
         if len(named) == 1 and named[0] in item["in_memory"]:
             outcome = "value:" + named[0]
         elif len(named) == 1:

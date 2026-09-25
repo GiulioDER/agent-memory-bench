@@ -153,6 +153,27 @@ REALISTIC_REPLIES = [
     ("webhook-retries:absent", "VALUE: 3", "value:guess"),
     ("webhook-retries:superseded:implicit:stale_first", "VALUE: 3", "value:stale"),
     ("contacts-export-encoding:present", "VALUE: utf-8", "value:guess"),
+    # From the code review of the committed scorer, before any model saw an item. Red proofs
+    # (2026-09-25), each failing its own row with a fresh bytecode cache: `_INLINE` lookbehind
+    # back to `[A-Za-z]`; `_STRONG` made case-insensitive; the empty-payload follow disabled;
+    # the fullwidth colon removed from all three patterns; the version prefix removed; `mib`
+    # removed from the unit suffix; the span-dominance tie-break disabled; the parenthetical
+    # tie-break disabled.
+    ("webhook-retries:absent", "Final answer: ASK: which one?\nNote: DEFAULT_VALUE: 5", "ask"),
+    ("webhook-retries:present", "VALUE: 6\nValue: 3 was the stale one.", "value:current"),
+    ("webhook-retries:present", "VALUE: 6\n\n(Otherwise I would reply ASK: which?)",
+     "value:current"),
+    ("webhook-retries:present", "value: 6", "value:current"),
+    ("webhook-retries:present", "VALUE:\n6", "value:current"),
+    ("webhook-retries:present", "VALUE:\n```\n6\n```", "value:current"),
+    ("webhook-retries:present", "VALUE：6", "value:current"),
+    ("ci-python-version:present", "VALUE: python3.12", "value:current"),
+    ("ci-python-version:present", "VALUE: Python v3.12", "value:current"),
+    ("document-upload-limit:present", "VALUE: 35MiB", "value:current"),
+    ("webhook-retries:superseded:explicit:current_first", "VALUE: 6 (replaces 3)",
+     "value:current"),
+    ("contacts-export-encoding:present", "VALUE: UTF-8 with BOM (utf-8-sig)", "value:current"),
+    ("webhook-retries:contradictory:a_first", "VALUE: 4 or 9", "value:multiple"),
 ]
 
 
@@ -277,3 +298,43 @@ def test_errored_items_mark_a_family_incomplete(tmp_path):
             _write_run(tmp_path, "m", item, _policy("oracle", item))
     model = _analysis().analyse(tmp_path)["m"]
     assert model["incomplete"] == {"trust": False, "restraint": True}
+
+
+# Red proofs (2026-09-25): `read_run` reverted to score only the last assistant content failed
+# test_a_reply_split_across_contents_is_scored_whole; the slug check in `read_run` deleted failed
+# test_a_run_without_a_model_slug_is_refused; the disagreement exit in `main` deleted failed
+# test_rescoring_disagreement_fails_the_analysis.
+
+def test_a_reply_split_across_contents_is_scored_whole(tmp_path):
+    item = next(i for i in ITEMS if i["item_id"] == "webhook-retries:present")
+    _write_run(tmp_path, "m", item, "Thinking it over.\nVALUE: 6")
+    path = next(tmp_path.glob("*.run.json"))
+    run = json.loads(path.read_text(encoding="utf-8"))
+    contents = run["conversations"][0]["requests"][0]["contents"]
+    contents.append({"parts": [{"text": ""}], "role": "CONTENT_ROLE_ASSISTANT"})
+    path.write_text(json.dumps(run), encoding="utf-8")
+    rows = _analysis().analyse(tmp_path)["m"]["items"]
+    assert [r["outcome"] for r in rows] == ["value:current"]
+
+
+def test_a_run_without_a_model_slug_is_refused(tmp_path):
+    item = ITEMS[0]
+    _write_run(tmp_path, "m", item, "ASK: x")
+    path = next(tmp_path.glob("*.run.json"))
+    run = json.loads(path.read_text(encoding="utf-8"))
+    del run["modelVersion"]["slug"]
+    path.write_text(json.dumps(run), encoding="utf-8")
+    with pytest.raises(SystemExit, match="modelVersion.slug"):
+        _analysis().analyse(tmp_path)
+
+
+def test_rescoring_disagreement_fails_the_analysis(tmp_path):
+    for item in ITEMS:
+        _write_run(tmp_path, "m", item, _policy("oracle", item))
+    path = next(tmp_path.glob("*.run.json"))
+    run = json.loads(path.read_text(encoding="utf-8"))
+    run["results"][0]["dictResult"]["correct"] = not run["results"][0]["dictResult"]["correct"]
+    path.write_text(json.dumps(run), encoding="utf-8")
+    assert _analysis().main([str(tmp_path), "--out", str(tmp_path / "out")]) == 1
+    report = json.loads((tmp_path / "out" / "report.json").read_text(encoding="utf-8"))
+    assert report["m"]["rescoring_disagreements"] == 1

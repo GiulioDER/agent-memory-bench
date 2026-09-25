@@ -16,6 +16,7 @@ import json
 import math
 import random
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -36,10 +37,19 @@ COMPLETED = "BENCHMARK_TASK_RUN_STATE_COMPLETED"
 MAX_ERRORED_SHARE = 0.05
 BOOTSTRAP_RESAMPLES = 10_000
 BOOTSTRAP_SEED = 20260925
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 def _texts(content):
-    return "".join(part.get("text", "") for part in content.get("parts", []))
+    return "\n".join(part.get("text", "") for part in content.get("parts", []))
+
+
+def _when(stamp):
+    """endTime as a datetime; protobuf JSON varies the fractional digits, so strings misorder."""
+    try:
+        return datetime.fromisoformat(stamp)
+    except (TypeError, ValueError):
+        return EPOCH
 
 
 def read_run(path):
@@ -58,8 +68,15 @@ def read_run(path):
                      if r.get("dictResult")), None)
     if item_id is None and recorded:
         item_id = recorded.get("item_id")
-    return {"model": data.get("modelVersion", {}).get("slug"), "item_id": item_id,
-            "state": data.get("state"), "reply": replies[-1] if replies else None,
+    model = data.get("modelVersion", {}).get("slug")
+    if not model:
+        # Without a slug every model would collapse into one and dedup would keep one reply per
+        # item across all of them, silently.
+        raise SystemExit(f"{path}: no modelVersion.slug; cannot attribute this run to a model")
+    # All assistant text, in order: a reply split across contents (thinking, then answer) is
+    # scored whole, and the parser's own precedence picks the directive.
+    return {"model": model, "item_id": item_id,
+            "state": data.get("state"), "reply": "\n".join(replies) if replies else None,
             "recorded": recorded, "end": data.get("endTime") or ""}
 
 
@@ -74,7 +91,7 @@ def collect(root):
         if run["item_id"] is None:
             continue
         key = (run["model"], run["item_id"])
-        rank = (run["state"] == COMPLETED and run["reply"] is not None, run["end"])
+        rank = (run["state"] == COMPLETED and run["reply"] is not None, _when(run["end"]))
         if key not in best or rank > best[key][0]:
             best[key] = (rank, run)
     return [run for _, run in best.values()]
@@ -178,6 +195,17 @@ def analyse(root):
     return {model: analyse_model([r for r in runs if r["model"] == model]) for model in models}
 
 
+def _json_safe(value):
+    """NaN and infinities as null, so report.json is strict JSON."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
+
+
 def _fmt(x):
     return "n/a" if x is None or (isinstance(x, float) and math.isnan(x)) else f"{x:.3f}"
 
@@ -196,7 +224,9 @@ def markdown(report):
             f"| {model} | {_fmt(m['trust'])} | {_fmt(m['restraint'])} | {_fmt(m['j'])} | "
             f"[{_fmt(lo)}, {_fmt(hi)}] | "
             + " | ".join(_fmt(acc[c]) for c in acc)
-            + f" | {'no' if any(m['incomplete'].values()) else 'yes'} |")
+            + f" | {'no' if any(m['incomplete'].values()) else 'yes'} |"
+            + (f" rescoring disagreements: {m['rescoring_disagreements']}"
+               if m["rescoring_disagreements"] else ""))
     return "\n".join(lines) + "\n"
 
 
@@ -210,10 +240,18 @@ def main(argv=None):
         raise SystemExit(f"no per-item run files under {args.downloads}")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "report.json").write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8",
+    (out / "report.json").write_text(json.dumps(_json_safe(report), indent=1, allow_nan=False)
+                                     + "\n", encoding="utf-8",
                                      newline="\n")
     (out / "report.md").write_text(markdown(report), encoding="utf-8", newline="\n")
     print(markdown(report))
+    disagreements = {m: r["rescoring_disagreements"] for m, r in report.items()
+                     if r["rescoring_disagreements"]}
+    if disagreements:
+        # Preregistration 098: the in-notebook scorer is this scorer, so any disagreement means
+        # the reply was extracted differently. The report is written, but the run is not clean.
+        print(f"RESCORING DISAGREEMENTS: {disagreements}", file=sys.stderr)
+        return 1
     return 0
 
 
