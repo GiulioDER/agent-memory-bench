@@ -1,0 +1,165 @@
+# 098 kaggle-memory-discipline-001: with the memory held fixed, which models use it correctly?
+
+Status: frozen when committed. No task may be pushed to Kaggle, and no model may answer a single
+item, before the commit that adds this record.
+
+This is not an agent-memory-bench leaderboard run. It touches no AMB corpus, task, oracle or
+held out set. It inverts the AMB design for the DEV x Kaggle Benchmarking Challenge (submissions
+close 2026-10-11): AMB holds the model fixed and varies the memory layer; this holds the memory
+fixed and varies the model. The item set is new, authored for this run, and public by design.
+
+## Question
+
+For each model Kaggle Benchmarks serves, what is its Youden's J on the memory-discipline item set,
+where J = trust + restraint - 1, trust is accuracy where memory answers the task and restraint is
+accuracy where it does not?
+
+## What is frozen, by sha256 of the LF bytes
+
+| file | sha256 |
+|---|---|
+| `kaggle_memory/scenarios.json` | `6b8dcdc5581448aef80fdcbf0d9e57bbe636f5d790d489d6640ed4c6da24b1ba` |
+| `kaggle_memory/items.json` | `f3f95b26f2b07f047fcc033007eebd8c2be96f3d31eb83caabfc2d91159de109` |
+| `kaggle_memory/scoring.py` | `34a06168e8a66f517c2f2f31767f725bc4f58f9d1c1eb1d1efbd12ccb6f6a53f` |
+| `kaggle_memory/items.py` | `b7b6865a57cc25063149ec3f6043d23425f0d94c6bc822ebb77d8a50e19a2342` |
+| `kaggle_memory/tasks/memory_discipline_trust.py` | `8c0212f33a78d8ab27692fe11ac52b7dd422dbc76eaf90000d814f440ffea930` |
+| `kaggle_memory/tasks/memory_discipline_restraint.py` | `cf1074e4dc102f83ab60441de74c8f60fcbc3385f6b89ed20c030051e77e30d0` |
+| `scripts/analyze_kaggle_memory.py` | `efb4b5bf48987a3b24f8a6530d90c7380bcb42d7759b76c74d43aa8a013ec7fd` |
+
+These hashes are of the set AFTER a pre-freeze adversarial review, which found and fixed, before
+any model saw an item: a scorer that marked correct spellings wrong (`decimal.ROUND_HALF_EVEN`,
+`s3://bucket`, `35MB`, `3.12.x`); a parser that missed `` `VALUE: 6` `` and `Final answer:
+VALUE: 6`; "implicit" supersession items whose current memo still said "the old limit"; eight
+contradictory pairs where one side cited a harder constraint or sounded newer; naming patterns
+that let the adjacent memo spell out the current value; and stale defaults being labelled as
+memory failures in `absent`. The review's findings and the fixes are in the commit that adds this
+record, and `tests/test_kaggle_memory_discipline.py::REALISTIC_REPLIES` pins the formats.
+
+## Design
+
+24 scenarios, each one coding question about one project decision (a retry count, a time zone, a
+bucket name). Every scenario authors five readings of the answer, pairwise distinguishable by the
+scorer, which `kaggle_memory.items.validate` enforces: `current`, `stale`, `adjacent` (a true
+decision about a different subsystem that states its own scope), and `contra_a` and `contra_b` (two
+undated memos that disagree, neither of them current). Three unrelated distractor memos accompany
+every item. The question text is identical across a scenario's items; only the memory differs.
+
+| condition | items | memory | correct | family |
+|---|---:|---|---|---|
+| present | 24 | the current memo | `VALUE: <current>` | trust |
+| superseded | 96 | stale and current, both dated; explicit or implicit; both orders | `VALUE: <current>` | trust |
+| absent | 24 | distractors only | `ASK: ...` | restraint |
+| adjacent | 24 | the adjacent memo | `ASK: ...` | restraint |
+| contradictory | 48 | both undated halves, both orders | `ASK: ...` | restraint |
+
+Explicit supersession appends one sentence to the current memo naming the note it replaces;
+implicit leaves only the dates to tell them apart, and no current memo contains any language that
+implies a change. The two halves of each contradictory pair give reasons of the same kind, with no
+wording that implies one is newer or binding.
+
+A VALUE is attributed to a reading by token match, tolerant of a namespace or path prefix, a glued
+unit on a number, a patch or wildcard on a version, and listed aliases. A reading named whose memo
+is NOT in the item's memory is labelled `value:guess` rather than `value:<reading>`: a stale value
+guessed in `absent` is the model's prior, not a memory failure. A VALUE naming two readings is
+`value:multiple` and scored incorrect. A family score is the unweighted mean of its
+conditions' accuracies. Kaggle shows the two tasks and their average, `score`; J = 2 x score - 1
+ranks identically and puts both trivial policies (always ask, always apply the newest memo) at 0,
+which is how AMB reports usefulness (`harness.abstention.usefulness`, preregistration 017).
+
+## Grid
+
+Every model `kaggle b t models` lists on the day of the first push, each run once on each of the
+two tasks, at the library defaults (temperature 0 where the model supports it, seed 0, no
+reasoning level set). If quota runs out, models are run in alphabetical order of slug and the run
+stops there; the unrun models are listed, never selected. Library `kaggle-benchmarks` as installed
+in the Kaggle notebook image on the run date, recorded with the result.
+
+The first push is run on one model per task to prove the pipeline. That run is kept as that
+model's result: the items and the scorer are frozen above, so seeing it changes nothing below.
+
+## Endpoints, in reporting order
+
+1. Primary: J per complete model, with a 95% interval from a scenario cluster bootstrap (10,000
+   resamples, seed 20260925), ranked.
+2. Trust and restraint per model.
+3. Accuracy per condition per model, with Wilson 95% intervals.
+4. Superseded, explicit against implicit, per model and pooled as the mean over complete models.
+5. Stale application rate by memo order (`stale_first`, `current_first`), pooled.
+6. Over-asking on `present`, per model.
+7. Among ASK replies on `contradictory`, the share that names both values, pooled.
+8. Outcome distribution per condition, which is where the damage is attributed: `value:stale`,
+   `value:adjacent`, `value:contra_a` or `value:contra_b`, `value:guess`, `value:multiple`,
+   `value:other`, `format_failure`.
+
+All endpoints come from `scripts/analyze_kaggle_memory.py`, which re-scores every raw reply from
+the downloaded run files and reports any disagreement with the in-notebook score.
+
+## Predictions
+
+Median and pooled figures are over complete models only.
+
+1. **Present is easy.** Median present accuracy >= 0.90.
+2. **Contradictory is the hardest condition.** The median of contradictory accuracy is lower than
+   the median of every other condition. Mechanism: models settle a conflict by choosing the memo
+   with the more persuasive reason rather than reporting it.
+3. **Implicit supersession is harder than explicit.** Pooled mean of (explicit - implicit)
+   accuracy between +0.03 and +0.20, and explicit >= implicit for at least 70% of models.
+4. **Position pulls toward the stale memo.** Pooled stale application rate is at least 0.02 higher
+   in `current_first` order (stale memo later, nearer the task) than in `stale_first`. Low
+   confidence.
+5. **Range.** The best complete model's J is in [0.60, 0.95]; the median complete model's J is in
+   [0.30, 0.75].
+6. **Two failure profiles exist, not one skill.** At least one complete model is credulous (trust
+   >= 0.85 and restraint <= 0.60) and at least one is timid (restraint >= 0.85 and trust <= 0.70).
+7. **Over-asking is rare.** Median over-ask rate on present <= 0.05.
+8. **A conflict, when reported, is reported properly.** Pooled, >= 0.60 of contradictory ASK
+   replies name both values.
+9. **The lure costs more than the void.** Median adjacent accuracy <= median absent accuracy. Low
+   confidence, since every adjacent memo states its own scope.
+10. **The format is not the obstacle.** Pooled `format_failure` rate <= 0.02.
+
+## Exclusion and truncation rules
+
+- A model is complete when at most 5% of each family's items errored or are missing after the
+  task's own three attempts. An incomplete model is reported separately and enters no ranking,
+  median or pooled figure.
+- A reply with no `VALUE:` or `ASK:` line is scored incorrect, not excluded.
+- No item, scenario, prompt or scoring rule changes after the first push. A pipeline fix that
+  touches none of the frozen files is allowed and is appended below with its reason.
+
+## What would falsify this
+
+Each numbered prediction states its own threshold, and each is scored separately; a miss stays in
+the record. The design itself is falsified, and the run reported as uninformative, if more than
+half of the complete models land within 0.05 of J = 0, since that is where both trivial policies
+sit; or if the re-scored results disagree with the in-notebook results on any item and the cause
+is the scorer.
+
+## Confounds I can name now
+
+1. **The ASK channel is offered in the prompt.** This measures whether a model can tell when to
+   use its memory given an explicit way out, not whether it would stop to ask unprompted inside an
+   agent loop. AMB measures the latter; the results must not be read as the same quantity.
+2. **Authorship.** The scenarios were written by a Claude model (Claude Opus 5.5, assisting the
+   author). If Claude models are in the grid, any familiarity advantage is unmeasured, and the post
+   must say so.
+3. **The adjacent memos draw their own boundary** (AMB planting rule 3), and the distractors are
+   plainly off topic. Both make the item set easier than a real memory store's retrieval noise.
+4. **One sample per item.** No seed variance is estimated; the interval is over scenarios only.
+5. **Model versions behind a Kaggle slug can change during the run window.** The run dates and
+   slugs are recorded with the result.
+6. **Stale values are recognisable conventions** (UTC, gzip, main, 3 retries). Where the stale
+   memo is absent from memory the label is `value:guess`, but in `superseded` a model that ignored
+   both memos and used its prior is indistinguishable from one that followed the stale memo.
+7. **The task is phrased as "Set X"**, which invites a sensible default, while the ASK line says
+   "checking with the team". The pull is the same in every condition, so it moves levels, not the
+   contrasts between conditions.
+
+## What I already know
+
+AMB's harm suite (preregistration 005) found superseded and contradictory to be where agent memory
+arms failed most often, in runs small enough that no rate from them is quoted here. AMB's own
+composite moved to J after abstention was found to be a dominant strategy without `present`
+(preregistration 017). No model-varying measurement of this kind exists in the repository.
+
+<!-- results are appended below this line; everything above is frozen -->

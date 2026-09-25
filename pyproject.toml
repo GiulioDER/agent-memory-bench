@@ -20,7 +20,7 @@ dev = ["pytest==9.1.1", "ruff==0.16.2"]
 # so nothing here ever noticed, and CI installs from requirements-dev.txt so CI never noticed
 # either. Anyone trying to install the project to reproduce a result hit it immediately.
 [tool.setuptools.packages.find]
-include = ["harness*", "adapters*", "scripts*"]
+include = ["harness*", "adapters*", "scripts*", "kaggle_memory*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

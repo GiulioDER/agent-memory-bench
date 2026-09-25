@@ -1,0 +1,851 @@
+{
+  "version": 1,
+  "today": "2026-09-25",
+  "scenarios": [
+    {
+      "id": "webhook-retries",
+      "project": "harbor-pay",
+      "topic": "payments",
+      "task": "Set `max_retries` in `config/webhooks/payment_events.yaml`: how many times the payment-events webhook consumer retries a failed delivery. Give the number.",
+      "current": {
+        "value": "6",
+        "date": "2026-05-12",
+        "memo": "Payment-events webhook consumer: max_retries is 6. The provider redelivers for six attempts on its side, and matching that count avoids duplicate-charge reconciliation alerts."
+      },
+      "stale": {
+        "value": "3",
+        "date": "2025-08-03",
+        "memo": "Payment-events webhook consumer: max_retries is 3, the client library default. Failing fast means the on-call page fires early when the provider is down."
+      },
+      "adjacent": {
+        "value": "12",
+        "topic": "notifications",
+        "date": "2026-02-19",
+        "memo": "Email-notification webhook consumer: max_retries is 12, because the mail relay throttles in bursts. This applies only to the notifications consumer; the payment consumers belong to the payments team and set their own limits."
+      },
+      "contra_a": {
+        "value": "4",
+        "memo": "Payment-events webhook consumer retries 4 times. More than that overlaps with the nightly settlement batch and double-books the ledger lock."
+      },
+      "contra_b": {
+        "value": "9",
+        "memo": "Payment-events webhook consumer retries 9 times, so that an hour-long provider outage is absorbed without a manual replay."
+      }
+    },
+    {
+      "id": "audit-timezone",
+      "project": "ferrous-logs",
+      "topic": "audit log",
+      "task": "Set `TIMESTAMP_ZONE` in `audit/format.py`: the time zone every audit-log timestamp is written in. Give the IANA zone name.",
+      "current": {
+        "value": "Europe/Dublin",
+        "date": "2026-03-30",
+        "memo": "Audit log timestamps are written in Europe/Dublin. The Irish entity's regulator requires local wall-clock time in every audit extract."
+      },
+      "stale": {
+        "value": "UTC",
+        "date": "2025-06-11",
+        "memo": "Audit log timestamps are written in UTC so that entries from every region sort together without conversion."
+      },
+      "adjacent": {
+        "value": "America/New_York",
+        "topic": "billing export",
+        "date": "2026-01-08",
+        "memo": "The US billing export writes its timestamps in America/New_York, as the US bank's file specification requires. That rule is part of the bank file format only and says nothing about the application's own logs, including the audit log."
+      },
+      "contra_a": {
+        "value": "Europe/London",
+        "memo": "Audit log timestamps use Europe/London, because the compliance team that reads them sits in London."
+      },
+      "contra_b": {
+        "value": "Europe/Amsterdam",
+        "memo": "Audit log timestamps use Europe/Amsterdam to match the data centre the audit store is hosted in."
+      }
+    },
+    {
+      "id": "ledger-csv-delimiter",
+      "project": "tallyhouse",
+      "topic": "finance exports",
+      "task": "Set `DELIMITER` for the monthly ledger CSV export in `exports/ledger.py`. Give the name of the delimiter character as a word.",
+      "current": {
+        "value": "semicolon",
+        "exact_aliases": [
+          ";"
+        ],
+        "date": "2026-04-22",
+        "memo": "Monthly ledger CSV export uses a semicolon delimiter. The accounting team opens it in spreadsheet software set to a European locale, where commas are decimal separators."
+      },
+      "stale": {
+        "value": "comma",
+        "exact_aliases": [
+          ","
+        ],
+        "date": "2025-09-14",
+        "memo": "Monthly ledger CSV export uses a comma delimiter, the plain RFC 4180 default."
+      },
+      "adjacent": {
+        "value": "tab",
+        "exact_aliases": [
+          "\\t"
+        ],
+        "topic": "data warehouse load",
+        "date": "2026-03-02",
+        "memo": "The warehouse bulk-load files use a tab delimiter, because the loader's CSV mode chokes on quoted newlines. This is the loader's input format only; files meant for people, such as the ledger exports, are not covered by it."
+      },
+      "contra_a": {
+        "exact_aliases": [
+          "|"
+        ],
+        "value": "pipe",
+        "memo": "Monthly ledger CSV export uses a pipe delimiter, since vendor names routinely contain commas and semicolons."
+      },
+      "contra_b": {
+        "exact_aliases": [
+          ":"
+        ],
+        "value": "colon",
+        "memo": "Monthly ledger CSV export uses a colon delimiter, which the finance team's import macros are written for."
+      }
+    },
+    {
+      "id": "ci-python-version",
+      "project": "quarry-etl",
+      "topic": "continuous integration",
+      "task": "Set `python-version` for the test job in `.github/workflows/test.yml`. Give the version number.",
+      "current": {
+        "value": "3.12",
+        "date": "2026-06-03",
+        "memo": "The CI test job runs on Python 3.12, the version the production workers run."
+      },
+      "stale": {
+        "value": "3.10",
+        "date": "2025-07-21",
+        "memo": "The CI test job runs on Python 3.10, matching the production worker image."
+      },
+      "adjacent": {
+        "value": "3.9",
+        "topic": "scheduler DAGs",
+        "date": "2026-02-27",
+        "memo": "The Airflow DAG repository is pinned to Python 3.9 by the managed scheduler service. That pin belongs to the DAG repository only; this repository's own CI follows the worker image."
+      },
+      "contra_a": {
+        "value": "3.11",
+        "memo": "The CI test job runs on Python 3.11, the version the data team's notebooks use."
+      },
+      "contra_b": {
+        "value": "3.13",
+        "memo": "The CI test job runs on Python 3.13, so that deprecation warnings show up a release ahead of production."
+      }
+    },
+    {
+      "id": "products-page-size",
+      "project": "atlas-catalog",
+      "topic": "public API",
+      "task": "Set `DEFAULT_PAGE_SIZE` for the public `/v2/products` endpoint in `api/pagination.py`. Give the number.",
+      "current": {
+        "value": "40",
+        "date": "2026-05-06",
+        "memo": "Public /v2/products default page size is 40. The storefront grid shows 40 tiles per page, so one request fills one page view."
+      },
+      "stale": {
+        "value": "25",
+        "date": "2025-10-02",
+        "memo": "Public /v2/products default page size is 25, the value from the original API style guide."
+      },
+      "adjacent": {
+        "value": "200",
+        "topic": "admin export API",
+        "date": "2026-04-17",
+        "memo": "The internal admin export API pages at 200 rows, because it is only called by batch jobs. It is a separate service from the public API, and none of its limits apply to public endpoints."
+      },
+      "contra_a": {
+        "value": "50",
+        "memo": "Public /v2/products default page size is 50; the mobile app requests exactly one page per screen at that size."
+      },
+      "contra_b": {
+        "value": "30",
+        "memo": "Public /v2/products default page size is 30, the size the storefront design specifies for the web grid."
+      }
+    },
+    {
+      "id": "price-cache-ttl",
+      "project": "marlin-shop",
+      "topic": "pricing",
+      "task": "Set `PRICE_TTL_SECONDS` in `cache/prices.py`: how long product-price lookups are cached. Give the number of seconds.",
+      "current": {
+        "value": "90",
+        "date": "2026-07-09",
+        "memo": "Product-price lookups are cached for 90 seconds. Flash sales change prices at short notice, and a longer cache would charge customers a price that has already ended."
+      },
+      "stale": {
+        "value": "3600",
+        "date": "2025-11-19",
+        "memo": "Product-price lookups are cached for 3600 seconds, since prices only change in the nightly catalogue sync."
+      },
+      "adjacent": {
+        "value": "86400",
+        "topic": "product images",
+        "date": "2026-03-12",
+        "memo": "Product image URLs are cached for 86400 seconds at the CDN, because images are content-addressed and never change in place. This is an image caching rule only; prices and stock are cached by their own services."
+      },
+      "contra_a": {
+        "value": "300",
+        "memo": "Product-price lookups are cached for 300 seconds, the most the pricing database can take without read replicas."
+      },
+      "contra_b": {
+        "value": "15",
+        "memo": "Product-price lookups are cached for 15 seconds, because the finance team requires prices to be near real time."
+      }
+    },
+    {
+      "id": "staging-artifact-bucket",
+      "project": "lumen-ml",
+      "topic": "training infrastructure",
+      "task": "Set `ARTIFACT_BUCKET` in `deploy/staging.env`: the object-storage bucket staging training jobs write model artifacts to. Give the bucket name.",
+      "current": {
+        "value": "lumen-stg-artifacts-eu2",
+        "date": "2026-06-18",
+        "memo": "Staging training jobs write model artifacts to lumen-stg-artifacts-eu2, in the same region as the GPU pool, which avoids cross-region egress."
+      },
+      "stale": {
+        "value": "lumen-staging-artifacts",
+        "date": "2025-12-05",
+        "memo": "Staging training jobs write model artifacts to lumen-staging-artifacts."
+      },
+      "adjacent": {
+        "value": "lumen-ingest-raw",
+        "topic": "training datasets",
+        "date": "2026-06-18",
+        "memo": "Staging training datasets are read from lumen-ingest-raw, which is read-only for jobs by policy. It holds input datasets only; where jobs write their outputs is decided separately."
+      },
+      "contra_a": {
+        "value": "lumen-stg-models",
+        "memo": "Staging training jobs write model artifacts to lumen-stg-models, the bucket the model registry watches."
+      },
+      "contra_b": {
+        "value": "lumen-ml-stage-out",
+        "memo": "Staging training jobs write model artifacts to lumen-ml-stage-out, which has the short lifecycle policy that keeps staging storage costs down."
+      }
+    },
+    {
+      "id": "gateway-log-level",
+      "project": "kestrel-gateway",
+      "topic": "gateway",
+      "task": "Set `LOG_LEVEL` for the production gateway in `deploy/prod/gateway.env`. Give the level name.",
+      "current": {
+        "value": "WARNING",
+        "exact_aliases": [
+          "warn"
+        ],
+        "date": "2026-04-01",
+        "memo": "Production gateway runs at LOG_LEVEL WARNING. Per-request log lines would cost more in log ingestion than the gateway's compute.",
+        "aliases": [
+          "warn"
+        ]
+      },
+      "stale": {
+        "value": "INFO",
+        "date": "2025-09-30",
+        "memo": "Production gateway runs at LOG_LEVEL INFO so that every request line is searchable during incidents."
+      },
+      "adjacent": {
+        "value": "DEBUG",
+        "topic": "auth sidecar",
+        "date": "2026-05-20",
+        "memo": "The auth sidecar runs at DEBUG in production until the token-refresh investigation closes. The sidecar is its own deployment with its own env file; the gateway's settings are unaffected."
+      },
+      "contra_a": {
+        "value": "ERROR",
+        "memo": "Production gateway runs at LOG_LEVEL ERROR; request tracing covers everything below that."
+      },
+      "contra_b": {
+        "value": "NOTICE",
+        "memo": "Production gateway runs at LOG_LEVEL NOTICE, the level the log shipper's alert rules are keyed on."
+      }
+    },
+    {
+      "id": "worker-base-image",
+      "project": "fjord-worker",
+      "topic": "worker image",
+      "task": "Set the base image in the `FROM` line of `worker/Dockerfile`. Give the image reference.",
+      "current": {
+        "value": "python:3.12-slim-bookworm",
+        "date": "2026-05-28",
+        "memo": "Worker Dockerfile builds FROM python:3.12-slim-bookworm. Pinning the Debian release keeps glibc stable for the PDF renderer."
+      },
+      "stale": {
+        "value": "python:3.10-slim",
+        "date": "2025-08-26",
+        "memo": "Worker Dockerfile builds FROM python:3.10-slim."
+      },
+      "adjacent": {
+        "value": "node:20-alpine",
+        "topic": "frontend build",
+        "date": "2026-03-15",
+        "memo": "The frontend build stage uses node:20-alpine. That image is for the static asset build only; the Python worker image is chosen by the backend team."
+      },
+      "contra_a": {
+        "value": "python:3.12-alpine",
+        "memo": "Worker Dockerfile builds FROM python:3.12-alpine, to keep the image small for the autoscaler's cold starts."
+      },
+      "contra_b": {
+        "value": "debian:bookworm-slim",
+        "memo": "Worker Dockerfile builds FROM debian:bookworm-slim and installs Python from the distribution, so that security patches arrive with the OS updates."
+      }
+    },
+    {
+      "id": "document-upload-limit",
+      "project": "vellum-docs",
+      "topic": "document uploads",
+      "task": "Set `MAX_UPLOAD_MB` for document uploads in `settings/uploads.py`. Give the number of megabytes.",
+      "current": {
+        "value": "35",
+        "date": "2026-06-25",
+        "memo": "Document uploads are capped at 35 MB. Scanned contracts from the enterprise tier run large, and 35 MB covers every one seen in the last quarter."
+      },
+      "stale": {
+        "value": "10",
+        "date": "2025-10-28",
+        "memo": "Document uploads are capped at 10 MB to keep the virus scanner under its time budget."
+      },
+      "adjacent": {
+        "value": "500",
+        "topic": "video ingestion",
+        "date": "2026-02-10",
+        "memo": "The video ingestion service accepts uploads up to 500 MB through its resumable endpoint. That service and its limits are separate from the document upload path."
+      },
+      "contra_a": {
+        "value": "20",
+        "memo": "Document uploads are capped at 20 MB, the figure in the storage cost model agreed with finance."
+      },
+      "contra_b": {
+        "value": "64",
+        "memo": "Document uploads are capped at 64 MB, the figure in the storage cost model agreed with finance."
+      }
+    },
+    {
+      "id": "invoice-rounding",
+      "project": "orbit-billing",
+      "topic": "invoicing",
+      "task": "Set `ROUNDING_MODE` for invoice line totals in `billing/money.py`. Give the constant name from Python's decimal module.",
+      "current": {
+        "value": "ROUND_HALF_EVEN",
+        "date": "2026-02-24",
+        "memo": "Invoice line totals round with ROUND_HALF_EVEN, which keeps monthly totals in line with the payment processor's settlement files."
+      },
+      "stale": {
+        "value": "ROUND_HALF_UP",
+        "date": "2025-07-07",
+        "memo": "Invoice line totals round with ROUND_HALF_UP, the way customers expect from school arithmetic."
+      },
+      "adjacent": {
+        "value": "ROUND_DOWN",
+        "topic": "tax reporting",
+        "date": "2026-04-09",
+        "memo": "The VAT return report truncates with ROUND_DOWN, as the tax authority's filing guide prescribes. That rule covers the tax report only and does not apply to customer invoices."
+      },
+      "contra_a": {
+        "value": "ROUND_UP",
+        "memo": "Invoice line totals round with ROUND_UP, so that the company never under-bills on fractional usage."
+      },
+      "contra_b": {
+        "value": "ROUND_FLOOR",
+        "memo": "Invoice line totals round with ROUND_FLOOR, so that customers are never over-billed on fractional usage."
+      }
+    },
+    {
+      "id": "scheduler-metrics-port",
+      "project": "tern-mesh",
+      "topic": "scheduler",
+      "task": "Set `METRICS_PORT` for the scheduler service in `scheduler/config.toml`. Give the port number.",
+      "current": {
+        "value": "9464",
+        "date": "2026-05-15",
+        "memo": "Scheduler exposes metrics on port 9464, the OpenTelemetry Prometheus exporter port the collector scrapes by default."
+      },
+      "stale": {
+        "value": "9090",
+        "date": "2025-09-03",
+        "memo": "Scheduler exposes metrics on port 9090."
+      },
+      "adjacent": {
+        "value": "9100",
+        "topic": "host monitoring",
+        "date": "2026-01-22",
+        "memo": "Host-level metrics come from the node exporter on port 9100 on every machine. That port belongs to the host agent; services pick their own metrics ports."
+      },
+      "contra_a": {
+        "value": "8081",
+        "memo": "Scheduler exposes metrics on port 8081, next to its admin API on 8080."
+      },
+      "contra_b": {
+        "value": "9300",
+        "memo": "Scheduler exposes metrics on port 9300, the port reserved for scheduler metrics in the team's port registry."
+      }
+    },
+    {
+      "id": "editor-default-locale",
+      "project": "sable-cms",
+      "topic": "editor UI",
+      "task": "Set `DEFAULT_LOCALE` for the editor UI in `editor/i18n.ts`. Give the locale code.",
+      "current": {
+        "value": "en-GB",
+        "date": "2026-03-19",
+        "memo": "Editor UI default locale is en-GB. Most editors are in the UK and house style uses British spellings.",
+        "aliases": [
+          "en_GB"
+        ]
+      },
+      "stale": {
+        "value": "en-US",
+        "date": "2025-06-30",
+        "memo": "Editor UI default locale is en-US, the framework default.",
+        "aliases": [
+          "en_US"
+        ]
+      },
+      "adjacent": {
+        "value": "de-DE",
+        "topic": "partner portal",
+        "date": "2026-05-04",
+        "memo": "The white-label portal for the Berlin partner defaults to de-DE. That setting lives in the partner's portal build and does not affect the core editor.",
+        "aliases": [
+          "de_DE"
+        ]
+      },
+      "contra_a": {
+        "value": "en-IE",
+        "memo": "Editor UI default locale is en-IE, since most of the editorial team is based in Dublin.",
+        "aliases": [
+          "en_IE"
+        ]
+      },
+      "contra_b": {
+        "value": "fr-FR",
+        "memo": "Editor UI default locale is fr-FR, since most of the editorial team is based in Montreal.",
+        "aliases": [
+          "fr_FR"
+        ]
+      }
+    },
+    {
+      "id": "thumbnail-queue",
+      "project": "heron-jobs",
+      "topic": "media processing",
+      "task": "Set `THUMBNAIL_QUEUE` in `jobs/queues.py`: the queue thumbnail-generation tasks are published to. Give the queue name.",
+      "current": {
+        "value": "media.thumbs.v2",
+        "date": "2026-07-14",
+        "memo": "Thumbnail-generation tasks publish to media.thumbs.v2, the queue whose payload carries the crop hints the thumbnail workers expect."
+      },
+      "stale": {
+        "value": "thumbnails",
+        "date": "2025-11-02",
+        "memo": "Thumbnail-generation tasks publish to the thumbnails queue."
+      },
+      "adjacent": {
+        "value": "video-transcode-jobs",
+        "topic": "video transcoding",
+        "date": "2026-07-14",
+        "memo": "Video transcoding tasks publish to video-transcode-jobs. Only transcoding jobs go there; image work has its own queues."
+      },
+      "contra_a": {
+        "value": "media.thumbs",
+        "memo": "Thumbnail-generation tasks publish to media.thumbs, the queue the thumbnail workers subscribe to."
+      },
+      "contra_b": {
+        "value": "img-thumbnails-high",
+        "memo": "Thumbnail-generation tasks publish to img-thumbnails-high, the priority queue, because thumbnail rendering blocks the upload confirmation screen."
+      }
+    },
+    {
+      "id": "ruff-line-length",
+      "project": "pike-tools",
+      "topic": "code style",
+      "task": "Set `line-length` under `[tool.ruff]` in `pyproject.toml`. Give the number.",
+      "current": {
+        "value": "100",
+        "date": "2026-04-14",
+        "memo": "Ruff line-length is 100. The long type annotations in the plugin API wrap into unreadable shapes at narrower widths."
+      },
+      "stale": {
+        "value": "88",
+        "date": "2025-08-18",
+        "memo": "Ruff line-length is 88, the Black default, so formatting matches the upstream projects we contribute to."
+      },
+      "adjacent": {
+        "value": "120",
+        "topic": "generated SDK",
+        "date": "2026-02-02",
+        "memo": "The generated client SDK repository uses line-length 120, because the generator emits long lines that cannot be wrapped. That setting is for generated code only; hand-written repositories keep their own style."
+      },
+      "contra_a": {
+        "value": "79",
+        "memo": "Ruff line-length is 79, so that side-by-side diffs fit on a laptop screen."
+      },
+      "contra_b": {
+        "value": "110",
+        "memo": "Ruff line-length is 110, so that the plugin API's long signatures fit on one line."
+      }
+    },
+    {
+      "id": "ranking-timeout",
+      "project": "osprey-search",
+      "topic": "search API",
+      "task": "Set `UPSTREAM_TIMEOUT_MS` for calls from the search API to the ranking service in `search/clients.py`. Give the number of milliseconds.",
+      "current": {
+        "value": "850",
+        "date": "2026-06-10",
+        "memo": "Search API calls to the ranking service time out after 850 ms. Past that the fallback lexical ranking returns faster than waiting, and the p99 latency budget is 1 second."
+      },
+      "stale": {
+        "value": "2000",
+        "date": "2025-12-12",
+        "memo": "Search API calls to the ranking service time out after 2000 ms."
+      },
+      "adjacent": {
+        "value": "15000",
+        "topic": "batch reindexer",
+        "date": "2026-03-25",
+        "memo": "The batch reindexer calls the ranking service with a 15000 ms timeout, since it scores large batches offline. That timeout is for the reindexer only; interactive callers set their own."
+      },
+      "contra_a": {
+        "value": "500",
+        "memo": "Search API calls to the ranking service time out after 500 ms, per the ranking team's service-level objective."
+      },
+      "contra_b": {
+        "value": "1200",
+        "memo": "Search API calls to the ranking service time out after 1200 ms, to ride out the ranking service's garbage-collection pauses."
+      }
+    },
+    {
+      "id": "jwt-key-variable",
+      "project": "wren-auth",
+      "topic": "auth service",
+      "task": "Name the environment variable `auth/settings.py` reads the JWT signing key from. Give the variable name.",
+      "current": {
+        "value": "WREN_JWT_SIGNING_KEY",
+        "date": "2026-05-01",
+        "memo": "The auth service reads its JWT signing key from WREN_JWT_SIGNING_KEY. The prefix keeps the key from colliding with other tools' variables in the shared secrets injector."
+      },
+      "stale": {
+        "value": "JWT_SECRET",
+        "date": "2025-07-15",
+        "memo": "The auth service reads its JWT signing key from JWT_SECRET."
+      },
+      "adjacent": {
+        "value": "PARTNER_HOOK_SECRET",
+        "topic": "partner webhooks",
+        "date": "2026-04-03",
+        "memo": "Outgoing partner webhooks are signed with the key in PARTNER_HOOK_SECRET. That key is for webhook signatures only and must never be used for user tokens."
+      },
+      "contra_a": {
+        "value": "AUTH_SIGNING_KEY",
+        "memo": "The auth service reads its JWT signing key from AUTH_SIGNING_KEY, the name the platform's secret template generates."
+      },
+      "contra_b": {
+        "value": "WREN_JWT_PRIVATE_KEY",
+        "memo": "The auth service reads its JWT signing key from WREN_JWT_PRIVATE_KEY, since tokens are signed with an asymmetric key pair."
+      }
+    },
+    {
+      "id": "orders-db-pool",
+      "project": "kelp-orders",
+      "topic": "orders API",
+      "task": "Set `DB_POOL_SIZE` for the orders API workers in `orders/db.py`. Give the number.",
+      "current": {
+        "value": "14",
+        "date": "2026-08-05",
+        "memo": "Orders API workers use DB_POOL_SIZE 14. At the present worker count, 14 per worker keeps the total under the database's connection limit with room for migrations."
+      },
+      "stale": {
+        "value": "5",
+        "date": "2025-10-09",
+        "memo": "Orders API workers use DB_POOL_SIZE 5, the driver default."
+      },
+      "adjacent": {
+        "value": "40",
+        "topic": "analytics consumer",
+        "date": "2026-06-29",
+        "memo": "The analytics consumer uses a pool of 40 against the read replica. It is a separate process on a separate database, and its pool says nothing about the orders API."
+      },
+      "contra_a": {
+        "value": "8",
+        "memo": "Orders API workers use DB_POOL_SIZE 8; load tests showed no gain beyond that."
+      },
+      "contra_b": {
+        "value": "20",
+        "memo": "Orders API workers use DB_POOL_SIZE 20, to absorb the checkout spikes at the top of the hour."
+      }
+    },
+    {
+      "id": "archive-compression",
+      "project": "dune-archive",
+      "topic": "nightly archive",
+      "task": "Set `COMPRESSION` for the nightly archive tarballs in `archive/pack.py`. Give the codec name.",
+      "current": {
+        "value": "zstd",
+        "date": "2026-04-27",
+        "memo": "Nightly archive tarballs use zstd. It compresses well at little CPU cost, which keeps the archive job inside its window."
+      },
+      "stale": {
+        "value": "gzip",
+        "date": "2025-06-19",
+        "memo": "Nightly archive tarballs use gzip, since every restore host can read it."
+      },
+      "adjacent": {
+        "value": "lz4",
+        "topic": "replication stream",
+        "date": "2026-02-16",
+        "memo": "The live replication stream is compressed with lz4 for latency. That choice is for the streaming path only; batch archives are a separate decision."
+      },
+      "contra_a": {
+        "value": "xz",
+        "memo": "Nightly archive tarballs use xz, for the best ratio on cold storage priced per gigabyte."
+      },
+      "contra_b": {
+        "value": "bzip2",
+        "memo": "Nightly archive tarballs use bzip2, which the restore scripts expect."
+      }
+    },
+    {
+      "id": "customer-db-region",
+      "project": "tundra-cloud",
+      "topic": "customer data",
+      "task": "Set `PRIMARY_REGION` for the customer-data database in `infra/db.tf`. Give the region identifier.",
+      "current": {
+        "value": "eu-central-2",
+        "date": "2026-07-22",
+        "memo": "The customer-data database's primary region is eu-central-2, the Zurich region, since the Swiss customers' contracts require data residency in Switzerland."
+      },
+      "stale": {
+        "value": "us-east-1",
+        "date": "2025-09-08",
+        "memo": "The customer-data database's primary region is us-east-1, next to the rest of the stack."
+      },
+      "adjacent": {
+        "value": "eu-west-1",
+        "topic": "marketing site",
+        "date": "2026-05-11",
+        "memo": "The marketing site's CDN origin is in eu-west-1. It holds no customer data and has no bearing on where customer databases live."
+      },
+      "contra_a": {
+        "value": "eu-central-1",
+        "memo": "The customer-data database's primary region is eu-central-1, which satisfies EU residency and has every managed service we use."
+      },
+      "contra_b": {
+        "value": "eu-north-1",
+        "memo": "The customer-data database's primary region is eu-north-1, chosen for its lower storage prices."
+      }
+    },
+    {
+      "id": "log-retention",
+      "project": "gannet-logs",
+      "topic": "application logs",
+      "task": "Set `RETENTION_DAYS` for application logs in `logging/retention.yaml`. Give the number of days.",
+      "current": {
+        "value": "45",
+        "date": "2026-06-02",
+        "memo": "Application logs are retained for 45 days. The logs contain IP addresses, so the privacy policy caps retention, and 45 days still covers the monthly billing dispute window."
+      },
+      "stale": {
+        "value": "90",
+        "date": "2025-08-12",
+        "memo": "Application logs are retained for 90 days."
+      },
+      "adjacent": {
+        "value": "400",
+        "topic": "security audit logs",
+        "date": "2026-03-06",
+        "memo": "Security audit logs are retained for 400 days under the legal hold policy. That hold covers the security audit trail only, not application logs."
+      },
+      "contra_a": {
+        "value": "30",
+        "memo": "Application logs are retained for 30 days, the storage tier's included allowance."
+      },
+      "contra_b": {
+        "value": "60",
+        "memo": "Application logs are retained for 60 days, so that two full incident-review cycles can reference them."
+      }
+    },
+    {
+      "id": "password-hasher",
+      "project": "flint-vault",
+      "topic": "accounts",
+      "task": "Set `PASSWORD_HASHER` in `accounts/security.py`. Give the algorithm name.",
+      "current": {
+        "value": "argon2id",
+        "date": "2026-01-29",
+        "memo": "User passwords are hashed with argon2id. The security policy requires a memory-hard function."
+      },
+      "stale": {
+        "value": "bcrypt",
+        "date": "2025-05-22",
+        "memo": "User passwords are hashed with bcrypt."
+      },
+      "adjacent": {
+        "value": "scrypt",
+        "topic": "API keys",
+        "date": "2026-04-21",
+        "memo": "API keys are stored hashed with scrypt by the key service. That service handles machine credentials only; user password hashing is owned by the accounts module."
+      },
+      "contra_a": {
+        "value": "pbkdf2_sha256",
+        "memo": "User passwords are hashed with pbkdf2_sha256, the algorithm the identity team standardised on for every service."
+      },
+      "contra_b": {
+        "value": "argon2i",
+        "memo": "User passwords are hashed with argon2i, the algorithm the platform security team standardised on for every service."
+      }
+    },
+    {
+      "id": "deploy-branch",
+      "project": "ember-site",
+      "topic": "deployment",
+      "task": "Set `DEPLOY_BRANCH` in `.deploy/config.yml`: the git branch whose pushes deploy to production. Give the branch name.",
+      "current": {
+        "value": "release-train",
+        "date": "2026-05-25",
+        "memo": "Production deploys from pushes to the release-train branch. Merges to release-train require a second approval, which keeps half-reviewed changes out of production."
+      },
+      "stale": {
+        "value": "main",
+        "date": "2025-10-16",
+        "memo": "Production deploys from pushes to main."
+      },
+      "adjacent": {
+        "value": "gh-pages",
+        "topic": "documentation site",
+        "date": "2026-02-13",
+        "memo": "The documentation site publishes from the gh-pages branch. That applies to the docs site only; the application's deploy pipeline is configured separately."
+      },
+      "contra_a": {
+        "value": "prod-stable",
+        "memo": "Production deploys from pushes to prod-stable, which only the release manager can push to."
+      },
+      "contra_b": {
+        "value": "deploy/production",
+        "memo": "Production deploys from pushes to deploy/production, tagged weekly from the integration branch."
+      }
+    },
+    {
+      "id": "contacts-export-encoding",
+      "project": "pewter-crm",
+      "topic": "contact exports",
+      "task": "Set `EXPORT_ENCODING` for the contacts CSV export in `crm/export.py`. Give the Python codec name.",
+      "current": {
+        "value": "utf-8-sig",
+        "date": "2026-03-23",
+        "memo": "Contacts CSV export is written as utf-8-sig. The sales team's spreadsheet software needs the byte-order mark to read accented surnames correctly.",
+        "aliases": [
+          "utf_8_sig"
+        ]
+      },
+      "stale": {
+        "value": "utf-8",
+        "date": "2025-07-29",
+        "memo": "Contacts CSV export is written as utf-8.",
+        "aliases": [
+          "utf8",
+          "utf_8"
+        ]
+      },
+      "adjacent": {
+        "value": "cp1252",
+        "topic": "accounting import",
+        "date": "2026-01-14",
+        "memo": "Files for the legacy accounting import are written in cp1252, the only encoding that system reads. That constraint belongs to the accounting integration and not to user-facing exports."
+      },
+      "contra_a": {
+        "value": "utf-16",
+        "memo": "Contacts CSV export is written as utf-16, which the CRM's import wizard detects automatically."
+      },
+      "contra_b": {
+        "value": "iso-8859-15",
+        "memo": "Contacts CSV export is written as iso-8859-15, the encoding the sales team's mail-merge templates are saved in."
+      }
+    }
+  ],
+  "distractors": [
+    {
+      "topic": "team process",
+      "memo": "Stand-up moved to the afternoon slot on Tuesdays so the design team can attend."
+    },
+    {
+      "topic": "tooling",
+      "memo": "Run `make lint` before pushing; CI runs the same target, so a clean local run means a clean CI lint step."
+    },
+    {
+      "topic": "design system",
+      "memo": "The design system's typeface is Inter. Do not add other font families to the web bundle."
+    },
+    {
+      "topic": "on-call",
+      "memo": "On-call handoff happens on Monday mornings, in the incident channel, with a written summary of open alerts."
+    },
+    {
+      "topic": "pull requests",
+      "memo": "Pull request titles follow Conventional Commits, since the changelog generator parses them."
+    },
+    {
+      "topic": "staging data",
+      "memo": "The staging database is reset from anonymised production data every Sunday night. Do not keep test fixtures there."
+    },
+    {
+      "topic": "testing",
+      "memo": "The session-expiry test is quarantined as flaky while the clock-mocking library is replaced. Do not delete it."
+    },
+    {
+      "topic": "observability",
+      "memo": "Dashboards live in the observability repository as code. Edits made in the dashboard UI are overwritten on the next sync."
+    },
+    {
+      "topic": "documentation",
+      "memo": "Screenshots in the docs are captured at double resolution and saved as PNG."
+    },
+    {
+      "topic": "dependencies",
+      "memo": "Dependency update pull requests are batched weekly, and are merged on Wednesdays after the integration suite passes."
+    },
+    {
+      "topic": "logging",
+      "memo": "Do not use print for diagnostics; use the structured logger, which attaches the request identifier automatically."
+    },
+    {
+      "topic": "mobile releases",
+      "memo": "The mobile app ships every second Thursday. Features that miss a date wait for the next one."
+    },
+    {
+      "topic": "privacy",
+      "memo": "Legal must review any new cookie or local-storage key before it ships."
+    },
+    {
+      "topic": "migrations",
+      "memo": "Pair with a second engineer on any migration that rewrites a large table, and run it outside business hours."
+    },
+    {
+      "topic": "integration tests",
+      "memo": "The integration tests need Docker running locally; they start their own containers and remove them afterwards."
+    },
+    {
+      "topic": "changelog",
+      "memo": "The changelog is generated from pull request labels. Do not edit the changelog file by hand."
+    },
+    {
+      "topic": "readme",
+      "memo": "The badges at the top of the README are generated by a script in the tools folder."
+    },
+    {
+      "topic": "release freeze",
+      "memo": "No production deploys during the team offsite week; the freeze is announced in the engineering channel."
+    },
+    {
+      "topic": "code review",
+      "memo": "Reviewers should leave a summary comment stating whether their remarks are blocking."
+    },
+    {
+      "topic": "accessibility",
+      "memo": "Every new form field needs a visible label; placeholder text alone failed the accessibility audit."
+    }
+  ]
+}
