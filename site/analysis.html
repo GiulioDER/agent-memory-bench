@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem("amb-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<title>Analysis · agent-memory-bench</title>
+<meta name="description" content="A product by product analysis of six memory layers for coding agents: how each one works, how it was run, where it helped, where it hurt, and what it cost.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23131311'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fbfbf9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Spline+Sans+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html" aria-label="agent-memory-bench home">
+      <span class="tick" aria-hidden="true"></span>
+      <span><strong class="long">agent-memory-bench</strong><strong class="short">AMB</strong><span class="full"> / AMB</span></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="method.html">Method</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="analysis.html" aria-current="page">Analysis</a>
+      <a href="submit.html">Submit</a>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
+      <button class="theme-toggle" type="button" aria-label="Switch between light and dark"><span class="sw" aria-hidden="true"></span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="sheet">
+
+  <section class="page-head">
+    <span class="kicker reveal">Analysis</span>
+    <h1 class="reveal r2">What each memory layer <em>did.</em></h1>
+    <p class="dek reveal r3">How six memory products work, how each was run here, where it helped,
+    where it hurt, and what it cost. The leaderboard says who scored what; this page is my reading
+    of why.</p>
+  </section>
+
+  <div class="status-line" role="note">
+    <span class="live">written 2026-09-26 by Giulio D'Erme</span>
+    <span>data: official-003 and four joined runs</span>
+    <span>model deepseek/deepseek-v4-flash</span>
+  </div>
+
+  <section class="pad-y-s context-block">
+    <div class="callout callout-invert">
+      <span class="kicker">Read this first</span>
+      <p><strong>I build RE-call, one of the six products compared here.</strong> That is why
+      every run is preregistered, every adapter is open, and every loss is published. It is also
+      why you should weigh my notes on RE-call, and on its competitors, with that in mind.</p>
+      <p class="mt-s">The prose on this page is written by hand and dated. The figures in each
+      product's strip are generated from the same run artifacts as the leaderboard, so the two can
+      be checked against each other. Where the prose quotes a number, it is as of the date above.</p>
+    </div>
+  </section>
+
+  <section class="pad-y-s" id="findings">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>What holds across the field</h2>
+      <span class="aside">six findings</span>
+    </div>
+
+    <ol class="finding-list mt-s">
+      <li>
+        <div>
+          <h3>No memory product clearly beats a static instruction file.</h3>
+          <p>Five of the six intervals cross zero, so none of those five is distinguishable from
+          <code>claude_md</code>. The one interval that excludes zero, supermemory's, lies below it.
+          The controls make the point sharper: <code>bare</code>, with no memory at all, and
+          <code>placebo</code>, with inert prose, score as high as the best product. On this
+          corpus, extra text in the context window moves success about as much as a memory layer
+          does.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Memory helps most when a fact is missing or stale.</h3>
+          <p>The gains concentrate in <code>absent</code> and <code>superseded</code>. RE-call
+          gains 17 and 13 points there, Claude Mem 11 and 7, Graphiti 13 on absent, cognee 9 on
+          superseded. Those are the conditions in which a product can add something the static
+          file lacks: a check that nothing governs the task, or the newer of two rules.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Memory hurts when facts conflict.</h3>
+          <p>On <code>contradictory</code>, no product beats <code>claude_md</code>; Claude Mem
+          ties it and the other five fall below it, mempalace by 12 points. A retrieval layer tends
+          to surface one side of a conflict with confidence, and the agent acts on it. None of the
+          products tested turned a detected conflict into a question for the user often enough to
+          show.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>More context is not more success.</h3>
+          <p>Agent tokens per task run from about twice the baseline (Graphiti, cognee) to nearly
+          thirteen times (Claude Mem), and the ordering by cost does not follow the ordering by
+          success. The expensive part is usually not the search itself but what the search leaves
+          in the context window, re-read on every later turn.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>The cost of building the store is invisible for most products.</h3>
+          <p>Only cognee's ingest was metered in tokens: its graph extraction read the whole corpus
+          once per condition, which makes it the largest bill on the board. Graphiti's and Claude
+          Mem's ingest ran inside the product and was never metered; mempalace and supermemory
+          embedded on local models the meter cannot see. Anyone comparing cost has to add a write
+          side bill that this benchmark cannot price for four of the six products. The leaderboard
+          states each one's status beside its agent cost for that reason.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Whether the agent searches matters as much as what the store holds.</h3>
+          <p>Across admitted sessions, the agent called memory in about 93% of Claude Mem's (with a
+          guard forcing the first search), 67% of mempalace's, 56% of RE-call's, 30% of cognee's
+          and 16% of Graphiti's. Supermemory has no search tool; its hooks inject context whether
+          or not the task needs it. A store the agent does not query cannot help, and a store that
+          answers every prompt unasked can hurt.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="pad-y-s" id="products">
+    <div class="section-head">
+      <span class="no">02</span>
+      <h2>Product by product</h2>
+      <span class="aside">in leaderboard order</span>
+    </div>
+
+    <nav class="toc mt-s" aria-label="Products">
+      <a href="#re-call">RE-call</a>
+      <a href="#claude-mem">Claude Mem</a>
+      <a href="#cognee">cognee</a>
+      <a href="#graphiti">Graphiti</a>
+      <a href="#mempalace">mempalace</a>
+      <a href="#supermemory">supermemory</a>
+    </nav>
+
+    <article class="vendor mt-m" id="re-call">
+      <div class="vendor-head">
+        <h3>RE-call</h3>
+        <span class="m-dim">MCP server · official-003 · preregistration 026</span>
+      </div>
+      <div data-arm="RE-call"></div>
+
+      <h4>How it works</h4>
+      <p>RE-call stores chunks with their embeddings in Postgres and serves them through an MCP
+      server. An index is built as a generation, and a generation is served only after a
+      calibration run has certified a relevance threshold for it. Every hit comes back with a
+      verdict: usable, superseded (with a pointer to the document that replaced it), or low
+      confidence; when nothing clears the threshold the search abstains instead of returning the
+      nearest text.</p>
+
+      <h4>How it was run here</h4>
+      <p>Eight read tools, including evidence and reasoning tools; write tools withheld. Voyage
+      embeddings, strict trust mode, reranker off. Nothing is injected: the agent decides whether
+      to search. No model rewrites the corpus at ingest.</p>
+
+      <h4>How it performed</h4>
+      <p>It is the highest scoring product and leads in present, absent and superseded, which is
+      what the verdicts are for: an abstention on <code>absent</code> and a superseded label on a
+      stale rule are exactly the signals those conditions reward. It gains nothing on
+      <code>contradictory</code> or <code>adjacent</code>. A conflict comes back as two confident
+      hits, and a wrong scope fact comes back as a good match; neither is flagged. In an earlier
+      run the reasoning tools meant to handle conflicts were never called at all. The lead over
+      <code>claude_md</code> is not established: the interval crosses zero.</p>
+
+      <h4>Pros and cons</h4>
+      <div data-arm="RE-call" data-show="notes"></div>
+    </article>
+
+    <article class="vendor" id="claude-mem">
+      <div class="vendor-head">
+        <h3>Claude Mem</h3>
+        <span class="m-dim">hooks and MCP search · claude-mem-official-019 · preregistration 079</span>
+      </div>
+      <div data-arm="Claude Mem"></div>
+
+      <h4>How it works</h4>
+      <p>A Claude Code plugin. Lifecycle hooks capture what happens in a session as observations,
+      a background worker writes them to SQLite immediately and backfills a vector index, and a
+      search server exposes them in steps: search for candidates, read a timeline around one, then
+      fetch the full observations. The design is progressive disclosure, so the agent pays for
+      detail only when it asks for it.</p>
+
+      <h4>How it was run here</h4>
+      <p>The corpus was imported as raw transcripts rather than compressed by the plugin's
+      observer model, so the store held verbatim sessions, not the plugin's own summaries. The
+      first-search guard was switched on: it blocks every other tool until the agent has searched
+      once. It was added after an unguarded session ignored the search instruction, and the result
+      is labelled as guarded for that reason. Claude Mem was never sent a review invitation.</p>
+
+      <h4>How it performed</h4>
+      <p>Second overall, ahead of <code>claude_md</code> in four conditions and level with it on
+      contradictory, the only product not to lose there. The guard is doing real work: the agent
+      searched in nearly every session. The price is context. It used the most agent tokens per
+      task of any arm, and most of them are the same context read again on each turn. Its ingest
+      was not metered, so the real bill is higher still.</p>
+
+      <h4>Pros and cons</h4>
+      <div data-arm="Claude Mem" data-show="notes"></div>
+    </article>
+
+    <article class="vendor" id="cognee">
+      <div class="vendor-head">
+        <h3>cognee</h3>
+        <span class="m-dim">MCP server · cognee-001 · preregistration 027</span>
+      </div>
+      <div data-arm="cognee"></div>
+
+      <h4>How it works</h4>
+      <p>cognee turns documents into a knowledge graph. Text is added, then a cognify step has a
+      language model extract entities and the relations between them into a graph database, while
+      chunks are embedded into a vector index. A search runs over both, and a result may be an
+      answer synthesised from the graph rather than a quoted passage.</p>
+
+      <h4>How it was run here</h4>
+      <p>One read tool, <code>recall</code>; the write and forget tools withheld. Local fastembed
+      embeddings, with graph extraction on the benchmark model through a hosted API. The shared
+      corpus was ingested into a base store and copied per condition.</p>
+
+      <h4>How it performed</h4>
+      <p>The best product on <code>adjacent</code> and second on <code>superseded</code>, both
+      conditions where structure should help: a relation carries the subsystem it belongs to. It
+      lost ground on <code>absent</code>, where a synthesised answer can read as a finding when
+      there is none. Two things limit the result. The agent searched in fewer than a third of
+      sessions, well under what its preregistration expected. And it has the most discarded cells
+      of any product, almost all of them sessions in which its MCP server never connected. On the
+      agent side it is cheap; counted with its ingest, it is the most expensive product measured.</p>
+
+      <h4>Pros and cons</h4>
+      <div data-arm="cognee" data-show="notes"></div>
+    </article>
+
+    <article class="vendor" id="graphiti">
+      <div class="vendor-head">
+        <h3>Graphiti</h3>
+        <span class="m-dim">MCP server · official-007-graphiti · preregistration 084</span>
+      </div>
+      <div data-arm="Graphiti"></div>
+
+      <h4>How it works</h4>
+      <p>Graphiti is an open source temporal knowledge graph. Each ingested episode is read by a
+      language model that extracts entities and the facts linking them, and, as the project
+      documents it, each fact carries the time it held, so a newer fact can retire an older one
+      rather than sit beside it. Search runs over facts, entities and the episodes they came
+      from.</p>
+
+      <h4>How it was run here</h4>
+      <p>The official MCP server with six read tools, extraction and embeddings through hosted
+      models, ingest by the controller only. The run deviated from its preregistration in six
+      ways, published with the run's provenance. There is a seventh that matters more than any of
+      them. After the first attempt crashed, each condition resumed from the episodes already
+      ingested, and those stores held between 120 and 143 sessions. Every other product searched
+      a store of about 4,900. So Graphiti was measured on a small fraction of the corpus the
+      others saw.</p>
+
+      <h4>How it performed</h4>
+      <p>Close to the middle of the field, strong on <code>absent</code>, and the cheapest
+      product per task in agent tokens. I read that result as a partial store measurement, not as
+      a verdict on Graphiti: a store that small is cheap to search and easy to miss in. The agent
+      searched in only about one session in six. The finding I most wanted from this product, a
+      gain on <code>superseded</code> from its handling of time, did not appear, and with this
+      store it could not fairly have been tested.</p>
+
+      <h4>Pros and cons</h4>
+      <div data-arm="Graphiti" data-show="notes"></div>
+    </article>
+
+    <article class="vendor" id="mempalace">
+      <div class="vendor-head">
+        <h3>mempalace</h3>
+        <span class="m-dim">MCP server · official-003 · preregistration 026</span>
+      </div>
+      <div data-arm="mempalace"></div>
+
+      <h4>How it works</h4>
+      <p>mempalace mines conversations into drawers inside a palace, organised by wing and room,
+      and keeps them verbatim. It runs locally: a vector store with a small local embedding model,
+      searched by a mix of vector similarity and keyword match, plus navigation tools that walk
+      the palace's structure.</p>
+
+      <h4>How it was run here</h4>
+      <p>The published MCP server with twenty read and navigation tools; tools that write were
+      withheld, and the agent's attempts to call them were refused. The corpus was mined natively
+      from the transcripts, with no hosted model anywhere in the path.</p>
+
+      <h4>How it performed</h4>
+      <p>Second among products on <code>present</code>, where a clean fact is waiting, and the
+      largest loss on <code>contradictory</code> apart from supermemory. That pairing is what
+      verbatim storage predicts: the original words are there to be found, and so are both sides
+      of a conflict, with nothing to rank one above the other. Its agent cost is among the higher
+      ones, and its ingest cost is time on the host rather than tokens.</p>
+
+      <h4>Pros and cons</h4>
+      <div data-arm="mempalace" data-show="notes"></div>
+    </article>
+
+    <article class="vendor" id="supermemory">
+      <div class="vendor-head">
+        <h3>supermemory</h3>
+        <span class="m-dim">lifecycle hooks · supermemory-004 · preregistration 040</span>
+      </div>
+      <div data-arm="supermemory"></div>
+
+      <h4>How it works</h4>
+      <p>supermemory is a memory service with a Claude Code plugin. Its hooks inject a user
+      profile when a session starts and relevant memories on every prompt, so the agent never
+      decides whether to look: memory arrives with the task. Normally a language model extracts
+      memories from what it is given, asynchronously.</p>
+
+      <h4>How it was run here</h4>
+      <p>The self-hosted build, with local embeddings and a local model. Its own extraction did
+      not finish within the ingest window, so the corpus went in as raw transcript chunks stored
+      as static memories. That makes this a measurement of the plugin's injection on raw memories,
+      not of supermemory's full pipeline, and I state it as the largest caveat on this row.</p>
+
+      <h4>How it performed</h4>
+      <p>The only product clearly worse than <code>claude_md</code>, and the collapse is worst
+      on <code>superseded</code> and <code>adjacent</code>. The streams show why. Every session
+      opened with a large injected block, and in the one I read closely the persistent profile
+      was a raw transcript from an unrelated project. Sessions were short: far fewer output tokens
+      and far less time than any other arm, and many ended before the agent wrote the file the
+      task asked for. Injection without relevance filtering turned memory into noise the agent
+      could not opt out of.</p>
+
+      <h4>Pros and cons</h4>
+      <div data-arm="supermemory" data-show="notes"></div>
+    </article>
+  </section>
+
+  <section class="pad-y-s" id="limits">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>What this analysis cannot tell you</h2>
+      <span class="aside">read before quoting it</span>
+    </div>
+
+    <div class="prose mt-s">
+      <p><strong>The write path is not measured.</strong> Every product was handed the same corpus
+      before the grid and never wrote to its own store, so a product whose value lies in what it
+      extracts and consolidates while it works gets no credit for that here.</p>
+      <p class="mt-s"><strong>One model, one agent.</strong> Every session ran Claude Code on
+      <code>deepseek/deepseek-v4-flash</code>. A stronger model may use the same memory
+      differently.</p>
+      <p class="mt-s"><strong>Joined runs.</strong> Four products were measured in their own runs,
+      on different dates, and are compared with <code>official-003</code> on the cells both share.
+      Their differences are indicative, not paired to the last cell.</p>
+      <p class="mt-s"><strong>Cost is list price.</strong> Agent tokens are priced at one published
+      rate for every arm, with cached input charged as ordinary input. A real bill with cache
+      discounts would narrow the gap for the products that re-read the most context.</p>
+      <p class="mt-s">The protocol, every adapter and every run are in the
+      <a href="https://github.com/GiulioDER/agent-memory-bench">repository</a>; the method is on
+      the <a href="method.html">method page</a>.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="foot-title">agent-memory-bench</div>
+      <div class="dim">A preregistered, execution-graded benchmark of pluggable memory layers
+      for coding agents. Apache-2.0. Built in the open; results published win or lose.</div>
+    </div>
+    <div>
+      <div class="foot-title">Pages</div>
+      <a href="method.html">Method</a><br>
+      <a href="leaderboard.html">Leaderboard</a><br>
+      <a href="analysis.html">Analysis</a><br>
+      <a href="submit.html">Submit &amp; reproduce</a>
+    </div>
+    <div>
+      <div class="foot-title">Source</div>
+      <a href="https://github.com/GiulioDER/agent-memory-bench">Repository</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/tree/master/preregistration">Preregistrations</a><br>
+      <a href="https://github.com/GiulioDER/agent-memory-bench/blob/master/adapters/VENDOR_REVIEW_TEMPLATE.md">Vendor review</a>
+    </div>
+  </div>
+</footer>
+
+<script src="data/leaderboard.js"></script>
+<script src="data/analysis.js"></script>
+<script src="site.js"></script>
+</body>
+</html>
