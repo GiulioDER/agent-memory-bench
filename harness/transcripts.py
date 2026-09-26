@@ -11,7 +11,10 @@ import json
 from collections.abc import Mapping
 from pathlib import Path
 
+from harness.corpus_names import neutral_key_map, rendered_name
 from harness.lineage import render_frontmatter
+
+__all__ = ["neutral_key_map", "render_corpus", "render_transcript", "rendered_name"]
 
 
 def render_transcript(
@@ -31,7 +34,9 @@ def render_transcript(
     block = render_frontmatter(frontmatter)
     if block:
         lines.append(block)
-    lines.extend([f"# Session notes: {jsonl_path.stem}", ""])
+    # No stem in the heading: for a planted session it was the plant's own name
+    # (`stale_numeric_switch`), which sits in the first chunk and reached the agent.
+    lines.extend(["# Session notes", ""])
     for raw in jsonl_path.read_text(encoding="utf-8").splitlines():
         if not raw.strip():
             continue
@@ -60,12 +65,13 @@ def render_corpus(
 ) -> int:
     """Render transcripts into ``target_dir``; returns the count written.
 
-    With ``root`` given, each output is named from its path relative to ``root`` with
-    separators flattened to ``__`` (``sessions/ts-dedup-order/p01.jsonl`` becomes
-    ``sessions__ts-dedup-order__p01.md``): unique by construction AND self-identifying in a
-    retrieval result. Without ``root``, bare filenames are used and a collision RAISES,
-    because the first version of this function silently overwrote colliding names and
-    shipped a corpus holding one precursor out of twenty-four.
+    Each output is named by :func:`rendered_name`, a neutral ``notes__<digest>.md`` derived from
+    its path relative to ``root`` (or from its bare filename without ``root``). The name used to
+    mirror the path, ``sessions__ts-dedup-order__p01.md``, which made it self-identifying in a
+    retrieval result; that was the defect, not a feature. Join a returned name back to the corpus
+    with :func:`neutral_key_map`. A collision still RAISES, because the first version of this
+    function silently overwrote colliding names and shipped a corpus holding one precursor out of
+    twenty-four.
 
     ``lineage`` maps a session path to the frontmatter it should carry, as built by
     `harness.lineage.frontmatter_for`. The pairing logic lives there rather than here: this
@@ -80,14 +86,11 @@ def render_corpus(
     written = 0
     seen: dict[str, Path] = {}
     for source in sorted(session_paths):
-        if root is not None:
-            name = source.relative_to(root).with_suffix(".md").as_posix().replace("/", "__")
-        else:
-            name = source.with_suffix(".md").name
+        name = rendered_name(source, root)
         if name in seen:
             raise ValueError(
                 f"transcript name collision: {source} and {seen[name]} both render to "
-                f"{name!r}; pass root= so names mirror their paths"
+                f"{name!r}; pass root= so names derive from full corpus paths"
             )
         seen[name] = source
         meta = {

@@ -45,6 +45,7 @@ from harness.adapters.base import (
     namespace_path,
     validate_namespace,
 )
+from harness.corpus_names import NEUTRAL_NAME, neutral_stem
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
 
@@ -221,6 +222,36 @@ class MemPalaceAdapter(MemoryAdapter):
         return int(row[0]) if row else 0
 
     @staticmethod
+    def filed_source_names(palace: Path) -> list[str]:
+        """The distinct ``source_file`` values a palace has filed, as MemPalace stored them."""
+        import sqlite3
+
+        with sqlite3.connect(f"file:{palace / 'chroma.sqlite3'}?mode=ro", uri=True) as db:
+            rows = db.execute(
+                "select distinct string_value from embedding_metadata where key='source_file'"
+            ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    @staticmethod
+    def check_base_names_are_neutral(base: Path, names: list[str]) -> None:
+        """Refuse a base palace filed under the old path-mirroring names.
+
+        The count check cannot see this: a base built before 2026-09-26 holds exactly the shared
+        documents, under names like `synthetic__...`, so it passes and puts the filler label back
+        into every condition that copies it. Every filed name must be neutral.
+        """
+        legacy = [
+            name
+            for name in names
+            if not NEUTRAL_NAME.match(name.replace("\\", "/").rsplit("/", 1)[-1])
+        ]
+        if legacy:
+            raise RuntimeError(
+                f"base palace {base} files {len(legacy)} document(s) under non-neutral names, "
+                f"e.g. {legacy[:3]}. It was built before corpus names were neutralised; rebuild it."
+            )
+
+    @staticmethod
     def check_base_covers_shared(base: Path, reused: int, shared: int, prefix: str) -> None:
         """Refuse a base palace that does not hold EXACTLY the corpus's shared documents.
 
@@ -280,15 +311,16 @@ class MemPalaceAdapter(MemoryAdapter):
             self.check_base_covers_shared(
                 base, self.filed_document_count(palace), len(shared), shared_prefix
             )
+            self.check_base_names_are_neutral(base, self.filed_source_names(palace))
 
-        # The corpus bytes, flattened into one directory. Names mirror their corpus paths so a
-        # retrieval result identifies its own source, matching `harness.transcripts.render_corpus`.
-        # `mine` dedups on this flattened name, which is what makes a base palace's documents
-        # recognisable across conditions.
+        # The corpus bytes, flattened into one directory under the same neutral names every arm
+        # sees (`harness.corpus_names`). They used to mirror the corpus path, which put
+        # `stale_...`, `rival_...` and `synthetic__...` into the `source_file` MemPalace returns.
+        # The name is still deterministic, so `mine` still dedups on it across conditions.
         for rel in sorted(corpus.sessions):
             if base is not None and rel.startswith(shared_prefix):
                 continue
-            shutil.copyfile(corpus.root / rel, feed / rel.replace("/", "__"))
+            shutil.copyfile(corpus.root / rel, feed / (neutral_stem(rel) + ".jsonl"))
 
         start = time.monotonic()
         result = subprocess.run(

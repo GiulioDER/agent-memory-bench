@@ -18,6 +18,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
+from harness.corpus_names import neutral_stem
 from harness.lineage import TIERS, earliest_ts, frontmatter_for, render_frontmatter
 from harness.transcripts import render_corpus, render_transcript
 
@@ -44,7 +45,7 @@ def _pair(root: Path, task: str = "ts-x", stale_day="2026-02-19", cur_day="2026-
 def test_no_frontmatter_by_default(tmp_path):
     """Tier 0 must be the SAME code path as production, not a reconstruction of it."""
     s = _session(tmp_path / "a.jsonl", "2026-01-01")
-    assert render_transcript(s).startswith("# Session notes: a")
+    assert render_transcript(s).startswith("# Session notes\n")
     assert "---" not in render_transcript(s).splitlines()[0]
 
 
@@ -97,7 +98,7 @@ def test_declared_marks_the_stale_side_and_points_the_current_one_at_it(tmp_path
     stale, cur = _pair(tmp_path)
     out = frontmatter_for([stale, cur], tmp_path, "declared")
     assert out[stale]["valid_until"] == "2026-08-06", "must end the day BEFORE its successor"
-    assert out[cur]["supersedes"] == "sessions__ts-x__stale_old_way.md"
+    assert out[cur]["supersedes"] == neutral_stem("sessions/ts-x/stale_old_way.jsonl") + ".md"
     assert out[cur].get("valid_until") is None
 
 
@@ -141,9 +142,9 @@ def test_frontmatter_renders_as_a_yaml_block_recall_can_parse(tmp_path):
     lines = text.splitlines()
     assert lines[0] == "---"
     assert "valid_from: 2026-08-07" in lines
-    assert "supersedes: sessions__ts-x__stale_old_way.md" in lines
+    assert "supersedes: " + neutral_stem("sessions/ts-x/stale_old_way.jsonl") + ".md" in lines
     assert lines[lines.index("---", 1)] == "---"
-    assert "# Session notes: p01" in text
+    assert "# Session notes" in lines
 
 
 def test_key_order_is_stable_so_the_corpus_digest_is(tmp_path):
@@ -176,8 +177,10 @@ def test_declared_render_actually_reaches_disk(tmp_path):
     meta = frontmatter_for([stale, cur], tmp_path, "declared")
     n = render_corpus([stale, cur], target, root=tmp_path, lineage=meta)
     assert n == 2
-    stale_md = (target / "sessions__ts-x__stale_old_way.md").read_text(encoding="utf-8")
-    cur_md = (target / "sessions__ts-x__p01.md").read_text(encoding="utf-8")
+    stale_md = (target / (neutral_stem("sessions/ts-x/stale_old_way.jsonl") + ".md")).read_text(
+        encoding="utf-8"
+    )
+    cur_md = (target / (neutral_stem("sessions/ts-x/p01.jsonl") + ".md")).read_text(encoding="utf-8")
     assert "valid_until: 2026-08-06" in stale_md, "the stale document carries no expiry on disk"
     assert "supersedes:" in cur_md, "the current document names no predecessor on disk"
 
@@ -187,7 +190,10 @@ def test_control_render_is_byte_identical_without_lineage(tmp_path):
     a, b = tmp_path / "a", tmp_path / "b"
     render_corpus([stale, cur], a, root=tmp_path)
     render_corpus([stale, cur], b, root=tmp_path, lineage={})
-    for name in ("sessions__ts-x__p01.md", "sessions__ts-x__stale_old_way.md"):
+    for name in (
+        neutral_stem("sessions/ts-x/p01.jsonl") + ".md",
+        neutral_stem("sessions/ts-x/stale_old_way.jsonl") + ".md",
+    ):
         assert (a / name).read_bytes() == (b / name).read_bytes()
         assert not (a / name).read_text(encoding="utf-8").startswith("---")
 

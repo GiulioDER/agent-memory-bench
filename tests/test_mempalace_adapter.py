@@ -226,6 +226,53 @@ def test_an_ingest_that_filed_nothing_is_a_failure_not_an_empty_store(monkeypatc
         adapter.ingest(Corpus(), "ns")
 
 
+def test_the_feed_mempalace_mines_carries_only_neutral_names(monkeypatch, adapter, tmp_path):
+    """MemPalace returns each hit's `source_file`, so the feed file name is agent-visible.
+
+    It mirrored the corpus path until 2026-09-26 (`plants__ts-x__stale_y.jsonl`), and planted
+    labels reached the agent in 8 superseded and 4 contradictory official-003 sessions.
+
+    Red proof, 2026-09-26: with the feed name reverted to `rel.replace("/", "__")`, this failed on
+    the neutral-name assertion with `plants__ts-x__stale_old_way.jsonl`.
+    """
+
+    from harness.corpus_names import NEUTRAL_NAME
+
+    root = tmp_path / "corpus"
+    rels = ["sessions/ts-x/p01.jsonl", "plants/ts-x/stale_old_way.jsonl"]
+    for rel in rels:
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text('{"role": "user", "content": "x"}\n', encoding="utf-8")
+    fed: list[str] = []
+
+    class Result:
+        returncode = 0
+        stdout = "  Drawers filed: 2\n"
+        stderr = ""
+
+    def fake_run(cmd, *args, **kwargs):
+        feed = Path(cmd[cmd.index("mine") + 1])
+        fed.extend(sorted(p.name for p in feed.iterdir()))
+        return Result()
+
+    monkeypatch.setattr("adapters.mempalace.adapter.subprocess.run", fake_run)
+
+    class Corpus:
+        sessions: ClassVar[dict[str, str]] = dict.fromkeys(rels, "")
+
+        def __init__(self):
+            self.root = root
+
+        def verify(self):
+            return None
+
+    adapter.ingest(Corpus(), "ns")
+    assert len(fed) == len(rels)
+    for name in fed:
+        assert NEUTRAL_NAME.match(name), name
+        assert name.endswith(".jsonl"), "mine --mode convos reads the corpus JSONL natively"
+
+
 # --------------------------------------------------------------------- per-task prompts
 
 

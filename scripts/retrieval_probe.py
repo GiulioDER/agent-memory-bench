@@ -90,6 +90,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness.adapters.base import GATINGS, CorpusManifest, resolve_corpus_path
+from harness.corpus_names import neutral_key_map
 from harness.retrieval import Bm25Index
 from harness.tasks import discover_tasks
 from scripts.audit_corpus import readable_text
@@ -410,12 +411,17 @@ class ArmBackend:
         #: about whether the arm's identifiers are the SAME identifiers, which is a different
         #: failure from ranking badly and must never be published as one.
         self.documents: set[str] = set()
+        #: Neutral name to corpus key, built by `bind_corpus`.
+        self.names: dict[str, str] = {}
         self.hits_returned = 0
         self.hits_joined = 0
         self.unjoinable_examples: list[str] = []
 
     def bind_corpus(self, documents: set[str]) -> None:
         self.documents = set(documents)
+        # Arms see neutral names (`harness.corpus_names`), so a hit is joined back through the
+        # manifest rather than decoded from its name.
+        self.names = neutral_key_map(self.documents)
 
     def ranking(self, query: str) -> list[tuple[str, float]]:
         result = self.adapter.search(
@@ -426,7 +432,9 @@ class ArmBackend:
             # A product that declines here has retrieved nothing on purpose and should score as a
             # miss, with the count reported so nobody reads the miss as a ranking failure.
             self.abstentions += 1
-        ranked = [(hit.source_path, hit.score) for hit in result.hits]
+        ranked = [
+            (self.names.get(hit.source_path, hit.source_path), hit.score) for hit in result.hits
+        ]
         for source, _score in ranked:
             self.hits_returned += 1
             if source in self.documents:

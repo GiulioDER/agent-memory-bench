@@ -10,6 +10,7 @@ from adapters.fs_grep.adapter import FsGrepAdapter
 from adapters.supermemory.adapter import SupermemoryAdapter
 from harness.adapters.base import CorpusManifest, resolve_corpus_path
 from harness.adapters.registry import AdapterRegistry
+from harness.corpus_names import neutral_stem
 
 
 @pytest.fixture()
@@ -84,7 +85,8 @@ def test_fs_grep_ingest_renders_verbatim_markdown(tmp_path, corpus, base_prompt)
     assert report.items_stored == 1
     assert report.llm_input_tokens == 0
     rendered = (
-        tmp_path / "staging" / "bench-fs_grep-0" / "memory" / "sessions__t1__s01.md"
+        tmp_path / "staging" / "bench-fs_grep-0" / "memory"
+        / (neutral_stem("sessions/t1/s01.jsonl") + ".md")
     ).read_text(encoding="utf-8")
     assert "mig.sh truncates names" in rendered
     spec = adapter.build(tmp_path, "bench-fs_grep-0")
@@ -237,8 +239,10 @@ def test_render_corpus_refuses_or_disambiguates_name_collisions(tmp_path):
     with pytest.raises(ValueError, match="collision"):
         render_corpus(paths, tmp_path / "flat")
 
-    # With a root, both survive under self-identifying names.
+    # With a root, both survive under distinct neutral names derived from their paths.
     count = render_corpus(paths, tmp_path / "mirrored", root=root)
     names = sorted(p.name for p in (tmp_path / "mirrored").glob("*.md"))
     assert count == 2
-    assert names == ["sessions__task-a__p01.md", "sessions__task-b__p01.md"]
+    assert names == sorted(
+        [neutral_stem("sessions/task-a/p01.jsonl") + ".md", neutral_stem("sessions/task-b/p01.jsonl") + ".md"]
+    )

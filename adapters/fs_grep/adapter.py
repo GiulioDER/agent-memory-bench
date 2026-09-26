@@ -25,6 +25,7 @@ from harness.adapters.base import (
     namespace_path,
     validate_namespace,
 )
+from harness.corpus_names import neutral_key_map
 from harness.gate import AdmissionSignal
 from harness.instructions import compose
 from harness.lineage import lineage_from_env
@@ -103,8 +104,9 @@ class FsGrepAdapter(MemoryAdapter):
         self.instruction = instruction
         #: staging dir -> ((file count, newest mtime_ns), {path: term counts}). See `_store`.
         self._store_cache: dict[Path, tuple[tuple[int, int], dict[Path, Counter]]] = {}
-        #: Manifest keys this instance ingested; empty until `ingest` runs. See `_manifest_key`.
-        self._ingested_keys: set[str] = set()
+        #: Rendered name to manifest key for what this instance ingested; empty until `ingest`
+        #: runs. See `_manifest_key`.
+        self._ingested_names: dict[str, str] = {}
 
     def _instruction_text(self) -> str:
         if self.instruction is not None:
@@ -150,25 +152,21 @@ class FsGrepAdapter(MemoryAdapter):
         return store
 
     def _manifest_key(self, path: Path) -> str:
-        """Reverse `render_corpus`'s naming, refusing a name the encoding cannot have produced.
+        """Join a rendered file back to the corpus key it was rendered from.
 
-        `sessions__ts-dedup-order__p01.md` came from `sessions/ts-dedup-order/p01.jsonl`, and the
-        flattening exists precisely so this is reversible. It is NOT injective, though: the
-        encoding does not escape a `__` that was already in a path component, so
-        `a__b/c.jsonl` and `a/b__c.jsonl` render to the same name. No corpus path contains one
-        today and nothing forbids one, so this checks against the manifest of what was actually
-        ingested rather than trusting the decode, and says so loudly when the check fails.
+        Rendered names are neutral (`harness.corpus_names`): they encode no path, because a name
+        that could be decoded here could be read by the agent too, and that is how planted
+        documents announced their role until 2026-09-26. So this looks the name up in the map of
+        what this instance actually ingested, and refuses a name it did not produce.
         """
 
-        decoded = path.stem.replace("__", "/") + ".jsonl"
-        known = self._ingested_keys
-        if known and decoded not in known:
+        key = self._ingested_names.get(path.name)
+        if key is None:
             raise RuntimeError(
-                f"{self.name}: rendered file {path.name!r} decodes to {decoded!r}, which is not "
-                f"a document that was ingested. `render_corpus` does not escape `__` inside a "
-                f"path component, so this name is ambiguous; rename the corpus path."
+                f"{self.name}: rendered file {path.name!r} is not a document this instance "
+                f"ingested, so it cannot be joined to the corpus."
             )
-        return decoded
+        return key
 
     def _prompt_path(self, namespace: str) -> Path:
         # Same join, same risk: this namespace comes from the same argument as the staging
@@ -187,10 +185,10 @@ class FsGrepAdapter(MemoryAdapter):
         stored = render_corpus(
             _paths, target, root=corpus.root, lineage=lineage_from_env(_paths, corpus.root)
         )
-        # What `_manifest_key` validates against. Kept per adapter instance rather than written
-        # to disk, because an adapter that did not ingest has nothing to check and says so by
-        # leaving this empty rather than by inventing an authority it does not have.
-        self._ingested_keys = set(corpus.sessions)
+        # What `_manifest_key` joins through. Kept in memory rather than written to disk: the
+        # staging directory is the agent's own `memory/` folder, and a mapping file there would
+        # give back the names the neutral render takes away.
+        self._ingested_names = neutral_key_map(corpus.sessions)
         self._store_cache.clear()
         prompt = self._prompt_path(namespace)
         prompt.parent.mkdir(parents=True, exist_ok=True)
