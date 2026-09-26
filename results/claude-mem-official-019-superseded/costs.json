@@ -1,0 +1,49 @@
+{
+  "arms": {
+    "claude_mem": {
+      "arm": "claude_mem",
+      "sessions": 50,
+      "sessions_unmetered": 1,
+      "session_input_tokens": 12176427,
+      "session_output_tokens": 118175,
+      "session_wall_time_ms": 3689761.2210977823,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 1,
+      "ingest_wall_time_ms": 20875.817068852484,
+      "ingest_items_stored": 4911,
+      "ingest_local_model": null,
+      "total_tokens": 12294602,
+      "notes": [
+        "ingest into 'claude-mem-official-019-superseded' was not token-metered (vendor-side extraction); its cost is missing from the totals, not zero"
+      ],
+      "estimated_usd": 0.7125,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 10110208,
+      "session_cache_creation_tokens": 0
+    }
+  },
+  "total_tokens": 12294602,
+  "total_sessions": 50,
+  "estimated_usd": 0.7125,
+  "pricing_as_of": "2026-08-22",
+  "efficiency": {
+    "claude_mem": {
+      "sessions": 50,
+      "successes": 34,
+      "input_tokens": 12176427,
+      "output_tokens": 118175,
+      "wall_ms": 3689761.2210977823,
+      "successes_per_mtok_input": 2.79,
+      "successes_per_mtok_total": 2.77,
+      "mean_input_tokens_per_session": 243528.5,
+      "mean_wall_s_per_session": 73.8
+    }
+  }
+}

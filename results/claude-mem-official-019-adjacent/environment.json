@@ -1,0 +1,206 @@
+{
+  "run_id": "claude-mem-official-019-adjacent",
+  "model": "deepseek/deepseek-v4-flash",
+  "base_url": "http://127.0.0.1:8787",
+  "arms": [
+    "claude_mem"
+  ],
+  "memory_instruction": "protocol",
+  "condition": "adjacent",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "claude_mem": {
+      "bytes": 4116,
+      "chars": 4116,
+      "sha256": "a613a52bc2fd9897ae91ae9784165f7dfd64aa2c08edf94ed4abc3f0595b4597"
+    }
+  },
+  "instruction_excess_bytes": {
+    "claude_mem": 644
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "claude_mem": {
+      "ts-base36-id": "afedd323d92110663d195111fc3500dfa80c4308e6bf58773b790d0aa377c228",
+      "ts-bom-merge": "b959f2c38c45c13b78d7ec5fb3a41347319d8d25ea7ea1b4fc078a6e686ab257",
+      "ts-dedup-order": "72d5ffcc0ef8cff89291c25dc2cee306ab02abe7b1bc7e80f769c769d640198e",
+      "ts-golden-regen": "b74c6c931113064d210cd2eacd41b11f412044aa439b11539d7bbd652aa7d189",
+      "ts-ignore-gen": "760467b980d3ec41086e0c009461c0547cfdfca549a7b072dbc2ce70d3a56272",
+      "ts-legacy-hash": "fdbb5c2feb2747e87e0ea7f4082c40c5ba07d3b73067d0994d7553cbfd3262c4",
+      "ts-mig-name": "3f0dd8e9c2a4adb02de0961288ee84dd616d093a5653902c9d2d6f80807e8238",
+      "ts-natural-order": "be6c54aa11d5255adfd5f5cd64fdb913e0b5cb2d9c288b1a4284337f33189d28",
+      "ts-schema-additive": "0fde2869d15968335c509ac58e62051746fb1042091c0f76223624fff2b0054d",
+      "ts-semver-pin": "1e2d6f84cef938fe661236e311528a3ca4bf83e1835bda2eee1244705ae0fa22",
+      "ts-tz-utc": "b6de66161fffd2b645711035e53dc063828991fe1e175ff62f036285043e5e17"
+    }
+  },
+  "namespace": "claude-mem-official-019-adjacent",
+  "cell_namespace_policy": {
+    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion"
+  },
+  "work_root": "/tmp/agent-memory-bench-work/claude-mem-official-019-adjacent",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "claude_mem": {
+      "arm": "claude_mem",
+      "product": "Claude-Mem",
+      "memory": "official Claude-Mem plugin hooks and MCP search",
+      "plugin_version": "13.24.0",
+      "plugin_commit": "ffe75a81e71b190644195a0ae9a5b6997757317c",
+      "plugin_root": "$HOME/amb-claude-mem-v13-24-0",
+      "mcp_server": "mcp-search",
+      "tools": [
+        "search",
+        "timeline",
+        "get_observations"
+      ],
+      "required_hooks": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse",
+        "Stop"
+      ],
+      "import_path": "/api/import",
+      "observer_provider": "openrouter",
+      "observer_model": "xiaomi/mimo-v2.5",
+      "fixture_cache_env": "CLAUDE_MEM_BENCHMARK_FIXTURE_CACHE",
+      "fixture_cache_max_age_default_s": 172800
+    }
+  },
+  "ingest": [
+    {
+      "arm": "claude_mem",
+      "namespace": "claude-mem-official-019-adjacent",
+      "sessions_offered": 4900,
+      "items_stored": 4900,
+      "wall_time_ms": 2033590.8752642572,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": null,
+      "notes": [
+        "loaded through Claude-Mem's shipped /api/import route",
+        "worker search verification returned 1 hit(s) for project claude_mem",
+        "semantic cache prepared with the pinned vendor formatter and writer in batch mode",
+        "import timestamps anchored to ingestion time for Claude-Mem's default recency window",
+        "observer provider openrouter with model xiaomi/mimo-v2.5"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "not_required"
+  },
+  "claude_mem_preflight": {
+    "status": "passed",
+    "server": "mcp-search",
+    "required_tools": [
+      "search",
+      "timeline",
+      "get_observations"
+    ],
+    "tools_observed": [
+      "important_workflow",
+      "search",
+      "timeline",
+      "get_observations",
+      "session_start_context",
+      "smart_search",
+      "smart_unfold",
+      "smart_outline",
+      "build_corpus",
+      "list_corpora",
+      "prime_corpus",
+      "query_corpus",
+      "rebuild_corpus",
+      "reprime_corpus"
+    ],
+    "search": "tools/call search succeeded"
+  }
+}
