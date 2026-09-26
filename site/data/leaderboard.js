@@ -153,7 +153,29 @@ window.AMB_LEADERBOARD = {
       "discarded": 6,
       "tokensPerTask": 17954,
       "costPerTask": 0.0013,
-      "sourceRun": "official-003"
+      "sourceRun": "official-003",
+      "byCondition": {
+        "present": {
+          "solved": 43,
+          "cells": 111
+        },
+        "absent": {
+          "solved": 32,
+          "cells": 52
+        },
+        "superseded": {
+          "solved": 31,
+          "cells": 46
+        },
+        "contradictory": {
+          "solved": 39,
+          "cells": 51
+        },
+        "adjacent": {
+          "solved": 38,
+          "cells": 57
+        }
+      }
     },
     {
       "name": "bare",

@@ -38,8 +38,53 @@
     <h1 class="reveal r2">Ranked by what <em>ran.</em></h1>
     <p class="dek reveal r3">Task success on executable checkers, paired by task against the
     <code>claude_md</code> baseline. Numbers are generated from published run artifacts.</p>
+  </section>
 
-    <div class="callout callout-invert mt-l reveal r4">
+  <div class="status-line" id="run-meta" role="status"></div>
+
+  <section class="pad-y-s" id="products">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>Memory products compared</h2>
+      <span class="aside">ranked by task success</span>
+    </div>
+
+    <p class="prose mt-s">Each product against the <code>claude_md</code> baseline, a curated
+    static instruction file. The bar is the 95% interval of the difference and the dot is the
+    estimate; the vertical line is the baseline. A bar that crosses the line is not
+    distinguishable from <code>claude_md</code>.</p>
+
+    <div class="table-scroll mt-s">
+      <table class="board">
+        <thead>
+          <tr>
+            <th class="num">#</th>
+            <th>product</th>
+            <th class="num">success</th>
+            <th class="num">vs claude_md</th>
+            <th class="ci-col">95% interval</th>
+            <th>verdict</th>
+            <th class="num">cells</th>
+            <th class="num">cost / task</th>
+          </tr>
+        </thead>
+        <tbody id="board-body"></tbody>
+      </table>
+    </div>
+
+    <p class="prose mt-m dim">Cells scored are admitted task, seed and condition cells; discarded
+    cells failed the <a href="method.html#gate">admission gate</a> and are counted, not scored.
+    A product measured in its own run is compared on the cells it shares with official-003. Cost is
+    end to end, including ingestion.</p>
+  </section>
+
+  <!-- What this ranking is a ranking OF. Written by scripts/build_leaderboard.py from
+       leaderboard.config.json, never by hand: while the write path is unmeasured the page
+       must say so here, beside the table rather than in a footnote. -->
+  <aside class="scope-note" id="scope-note"></aside>
+
+  <section class="pad-y-s context-block">
+    <div class="callout callout-invert">
       <span class="kicker">Adversarial by design</span>
       <p><strong>This benchmark tests failure as well as recall.</strong> The corpus is empty,
       stale, contradictory, or out of scope in 65% of the scored cells. A clean governing fact is
@@ -49,112 +94,77 @@
     </div>
   </section>
 
-  <div class="status-line" id="run-meta" role="status"></div>
-
-  <!-- What this ranking is a ranking OF. Written by scripts/build_leaderboard.py from
-       leaderboard.config.json, never by hand: while the write path is unmeasured the page
-       must say so here, beside the table rather than in a footnote. -->
-  <aside class="scope-note" id="scope-note"></aside>
-
   <section class="analysis-panel" id="run-analysis" hidden>
     <div class="analysis-top">
       <div>
-        <span class="kicker">Automatic run analysis</span>
+        <span class="kicker">The result in one line</span>
         <h2 id="analysis-headline"></h2>
         <p id="analysis-summary" class="dim"></p>
       </div>
       <div class="analysis-links" id="analysis-links"></div>
     </div>
     <div class="analysis-metrics" id="analysis-metrics"></div>
-    <div class="table-scroll mt-s">
-      <table class="analysis-table">
-        <thead><tr><th>arm</th><th class="num">success</th><th class="num">cost / cell or task</th><th class="num">mean session</th><th class="num">vs baseline</th><th>read</th></tr></thead>
-        <tbody id="analysis-body"></tbody>
-      </table>
-    </div>
-    <div class="analysis-insights" id="analysis-insights"></div>
-  </section>
-
-  <section class="pad-y-s" id="products">
-    <div class="section-head">
-      <span class="no">01</span>
-      <h2>Products and controls</h2>
-      <span class="aside">ranked when a run is official</span>
-    </div>
-
-    <div class="table-scroll mt-s">
-      <table>
-        <thead>
-          <tr>
-            <th class="num">rank</th>
-            <th>arm</th>
-            <th>integration</th>
-            <th class="num">task success</th>
-            <th class="num">&Delta; vs baseline</th>
-            <th class="num">95% CI</th>
-            <th class="num">discarded cells</th>
-            <th class="num">total tokens</th>
-            <th class="num">cost / task</th>
-          </tr>
-        </thead>
-        <tbody id="board-body"></tbody>
-      </table>
-    </div>
-
-    <p class="prose mt-m dim">Small deltas are labeled as noise. Discarded cells failed the
-    <a href="method.html#gate">admission gate</a> and are reported rather than scored. Tokens and
-    cost are end-to-end, including ingestion.</p>
   </section>
 
   <section class="pad-y-s" id="by-condition">
     <div class="section-head">
       <span class="no">02</span>
-      <h2>Products, condition by condition</h2>
-      <span class="aside">where a memory layer earns and where it costs</span>
+      <h2>Where each product helps and where it costs</h2>
+      <span class="aside">task success by corpus condition</span>
     </div>
 
-    <p class="prose mt-s">The condition breakdown shows where each product helps and where memory
-    becomes a liability. <code>present</code> holds a clean governing fact; the other four test
-    abstention, recency, conflict, and scope.</p>
+    <p class="prose mt-s"><code>present</code> holds a clean governing fact. The other four test
+    whether memory hurts: <code>absent</code> has no answer to find, <code>superseded</code> holds a
+    stale one, <code>contradictory</code> holds a conflict, and <code>adjacent</code> holds a
+    plausible fact from the wrong scope. The small number is the difference from
+    <code>claude_md</code> in the same condition.</p>
 
     <div class="table-scroll mt-s">
-      <table>
+      <table class="conditions">
         <thead><tr id="condition-head"></tr></thead>
         <tbody id="condition-body"></tbody>
       </table>
     </div>
 
-    <p class="prose mt-m dim">Values are solved cells over admitted cells. A held product publishes
-    neither a headline nor a breakdown.</p>
+    <p class="prose mt-m dim">Percentages are solved cells over admitted cells. The baseline row is
+    over all of official-003's admitted cells; a joined product was scored on the subset it shares
+    with them, so its differences are indicative.</p>
   </section>
 
-  <section class="pad-y-s" id="reference">
+  <section class="pad-y-s" id="controls">
     <div class="section-head">
       <span class="no">03</span>
-      <h2>Reference tracks</h2>
-      <span class="aside">diagnostics, never ranked</span>
+      <h2>Controls and reference tracks</h2>
+      <span class="aside">not products, never ranked</span>
     </div>
 
-    <p class="prose mt-s"><code>protocol</code> carries the shared memory instruction with no memory
-    behind it. Its delta is the cost of asking the agent to use memory. <code>recall_prefetch</code>
-    retrieves with the exact task prompt, removing query formulation from the path.</p>
+    <p class="prose mt-s">These arms price the grid rather than compete in it. <code>bare</code>
+    and <code>placebo</code> scoring above most products is the finding, not a footnote: on this
+    corpus, extra plausible text helps about as much as a memory layer, which is why no product is
+    declared a winner.</p>
 
     <div class="table-scroll mt-s">
       <table>
         <thead>
           <tr>
-            <th>track</th>
+            <th>arm</th>
             <th>what it isolates</th>
             <th class="num">task success</th>
-            <th class="num">&Delta; vs baseline</th>
+            <th class="num">vs claude_md</th>
+            <th class="num">95% interval</th>
           </tr>
         </thead>
-        <tbody id="reference-body"></tbody>
+        <tbody id="controls-body"></tbody>
       </table>
     </div>
 
-    <p class="prose mt-m dim">Reference tracks diagnose the memory path. They run in the grid but
-    are never ranked as products. See the <a href="method.html#diagnostic">method page</a>.</p>
+    <p class="prose mt-m dim">Reference tracks diagnose the memory path: they run in the grid and
+    are never ranked. See the <a href="method.html#arms">method page</a>.</p>
+
+    <details class="analysis-notes mt-l">
+      <summary>Every note the automatic analysis generated</summary>
+      <div class="analysis-insights" id="analysis-insights"></div>
+    </details>
   </section>
 
   <section class="pad-y-s" id="official">

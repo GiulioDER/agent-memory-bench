@@ -498,10 +498,11 @@ def build(repo_root: str | Path) -> str:
             entry["comparison"] = f"joined to {run_id}"
         if internal == "claude_md" and entry["delta"] is None:
             entry["delta"] = 0  # the page renders the baseline row from this sentinel
-        # Per-condition detail is published for PRODUCTS only. The controls exist to price the
-        # grid, not to be studied condition by condition, and putting five more columns on
-        # `bare` and `placebo` would bury the comparison the table is for.
-        if role is None:
+        # Per-condition detail is published for PRODUCTS and for the BASELINE. The controls exist
+        # to price the grid, not to be studied condition by condition. The baseline is different:
+        # the condition table reads every product against it, and a percentage with no reference
+        # row beside it cannot be read at all.
+        if role is None or role == "baseline":
             entry["byCondition"] = numbers.get("byCondition")
         hold = VENDOR_REVIEW_HOLDS.get(internal)
         if hold:

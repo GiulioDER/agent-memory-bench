@@ -217,6 +217,33 @@ def test_an_additive_arm_joins_the_frozen_base_without_a_full_roster(tmp_path):
     assert data["provenance"]["armRuns"]["cognee"] == "cognee-x"
 
 
+def test_the_baseline_publishes_its_condition_breakdown_and_controls_do_not(tmp_path):
+    """The condition table reads each product against claude_md, so the baseline needs the row.
+
+    Invariant: the `baseline` arm carries `byCondition`; `floor` and `control` arms do not.
+    Failure mode caught: a generator that publishes per-condition detail for products only, which
+    leaves the page no reference row and makes every condition percentage unreadable on its own.
+
+    Red proof, 2026-09-26: against `scripts/build_leaderboard.py` at 7dee223b, which published
+    `byCondition` only when `role is None`, this failed on its first assertion
+    (`'byCondition' in baseline` was False).
+    """
+
+    summary = _summary()
+    breakdown = {"present": {"solved": 3, "cells": 5}}
+    for arm in summary["arms"].values():
+        arm["byCondition"] = breakdown
+    root = _scaffold(tmp_path, summary=summary, official_run="run-x")
+    result = _run(root=root)
+    assert result.returncode == 0, result.stdout + result.stderr
+    rows = {a["name"]: a for a in _payload(root)["arms"]}
+    baseline = rows["claude_md"]
+    assert "byCondition" in baseline
+    assert baseline["byCondition"] == breakdown
+    for name in ("bare", "placebo", "fs_grep"):
+        assert "byCondition" not in rows[name], f"{name} published a condition breakdown"
+
+
 def test_an_additive_arm_cannot_replace_a_base_arm(tmp_path):
     root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
     _config(root, arm_runs={"recall": "replacement"})
@@ -398,11 +425,17 @@ def test_the_page_does_not_rank_a_held_arm():
     assert "a.held" in js and "heldUntil" in js, "site.js does not render the hold reason"
 
 
-def test_the_analysis_table_keeps_pending_arms_visible_without_metrics():
+def test_the_product_table_keeps_pending_arms_visible_without_metrics():
+    """A pending product stays on the board, unranked and labelled, rather than vanishing.
+
+    Replaced 2026-09-26 with the analysis arm table it used to check: the product table is now
+    the only place arms are listed. Red proof: against site.js at 7dee223b the first assertion
+    fails (no `not yet measured` label); the rank guard already existed there and still holds.
+    """
+
     js = (REPO_ROOT / "site" / "site.js").read_text(encoding="utf-8")
-    assert "D.arms.filter(function (arm) { return arm.pending; })" in js
-    assert 'data: { status: "pending" }' in js
-    assert 'read = "pending"' in js
+    assert 'if (a.pending) return "not yet measured";' in js
+    assert "(official && !a.held && !a.pending)" in js
 
 
 def test_the_front_page_arm_count_matches_the_generator():

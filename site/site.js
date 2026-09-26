@@ -20,9 +20,14 @@
   });
 })();
 
-/* Renders the leaderboard tables from window.AMB_LEADERBOARD (data/leaderboard.js).
+/* Renders the leaderboard from window.AMB_LEADERBOARD (data/leaderboard.js).
    No frameworks, no fetch, no innerHTML: the data ships as a script so file:// works,
-   and every node is built with DOM methods. */
+   and every node is built with DOM methods.
+
+   Layout, decided 2026-09-26 after a reader found one mixed table unreadable: memory products
+   first, each read against claude_md with its interval drawn; then the same products condition
+   by condition; then the controls and reference tracks, which price the grid rather than compete
+   in it, at the bottom. */
 
 (function () {
   var D = window.AMB_LEADERBOARD;
@@ -30,17 +35,19 @@
   if (!D || !board) return;
 
   var official = !!D.run;
+  var BASELINE = D.baseline || "claude_md";
+  var MINUS = "−";
 
   function pct(x) { return x == null ? null : (100 * x).toFixed(1) + "%"; }
   function pts(x) {
     if (x == null) return null;
-    return (x > 0 ? "+" : "") + (100 * x).toFixed(1) + " pts";
+    return (x > 0 ? "+" : x < 0 ? MINUS : "") + Math.abs(100 * x).toFixed(1) + " pts";
   }
-  function ciTxt(c) {
-    return c ? "[" + (100 * c[0]).toFixed(1) + ", " + (100 * c[1]).toFixed(1) + "]" : null;
-  }
-  function tokenTxt(x) {
-    return x == null ? null : Number(x).toLocaleString("en-US");
+  function signed(x) { return (x > 0 ? "+" : x < 0 ? MINUS : "") + Math.abs(100 * x).toFixed(1); }
+  function ciTxt(c) { return c ? signed(c[0]) + " to " + signed(c[1]) : null; }
+  function money(x) {
+    if (x == null) return null;
+    return "$" + (x >= 1 ? x.toFixed(2) : x >= 0.01 ? x.toFixed(3) : x.toFixed(4));
   }
 
   function span(cls, text, bold) {
@@ -49,131 +56,228 @@
     s.textContent = text;
     return s;
   }
-
+  function block(cls, text) {
+    var d = document.createElement("div");
+    d.className = cls;
+    d.textContent = text;
+    return d;
+  }
   function cell(cls) {
     var td = document.createElement("td");
     if (cls) td.className = cls;
     for (var i = 1; i < arguments.length; i++) {
       if (arguments[i]) td.appendChild(arguments[i]);
     }
-    if (!td.firstChild) td.appendChild(span("m-dim", "pending"));
+    if (!td.firstChild) td.appendChild(span("m-dim", "—"));
     return td;
   }
 
-  /* Rank only when official: by success desc; list order otherwise. */
-  var arms = D.arms.slice();
-  if (official) {
-    arms.sort(function (a, b) { return (b.success || 0) - (a.success || 0); });
+  /* A product is an arm with no role. Controls carry one (baseline, floor, control). */
+  var products = D.arms.filter(function (a) { return !a.role; });
+  var controls = D.arms.filter(function (a) { return !!a.role; });
+  var baselineArm = D.arms.filter(function (a) { return a.name === BASELINE; })[0];
+
+  /* The words a reader acts on. An interval wholly on one side of zero is a distinguishable
+     result; one that crosses zero is not, whatever the point estimate says. */
+  var SAME = "no clear difference";
+  function verdict(a) {
+    if (a.held) return "held for vendor review";
+    if (a.pending) return "not yet measured";
+    if (a.name === BASELINE) return "baseline";
+    if (!a.ci) return null;
+    if (a.ci[0] > 0) return "better than " + BASELINE;
+    if (a.ci[1] < 0) return "worse than " + BASELINE;
+    return SAME;
   }
 
-  arms.forEach(function (a, i) {
+  function scoredCells(a) {
+    if (!a.byCondition) return null;
+    return Object.keys(a.byCondition).reduce(function (n, c) {
+      return n + (a.byCondition[c].cells || 0);
+    }, 0);
+  }
+
+  /* One shared axis for every interval in the product table, always including zero. */
+  var lo = 0, hi = 0;
+  products.forEach(function (a) {
+    if (a.ci && !a.held) { lo = Math.min(lo, a.ci[0]); hi = Math.max(hi, a.ci[1]); }
+  });
+  var axisPad = Math.max(0.02, (hi - lo) * 0.06);
+  lo -= axisPad; hi += axisPad;
+  function at(x) { return (100 * (x - lo) / (hi - lo)).toFixed(2) + "%"; }
+
+  function ciPlot(a) {
+    var box = document.createElement("div");
+    box.className = "ci-plot";
+    box.setAttribute("role", "img");
+    var zero = document.createElement("span");
+    zero.className = "ci-zero";
+    zero.style.left = at(0);
+    box.appendChild(zero);
+    if (!a.ci || a.held) {
+      box.setAttribute("aria-label", "no interval");
+      return box;
+    }
+    var bar = document.createElement("span");
+    bar.className = "ci-bar" + (verdict(a) === SAME ? "" : " ci-bar-clear");
+    bar.style.left = at(a.ci[0]);
+    bar.style.width = (100 * (a.ci[1] - a.ci[0]) / (hi - lo)).toFixed(2) + "%";
+    box.appendChild(bar);
+    if (a.delta != null) {
+      var dot = document.createElement("span");
+      dot.className = "ci-dot";
+      dot.style.left = at(a.delta);
+      box.appendChild(dot);
+    }
+    box.setAttribute("aria-label",
+      "95% interval " + ciTxt(a.ci) + " points, estimate " + signed(a.delta));
+    return box;
+  }
+
+  /* ---------- 01 memory products ---------- */
+
+  var ranked = products.slice();
+  if (official) {
+    ranked.sort(function (a, b) {
+      /* Held and pending arms carry no numbers and sort last, unranked. */
+      var ah = a.held || a.pending ? 1 : 0, bh = b.held || b.pending ? 1 : 0;
+      if (ah !== bh) return ah - bh;
+      return (b.success || 0) - (a.success || 0);
+    });
+  }
+
+  var rank = 0;
+  ranked.forEach(function (a) {
     var tr = document.createElement("tr");
+    var v = verdict(a);
+    if (v === "worse than " + BASELINE) tr.className = "row-worse";
 
     /* Held and pending arms are NOT ranked. A held arm's numbers are withheld, while a pending
        arm has not been measured yet; neither should carry a rank that implies it placed there. */
     tr.appendChild(cell("num",
-      (official && !a.held && !a.pending) ? span("m", String(i + 1)) : span("m-dim", "·")));
+      (official && !a.held && !a.pending) ? span("m", String(++rank)) : span("m-dim", "·")));
 
-    var nameTd = cell(null, span("m", "", false));
-    nameTd.firstChild.appendChild(span(null, a.name, true));
-    if (a.role) nameTd.appendChild(span("m-dim", " · " + a.role));
-    if (a.comparison) nameTd.appendChild(span("m-dim", " · " + a.comparison));
+    var nameTd = cell("product", span("product-name", a.name, true));
+    nameTd.appendChild(block("product-type dim", a.type));
+    if (a.comparison) {
+      /* The run id is long and a reader rarely needs it inline; it stays one hover away. */
+      var own = block("m-dim", "own run, " + a.comparison);
+      own.title = a.sourceRun;
+      nameTd.appendChild(own);
+    }
     /* Say WHY the row is blank. A blank row with no reason reads as "measured nothing", which is
        the opposite of what a hold means. */
     if (a.held) {
-      nameTd.appendChild(span("m-dim", " · " + a.held +
-        (a.heldUntil ? " until " + a.heldUntil : "")));
+      var why = block("m-dim", a.held + (a.heldUntil ? " until " + a.heldUntil : ""));
       /* The thread is the evidence for the promise, so a reader can check it against the
          vendor's own repository rather than taking this page's word for it. */
       if (a.heldIssue) {
-        var hi = document.createElement("a");
-        hi.href = a.heldIssue;
-        hi.rel = "noopener";
-        hi.className = "m-dim";
-        hi.appendChild(document.createTextNode(" · thread"));
-        nameTd.appendChild(hi);
+        var thread = document.createElement("a");
+        thread.href = a.heldIssue;
+        thread.rel = "noopener";
+        thread.appendChild(document.createTextNode(" · thread"));
+        why.appendChild(thread);
       }
+      nameTd.appendChild(why);
     }
-    if (a.pending) nameTd.appendChild(span("m-dim", " · pending"));
     tr.appendChild(nameTd);
 
-    tr.appendChild(cell(null, span("dim", a.type)));
-    tr.appendChild(cell("num", pct(a.success) && span("m", pct(a.success))));
-    tr.appendChild(cell("num",
-      a.delta === 0 ? span("m-dim", "baseline") : (pts(a.delta) && span("m", pts(a.delta)))));
-    tr.appendChild(cell("num", ciTxt(a.ci) && span("m", ciTxt(a.ci))));
-    tr.appendChild(cell("num", a.discarded == null ? null : span("m", String(a.discarded))));
-    /* Total token spend is meaningful for vendors only. Controls retain a deliberate dash so
-       this column cannot be mistaken for a missing measurement. */
-    tr.appendChild(cell("num", !a.role && a.totalTokens != null
-      ? span("m", tokenTxt(a.totalTokens))
-      : span("m-dim", "—")));
-    /* Costs here are sub-cent per task: toFixed(2) rendered every arm as $0.00 and made the
-       column useless. Scale the precision to the magnitude so a real difference is visible. */
-    tr.appendChild(cell("num", a.costPerTask == null ? null : span("m", "$" + (
-      a.costPerTask >= 1 ? a.costPerTask.toFixed(2)
-      : a.costPerTask >= 0.01 ? a.costPerTask.toFixed(3)
-      : a.costPerTask.toFixed(4)))));
-
+    tr.appendChild(cell("num", pct(a.success) && span("m strong-num", pct(a.success))));
+    tr.appendChild(cell("num", pts(a.delta) && span("m", pts(a.delta)),
+      a.ci && block("m-dim", ciTxt(a.ci))));
+    tr.appendChild(cell("ci-col", ciPlot(a)));
+    tr.appendChild(cell("verdict", v && span(v === SAME ? "dim" : "verdict-strong", v)));
+    var scored = scoredCells(a);
+    tr.appendChild(cell("num", scored != null && span("m", String(scored)),
+      a.discarded != null && block("m-dim", a.discarded + " discarded")));
+    tr.appendChild(cell("num", money(a.costPerTask) && span("m", money(a.costPerTask))));
     board.appendChild(tr);
   });
 
-  /* Products, condition by condition. Columns are built from the data rather than the markup,
-     because which arms are products is decided by the generator and can change between runs. */
+  /* ---------- 02 condition by condition, products as rows ---------- */
+
   var condHead = document.getElementById("condition-head");
   var condBody = document.getElementById("condition-body");
   if (condHead && condBody) {
-    var products = D.arms.filter(function (a) { return "byCondition" in a; });
     var conds = [];
-    products.forEach(function (a) {
-      if (a.byCondition) {
-        Object.keys(a.byCondition).forEach(function (c) {
-          if (conds.indexOf(c) === -1) conds.push(c);
-        });
-      }
+    D.arms.forEach(function (a) {
+      if (a.byCondition) Object.keys(a.byCondition).forEach(function (c) {
+        if (conds.indexOf(c) === -1) conds.push(c);
+      });
     });
+    var ref = baselineArm && baselineArm.byCondition;
+    var rate = function (v) { return v && v.cells ? v.solved / v.cells : null; };
 
-    if (products.length && conds.length) {
-      var hc = document.createElement("th");
-      hc.appendChild(document.createTextNode("condition"));
-      condHead.appendChild(hc);
-      products.forEach(function (a) {
+    var condRow = function (a, isBaseline) {
+      var tr = document.createElement("tr");
+      if (isBaseline) tr.className = "row-baseline";
+      var nameTd = cell(null, span("product-name", a.name, true));
+      if (isBaseline) nameTd.appendChild(block("m-dim", "baseline"));
+      tr.appendChild(nameTd);
+      conds.forEach(function (c) {
+        var v = a.byCondition ? a.byCondition[c] : null;
+        var r = rate(v);
+        if (r == null) { tr.appendChild(cell("num", null)); return; }
+        var td = cell("num", span("m strong-num", Math.round(100 * r) + "%"));
+        var sub = v.solved + "/" + v.cells;
+        var base = ref ? rate(ref[c]) : null;
+        if (!isBaseline && base != null) {
+          var d = Math.round(100 * (r - base));
+          sub = (d > 0 ? "+" : d < 0 ? MINUS : "±") + Math.abs(d) + " · " + sub;
+        }
+        td.appendChild(block("m-dim", sub));
+        tr.appendChild(td);
+      });
+      condBody.appendChild(tr);
+    };
+
+    if (conds.length) {
+      var th0 = document.createElement("th");
+      th0.textContent = "arm";
+      condHead.appendChild(th0);
+      conds.forEach(function (c) {
         var th = document.createElement("th");
         th.className = "num";
-        th.appendChild(document.createTextNode(a.name));
+        th.textContent = c;
         condHead.appendChild(th);
       });
-
-      conds.forEach(function (c) {
-        var tr = document.createElement("tr");
-        tr.appendChild(cell(null, span("m", c)));
-        products.forEach(function (a) {
-          if (!a.byCondition) {
-            tr.appendChild(cell("num", span("m-dim", "pending")));
-            return;
-          }
-          var v = a.byCondition[c];
-          if (!v || !v.cells) { tr.appendChild(cell("num", null)); return; }
-          var td = cell("num", span("m", v.solved + "/" + v.cells));
-          td.appendChild(span("m-dim", " " + Math.round((v.solved / v.cells) * 100) + "%"));
-          tr.appendChild(td);
-        });
-        condBody.appendChild(tr);
-      });
+      if (baselineArm && baselineArm.byCondition) condRow(baselineArm, true);
+      ranked.forEach(function (a) { if (a.byCondition) condRow(a, false); });
     }
   }
 
-  var ref = document.getElementById("reference-body");
-  if (ref) {
-    D.reference.forEach(function (r) {
+  /* ---------- 03 controls and reference tracks ---------- */
+
+  var controlsBody = document.getElementById("controls-body");
+  if (controlsBody) {
+    var roleOrder = { baseline: 0, floor: 1, control: 2 };
+    controls.slice().sort(function (a, b) {
+      return (roleOrder[a.role] == null ? 9 : roleOrder[a.role]) -
+        (roleOrder[b.role] == null ? 9 : roleOrder[b.role]);
+    }).forEach(function (a) {
       var tr = document.createElement("tr");
-      var nameTd = cell(null, span("m", ""));
-      nameTd.firstChild.appendChild(span(null, r.name, true));
+      if (a.role === "baseline") tr.className = "row-baseline";
+      var nameTd = cell(null, span("product-name", a.name, true));
+      nameTd.appendChild(block("m-dim", a.role));
+      tr.appendChild(nameTd);
+      tr.appendChild(cell(null, span("dim", a.type)));
+      tr.appendChild(cell("num", pct(a.success) && span("m strong-num", pct(a.success))));
+      tr.appendChild(cell("num", a.role === "baseline" ? span("m-dim", "reference")
+        : pts(a.delta) && span("m", pts(a.delta))));
+      tr.appendChild(cell("num",
+        a.role === "baseline" ? null : ciTxt(a.ci) && span("m-dim", ciTxt(a.ci))));
+      controlsBody.appendChild(tr);
+    });
+    (D.reference || []).forEach(function (r) {
+      var tr = document.createElement("tr");
+      var nameTd = cell(null, span("product-name", r.name, true));
+      nameTd.appendChild(block("m-dim", "reference track"));
       tr.appendChild(nameTd);
       tr.appendChild(cell(null, span("dim", r.what)));
-      tr.appendChild(cell("num", pct(r.success) && span("m", pct(r.success))));
+      tr.appendChild(cell("num", pct(r.success) && span("m strong-num", pct(r.success))));
       tr.appendChild(cell("num", pts(r.delta) && span("m", pts(r.delta))));
-      ref.appendChild(tr);
+      tr.appendChild(cell("num", null));
+      controlsBody.appendChild(tr);
     });
   }
 
@@ -189,109 +293,88 @@
     scopeBox.appendChild(p);
   }
 
-  /* The generated analysis is the reader-facing interpretation layer. It is deliberately kept
-     separate from the ranking table: a high score is not automatically a good tradeoff when it
-     costs more tokens, takes longer, or comes from a held vendor. */
+  /* ---------- the result in one line ---------- */
+
   var analysis = D.analysis;
   var analysisPanel = document.getElementById("run-analysis");
   if (analysis && analysisPanel) {
     analysisPanel.hidden = false;
+    var measured = products.filter(function (a) { return !a.held && !a.pending && a.ci; });
+    var better = measured.filter(function (a) { return a.ci[0] > 0; });
+    var worse = measured.filter(function (a) { return a.ci[1] < 0; });
+    var notYet = products.filter(function (a) { return a.pending || a.held; });
+    var bestProduct = measured.slice().sort(function (a, b) { return b.success - a.success; })[0];
+    var topControl = controls.slice().sort(function (a, b) {
+      return (b.success || 0) - (a.success || 0);
+    })[0];
+    var controlOnTop = topControl && bestProduct && topControl.success > bestProduct.success;
+    var names = function (list) { return list.map(function (a) { return a.name; }).join(", "); };
+
     var analysisHeadline = document.getElementById("analysis-headline");
-    var analysisSummary = document.getElementById("analysis-summary");
     if (analysisHeadline) analysisHeadline.textContent = analysis.headline || "Run analysis";
+    var analysisSummary = document.getElementById("analysis-summary");
     if (analysisSummary) {
-      var winner = analysis.overall_winner;
-      var memory = analysis.best_visible_memory;
-      analysisSummary.textContent = "Audit " + analysis.status + " · " +
-        (winner ? winner.arm + " leads the visible arms at " + pct(winner.success) : "no visible winner") +
-        (memory ? " · " + memory.arm + " is the strongest visible memory product" : "") +
-        " · " + (analysis.admitted_cells || "pending") + " admitted cells";
+      analysisSummary.textContent =
+        measured.length + " memory products measured" +
+        (notYet.length ? ", " + notYet.length + " without published numbers" : "") + ". " +
+        (better.length ? names(better) + " clearly better than " + BASELINE
+          : "None is clearly better than " + BASELINE) +
+        (worse.length ? "; " + names(worse) + " clearly worse" : "") + ". " +
+        (controlOnTop ? "The highest score belongs to a control, " + topControl.name +
+          ", not to a memory product." : "");
     }
 
     var metrics = document.getElementById("analysis-metrics");
-    function metric(label, value, note) {
+    var metric = function (label, value, note) {
       var box = document.createElement("div");
       box.className = "analysis-metric";
       box.appendChild(span("label m-dim", label));
       box.appendChild(span("value", value, true));
       if (note) box.appendChild(span("note m-dim", note));
       metrics.appendChild(box);
-    }
+    };
     if (metrics) {
-      metric("overall winner", analysis.overall_winner ? analysis.overall_winner.arm : "pending", analysis.overall_winner ? pct(analysis.overall_winner.success) : null);
-      metric("best memory product", analysis.best_visible_memory ? analysis.best_visible_memory.arm : "pending", analysis.best_visible_memory ? pts(analysis.best_visible_memory.delta_vs_baseline) : null);
-      metric("audit", String(analysis.status).toUpperCase(), "derived from published evidence");
-      metric("comparison frame", (analysis.conditions || []).length + " conditions", (analysis.admitted_cells || "pending") + " admitted cells");
+      metric("best memory product", bestProduct ? bestProduct.name : "—",
+        bestProduct ? pct(bestProduct.success) + ", " + pts(bestProduct.delta) + " vs " + BASELINE
+          : null);
+      metric("clearly better than " + BASELINE, better.length + " of " + measured.length,
+        better.length ? names(better) : "95% interval wholly above zero");
+      metric("clearly worse than " + BASELINE, worse.length + " of " + measured.length,
+        worse.length ? names(worse) : "95% interval wholly below zero");
+      metric("highest control", topControl ? topControl.name : "—",
+        topControl ? pct(topControl.success) + (controlOnTop ? ", above every product" : "") : null);
     }
 
     var links = document.getElementById("analysis-links");
-    function repoLink(path, label) {
+    var repoLink = function (path, label) {
       var link = document.createElement("a");
       link.href = "https://github.com/GiulioDER/agent-memory-bench/blob/master/" + path;
       link.rel = "noopener";
       link.textContent = label;
       return link;
-    }
+    };
     if (links && analysis.report_markdown) {
       links.appendChild(repoLink(analysis.report_markdown, "full report ↗"));
       if (analysis.audit_json) links.appendChild(repoLink(analysis.audit_json, "audit JSON ↗"));
     }
 
-    var analysisBody = document.getElementById("analysis-body");
-    function money(x) {
-      return x == null ? "pending" : "$" + (x >= 0.01 ? x.toFixed(3) : x.toFixed(4));
-    }
-    function seconds(x) { return x == null ? "pending" : x.toFixed(1) + " s"; }
-    var analysisRows = Object.keys(analysis.arms || {}).map(function (name) {
-      return { name: name, data: analysis.arms[name] };
-    });
-    /* Pending arms are intentionally absent from the official analysis artifact because they
-       have no observations. Keep them visible in this reader-facing table without fabricating
-       analysis values. */
-    D.arms.filter(function (arm) { return arm.pending; }).forEach(function (arm) {
-      var alreadyIncluded = analysisRows.some(function (row) { return row.name === arm.name; });
-      if (!alreadyIncluded) analysisRows.push({ name: arm.name, data: { status: "pending" } });
-    });
-    if (analysisBody) analysisRows.forEach(function (entry) {
-      var name = entry.name;
-      var a = entry.data;
-      var tr = document.createElement("tr");
-      if (a.status === "held") tr.setAttribute("data-held", "true");
-      if (a.status === "pending") tr.setAttribute("data-pending", "true");
-      tr.appendChild(cell(null, span("m", name, true)));
-      tr.appendChild(cell("num", a.success == null ? null : span("m", pct(a.success))));
-      var costValue = a.cost && a.cost.usd_per_admitted_cell != null ? a.cost.usd_per_admitted_cell : (a.cost ? a.cost.reported_usd_per_task : null);
-      tr.appendChild(cell("num", costValue == null ? null : span("m", money(costValue))));
-      tr.appendChild(cell("num", a.speed && a.speed.mean_session_s != null ? span("m", seconds(a.speed.mean_session_s)) : null));
-      tr.appendChild(cell("num", a.delta_vs_baseline == null ? null : span("m", pts(a.delta_vs_baseline))));
-      var read = "";
-      if (a.status === "held") read = a.hold.reason;
-      else if (a.status === "pending") read = "pending";
-      else if (name === "claude_md") read = "designated baseline";
-      else if (analysis.best_visible_memory && name === analysis.best_visible_memory.arm) read = "best visible memory product";
-      else if (a.comparison) read = "joined vendor submission";
-      else if (a.cost && a.speed) read = (a.cost.relative_to_baseline > 0 ? "higher spend" : "lower spend") + ", " + (a.speed.relative_to_baseline > 0 ? "slower" : "faster");
-      tr.appendChild(cell(null, span("analysis-read", read)));
-      analysisBody.appendChild(tr);
-    });
-
     var insights = document.getElementById("analysis-insights");
     if (insights) (analysis.insights || []).forEach(function (text) {
-      var p = document.createElement("p");
-      p.textContent = text;
-      insights.appendChild(p);
+      var para = document.createElement("p");
+      para.textContent = text;
+      insights.appendChild(para);
     });
   }
 
   /* Run banner */
   var meta = document.getElementById("run-meta");
   if (meta) {
-    function item(text, live) {
+    var item = function (text, live) {
       var s = document.createElement("span");
       if (live) s.className = "live";
       s.textContent = text;
       return s;
-    }
+    };
     if (official) {
       meta.appendChild(item("run " + D.run.id + " · " + D.run.date, true));
       meta.appendChild(item("model " + D.run.model));
