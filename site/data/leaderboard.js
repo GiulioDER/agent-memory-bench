@@ -3,7 +3,7 @@
    regeneration. The pointer lives in site/data/leaderboard.config.json; result numbers enter
    through the run summary and the generated analysis artifact. */
 window.AMB_LEADERBOARD = {
-  "updated": "2026-09-09",
+  "updated": "2026-09-26",
   "baseline": "claude_md",
   "scope": {
     "writePathMeasured": false,
@@ -28,7 +28,11 @@ window.AMB_LEADERBOARD = {
       "fs_grep": "official-003",
       "placebo": "official-003",
       "claude_md": "official-003",
-      "bare": "official-003"
+      "bare": "official-003",
+      "supermemory": "supermemory-004",
+      "cognee": "cognee-001",
+      "Claude Mem": "claude-mem-official-019",
+      "Graphiti": "official-007-graphiti"
     }
   },
   "arms": [
@@ -72,18 +76,39 @@ window.AMB_LEADERBOARD = {
     {
       "name": "mempalace",
       "type": "MCP server",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null,
-      "totalTokens": null,
+      "success": 0.6057,
+      "delta": 0.0284,
+      "ci": [
+        -0.0195,
+        0.0863
+      ],
+      "discarded": 5,
+      "tokensPerTask": 104451,
+      "costPerTask": 0.007,
+      "totalTokens": 37832025,
       "sourceRun": "official-003",
-      "byCondition": null,
-      "held": "held for vendor review",
-      "heldUntil": "2026-09-15",
-      "heldIssue": "https://github.com/MemPalace/mempalace/issues/2414"
+      "byCondition": {
+        "present": {
+          "solved": 53,
+          "cells": 111
+        },
+        "absent": {
+          "solved": 34,
+          "cells": 52
+        },
+        "superseded": {
+          "solved": 33,
+          "cells": 46
+        },
+        "contradictory": {
+          "solved": 33,
+          "cells": 51
+        },
+        "adjacent": {
+          "solved": 39,
+          "cells": 57
+        }
+      }
     },
     {
       "name": "fs_grep",
@@ -146,43 +171,156 @@ window.AMB_LEADERBOARD = {
       "sourceRun": "official-003"
     },
     {
-      "name": "cognee",
-      "type": "MCP server",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null,
-      "pending": true,
-      "totalTokens": null,
-      "byCondition": null
-    },
-    {
       "name": "supermemory",
       "type": "official Claude Code lifecycle hooks",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null,
-      "pending": true,
-      "totalTokens": null,
-      "byCondition": null
+      "success": 0.2482,
+      "delta": -0.3285,
+      "ci": [
+        -0.3904,
+        -0.1101
+      ],
+      "discarded": 31,
+      "tokensPerTask": 90092,
+      "costPerTask": 0.0052,
+      "totalTokens": 31081691,
+      "sourceRun": "supermemory-004",
+      "comparison": "joined to official-003",
+      "byCondition": {
+        "absent": {
+          "solved": 29,
+          "cells": 46
+        },
+        "adjacent": {
+          "solved": 8,
+          "cells": 50
+        },
+        "contradictory": {
+          "solved": 16,
+          "cells": 46
+        },
+        "present": {
+          "solved": 12,
+          "cells": 89
+        },
+        "superseded": {
+          "solved": 3,
+          "cells": 43
+        }
+      }
+    },
+    {
+      "name": "cognee",
+      "type": "MCP server",
+      "success": 0.6124,
+      "delta": 0.0426,
+      "ci": [
+        -0.0129,
+        0.0601
+      ],
+      "discarded": 66,
+      "tokensPerTask": 282462,
+      "costPerTask": 0.0187,
+      "totalTokens": 103098591,
+      "sourceRun": "cognee-001",
+      "comparison": "joined to official-003",
+      "byCondition": {
+        "present": {
+          "solved": 41,
+          "cells": 91
+        },
+        "absent": {
+          "solved": 26,
+          "cells": 45
+        },
+        "superseded": {
+          "solved": 26,
+          "cells": 34
+        },
+        "contradictory": {
+          "solved": 31,
+          "cells": 43
+        },
+        "adjacent": {
+          "solved": 34,
+          "cells": 45
+        }
+      }
     },
     {
       "name": "Claude Mem",
-      "type": "official Claude Code lifecycle hooks and MCP search",
-      "success": null,
-      "delta": null,
-      "ci": null,
-      "discarded": null,
-      "tokensPerTask": null,
-      "costPerTask": null,
-      "pending": true,
-      "totalTokens": null,
-      "byCondition": null
+      "type": "official Claude Code lifecycle hooks and MCP search, first-search guard enabled",
+      "success": 0.6275,
+      "delta": 0.0436,
+      "ci": [
+        -0.029,
+        0.1189
+      ],
+      "discarded": 3,
+      "tokensPerTask": 235888,
+      "costPerTask": 0.0137,
+      "totalTokens": 81381374,
+      "sourceRun": "claude-mem-official-019",
+      "comparison": "joined to official-003",
+      "byCondition": {
+        "present": {
+          "solved": 49,
+          "cells": 110
+        },
+        "absent": {
+          "solved": 34,
+          "cells": 47
+        },
+        "superseded": {
+          "solved": 32,
+          "cells": 43
+        },
+        "contradictory": {
+          "solved": 36,
+          "cells": 47
+        },
+        "adjacent": {
+          "solved": 36,
+          "cells": 51
+        }
+      }
+    },
+    {
+      "name": "Graphiti",
+      "type": "Graphiti MCP server, run deviated from its preregistration",
+      "success": 0.6059,
+      "delta": 0.0228,
+      "ci": [
+        -0.0677,
+        0.0737
+      ],
+      "discarded": 2,
+      "tokensPerTask": 36947,
+      "costPerTask": 0.0022,
+      "totalTokens": 12931466,
+      "sourceRun": "official-007-graphiti",
+      "comparison": "joined to official-003",
+      "byCondition": {
+        "present": {
+          "solved": 46,
+          "cells": 110
+        },
+        "absent": {
+          "solved": 39,
+          "cells": 52
+        },
+        "superseded": {
+          "solved": 31,
+          "cells": 46
+        },
+        "contradictory": {
+          "solved": 34,
+          "cells": 47
+        },
+        "adjacent": {
+          "solved": 36,
+          "cells": 52
+        }
+      }
     }
   ],
   "reference": [
@@ -225,7 +363,11 @@ window.AMB_LEADERBOARD = {
       "The placebo exceeds the claude_md baseline by +9.5%, so the run does not isolate a memory benefit cleanly.",
       "recall shows a positive point estimate, but its published 95% interval crosses zero.",
       "recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
-      "A vendor review hold suppresses one product's metrics from the public analysis until the hold is released."
+      "mempalace shows a positive point estimate, but its published 95% interval crosses zero.",
+      "mempalace costs 5.3 times the baseline per admitted cell, including retrieval context tokens.",
+      "cognee shows a positive point estimate, but its published 95% interval crosses zero.",
+      "Claude Mem shows a positive point estimate, but its published 95% interval crosses zero.",
+      "Graphiti shows a positive point estimate, but its published 95% interval crosses zero."
     ],
     "report_markdown": "reports/official-003-analysis.md",
     "audit_json": "reports/official-003-audit.json",
@@ -262,11 +404,36 @@ window.AMB_LEADERBOARD = {
         }
       },
       "mempalace": {
-        "status": "held",
-        "hold": {
-          "until": "2026-09-15",
-          "issue": "https://github.com/MemPalace/mempalace/issues/2414",
-          "reason": "held for vendor review"
+        "status": "published",
+        "success": 0.6057,
+        "delta_vs_baseline": 0.0284,
+        "ci95": [
+          -0.0195,
+          0.0863
+        ],
+        "cost": {
+          "total_usd": 2.2273,
+          "usd_per_admitted_cell": 0.007,
+          "total_tokens": 37832025,
+          "tokens_per_observed_session": 103649,
+          "tokens_per_admitted_cell": 119344,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 4.2705
+        },
+        "speed": {
+          "mean_session_s": 89.29,
+          "ingest_s": 3604.42,
+          "ingest_s_per_admitted_cell": 11.37,
+          "ingest_items_stored": 7965,
+          "ingest_models": [
+            "chromadb onnx all-MiniLM-L6-v2"
+          ],
+          "relative_to_baseline": 0.5728
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 5.08,
+          "successes_per_dollar": 86.2
         }
       },
       "fs_grep": {
@@ -446,6 +613,110 @@ window.AMB_LEADERBOARD = {
           "successes_per_million_tokens": 20.39,
           "successes_per_dollar": 328.87
         }
+      },
+      "supermemory": {
+        "status": "published",
+        "success": 0.2482,
+        "delta_vs_baseline": -0.3285,
+        "ci95": [
+          -0.3904,
+          -0.1101
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0052,
+          "total_tokens": 31081691,
+          "tokens_per_observed_session": 90092,
+          "tokens_per_admitted_cell": 113437,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
+      },
+      "cognee": {
+        "status": "published",
+        "success": 0.6124,
+        "delta_vs_baseline": 0.0426,
+        "ci95": [
+          -0.0129,
+          0.0601
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0187,
+          "total_tokens": 103098591,
+          "tokens_per_observed_session": 282462,
+          "tokens_per_admitted_cell": 399607,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
+      },
+      "Claude Mem": {
+        "status": "published",
+        "success": 0.6275,
+        "delta_vs_baseline": 0.0436,
+        "ci95": [
+          -0.029,
+          0.1189
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0137,
+          "total_tokens": 81381374,
+          "tokens_per_observed_session": 235888,
+          "tokens_per_admitted_cell": 273092,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
+      },
+      "Graphiti": {
+        "status": "published",
+        "success": 0.6059,
+        "delta_vs_baseline": 0.0228,
+        "ci95": [
+          -0.0677,
+          0.0737
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0022,
+          "total_tokens": 12931466,
+          "tokens_per_observed_session": 36947,
+          "tokens_per_admitted_cell": 42122,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
       }
     }
   },

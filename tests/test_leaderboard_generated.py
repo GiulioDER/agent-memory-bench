@@ -208,12 +208,13 @@ def test_an_additive_arm_joins_the_frozen_base_without_a_full_roster(tmp_path):
     result = _run(root=root)
     assert result.returncode == 0, result.stdout + result.stderr
     data = _payload(root)
-    cognee = next(a for a in data["arms"] if a["name"] == "product_a")
+    # Named since 2026-09-26, when cognee's review window closed without a reply.
+    cognee = next(a for a in data["arms"] if a["name"] == "cognee")
     assert cognee["success"] == 0.55
     assert cognee["sourceRun"] == "cognee-x"
     assert cognee["comparison"] == "joined to run-x"
     assert data["provenance"]["baseRun"] == "run-x"
-    assert data["provenance"]["armRuns"]["product_a"] == "cognee-x"
+    assert data["provenance"]["armRuns"]["cognee"] == "cognee-x"
 
 
 def test_an_additive_arm_cannot_replace_a_base_arm(tmp_path):
@@ -363,45 +364,10 @@ def test_the_scope_note_is_rendered_by_the_page(tmp_path):
 # --- the vendor review hold, which is a PUBLIC COMMITMENT and therefore a mechanism ----------
 
 
-def test_a_held_arm_publishes_no_numbers_even_when_the_summary_has_them(tmp_path):
-    """The promise made in the vendor's own issue thread, enforced rather than remembered."""
-
-    held = sorted(_generator().VENDOR_REVIEW_HOLDS)
-    assert held, "no arm is held; this test is vacuous and should be deleted with the last hold"
-    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
-    assert _run(root=root).returncode == 0
-    public = dict(zip([a for a, *_ in _generator().PRODUCT_ARMS], _public_arms()))
-    for internal in held:
-        row = next(a for a in _payload(root)["arms"] if a["name"] == public[internal])
-        assert row["success"] is None, f"{internal} published a success while held"
-        assert row["delta"] is None and row["ci"] is None
-        assert row["costPerTask"] is None
-        assert row["totalTokens"] is None
-
-
-def test_a_held_arm_says_why_and_links_the_thread(tmp_path):
-    """A blank row with no reason reads as "measured nothing", the opposite of a hold."""
-
-    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
-    _run(root=root)
-    holds = _generator().VENDOR_REVIEW_HOLDS
-    public = dict(zip([a for a, *_ in _generator().PRODUCT_ARMS], _public_arms()))
-    for internal, hold in holds.items():
-        row = next(a for a in _payload(root)["arms"] if a["name"] == public[internal])
-        assert row["held"] == hold["reason"]
-        assert row["heldUntil"] == hold["until"]
-        assert row["heldIssue"].startswith("http"), "the promise must be checkable by a reader"
-
-
-def test_a_hold_cannot_smuggle_a_missing_arm_past_the_summary_check(tmp_path):
-    """Blanking happens AFTER the read, so a held arm still has to be in the summary."""
-
-    internal = min(_generator().VENDOR_REVIEW_HOLDS)
-    summary = _summary()
-    del summary["arms"][internal]
-    root = _scaffold(tmp_path, summary=summary, official_run="run-x")
-    result = _run(root=root)
-    assert result.returncode != 0, "a held arm absent from the summary was accepted"
+# The three tests that exercised a LIVE hold (no numbers while held, the reason and thread on the
+# row, no smuggling a missing arm past the summary check) were deleted on 2026-09-26 with the last
+# hold, as the first of them asked: with `VENDOR_REVIEW_HOLDS` empty each one was vacuous. Restore
+# them from git history when the next vendor window opens.
 
 
 def test_the_hold_is_keyed_on_presence_not_on_a_date(tmp_path):

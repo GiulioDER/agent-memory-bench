@@ -37,7 +37,7 @@ def test_leaderboard_committed_data_includes_the_analysis_layer():
     data = json.loads(payload.split("window.AMB_LEADERBOARD = ", 1)[1].rstrip().rstrip(";"))
     assert data["analysis"]["headline"] == "No clear memory winner"
     assert data["analysis"]["best_visible_memory"]["arm"] == "recall"
-    assert data["analysis"]["arms"]["mempalace"]["status"] == "held"
+    assert data["analysis"]["arms"]["mempalace"]["status"] == "published"
 
 
 def test_analysis_binding_rejects_a_stale_summary(tmp_path):
