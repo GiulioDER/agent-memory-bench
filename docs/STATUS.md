@@ -92,6 +92,41 @@ The next preregistered run is announced before it happens, not after it succeeds
 python -c "import json;print(json.load(open('site/data/leaderboard.config.json')))"
 ```
 
+## Corpus names leaked the plant role until 2026-09-26
+
+Every rendered corpus document was named from its path (`sessions__ts-x__stale_old_way.md`) and
+titled with its stem, so a planted document told the agent what it was: `stale_` in `superseded`,
+`rival_` in `contradictory`, and `synthetic__` or `distractors__` for filler. `adjacent` plants were
+named neutrally. Arms whose integration shows the agent a source name could read it. Measured over
+the admitted cells of every published run:
+
+| arm | superseded cells with a label seen | contradictory | success when seen / unseen |
+|---|---:|---:|---|
+| recall | 10 / 46 | 16 / 51 | superseded 10/10 vs 27/36; contradictory 8/16 vs 29/35 |
+| fs_grep | 7 / 46 | 12 / 51 | superseded 5/7 vs 27/39; contradictory 8/12 vs 28/39 |
+| mempalace | 8 / 46 | 4 / 51 | superseded 7/8 vs 26/38; contradictory 3/4 vs 30/47 |
+| protocol | 1 / 46 | 0 / 51 | |
+| every other arm, including the four joined vendors | 0 | 0 | |
+
+Agents rarely reasoned from the name; one recall session said so outright ("The filename
+`stale_compatible_release.md` signals that approach was later superseded"). The success split is
+confounded, because seeing a label means the plant was retrieved. Bound for recall's headline: if
+all 10 exposed superseded successes came from the label, recall falls from 0.659 to 0.628, +5.0
+points over `claude_md` instead of +8.2. Contradictory exposure goes with lower success, not
+higher. **The published numbers are left as they are and carry this caveat.** A clean comparison
+needs a rerun of every exposed arm.
+
+Fixed by `harness/corpus_names.py`: every name an arm can read is `notes__<digest>`, derived from
+the corpus path and a versioned salt, the heading carries no stem, and adapters join a returned
+name back through an in-memory map, never a file beside the feed. **This changes every corpus
+fingerprint**, so recall tenants, mempalace base palaces and any cached vendor fixtures built
+before it must be rebuilt before a new run. `harness.reached.reached_by_path` and
+`scripts/failure_taxonomy.py` match the old names and apply to earlier runs only.
+
+```bash
+python -m pytest tests/test_neutral_corpus_names.py -q
+```
+
 ## Runs to date
 
 | run | model | arms | cells | headline | artifacts committed |

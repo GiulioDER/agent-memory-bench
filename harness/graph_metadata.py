@@ -14,11 +14,15 @@ from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
+from harness.corpus_names import rendered_name
+
 GRAPH_METADATA_MODE = "structural_session_order"
 
 
 def _rendered_name(path: Path, root: Path) -> str:
-    return path.relative_to(root).with_suffix(".md").as_posix().replace("/", "__")
+    # One naming function for every consumer: a relation target that differs from the file the
+    # renderer wrote resolves to nothing, silently.
+    return rendered_name(path, root)
 
 
 def structural_graph_metadata(

@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from adapters.recall.adapter import RecallAdapter
+from harness.corpus_names import neutral_stem
 from harness.lifecycle import load_lifecycle_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,7 +57,7 @@ def test_recall_lifecycle_uses_bounded_mcp_ingest(tmp_path, monkeypatch):
     name, arguments = fake.calls[0]
     assert name == "recall_ingest"
     uploaded = arguments["files"][0]
-    assert uploaded["name"] == "sessions__xs-evolve-lease__p01.md"
+    assert uploaded["name"] == neutral_stem("sessions/xs-evolve-lease/p01.jsonl") + ".md"
     rendered = base64.b64decode(uploaded["content_b64"]).decode("utf-8")
     assert rendered.startswith("---\nvalid_from: 2026-04-12\n---\n")
     assert "renew every 90 seconds" in rendered

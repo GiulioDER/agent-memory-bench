@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from harness.corpus_names import neutral_stem
 from harness.graph_metadata import GRAPH_METADATA_MODE, structural_graph_metadata
 from harness.transcripts import render_corpus
 
@@ -30,10 +31,10 @@ def test_structural_graph_metadata_links_only_adjacent_sessions(tmp_path: Path) 
 
     rendered = tmp_path / "rendered"
     render_corpus(paths, rendered, root=root, graph=graph)
-    text = (rendered / "sessions__task-a__p01.md").read_text(encoding="utf-8")
+    text = (rendered / (neutral_stem("sessions/task-a/p01.jsonl") + ".md")).read_text(encoding="utf-8")
     assert "recall_graph:" in text
-    assert "sessions__task-a__p02.md" in text
-    assert "sessions__task-a__p03.md" not in text
+    assert neutral_stem("sessions/task-a/p02.jsonl") + ".md" in text
+    assert neutral_stem("sessions/task-a/p03.jsonl") + ".md" not in text
 
 
 def test_graph_mode_is_explicit() -> None:

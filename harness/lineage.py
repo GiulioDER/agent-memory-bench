@@ -30,6 +30,8 @@ import json
 from collections.abc import Mapping
 from pathlib import Path
 
+from harness.corpus_names import rendered_name
+
 TIERS = ("none", "timestamps", "declared")
 
 #: A plant whose filename starts with this is the OUTDATED half of a superseded pair. The corpus
@@ -82,7 +84,7 @@ def _day_before(day: str) -> str:
 
 def _rendered_name(path: Path, root: Path) -> str:
     """The name `render_corpus` will give this session, so `supersedes` can point at it."""
-    return path.relative_to(root).with_suffix(".md").as_posix().replace("/", "__")
+    return rendered_name(path, root)
 
 
 def frontmatter_for(

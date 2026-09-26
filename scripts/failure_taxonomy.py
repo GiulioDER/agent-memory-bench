@@ -47,7 +47,11 @@ CLASSES = (
 
 
 def reached_governing_memo(record: dict) -> bool:
-    """Did the task's own precursor session come back from the memory layer?"""
+    """Did the task's own precursor session come back from the memory layer?
+
+    Matches the legacy path-mirroring name, so it applies ONLY to runs rendered before
+    2026-09-26; on a neutral-name run it reads False everywhere. See `harness.reached`.
+    """
 
     tag = f"sessions__{record['task_id']}__"
     if any(tag in context for context in record.get("retrieved_contexts") or ()):

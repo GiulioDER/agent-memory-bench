@@ -42,6 +42,7 @@ from harness.adapters.base import (
     resolve_corpus_path,
     validate_namespace,
 )
+from harness.corpus_names import NEUTRAL_NAME, neutral_stem
 from harness.gate import AdmissionSignal
 from harness.graph_metadata import GRAPH_METADATA_MODE, structural_graph_metadata
 from harness.lifecycle import LifecycleEvent, LifecycleIngestReport, source_sha256
@@ -226,6 +227,11 @@ def manifest_key(source: str) -> str:
     """
 
     tail = source.replace("\\", "/").rsplit("/", 1)[-1]
+    # A neutral name (see `harness.corpus_names`) encodes no path at all, so decoding its `__`
+    # would invent `notes/<digest>.jsonl`. It is returned bare and joined through
+    # `neutral_key_map` by whoever holds the manifest.
+    if NEUTRAL_NAME.match(tail):
+        return tail
     if not tail.endswith(".md") or "__" not in tail:
         return source
     return tail[: -len(".md")].replace("__", "/") + ".jsonl"
@@ -872,9 +878,9 @@ class RecallAdapter(MemoryAdapter):
                 f"{event.event_id}: content hash {digest} does not match the lifecycle manifest"
             )
         rendered = self._render_lifecycle_source(namespace, event, content)
-        file_name = (
-            Path(event.source_path).with_suffix(".md").as_posix().replace("/", "__")
-        )
+        # The same neutral name as the bulk feed, so a lifecycle document cannot announce its
+        # origin either.
+        file_name = neutral_stem(event.source_path) + ".md"
         idempotency_key = hashlib.sha256(
             f"amb-lifecycle:{namespace}:{event.source_path}:{event.source_sha256}".encode()
         ).hexdigest()

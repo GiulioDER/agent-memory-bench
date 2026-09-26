@@ -147,6 +147,10 @@ def reached_by_path(record: SessionRecord, *, tool_prefix: str = "mcp__") -> boo
 
     Kept so the published runs can be reproduced exactly, and so the disagreement with
     :func:`reached_by_content` can be published as its own number.
+
+    ⚠️ It applies ONLY to runs rendered before 2026-09-26. Corpus names are neutral since then
+    (`harness.corpus_names`), so no result can carry ``sessions__<task_id>__`` and this reads
+    False for every session of a newer run. That is not a finding; use the content signals.
     """
 
     marker = f"sessions__{record.task_id}__"
