@@ -1,0 +1,325 @@
+{
+  "run_id": "official-007-graphiti-bare-recovered-present-final",
+  "model": "deepseek/deepseek-v4-flash",
+  "base_url": "https://openrouter.ai/api",
+  "execution_mode": "rootless-docker",
+  "runtime_name": "docker",
+  "participant_image_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+  "checker_image_digest": "sha256:d993e22e1453f05dd02d56fa29289f50be778c27d463857fa141348335274f07",
+  "isolation_policy_digest": "e2ff80964c0d94d92de4fe822f35c636316a37bf46d876977bc26b62931fb22c",
+  "network_policy_digest": "1c525e95987ba6d234eeeac53c355b7114ec1b48a4e41d37275e4b8d8db8e0ef",
+  "participant_isolation_verified": true,
+  "oracle_visible_to_participant": false,
+  "arms": [
+    "bare",
+    "graphiti"
+  ],
+  "memory_instruction": "protocol",
+  "condition": "present",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "bare": {
+      "bytes": 0,
+      "chars": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "graphiti": {
+      "bytes": 3948,
+      "chars": 3948,
+      "sha256": "4d40c2897d36e8b4df114687f3ff00192c8b43562cedd0d1aa6c7a048060c9cf"
+    }
+  },
+  "instruction_excess_bytes": {
+    "bare": 0,
+    "graphiti": 476
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-atomic-write": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-casefold-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-cli-exitcode": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-config-layer": {
+      "match": true,
+      "reference_whitespace_tokens": 33,
+      "placebo_whitespace_tokens": 33,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-crlf-export": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-empty-input": {
+      "match": true,
+      "reference_whitespace_tokens": 48,
+      "placebo_whitespace_tokens": 48,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-idempotent-run": {
+      "match": true,
+      "reference_whitespace_tokens": 70,
+      "placebo_whitespace_tokens": 70,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-json-sorted": {
+      "match": true,
+      "reference_whitespace_tokens": 52,
+      "placebo_whitespace_tokens": 52,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-log-mask": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-nfc-count": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-quote-shell": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-retry-cap": {
+      "match": true,
+      "reference_whitespace_tokens": 47,
+      "placebo_whitespace_tokens": 47,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-round-money": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-stable-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "bare": {},
+    "graphiti": {
+      "ts-atomic-write": "630897148c20feec438d75208ea9ae763ddc305dcf836a9b1c8e818d09d334bd",
+      "ts-base36-id": "1b39db0dbeca4207407ac9889aa20808f77bae87f242171a87c9878774fc5c4b",
+      "ts-bom-merge": "af2e400c356469d58de85ab66a8ee251676dd6ff2e9be72f3ccf1cb78054a6ab",
+      "ts-casefold-sort": "468ef0e9108107a36e9a07955b26549189d53e7503a5441336a1b4a1b49f3b6f",
+      "ts-cli-exitcode": "5a836f3c9429bbcfd5d65f714c3a69fc3a4a20773b7ec362281a0af8cefc04e4",
+      "ts-config-layer": "12f82472d28c4bdf1aa34307db1b0db1c089124ae9783759b06a3cde561b05b8",
+      "ts-crlf-export": "1689e019e82717788a1a52d04a870fa5e33739b642c493181069e922faa3c1ad",
+      "ts-dedup-order": "972d75539657b509f64ea81219866a99a7f449b4202bfdc0b188fd5247825a21",
+      "ts-empty-input": "e87b1e97904e9aa50319c57a85c05ea390b692b59bee62338ac5efa08930d7fc",
+      "ts-golden-regen": "9f55f3ad07e2626dc001eb82a59bde1f01bac0c82f8d2a2c217b3dc7b8424867",
+      "ts-idempotent-run": "5f05e080cab58b84c2396176b3b9e65f697246ab338ae1eaeaa2ad94775c0a88",
+      "ts-ignore-gen": "ac1a6f8d06b58e65e27e86c626ae8377b0e8631d80a0646f248cf2d03468dcdf",
+      "ts-json-sorted": "069e993acbc21bdd76474b43be694161bc8f61a85655631a9f1cb9dd9a650d39",
+      "ts-legacy-hash": "f43bdae1a3135073b9e1d32e7ef01276f0d7e99cfbfd91a3a53aed0e1926c359",
+      "ts-log-mask": "d3e03926180509c372d76cfc8afc4ff8721cf01bb7f5fa7a8a8de6f870364367",
+      "ts-manifest-rel": "64fe33ff4b22be66409d488e59f26f2f4a051c0cf91e3a8e04538d4b44e93d9e",
+      "ts-mig-name": "2dd68a049f0aea9ff6a0d01de2a83076f092849f8fbc0015676bf41fcfb4d67c",
+      "ts-natural-order": "fa04b3be6d7f9694b8ada2bc75d09bcdaa1421ffdde6acffbe64dcdcc67f8a69",
+      "ts-nfc-count": "8c149d952b3291571912c98ce59e17daf708036d43a1d045006bf90328dc9407",
+      "ts-quote-shell": "d38a7c6b05752f24d913d55773d77903fbaaaa4b6d8aaaa005c1c6018240b197",
+      "ts-retry-cap": "0d5a6a7ee93816b9bca6de87ad9c964d3511f992749682bc25349ee87e2b6a17",
+      "ts-round-money": "a39e4e9c566c1e6ccf307d143a4cdeeeda0a7d47a18ad154e5b52d9f9a197ffb",
+      "ts-schema-additive": "0ed08754476ef4da2156296ae4d6c25a2b25be8c8d2a30de385e571dbfcc42e4",
+      "ts-semver-pin": "08a378453cff86f6eeb6596a24e8f3c79d85bb6439b498c9fecdcc3d2026995e",
+      "ts-stable-sort": "c04905854bbaebe9a61ec1773a3b8ff5803451ac1d2f940c908c6f903d1bebf2",
+      "ts-tz-utc": "b3ca5d0365c51817371c42939e7b8af630e0df20a1ec45ffbcfdb93bfb2bbd70"
+    }
+  },
+  "namespace": "amb-graphiti-official-007-present",
+  "cell_namespace_policy": {
+    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion"
+  },
+  "work_root": "external-disposable-storage",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "bare": {
+      "arm": "bare",
+      "memory": "none"
+    },
+    "graphiti": {
+      "arm": "graphiti",
+      "memory": "static+retrieved",
+      "product": "Graphiti",
+      "integration": "official Graphiti MCP server",
+      "package_pin": "mcp-server==1.1.0; graphiti-core>=0.30.1",
+      "upstream_ref": "4bd728790e836950c3922e84f6f989f1380f54f2",
+      "config_sha256": "caf1f226f91f715d6535d44836680a26040addaba5ba7d6d68f916ca530a3a67"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "graphiti",
+      "namespace": "amb-graphiti-official-007-present",
+      "sessions_offered": 132,
+      "items_stored": 132,
+      "wall_time_ms": 0.0,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": null,
+      "notes": [
+        "reused namespace after direct Graphiti core recovery",
+        "132 episodes verified before scoring; no new MCP ingestion submitted"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "not_required"
+  },
+  "claude_mem_preflight": {
+    "status": "not_required"
+  },
+  "graphiti_preflight": {
+    "status": "passed",
+    "server": "graphiti",
+    "required_tools": [
+      "search_memory_facts",
+      "search_nodes",
+      "get_episodes",
+      "get_episode_entities",
+      "get_entity_edge",
+      "get_status"
+    ],
+    "tools_observed": [
+      "search_nodes",
+      "search_memory_facts",
+      "get_entity_edge",
+      "get_episodes",
+      "get_episode_entities",
+      "get_status"
+    ],
+    "search": "tools/call get_status succeeded"
+  }
+}

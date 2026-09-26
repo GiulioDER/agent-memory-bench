@@ -1,0 +1,332 @@
+{
+  "run_id": "claude-mem-official-019-present",
+  "model": "deepseek/deepseek-v4-flash",
+  "base_url": "http://127.0.0.1:8787",
+  "arms": [
+    "claude_mem"
+  ],
+  "memory_instruction": "protocol",
+  "condition": "present",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "claude_mem": {
+      "bytes": 4116,
+      "chars": 4116,
+      "sha256": "a613a52bc2fd9897ae91ae9784165f7dfd64aa2c08edf94ed4abc3f0595b4597"
+    }
+  },
+  "instruction_excess_bytes": {
+    "claude_mem": 644
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "fa-dedup-key": {
+      "match": true,
+      "reference_whitespace_tokens": 71,
+      "placebo_whitespace_tokens": 71,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-atomic-write": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-casefold-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-cli-exitcode": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-config-layer": {
+      "match": true,
+      "reference_whitespace_tokens": 33,
+      "placebo_whitespace_tokens": 33,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-crlf-export": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-empty-input": {
+      "match": true,
+      "reference_whitespace_tokens": 48,
+      "placebo_whitespace_tokens": 48,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-idempotent-run": {
+      "match": true,
+      "reference_whitespace_tokens": 70,
+      "placebo_whitespace_tokens": 70,
+      "reference_lines": 11,
+      "placebo_lines": 11
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-json-sorted": {
+      "match": true,
+      "reference_whitespace_tokens": 52,
+      "placebo_whitespace_tokens": 52,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-log-mask": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-nfc-count": {
+      "match": true,
+      "reference_whitespace_tokens": 41,
+      "placebo_whitespace_tokens": 41,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-quote-shell": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 9,
+      "placebo_lines": 9
+    },
+    "ts-retry-cap": {
+      "match": true,
+      "reference_whitespace_tokens": 47,
+      "placebo_whitespace_tokens": 47,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-round-money": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-stable-sort": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "claude_mem": {
+      "fa-dedup-key": "4cfa9ead56b2ac0b0f2ce4648af45d951acbf66dda489bc2c1bea7838643588b",
+      "ts-atomic-write": "65e8c3a60cda3ee1bfa1a5a5dbd537843e83ad865ed2e54c2ed1b195b8a8b5ee",
+      "ts-base36-id": "afedd323d92110663d195111fc3500dfa80c4308e6bf58773b790d0aa377c228",
+      "ts-bom-merge": "b959f2c38c45c13b78d7ec5fb3a41347319d8d25ea7ea1b4fc078a6e686ab257",
+      "ts-casefold-sort": "1f8b9f73d793f387549829420b0c23a1c3942ff1ae765166c5663a17f6de9cac",
+      "ts-cli-exitcode": "a3d390c42735b8f863689c101ade4df0d73cdc4e428b32abd3bf3bea9d536085",
+      "ts-config-layer": "5368829cd2cf97246034f3f721559527db327ffae01bfe49730c04e7baf654df",
+      "ts-crlf-export": "a8f095f5c98e509e6da3993711df6abd905d824585e1ebeb0018d1c552a952da",
+      "ts-dedup-order": "72d5ffcc0ef8cff89291c25dc2cee306ab02abe7b1bc7e80f769c769d640198e",
+      "ts-empty-input": "1f7ed157467a4f56e4c63e0cd93b9ac015d645e5e15275d546e72b6f93252453",
+      "ts-golden-regen": "b74c6c931113064d210cd2eacd41b11f412044aa439b11539d7bbd652aa7d189",
+      "ts-idempotent-run": "25d647785c5914d1dbd9f76b13655c7c43b8e30f38854369399fd816c5b1b81d",
+      "ts-ignore-gen": "760467b980d3ec41086e0c009461c0547cfdfca549a7b072dbc2ce70d3a56272",
+      "ts-json-sorted": "06e63bb37a4c6aa9ca88b5fedc033df48c66378976ccbbb3ce8119da729b52c8",
+      "ts-legacy-hash": "fdbb5c2feb2747e87e0ea7f4082c40c5ba07d3b73067d0994d7553cbfd3262c4",
+      "ts-log-mask": "12eb3a2ee2c95fc344021cb49aa0568720d8d4f1cfcd2868e793f3f78fc5190e",
+      "ts-manifest-rel": "843f3d28d61588e61afdda3115b07e03d9121c5ef8ac38e22e6b523d400096f4",
+      "ts-mig-name": "3f0dd8e9c2a4adb02de0961288ee84dd616d093a5653902c9d2d6f80807e8238",
+      "ts-natural-order": "be6c54aa11d5255adfd5f5cd64fdb913e0b5cb2d9c288b1a4284337f33189d28",
+      "ts-nfc-count": "c47364b957fb69a61dd408a9c7abf787e306f2ad333202e3b0c782dd300d3e36",
+      "ts-quote-shell": "00c4d015be39419a06cfd4290b8d9139804bd61fb3b301fc13d6de24afcdacac",
+      "ts-retry-cap": "d7fb4fb5ead8db724dc2967151b655aefa18652dfecb1256215e56af6aa2f144",
+      "ts-round-money": "fca5a23c25283271b0e106dd0c94fc44d6d3fae7f29a2344bc19d1466b5ae6c5",
+      "ts-schema-additive": "0fde2869d15968335c509ac58e62051746fb1042091c0f76223624fff2b0054d",
+      "ts-semver-pin": "1e2d6f84cef938fe661236e311528a3ca4bf83e1835bda2eee1244705ae0fa22",
+      "ts-stable-sort": "77410ab0fa8743e9a51a73c5269616d67dcf5ad34fb918d6d6b79f72f6809380",
+      "ts-tz-utc": "b6de66161fffd2b645711035e53dc063828991fe1e175ff62f036285043e5e17"
+    }
+  },
+  "namespace": "claude-mem-official-019-present",
+  "cell_namespace_policy": {
+    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion"
+  },
+  "work_root": "/tmp/agent-memory-bench-work/claude-mem-official-019-present",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "claude_mem": {
+      "arm": "claude_mem",
+      "product": "Claude-Mem",
+      "memory": "official Claude-Mem plugin hooks and MCP search",
+      "plugin_version": "13.24.0",
+      "plugin_commit": "ffe75a81e71b190644195a0ae9a5b6997757317c",
+      "plugin_root": "$HOME/amb-claude-mem-v13-24-0",
+      "mcp_server": "mcp-search",
+      "tools": [
+        "search",
+        "timeline",
+        "get_observations"
+      ],
+      "required_hooks": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PostToolUse",
+        "Stop"
+      ],
+      "import_path": "/api/import",
+      "observer_provider": "openrouter",
+      "observer_model": "xiaomi/mimo-v2.5",
+      "fixture_cache_env": "CLAUDE_MEM_BENCHMARK_FIXTURE_CACHE",
+      "fixture_cache_max_age_default_s": 172800
+    }
+  },
+  "ingest": [
+    {
+      "arm": "claude_mem",
+      "namespace": "claude-mem-official-019-present",
+      "sessions_offered": 4900,
+      "items_stored": 4900,
+      "wall_time_ms": 9269.042720086873,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": null,
+      "notes": [
+        "reused a verified immutable Claude-Mem fixture; no vendor import was issued",
+        "fixture key 769d274b9bd070690460fcd56197031564be350ee211bffe25cfa6c8e663defb",
+        "semantic cache and worker search verification passed"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "not_required"
+  },
+  "claude_mem_preflight": {
+    "status": "passed",
+    "server": "mcp-search",
+    "required_tools": [
+      "search",
+      "timeline",
+      "get_observations"
+    ],
+    "tools_observed": [
+      "important_workflow",
+      "search",
+      "timeline",
+      "get_observations",
+      "session_start_context",
+      "smart_search",
+      "smart_unfold",
+      "smart_outline",
+      "build_corpus",
+      "list_corpora",
+      "prime_corpus",
+      "query_corpus",
+      "rebuild_corpus",
+      "reprime_corpus"
+    ],
+    "search": "tools/call search succeeded"
+  }
+}

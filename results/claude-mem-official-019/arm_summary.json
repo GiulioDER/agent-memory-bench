@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "generated_by": "scripts/build_arm_submission.py",
+  "run": {
+    "id": "claude-mem-official-019",
+    "date": "2026-09-09",
+    "cli": "claude-code",
+    "model": "deepseek/deepseek-v4-flash",
+    "tasks": 26,
+    "sessionsPerCell": 1,
+    "prereg": "preregistration/079-claude-mem-official-019-cache-timeout-fixed.md"
+  },
+  "arm": "claude_mem",
+  "base_run": "official-003",
+  "result": {
+    "success": 0.6275,
+    "delta": 0.0436,
+    "ci": [
+      -0.029,
+      0.1189
+    ],
+    "discarded": 3,
+    "totalTokens": 81381374,
+    "tokensPerTask": 235888,
+    "costPerTask": 0.0137,
+    "byCondition": {
+      "present": {
+        "solved": 49,
+        "cells": 110
+      },
+      "absent": {
+        "solved": 34,
+        "cells": 47
+      },
+      "superseded": {
+        "solved": 32,
+        "cells": 43
+      },
+      "contradictory": {
+        "solved": 36,
+        "cells": 47
+      },
+      "adjacent": {
+        "solved": 36,
+        "cells": 51
+      }
+    }
+  },
+  "join": {
+    "baseRun": "official-003",
+    "baseAdmittedCells": 317,
+    "joinedCells": 298,
+    "baseCellsLostToJoin": 19,
+    "conditions": [
+      "present",
+      "absent",
+      "superseded",
+      "contradictory",
+      "adjacent"
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "arms": {
+    "graphiti": {
+      "arm": "graphiti",
+      "sessions": 50,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 1778976,
+      "session_output_tokens": 93503,
+      "session_wall_time_ms": 1896730.883879587,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 1,
+      "ingest_wall_time_ms": 0.0,
+      "ingest_items_stored": 142,
+      "ingest_local_model": null,
+      "total_tokens": 1872479,
+      "notes": [
+        "ingest into 'amb-graphiti-official-007-contradictory' was not token-metered (vendor-side extraction); its cost is missing from the totals, not zero"
+      ],
+      "estimated_usd": 0.1128,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 1248840,
+      "session_cache_creation_tokens": 0
+    }
+  },
+  "total_tokens": 1872479,
+  "total_sessions": 50,
+  "estimated_usd": 0.1128,
+  "pricing_as_of": "2026-08-22",
+  "efficiency": {
+    "graphiti": {
+      "sessions": 50,
+      "successes": 36,
+      "input_tokens": 1778976,
+      "output_tokens": 93503,
+      "wall_ms": 1896730.883879587,
+      "successes_per_mtok_input": 20.24,
+      "successes_per_mtok_total": 19.23,
+      "mean_input_tokens_per_session": 35579.5,
+      "mean_wall_s_per_session": 37.9
+    }
+  }
+}

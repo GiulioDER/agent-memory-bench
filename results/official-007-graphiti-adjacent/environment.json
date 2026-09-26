@@ -1,0 +1,193 @@
+{
+  "run_id": "official-007-graphiti-recovered-adjacent-only-final",
+  "model": "deepseek/deepseek-v4-flash",
+  "base_url": "https://openrouter.ai/api",
+  "execution_mode": "rootless-docker",
+  "runtime_name": "docker",
+  "participant_image_digest": "sha256:1ec58b63a63a830c246277241bafebda7d38c51d394821fe1c42c6e91691a912",
+  "checker_image_digest": "sha256:d993e22e1453f05dd02d56fa29289f50be778c27d463857fa141348335274f07",
+  "isolation_policy_digest": "e2ff80964c0d94d92de4fe822f35c636316a37bf46d876977bc26b62931fb22c",
+  "network_policy_digest": "1c525e95987ba6d234eeeac53c355b7114ec1b48a4e41d37275e4b8d8db8e0ef",
+  "participant_isolation_verified": true,
+  "oracle_visible_to_participant": false,
+  "arms": [
+    "graphiti"
+  ],
+  "memory_instruction": "protocol",
+  "condition": "adjacent",
+  "neutral_protocol": false,
+  "decision_output": {
+    "enabled": false,
+    "staged": false,
+    "schema": null,
+    "instruction_sha256": null,
+    "confidence_semantics": null
+  },
+  "instruction_manifest": {
+    "graphiti": {
+      "bytes": 3948,
+      "chars": 3948,
+      "sha256": "4d40c2897d36e8b4df114687f3ff00192c8b43562cedd0d1aa6c7a048060c9cf"
+    }
+  },
+  "instruction_excess_bytes": {
+    "graphiti": 476
+  },
+  "instruction_arms_matched": true,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "graphiti": {
+      "ts-base36-id": "1b39db0dbeca4207407ac9889aa20808f77bae87f242171a87c9878774fc5c4b",
+      "ts-bom-merge": "af2e400c356469d58de85ab66a8ee251676dd6ff2e9be72f3ccf1cb78054a6ab",
+      "ts-dedup-order": "972d75539657b509f64ea81219866a99a7f449b4202bfdc0b188fd5247825a21",
+      "ts-golden-regen": "9f55f3ad07e2626dc001eb82a59bde1f01bac0c82f8d2a2c217b3dc7b8424867",
+      "ts-ignore-gen": "ac1a6f8d06b58e65e27e86c626ae8377b0e8631d80a0646f248cf2d03468dcdf",
+      "ts-legacy-hash": "f43bdae1a3135073b9e1d32e7ef01276f0d7e99cfbfd91a3a53aed0e1926c359",
+      "ts-mig-name": "2dd68a049f0aea9ff6a0d01de2a83076f092849f8fbc0015676bf41fcfb4d67c",
+      "ts-natural-order": "fa04b3be6d7f9694b8ada2bc75d09bcdaa1421ffdde6acffbe64dcdcc67f8a69",
+      "ts-schema-additive": "0ed08754476ef4da2156296ae4d6c25a2b25be8c8d2a30de385e571dbfcc42e4",
+      "ts-semver-pin": "08a378453cff86f6eeb6596a24e8f3c79d85bb6439b498c9fecdcc3d2026995e",
+      "ts-tz-utc": "b3ca5d0365c51817371c42939e7b8af630e0df20a1ec45ffbcfdb93bfb2bbd70"
+    }
+  },
+  "namespace": "amb-graphiti-official-007-adjacent",
+  "cell_namespace_policy": {
+    "claude_mem": "one cloned post-import worker namespace per task-seed cell",
+    "import_reuse": "one vendor import before cloning; no per-cell re-ingestion"
+  },
+  "work_root": "external-disposable-storage",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "graphiti": {
+      "arm": "graphiti",
+      "memory": "static+retrieved",
+      "product": "Graphiti",
+      "integration": "official Graphiti MCP server",
+      "package_pin": "mcp-server==1.1.0; graphiti-core>=0.30.1",
+      "upstream_ref": "4bd728790e836950c3922e84f6f989f1380f54f2",
+      "config_sha256": "caf1f226f91f715d6535d44836680a26040addaba5ba7d6d68f916ca530a3a67"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "graphiti",
+      "namespace": "amb-graphiti-official-007-adjacent",
+      "sessions_offered": 132,
+      "items_stored": 132,
+      "wall_time_ms": 0.0,
+      "llm_input_tokens": null,
+      "llm_output_tokens": null,
+      "local_model": null,
+      "notes": [
+        "reused namespace after direct Graphiti core recovery",
+        "132 episodes verified before scoring; no new MCP ingestion submitted"
+      ]
+    }
+  ],
+  "recall_preflight": {
+    "status": "not_required"
+  },
+  "claude_mem_preflight": {
+    "status": "not_required"
+  },
+  "graphiti_preflight": {
+    "status": "passed",
+    "server": "graphiti",
+    "required_tools": [
+      "search_memory_facts",
+      "search_nodes",
+      "get_episodes",
+      "get_episode_entities",
+      "get_entity_edge",
+      "get_status"
+    ],
+    "tools_observed": [
+      "search_nodes",
+      "search_memory_facts",
+      "get_entity_edge",
+      "get_episodes",
+      "get_episode_entities",
+      "get_status"
+    ],
+    "search": "tools/call get_status succeeded"
+  }
+}

@@ -49,7 +49,11 @@
     "The placebo exceeds the claude_md baseline by +9.5%, so the run does not isolate a memory benefit cleanly.",
     "recall shows a positive point estimate, but its published 95% interval crosses zero.",
     "recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
-    "A vendor review hold suppresses one product's metrics from the public analysis until the hold is released."
+    "mempalace shows a positive point estimate, but its published 95% interval crosses zero.",
+    "mempalace costs 5.3 times the baseline per admitted cell, including retrieval context tokens.",
+    "cognee shows a positive point estimate, but its published 95% interval crosses zero.",
+    "claude_mem shows a positive point estimate, but its published 95% interval crosses zero.",
+    "graphiti shows a positive point estimate, but its published 95% interval crosses zero."
   ],
   "arms": {
     "recall": {
@@ -157,12 +161,118 @@
       ]
     },
     "mempalace": {
-      "status": "held",
-      "hold": {
-        "until": "2026-09-15",
-        "issue": "https://github.com/MemPalace/mempalace/issues/2414",
-        "reason": "held for vendor review"
-      }
+      "status": "published",
+      "success": 0.6057,
+      "delta_vs_baseline": 0.0284,
+      "ci95": [
+        -0.0195,
+        0.0863
+      ],
+      "solved_cells": 192,
+      "admitted_cells": 317,
+      "discarded_cells": 5,
+      "by_condition": {
+        "present": {
+          "solved": 53,
+          "cells": 111,
+          "success": 0.4775
+        },
+        "absent": {
+          "solved": 34,
+          "cells": 52,
+          "success": 0.6538
+        },
+        "superseded": {
+          "solved": 33,
+          "cells": 46,
+          "success": 0.7174
+        },
+        "contradictory": {
+          "solved": 33,
+          "cells": 51,
+          "success": 0.6471
+        },
+        "adjacent": {
+          "solved": 39,
+          "cells": 57,
+          "success": 0.6842
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.0901,
+        "absent": 0.0384,
+        "superseded": 0.0435,
+        "contradictory": -0.1176,
+        "adjacent": 0.0175
+      },
+      "cost": {
+        "total_usd": 2.2273,
+        "usd_per_admitted_cell": 0.007,
+        "total_tokens": 37832025,
+        "tokens_per_observed_session": 103649,
+        "tokens_per_admitted_cell": 119344,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": "2026-08-22",
+        "relative_to_baseline": 4.2705
+      },
+      "speed": {
+        "mean_session_s": 89.29,
+        "ingest_s": 3604.42,
+        "ingest_s_per_admitted_cell": 11.37,
+        "ingest_items_stored": 7965,
+        "ingest_models": [
+          "chromadb onnx all-MiniLM-L6-v2"
+        ],
+        "relative_to_baseline": 0.5728
+      },
+      "efficiency": {
+        "successes_per_million_tokens": 5.08,
+        "successes_per_dollar": 86.2
+      },
+      "strongest_gains": [
+        {
+          "task": "ts-mig-name",
+          "delta": 0.2727
+        },
+        {
+          "task": "ts-json-sorted",
+          "delta": 0.25
+        },
+        {
+          "task": "ts-log-mask",
+          "delta": 0.2
+        },
+        {
+          "task": "ts-atomic-write",
+          "delta": 0.2
+        },
+        {
+          "task": "ts-manifest-rel",
+          "delta": 0.1819
+        }
+      ],
+      "largest_losses": [
+        {
+          "task": "ts-cli-exitcode",
+          "delta": -0.2
+        },
+        {
+          "task": "ts-natural-order",
+          "delta": -0.125
+        },
+        {
+          "task": "ts-bom-merge",
+          "delta": -0.1
+        },
+        {
+          "task": "ts-schema-additive",
+          "delta": -0.04
+        },
+        {
+          "task": "ts-semver-pin",
+          "delta": -0.04
+        }
+      ]
     },
     "fs_grep": {
       "status": "published",
@@ -769,6 +879,306 @@
           "delta": -0.04
         }
       ]
+    },
+    "supermemory": {
+      "status": "published",
+      "comparison": "joined to official-003",
+      "source_run": "supermemory-004",
+      "success": 0.2482,
+      "delta_vs_baseline": -0.3285,
+      "ci95": [
+        -0.3904,
+        -0.1101
+      ],
+      "solved_cells": null,
+      "admitted_cells": 274,
+      "discarded_cells": 31,
+      "by_condition": {
+        "absent": {
+          "solved": 29,
+          "cells": 46
+        },
+        "adjacent": {
+          "solved": 8,
+          "cells": 50
+        },
+        "contradictory": {
+          "solved": 16,
+          "cells": 46
+        },
+        "present": {
+          "solved": 12,
+          "cells": 89
+        },
+        "superseded": {
+          "solved": 3,
+          "cells": 43
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": -0.2526,
+        "absent": 0.015,
+        "superseded": -0.6041,
+        "contradictory": -0.4169,
+        "adjacent": -0.5067
+      },
+      "cost": {
+        "total_usd": null,
+        "usd_per_admitted_cell": null,
+        "reported_usd_per_task": 0.0052,
+        "total_tokens": 31081691,
+        "tokens_per_observed_session": 90092,
+        "tokens_per_admitted_cell": 113437,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": null,
+        "relative_to_baseline": null
+      },
+      "speed": {
+        "mean_session_s": null,
+        "ingest_s": null,
+        "relative_to_baseline": null
+      },
+      "efficiency": {},
+      "strongest_gains": [],
+      "largest_losses": [],
+      "join": {
+        "baseRun": "official-003",
+        "baseAdmittedCells": 317,
+        "joinedCells": 274,
+        "baseCellsLostToJoin": 43,
+        "conditions": [
+          "absent",
+          "adjacent",
+          "contradictory",
+          "present",
+          "superseded"
+        ]
+      }
+    },
+    "cognee": {
+      "status": "published",
+      "comparison": "joined to official-003",
+      "source_run": "cognee-001",
+      "success": 0.6124,
+      "delta_vs_baseline": 0.0426,
+      "ci95": [
+        -0.0129,
+        0.0601
+      ],
+      "solved_cells": null,
+      "admitted_cells": 258,
+      "discarded_cells": 66,
+      "by_condition": {
+        "present": {
+          "solved": 41,
+          "cells": 91
+        },
+        "absent": {
+          "solved": 26,
+          "cells": 45
+        },
+        "superseded": {
+          "solved": 26,
+          "cells": 34
+        },
+        "contradictory": {
+          "solved": 31,
+          "cells": 43
+        },
+        "adjacent": {
+          "solved": 34,
+          "cells": 45
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.0631,
+        "absent": -0.0376,
+        "superseded": 0.0908,
+        "contradictory": -0.0438,
+        "adjacent": 0.0889
+      },
+      "cost": {
+        "total_usd": null,
+        "usd_per_admitted_cell": null,
+        "reported_usd_per_task": 0.0187,
+        "total_tokens": 103098591,
+        "tokens_per_observed_session": 282462,
+        "tokens_per_admitted_cell": 399607,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": null,
+        "relative_to_baseline": null
+      },
+      "speed": {
+        "mean_session_s": null,
+        "ingest_s": null,
+        "relative_to_baseline": null
+      },
+      "efficiency": {},
+      "strongest_gains": [],
+      "largest_losses": [],
+      "join": {
+        "baseRun": "official-003",
+        "baseAdmittedCells": 317,
+        "joinedCells": 258,
+        "baseCellsLostToJoin": 59,
+        "conditions": [
+          "present",
+          "absent",
+          "superseded",
+          "contradictory",
+          "adjacent"
+        ]
+      }
+    },
+    "claude_mem": {
+      "status": "published",
+      "comparison": "joined to official-003",
+      "source_run": "claude-mem-official-019",
+      "success": 0.6275,
+      "delta_vs_baseline": 0.0436,
+      "ci95": [
+        -0.029,
+        0.1189
+      ],
+      "solved_cells": null,
+      "admitted_cells": 298,
+      "discarded_cells": 3,
+      "by_condition": {
+        "present": {
+          "solved": 49,
+          "cells": 110
+        },
+        "absent": {
+          "solved": 34,
+          "cells": 47
+        },
+        "superseded": {
+          "solved": 32,
+          "cells": 43
+        },
+        "contradictory": {
+          "solved": 36,
+          "cells": 47
+        },
+        "adjacent": {
+          "solved": 36,
+          "cells": 51
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.0581,
+        "absent": 0.108,
+        "superseded": 0.0703,
+        "contradictory": 0.0013,
+        "adjacent": 0.0392
+      },
+      "cost": {
+        "total_usd": null,
+        "usd_per_admitted_cell": null,
+        "reported_usd_per_task": 0.0137,
+        "total_tokens": 81381374,
+        "tokens_per_observed_session": 235888,
+        "tokens_per_admitted_cell": 273092,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": null,
+        "relative_to_baseline": null
+      },
+      "speed": {
+        "mean_session_s": null,
+        "ingest_s": null,
+        "relative_to_baseline": null
+      },
+      "efficiency": {},
+      "strongest_gains": [],
+      "largest_losses": [],
+      "join": {
+        "baseRun": "official-003",
+        "baseAdmittedCells": 317,
+        "joinedCells": 298,
+        "baseCellsLostToJoin": 19,
+        "conditions": [
+          "present",
+          "absent",
+          "superseded",
+          "contradictory",
+          "adjacent"
+        ]
+      }
+    },
+    "graphiti": {
+      "status": "published",
+      "comparison": "joined to official-003",
+      "source_run": "official-007-graphiti",
+      "success": 0.6059,
+      "delta_vs_baseline": 0.0228,
+      "ci95": [
+        -0.0677,
+        0.0737
+      ],
+      "solved_cells": null,
+      "admitted_cells": 307,
+      "discarded_cells": 2,
+      "by_condition": {
+        "present": {
+          "solved": 46,
+          "cells": 110
+        },
+        "absent": {
+          "solved": 39,
+          "cells": 52
+        },
+        "superseded": {
+          "solved": 31,
+          "cells": 46
+        },
+        "contradictory": {
+          "solved": 34,
+          "cells": 47
+        },
+        "adjacent": {
+          "solved": 36,
+          "cells": 52
+        }
+      },
+      "condition_delta_vs_baseline": {
+        "present": 0.0308,
+        "absent": 0.1346,
+        "superseded": 0.0,
+        "contradictory": -0.0413,
+        "adjacent": 0.0256
+      },
+      "cost": {
+        "total_usd": null,
+        "usd_per_admitted_cell": null,
+        "reported_usd_per_task": 0.0022,
+        "total_tokens": 12931466,
+        "tokens_per_observed_session": 36947,
+        "tokens_per_admitted_cell": 42122,
+        "pricing_model": "deepseek/deepseek-v4-flash",
+        "pricing_as_of": null,
+        "relative_to_baseline": null
+      },
+      "speed": {
+        "mean_session_s": null,
+        "ingest_s": null,
+        "relative_to_baseline": null
+      },
+      "efficiency": {},
+      "strongest_gains": [],
+      "largest_losses": [],
+      "join": {
+        "baseRun": "official-003",
+        "baseAdmittedCells": 317,
+        "joinedCells": 307,
+        "baseCellsLostToJoin": 10,
+        "conditions": [
+          "present",
+          "absent",
+          "superseded",
+          "contradictory",
+          "adjacent"
+        ]
+      }
     }
   },
   "task_profiles": {
@@ -1397,7 +1807,11 @@
       "The placebo exceeds the claude_md baseline by +9.5%, so the run does not isolate a memory benefit cleanly.",
       "recall shows a positive point estimate, but its published 95% interval crosses zero.",
       "recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
-      "A vendor review hold suppresses one product's metrics from the public analysis until the hold is released."
+      "mempalace shows a positive point estimate, but its published 95% interval crosses zero.",
+      "mempalace costs 5.3 times the baseline per admitted cell, including retrieval context tokens.",
+      "cognee shows a positive point estimate, but its published 95% interval crosses zero.",
+      "claude_mem shows a positive point estimate, but its published 95% interval crosses zero.",
+      "graphiti shows a positive point estimate, but its published 95% interval crosses zero."
     ],
     "report_markdown": "reports/official-003-analysis.md",
     "audit_json": "reports/official-003-audit.json",
@@ -1434,11 +1848,36 @@
         }
       },
       "mempalace": {
-        "status": "held",
-        "hold": {
-          "until": "2026-09-15",
-          "issue": "https://github.com/MemPalace/mempalace/issues/2414",
-          "reason": "held for vendor review"
+        "status": "published",
+        "success": 0.6057,
+        "delta_vs_baseline": 0.0284,
+        "ci95": [
+          -0.0195,
+          0.0863
+        ],
+        "cost": {
+          "total_usd": 2.2273,
+          "usd_per_admitted_cell": 0.007,
+          "total_tokens": 37832025,
+          "tokens_per_observed_session": 103649,
+          "tokens_per_admitted_cell": 119344,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": "2026-08-22",
+          "relative_to_baseline": 4.2705
+        },
+        "speed": {
+          "mean_session_s": 89.29,
+          "ingest_s": 3604.42,
+          "ingest_s_per_admitted_cell": 11.37,
+          "ingest_items_stored": 7965,
+          "ingest_models": [
+            "chromadb onnx all-MiniLM-L6-v2"
+          ],
+          "relative_to_baseline": 0.5728
+        },
+        "efficiency": {
+          "successes_per_million_tokens": 5.08,
+          "successes_per_dollar": 86.2
         }
       },
       "fs_grep": {
@@ -1618,6 +2057,110 @@
           "successes_per_million_tokens": 20.39,
           "successes_per_dollar": 328.87
         }
+      },
+      "supermemory": {
+        "status": "published",
+        "success": 0.2482,
+        "delta_vs_baseline": -0.3285,
+        "ci95": [
+          -0.3904,
+          -0.1101
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0052,
+          "total_tokens": 31081691,
+          "tokens_per_observed_session": 90092,
+          "tokens_per_admitted_cell": 113437,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
+      },
+      "cognee": {
+        "status": "published",
+        "success": 0.6124,
+        "delta_vs_baseline": 0.0426,
+        "ci95": [
+          -0.0129,
+          0.0601
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0187,
+          "total_tokens": 103098591,
+          "tokens_per_observed_session": 282462,
+          "tokens_per_admitted_cell": 399607,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
+      },
+      "claude_mem": {
+        "status": "published",
+        "success": 0.6275,
+        "delta_vs_baseline": 0.0436,
+        "ci95": [
+          -0.029,
+          0.1189
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0137,
+          "total_tokens": 81381374,
+          "tokens_per_observed_session": 235888,
+          "tokens_per_admitted_cell": 273092,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
+      },
+      "graphiti": {
+        "status": "published",
+        "success": 0.6059,
+        "delta_vs_baseline": 0.0228,
+        "ci95": [
+          -0.0677,
+          0.0737
+        ],
+        "cost": {
+          "total_usd": null,
+          "usd_per_admitted_cell": null,
+          "reported_usd_per_task": 0.0022,
+          "total_tokens": 12931466,
+          "tokens_per_observed_session": 36947,
+          "tokens_per_admitted_cell": 42122,
+          "pricing_model": "deepseek/deepseek-v4-flash",
+          "pricing_as_of": null,
+          "relative_to_baseline": null
+        },
+        "speed": {
+          "mean_session_s": null,
+          "ingest_s": null,
+          "relative_to_baseline": null
+        },
+        "efficiency": {}
       }
     }
   },

@@ -1,0 +1,7 @@
+source = "https://github.com/getzep/graphiti.git"
+ref = "4bd728790e836950c3922e84f6f989f1380f54f2"
+mcp_server_version = "1.1.0"
+lockfile = "mcp_server/uv.lock"
+
+# The dependency resolution is owned by the upstream uv.lock at the pinned ref. This file keeps
+# the source identity visible in the adapter directory without copying a second dependency graph.

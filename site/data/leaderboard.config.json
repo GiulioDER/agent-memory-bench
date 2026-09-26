@@ -1,10 +1,11 @@
 {
   "official_run": "official-003",
-  "pending_arms": [
-    "cognee",
-    "supermemory",
-    "claude_mem"
-  ],
+  "arm_runs": {
+    "supermemory": "supermemory-004",
+    "cognee": "cognee-001",
+    "claude_mem": "claude-mem-official-019",
+    "graphiti": "official-007-graphiti"
+  },
   "analysis_report": "reports/official-003-analysis.json",
-  "updated": "2026-09-09"
+  "updated": "2026-09-26"
 }

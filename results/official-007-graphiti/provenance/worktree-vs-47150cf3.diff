@@ -1,0 +1,3937 @@
+diff --git a/harness/abstention.py b/harness/abstention.py
+index 989f36bf..15725a68 100644
+--- a/harness/abstention.py
++++ b/harness/abstention.py
+@@ -41,7 +41,7 @@ from collections.abc import Iterable, Mapping, Sequence
+ from dataclasses import dataclass
+ from typing import Any
+ 
+-from .damage import CONDITIONS, Outcome
++from .damage import ADVERSARIAL_CONDITIONS, CONDITIONS, PRESENT, Outcome
+ from .stats import summarize_by_task
+ 
+ #: The strata preregistration 009 fixed at n = 12. Membership is data, not a judgement, so it
+@@ -158,16 +158,31 @@ def stratum_of(task_id: str) -> str:
+ def _paired(cells: Sequence[Cell], arm: str, reference: str) -> list[tuple[str, bool, bool]]:
+     """(task_id, arm_solved, reference_solved) for every cell present in BOTH arms.
+ 
+-    Pairing is on (task, seed): net harm is a within-cell contrast, and comparing an arm's cell
+-    against a different seed of the reference would be comparing two different draws.
++    Pairing is on (task, seed, condition): net harm is a within-cell contrast, and comparing an
++    arm's cell against a different seed OR a different condition of the reference would be
++    comparing two different draws. The condition was missing from that key until 2026-08-30,
++    which silently discarded every condition but one from the pooled endpoint.
+     """
+ 
+-    by_key = {(c.task_id, c.seed, c.arm): c for c in cells}
++    # ⚠️ The key includes CONDITION, and used to not. `endpoints()` is called on cells pooled
++    # across every condition (scripts/abstention.py), so a (task, seed, arm) that ran under two
++    # conditions collapsed into ONE entry and the earlier condition was silently overwritten.
++    #
++    # Endpoint 2 filters by condition before pairing and was unaffected. Endpoint 1 is the only
++    # pooled one, and it is the headline. Measured on results/abstention-001-endpoints.json
++    # before this fix: endpoint 2 summed to 57 paired cells per arm (29 absent + 28 superseded)
++    # while endpoint 1 reported 33, so roughly half the evidence never reached the primary
++    # number. On a four-condition run it would have been about a quarter.
++    #
++    # Preregistration 005 defines endpoint 1 as "A rate over admitted paired cells, which is the
++    # denominator that makes it a rate at all", so this restores the preregistered definition
++    # rather than changing it.
++    by_key = {(c.task_id, c.seed, c.condition, c.arm): c for c in cells}
+     pairs = []
+-    for (task_id, seed, cell_arm), cell in sorted(by_key.items()):
++    for (task_id, seed, condition, cell_arm), cell in sorted(by_key.items()):
+         if cell_arm != arm:
+             continue
+-        other = by_key.get((task_id, seed, reference))
++        other = by_key.get((task_id, seed, condition, reference))
+         if other is not None:
+             pairs.append((task_id, cell.solved, other.solved))
+     return pairs
+@@ -271,6 +286,116 @@ def wrong_fact_rate(cells: Sequence[Cell], arm: str) -> dict:
+     return out
+ 
+ 
++def usefulness(cells: Sequence[Cell], arm: str, reference: str = "bare") -> dict:
++    """The composite the four adversarial conditions cannot express on their own.
++
++    ⛔ Why this exists. With only `absent`, `superseded`, `contradictory` and `adjacent`, every
++    condition varies how the evidence is BAD, so the only way to lose is to engage and be misled.
++    Never searching therefore takes zero damage and forfeits nothing: **abstinence is a strictly
++    dominant strategy**, and any ranking drawn from those four rewards the most conservative
++    product rather than the most useful one. That misrepresents every arm, including the
++    third-party ones this project does not own.
++
++    `present` supplies the missing row, and this pairs the two axes:
++
++    * **sensitivity**, on `present`, over the cells where the reference arm FAILED. That
++      restriction is what stops a product being credited for tasks the reference already solves,
++      which would make sensitivity a measure of task difficulty rather than of memory.
++    * **specificity**, on the adversarial conditions: the fraction of cells in which the arm did
++      NOT apply a planted convention. Reported as a BAND, because `AMBIGUOUS_FAILURE` is a real
++      class and collapsing it either way states a point estimate the detectors cannot support.
++
++    The composite is Youden's J, ``sensitivity + specificity - 1``, chosen for one property: it
++    is **zero for both degenerate strategies**. A product that never searches scores sensitivity
++    0 and specificity 1. One that always trusts scores 1 and 0. Both land on zero, which is the
++    behaviour section 3 of the instrument review asked for and the reason a plain average of the
++    two would not do.
++
++    ⚠️ This is defined here and has NEVER been run. No number from it exists.
++    """
++
++    present = [c for c in cells if c.condition == PRESENT]
++    adversarial = [c for c in cells if c.condition in ADVERSARIAL_CONDITIONS]
++
++    winnable = [
++        (task, arm_solved)
++        for task, arm_solved, ref_solved in _paired(present, arm, reference)
++        if not ref_solved
++    ]
++    sensitivity = (
++        sum(1 for _t, solved in winnable if solved) / len(winnable) if winnable else None
++    )
++    # ⛔ BOTH sides filtered by arm. F-01: the numerator was arm-filtered and the denominator was
++    # not, so the published missed rate was the truth divided by the number of arms in the run:
++    # an arm that declined on every one of its own `present` cells reported 0.5 in a two-arm run
++    # and would have reported 0.2 in the five-arm shape official-001 used. Adding an unrelated
++    # vendor to a grid silently moved every other vendor's number. `abstention_rate` above and
++    # `engaged` below both filter first; this was the one place that did not.
++    present_for_arm = [c for c in present if c.arm == arm]
++    missed = [c for c in present_for_arm if c.abstained]
++
++    engaged = [c for c in adversarial if c.arm == arm]
++    damaged = sum(1 for c in engaged if c.damaged)
++    ambiguous = sum(1 for c in engaged if c.outcome is Outcome.AMBIGUOUS_FAILURE)
++    specificity_ceiling = 1.0 - (damaged / len(engaged)) if engaged else None
++    specificity_floor = (
++        1.0 - ((damaged + ambiguous) / len(engaged)) if engaged else None
++    )
++
++    def youden(spec: float | None) -> float | None:
++        if sensitivity is None or spec is None:
++            return None
++        return round(sensitivity + spec - 1.0, 4)
++
++    return {
++        "sensitivity": round(sensitivity, 4) if sensitivity is not None else None,
++        "sensitivity_n_cells": len(winnable),
++        "missed_rate": (
++            round(len(missed) / len(present_for_arm), 4) if present_for_arm else None
++        ),
++        "missed_n_cells": len(missed),
++        # Published so the rate is recomputable from the artifact. Its absence is why F-01 was
++        # invisible: `missed_n_cells` and `missed_rate` disagreed in the same dict and no reader
++        # could see the denominator that reconciled them.
++        "missed_n_present_cells": len(present_for_arm),
++        "specificity_floor": (
++            round(specificity_floor, 4) if specificity_floor is not None else None
++        ),
++        "specificity_ceiling": (
++            round(specificity_ceiling, 4) if specificity_ceiling is not None else None
++        ),
++        "specificity_n_cells": len(engaged),
++        "youden_j_floor": youden(specificity_floor),
++        "youden_j_ceiling": youden(specificity_ceiling),
++        # Both degenerate strategies land on zero by construction. Stated in the artifact so a
++        # reader does not have to rederive why a conservative product does not win here.
++        "zero_means": (
++            "never searching (sensitivity 0, specificity 1) and always trusting "
++            "(sensitivity 1, specificity 0) both score 0"
++        ),
++        # F-03: flagged on TASKS, not cells, matching `net_harm_by_stratum` and
++        # `damage_rate_by_condition`. Counting cells let three tasks at three seeds declare
++        # themselves adequately powered, while this module's own docstring says seeds of one task
++        # share a prompt, a fixture and a memo and are not independent observations.
++        #
++        # BOTH sides, and the first fix for F-03 did only one of them. `underpowered` sits in the
++        # same dict as `youden_j_floor` and `youden_j_ceiling`, which are functions of
++        # SPECIFICITY, so a reader takes the flag as covering the composite. Gating sensitivity
++        # alone let `underpowered: false` rest on two specificity cells. Preregistration 005 says
++        # "a condition with fewer than 8 admitted tasks is reported as underpowered", and it does
++        # not say which endpoint.
++        "sensitivity_n_tasks": len({task for task, _solved in winnable}),
++        "specificity_n_tasks": len({c.task_id for c in engaged}),
++        "underpowered": (
++            len({task for task, _solved in winnable}) < 8
++            or len({c.task_id for c in engaged}) < 8
++        ),
++        # F-02: derived, not asserted. A hardcoded True could only ever become wrong, and it
++        # would have become wrong in the artifact of the very first run that produced a number.
++        "never_run": not present_for_arm,
++    }
++
++
+ def endpoints(cells: Sequence[Cell], arms: Iterable[str], reference: str = "bare") -> dict:
+     """Every endpoint 005 defines, for every arm, in the record's reporting order."""
+ 
+@@ -283,6 +408,11 @@ def endpoints(cells: Sequence[Cell], arms: Iterable[str], reference: str = "bare
+             "2_damage_rate_by_condition": damage_rate_by_condition(cells, arm, reference),
+             "3_abstention_rate": abstention_rate(cells, arm),
+             "4_wrong_fact_applied": wrong_fact_rate(cells, arm),
++            # Reported last and NOT one of 005's four. It needs the `present` condition, which
++            # 005 did not define, so it belongs to whatever record first runs that condition. It
++            # is computed here so the shape is fixed and reviewable before any number exists, and
++            # it returns nulls until a run supplies `present` cells.
++            "5_usefulness_composite": usefulness(cells, arm, reference),
+         }
+     return report
+ 
+diff --git a/harness/adapters/base.py b/harness/adapters/base.py
+index 9dfc6c7d..9b3fba6f 100644
+--- a/harness/adapters/base.py
++++ b/harness/adapters/base.py
+@@ -44,15 +44,43 @@ from __future__ import annotations
+ 
+ import hashlib
+ import json
++import re
+ from abc import ABC, abstractmethod
+ from collections.abc import Mapping
+ from dataclasses import dataclass, field
+-from pathlib import Path
++from pathlib import Path, PurePosixPath, PureWindowsPath
+ from typing import Any
+ 
+ from ..gate import AdmissionSignal
+ 
+ 
++def resolve_corpus_path(root: Path, relative_path: str) -> Path:
++    """Resolve a manifest path while refusing symlink and ``..`` escapes from ``root``.
++
++    The shape of the path is judged BEFORE it is joined, and judged the same way on every host.
++    Resolving first makes the verdict platform dependent: ``C:/outside.jsonl`` is absolute on
++    Windows and an ordinary relative name on Linux, so a manifest refused on the machine the
++    benchmark is developed on was accepted on the Linux image it ships to. A corpus manifest is
++    portable data and must get one answer everywhere.
++    """
++
++    if not relative_path.strip():
++        raise ValueError(f"corpus path is not a usable relative path: {relative_path!r}")
++    if (
++        PurePosixPath(relative_path).is_absolute()
++        or PureWindowsPath(relative_path).is_absolute()
++        or PureWindowsPath(relative_path).drive
++        or "\\" in relative_path
++    ):
++        raise ValueError(f"corpus path escapes its root: {relative_path!r}")
++
++    canonical_root = root.resolve()
++    candidate = (canonical_root / relative_path).resolve()
++    if candidate != canonical_root and canonical_root not in candidate.parents:
++        raise ValueError(f"corpus path escapes its root: {relative_path!r}")
++    return candidate
++
++
+ @dataclass(frozen=True)
+ class CorpusManifest:
+     """The neutral experience feed: verbatim session transcripts, hashed.
+@@ -83,12 +111,21 @@ class CorpusManifest:
+ 
+         root = Path(corpus_root)
+         sessions: dict[str, str] = {}
+-        for pattern in ("sessions/**/*.jsonl", "distractors/*.jsonl"):
++        # `synthetic/` is the generated haystack (scripts/generate_haystack.py). It is absent
++        # from `corpus/` and present only in an assembled haystack root, so listing it here
++        # leaves the frozen 195-entry feed byte identical while letting a large corpus be an
++        # ordinary corpus root that every adapter already understands.
++        for pattern in CORPUS_GLOBS:
+             for path in sorted(root.glob(pattern)):
+                 rel = path.relative_to(root).as_posix()
+                 sessions[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
++        # newline="\n" because this is a COMMITTED artifact and this was the only writer here that
++        # did not pin it. Rebuilt on Windows it came out CRLF and on Linux LF for byte-identical
++        # content; `.gitattributes` normalised that at commit time, so the repository never saw it
++        # while the local tree read as modified until git next touched the file. Nothing hashes
++        # these bytes today, which is the only reason it stayed harmless.
+         (root / "manifest.json").write_text(
+-            json.dumps({"sessions": sessions}, indent=2) + "\n", encoding="utf-8"
++            json.dumps({"sessions": sessions}, indent=2) + "\n", encoding="utf-8", newline="\n"
+         )
+         return cls(root=root, sessions=sessions)
+ 
+@@ -96,7 +133,7 @@ class CorpusManifest:
+         """Refuse to ingest a corpus whose bytes do not match its manifest."""
+ 
+         for rel_path, expected in self.sessions.items():
+-            actual = hashlib.sha256((self.root / rel_path).read_bytes()).hexdigest()
++            actual = hashlib.sha256(resolve_corpus_path(self.root, rel_path).read_bytes()).hexdigest()
+             if actual != expected:
+                 raise ValueError(
+                     f"corpus file {rel_path} hashes to {actual}, manifest says {expected}; "
+@@ -141,6 +178,17 @@ class IngestReport:
+         }
+ 
+ 
++@dataclass(frozen=True)
++class ServiceRequirement:
++    """A public description of a brokered service needed by an arm."""
++
++    name: str
++    kind: str
++    allowed_tools: tuple[str, ...] = ()
++    endpoint_env: str | None = None
++    capability_env: str | None = None
++
++
+ @dataclass(frozen=True)
+ class ArmSpec:
+     """One arm's session configuration: the adapter's output, consumed by the runner.
+@@ -155,9 +203,12 @@ class ArmSpec:
+     append_system_prompt_file: str | Path | None = None
+     memory_tool_prefix: str | None = None
+     extra_allowed_tools: tuple[str, ...] = ()
++    extra_args: tuple[str, ...] = ()
+     config_dir: Path | None = None
+     config_dir_digest: str | None = None
+     env: Mapping[str, str] = field(default_factory=dict)
++    service_requirements: tuple[ServiceRequirement, ...] = ()
++    public_container_env: Mapping[str, str] = field(default_factory=dict)
+     bare: bool = True
+     metadata: Mapping[str, Any] = field(default_factory=dict)
+ 
+@@ -175,12 +226,130 @@ def digest_tree(root: Path) -> str:
+     return digest.hexdigest()
+ 
+ 
++#: The patterns `CorpusManifest.build` globs. Named so that the manifest-completeness test can
++#: IMPORT it instead of copying it: the copy in `tests/test_corpus_manifest_is_complete.py`
++#: claimed in its own docstring that "the two cannot drift apart", and a copy is precisely what
++#: lets them. Adding `synthetic/**/*.jsonl` here was the drift event that made the point.
++CORPUS_GLOBS = ("sessions/**/*.jsonl", "distractors/*.jsonl", "synthetic/**/*.jsonl")
++
++
++#: How a ranked list was obtained, and it must be reported with every number drawn from one.
++#:
++#: ``served``  exactly what a session gets, including whatever trust threshold, reranking or
++#:             abstention the product applies on its real path. This is the honest answer to
++#:             "how good is this product's retrieval **as it is sold**".
++#: ``raw``     the ungated ranked list, threshold and abstention bypassed. The honest answer to
++#:             "how good is the underlying ranking", which is a different question.
++#:
++#: ⛔ These are NOT interchangeable and a table that mixes them without saying so is measuring
++#: two things under one heading. recall's served path applies a certified threshold and can
++#: abstain; `fs_grep` has no trust policy at all and is therefore raw by construction. Reporting
++#: which one produced a number costs one field and removes the ambiguity entirely.
++GATINGS = ("served", "raw")
++
++
++#: A namespace names a directory and a database tenant, so it is joined onto paths that later get
++#: `shutil.rmtree`'d. Anything outside this shape is refused at the boundary.
++#:
++#: ⛔ Verified by execution before this existed: `FsGrepAdapter._staging_dir('../../../../victim')`
++#: resolved to `C:\\Users\\gde00\\victim\\memory`, outside its `tempfile.mkdtemp()` root, and
++#: `ingest` calls `shutil.rmtree` on exactly that path. The repository already owned the right
++#: primitive (`resolve_corpus_path`) and already applied an equivalent check to the assembler's
++#: `--out`; the new `--namespace` flag simply did not go through one.
++_NAMESPACE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
++
++
++def validate_namespace(namespace: str) -> str:
++    """Return ``namespace`` unchanged, or refuse it.
++
++    Rejects `..`, both separators, a leading `-` (which an argv would read as an option) and the
++    empty string.
++
++    ⚠️ Being shared does NOT mean a new vendor cannot arrive without it, and the sentence that
++    said so was wrong when it was written: the guard reached one of the four places a namespace
++    is joined onto a path that is later `rmtree`d. Prefer `namespace_path` below, which puts the
++    check AT the join, and `tests/test_namespace_guard.py`, which fails when an adapter joins a
++    namespace without one. A claim in a security comment that nothing enforces is worse than no
++    comment, because it stops the next reader looking.
++    """
++
++    if not _NAMESPACE.match(namespace or ""):
++        raise ValueError(
++            f"refusing namespace {namespace!r}: a namespace is joined onto paths that are later "
++            f"deleted and passed to a CLI, so it must match {_NAMESPACE.pattern}"
++        )
++    return namespace
++
++
++def namespace_path(root: str | Path, namespace: str, *parts: str) -> Path:
++    """Join ``namespace`` under ``root``, refusing anything that could leave it.
++
++    The validation belongs HERE, at the join, and not at whichever caller happened to remember
++    it. Every one of these paths is passed to `shutil.rmtree` by the adapter that builds it, so
++    a namespace that escapes its root deletes somebody else's directory.
++    """
++
++    return Path(root).joinpath(validate_namespace(namespace), *parts)
++
++
++@dataclass(frozen=True)
++class RankedHit:
++    """One retrieved document, in rank order.
++
++    ``source_path`` is the corpus-relative transcript path, which is what makes a hit joinable
++    against a task's gold sessions. A product that cannot report which corpus document an answer
++    came from cannot be scored for retrieval here, and that is a real finding about the product
++    rather than a gap in the harness.
++    """
++
++    source_path: str
++    score: float
++    rank: int
++
++
++@dataclass(frozen=True)
++class RankedResult:
++    hits: tuple[RankedHit, ...]
++    gating: str
++    abstained: bool
++    query_sha256: str
++    detail: Mapping[str, Any] = field(default_factory=dict)
++
++
+ class MemoryAdapter(ABC):
+     """One memory product's complete entry into the benchmark."""
+ 
+     #: The arm name, unique across the registry.
+     name: str = ""
+ 
++    #: Which gatings this arm can answer `search` under. Empty means it cannot be scored for
++    #: retrieval at all, which is the default: an arm opts in by implementing the method rather
++    #: than inheriting a hollow one that returns nothing and reads as a zero.
++    supported_gatings: tuple[str, ...] = ()
++
++    def search(
++        self, namespace: str, query: str, *, gating: str = "served", limit: int = 10
++    ) -> RankedResult:  # pragma: no cover - optional capability
++        """The product's own ranked answer to ``query``, in ITS order, not re-sorted.
++
++        This is the hook that lets a retrieval number say something about a VENDOR rather than
++        about the corpus. `scripts/retrieval_probe.py` scores the corpus with a fixed BM25 and a
++        hosted embedder precisely because nothing in the harness could ask an arm what it would
++        have retrieved; every arm's retrieval happens inside its own MCP server and the harness
++        only ever saw tool calls in a transcript.
++
++        ⚠️ Order is the payload. `adapters/recall_prefetch` sorts its items by ``memory_id``
++        before returning them, which is harmless for a bundle that gets injected whole and fatal
++        for a ranked list. An implementation that re-sorts has destroyed the only thing being
++        measured.
++
++        Raise rather than returning an empty result when the arm cannot do this. An empty list is
++        a legitimate answer meaning "found nothing", and conflating the two would let an
++        unimplemented arm score as a product that retrieves badly.
++        """
++
++        raise NotImplementedError(f"{self.name} exposes no ranked retrieval")
++
+     @abstractmethod
+     def ingest(self, corpus: CorpusManifest, namespace: str) -> IngestReport:
+         """Feed the corpus through the product's own write path into ``namespace``."""
+@@ -204,6 +373,12 @@ class MemoryAdapter(ABC):
+ 
+         return self.build(session_dir, namespace)
+ 
++    def prepare_for_session(self, namespace: str) -> None:  # pragma: no cover - optional lifecycle
++        """Prepare a per-session vendor runtime immediately before execution."""
++
++    def cleanup_after_session(self, namespace: str) -> None:  # pragma: no cover - optional lifecycle
++        """Release a per-session vendor runtime after execution."""
++
+     @abstractmethod
+     def admission_signal(self) -> AdmissionSignal:
+         """What the gate must verify before this arm's sessions count as evidence."""
+diff --git a/harness/broker.py b/harness/broker.py
+index 2f756140..6f5ac423 100644
+--- a/harness/broker.py
++++ b/harness/broker.py
+@@ -102,6 +102,15 @@ def broker_jsonrpc_call(
+         with urllib.request.urlopen(request, timeout=timeout_s) as response:
+             payload = json.loads(response.read(4 * 1024 * 1024 + 1))
+     except urllib.error.HTTPError as error:
++        detail = ""
++        try:
++            detail = error.read(4096).decode("utf-8", errors="replace").strip()
++        except OSError:
++            pass
++        if detail:
++            raise BrokerError(
++                f"broker JSON-RPC call returned HTTP {error.code}: {detail[:1000]}"
++            ) from error
+         raise BrokerError(f"broker JSON-RPC call returned HTTP {error.code}") from error
+     if not isinstance(payload, dict):
+         raise BrokerError("broker JSON-RPC call returned an invalid response")
+@@ -403,10 +412,10 @@ class BrokerApplication:
+         scheme, _, token = headers.get("Authorization", "").partition(" ")
+         if scheme.lower() != "bearer":
+             raise BrokerError("bearer capability required")
+-        method = str(
+-            request.get("method")
+-            or str(headers.get("X-AMB-Path", "")).rstrip("/").rsplit("/", 1)[-1]
+-        )
++        raw_path = str(headers.get("X-AMB-Path", ""))
++        path = urllib.parse.urlsplit(raw_path).path
++        path_method = path.rstrip("/").rsplit("/", 1)[-1]
++        method = str(request.get("method") or path_method)
+         return self.authority.validate(
+             token,
+             run_id=self.run_context["run_id"],
+diff --git a/harness/checker_run.py b/harness/checker_run.py
+index d9924c61..162495d2 100644
+--- a/harness/checker_run.py
++++ b/harness/checker_run.py
+@@ -35,6 +35,8 @@ from collections.abc import Mapping, Sequence
+ from dataclasses import dataclass
+ from pathlib import Path
+ 
++from harness.claude_exec import _ENV_PASSTHROUGH
++
+ #: Nothing a checker runs is allowed to take longer than this, whatever it spawns.
+ DEFAULT_TIMEOUT_S = 120.0
+ 
+@@ -127,7 +129,19 @@ def run_bounded(
+     rather than only on what it printed.
+     """
+ 
+-    merged = dict(os.environ)
++    # Allow-list, NOT a copy of the operator's environment. What runs here is the deliverable the
++    # model just wrote plus the task's checker, and `scripts/launch_official.sh` sources a secrets
++    # file into the environment they would inherit, so a wholesale copy hands model-authored code
++    # OPENROUTER_API_KEY and every other arm's credentials for no benefit.
++    #
++    # `harness/claude_exec.py::_ENV_PASSTHROUGH` is the same decision already made for the SESSION
++    # subprocess, with its reasoning written out there. Shared rather than restated: two
++    # allow-lists drift, and the drift is invisible until something leaks.
++    merged = {
++        name: os.environ[name]
++        for name in _ENV_PASSTHROUGH
++        if os.environ.get(name) is not None
++    }
+     if env:
+         merged.update(env)
+     # A statement, not the ternary this used to be, and the difference is the whole fix. mypy
+@@ -152,6 +166,7 @@ def run_bounded(
+         encoding="utf-8",
+         errors="replace",
+         creationflags=creation_flags,
++        start_new_session=sys.platform != "win32",
+     )
+     timed_out = False
+     try:
+diff --git a/harness/claude_exec.py b/harness/claude_exec.py
+index a0896c0d..e6752721 100644
+--- a/harness/claude_exec.py
++++ b/harness/claude_exec.py
+@@ -24,11 +24,15 @@ never involves a shell, so a task prompt cannot become a command.
+ from __future__ import annotations
+ 
+ import asyncio
++import contextlib
+ import gzip
+ import json
+ import os
+ import re
+ import shutil
++import signal
++import subprocess
++import sys
+ import time
+ from collections.abc import Mapping, Sequence
+ from dataclasses import dataclass, field
+@@ -36,6 +40,8 @@ from datetime import datetime
+ from pathlib import Path
+ from typing import TYPE_CHECKING, Any
+ 
++from .decision_trace import decisions_from_result_events, decisions_from_tool_calls
++from .retrieval_trace import summarize_memory_calls
+ from .schema import DEFAULT_MEMORY_TOOL_PREFIX, SessionRecord
+ 
+ if TYPE_CHECKING:  # Runner is only a return annotation here; runner.py is ported separately.
+@@ -58,6 +64,75 @@ class ClaudeSessionTimeout(ClaudeTranscriptError):
+     """
+ 
+ 
++async def _terminate_process_tree(
++    process: asyncio.subprocess.Process, process_group_id: int | None = None
++) -> None:
++    """Terminate a timed out Claude process and its descendants within a bounded wait."""
++
++    if sys.platform == "win32":
++        await asyncio.to_thread(
++            subprocess.run,
++            ["taskkill", "/T", "/F", "/PID", str(process.pid)],
++            capture_output=True,
++            check=False,
++        )
++    else:
++        try:
++            group_id = process_group_id if process_group_id is not None else os.getpgid(process.pid)
++            os.killpg(group_id, signal.SIGKILL)
++        except ProcessLookupError:
++            pass
++    with contextlib.suppress(asyncio.TimeoutError):
++        await asyncio.wait_for(process.wait(), timeout=5.0)
++    if process.returncode is None:
++        process.kill()
++        with contextlib.suppress(asyncio.TimeoutError):
++            await asyncio.wait_for(process.wait(), timeout=5.0)
++
++
++# The variables a session's subprocess is allowed to inherit from the host.
++#
++# A session runs model-written Bash under `acceptEdits`, so every variable reaching it is readable
++# by the agent and lands in a transcript that is committed. Inheriting the operator's whole
++# environment therefore hands each arm every OTHER arm's credentials plus anything else in the
++# shell, for no benefit: an arm needs the platform plumbing its CLI cannot start without, and the
++# values its own ArmSpec sets. Everything else is withheld.
++#
++# This mirrors what `write_mcp_config` already does for the MCP server's environment; the session
++# path simply never had it.
++_ENV_PASSTHROUGH = (
++    # POSIX plumbing
++    "PATH", "HOME", "LANG", "LC_ALL", "TZ", "TMPDIR", "SHELL", "USER", "LOGNAME", "TERM",
++    # Windows plumbing: CreateProcess and the Node runtime need these to start at all.
++    "SystemRoot", "SystemDrive", "windir", "COMSPEC", "PATHEXT", "APPDATA", "LOCALAPPDATA",
++    "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMDATA", "TEMP", "TMP", "USERPROFILE",
++    "HOMEDRIVE", "HOMEPATH", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
++    # Python, for the harness's own child tooling.
++    "PYTHONPATH", "PYTHONIOENCODING", "PYTHONUTF8",
++    # Outbound network configuration. These are settings, not credentials, and withholding them
++    # would break every session on a proxied or custom-CA host while protecting nothing.
++    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy",
++    "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE",
++)
++
++
++def session_environment(config: ClaudeExecConfig) -> dict[str, str]:
++    """Build the environment one session's subprocess gets.
++
++    Allow-list, not a copy: see `_ENV_PASSTHROUGH`. The arm's own `config.env` is applied on top,
++    so an arm can still pass exactly what it needs (its auth token, its DSN) without every other
++    arm inheriting it.
++    """
++
++    environment = {
++        name: os.environ[name] for name in _ENV_PASSTHROUGH if os.environ.get(name) is not None
++    }
++    environment.update({str(key): str(value) for key, value in config.env.items()})
++    if config.config_dir is not None:
++        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
++    return environment
++
++
+ def resolve_claude_executable(name: str = "claude") -> str:
+     """Resolve `claude` to something `CreateProcess` can actually start.
+ 
+@@ -123,6 +198,8 @@ class ClaudeExecConfig:
+     cwd: str | Path | None = None
+     timeout_s: float = 1800.0
+     env: Mapping[str, str] = field(default_factory=dict)
++    #: Explicit nonsecret values allowed into a participant container.
++    public_container_env: Mapping[str, str] = field(default_factory=dict)
+     extra_args: tuple[str, ...] = ()
+     bare: bool = True
+     mcp_config: str | None = None
+@@ -139,6 +216,9 @@ class ClaudeExecConfig:
+     #: stream is the evidence; every number in the summary is derived from it and can be
+     #: recomputed, so it is written by the adapter itself rather than by whatever calls it.
+     stream_dir: str | Path | None = None
++    #: Claude Code's schema constrained terminal output. None preserves the historical transcript
++    #: mode; the benchmark pilot enables this explicitly when it is collecting decision traces.
++    json_schema: Mapping[str, Any] | None = None
+ 
+     def __post_init__(self) -> None:
+         if not self.executable.strip():
+@@ -162,6 +242,8 @@ class ClaudeExecConfig:
+                 "strict_mcp_config with mcp_config=None yields a session with no MCP servers; "
+                 "pass strict_mcp_config=False, or set mcp_config, to say which you meant"
+             )
++        if self.json_schema is not None and not isinstance(self.json_schema, Mapping):
++            raise TypeError("json_schema must be a mapping when provided")
+ 
+     def command(self, prompt: str) -> list[str]:
+         """Build an argument list without invoking a shell."""
+@@ -171,6 +253,13 @@ class ClaudeExecConfig:
+             command.append("--bare")
+         command.extend(("-p", prompt))
+         command.extend(("--output-format", "stream-json", "--verbose"))
++        if self.json_schema is not None:
++            command.extend(
++                (
++                    "--json-schema",
++                    json.dumps(self.json_schema, separators=(",", ":"), sort_keys=True),
++                )
++            )
+         if self.model:
+             command.extend(("--model", self.model))
+         if self.mcp_config is not None:
+@@ -274,6 +363,30 @@ def _is_subagent(event: Mapping[str, Any]) -> bool:
+     return event.get("parent_tool_use_id") is not None
+ 
+ 
++def _decision_identity(value: Mapping[str, Any]) -> tuple[Any, ...]:
++    """Compare decisions without their transport source, so terminal echo is not double counted."""
++
++    return tuple(
++        value.get(key)
++        for key in ("decision", "confidence", "threshold", "reason", "stage")
++    )
++
++
++def _merge_runtime_decisions(
++    tool_decisions: Sequence[Mapping[str, Any]],
++    result_decisions: Sequence[Mapping[str, Any]],
++) -> tuple[dict[str, Any], ...]:
++    """Keep a StructuredOutput event once when Claude also echoes it as terminal output."""
++
++    merged = [dict(item) for item in tool_decisions]
++    tool_identities = {_decision_identity(item) for item in merged}
++    for item in result_decisions:
++        if _decision_identity(item) in tool_identities:
++            continue
++        merged.append(dict(item))
++    return tuple(merged)
++
++
+ @dataclass(frozen=True)
+ class TranscriptFields:
+     """Everything the record needs that has to be reconstructed from the event stream."""
+@@ -286,6 +399,8 @@ class TranscriptFields:
+     retrieved_contexts: tuple[str, ...]
+     failed_tool_calls: int
+     subagent_tool_calls: int
++    runtime_decisions: tuple[dict[str, Any], ...]
++    memory_retrieval: dict[str, Any]
+ 
+ 
+ #: One tool call as it is assembled from the stream. The values are genuinely heterogeneous
+@@ -329,7 +444,9 @@ def transcript_fields(
+                 }
+                 calls[call_id] = call
+                 order.append(call_id)
+-                turn_calls.append({"name": call["name"], "args": call["args"]})
++                turn_calls.append(
++                    {"id": call["id"], "name": call["name"], "args": call["args"]}
++                )
+             if text or turn_calls:
+                 turn: dict[str, Any] = {"role": "assistant", "content": text}
+                 if turn_calls:
+@@ -366,7 +483,7 @@ def transcript_fields(
+                     if finished is not None and started is not None and finished >= started
+                     else None
+                 )
+-                conversation.append({"role": "tool", "content": output})
++                conversation.append({"role": "tool", "tool_use_id": call_id, "content": output})
+         elif event_type == "result":
+             final = event.get("result")
+             if isinstance(final, str) and final:
+@@ -391,6 +508,11 @@ def transcript_fields(
+         }
+         for call in ordered
+     )
++    memory_retrieval = summarize_memory_calls(
++        tool_calls, memory_tool_prefix=memory_tool_prefix
++    )
++    tool_decisions = decisions_from_tool_calls(tool_calls)
++    result_decisions = decisions_from_result_events(events)
+     return TranscriptFields(
+         conversation=tuple(conversation),
+         tool_calls=tool_calls,
+@@ -402,6 +524,8 @@ def transcript_fields(
+         retrieved_contexts=tuple(contexts),
+         failed_tool_calls=sum(1 for call in ordered if call.get("is_error")),
+         subagent_tool_calls=sum(1 for call in ordered if call.get("subagent")),
++        runtime_decisions=_merge_runtime_decisions(tool_decisions, result_decisions),
++        memory_retrieval=memory_retrieval,
+     )
+ 
+ 
+@@ -538,6 +662,7 @@ def build_record(
+         "api_retries": len(retries),
+         "failed_tool_calls": fields.failed_tool_calls,
+         "subagent_tool_calls": fields.subagent_tool_calls,
++        "memory_retrieval": fields.memory_retrieval,
+         # Kept apart because they are not priced alike: a cache read is far cheaper than a fresh
+         # token and cache creation is dearer. input_tokens above is their sum.
+         "fresh_input_tokens": usage.get("fresh_input_tokens"),
+@@ -570,7 +695,15 @@ def build_record(
+         conversation=conversation,
+         reference_tool_calls=tuple(row.get("reference_tool_calls") or ()),
+         tool_calls=fields.tool_calls,
++        runtime_decisions=fields.runtime_decisions,
+         memory_call_count=fields.memory_call_count,
++        memory_calls_attempted=fields.memory_retrieval["attempted"],
++        memory_calls_succeeded=fields.memory_retrieval["succeeded"],
++        memory_calls_failed=fields.memory_retrieval["failed"],
++        memory_search_abstained=fields.memory_retrieval["abstained"],
++        memory_hits_returned=fields.memory_retrieval["hits_returned"],
++        memory_trust_states=tuple(fields.memory_retrieval["trust_states"]),
++        memory_error_codes=tuple(fields.memory_retrieval["error_codes"]),
+         memory_latency_ms=fields.memory_latency_ms,
+         input_tokens=usage["input_tokens"],
+         output_tokens=usage["output_tokens"],
+@@ -593,10 +726,12 @@ async def run_claude_case(
+         raise ValueError(f"task {row.get('task_id')!r} has an empty user_input")
+ 
+     command = config.command(prompt)
+-    environment = dict(os.environ)
+-    environment.update({str(key): str(value) for key, value in config.env.items()})
+-    if config.config_dir is not None:
+-        environment["CLAUDE_CONFIG_DIR"] = str(config.config_dir)
++    environment = session_environment(config)
++    process_options: dict[str, Any] = {}
++    if sys.platform == "win32":
++        process_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
++    else:
++        process_options["start_new_session"] = True
+ 
+     started = time.perf_counter()
+     process = await asyncio.create_subprocess_exec(
+@@ -608,12 +743,18 @@ async def run_claude_case(
+         stderr=asyncio.subprocess.PIPE,
+         cwd=str(config.cwd) if config.cwd else None,
+         env=environment,
++        **process_options,
+     )
++    process_group_id = None
++    if sys.platform != "win32":
++        with contextlib.suppress(ProcessLookupError, AttributeError):
++            process_group_id = os.getpgid(process.pid)
+     try:
+         stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=config.timeout_s)
+     except TimeoutError:
+-        process.kill()
+-        await process.wait()
++        await _terminate_process_tree(process, process_group_id)
++        with contextlib.suppress(asyncio.TimeoutError):
++            await asyncio.wait_for(process.communicate(), timeout=5.0)
+         raise ClaudeSessionTimeout(
+             f"claude exceeded timeout_s={config.timeout_s} for task {row.get('task_id')!r}"
+         ) from None
+diff --git a/harness/costs.py b/harness/costs.py
+index 3db7c941..c0c9184c 100644
+--- a/harness/costs.py
++++ b/harness/costs.py
+@@ -38,14 +38,146 @@ class ModelPricing:
+     usd_per_mtok_output: float
+     as_of: str
+     source: str = ""
++    #: Rate for tokens served from the provider's prompt cache, which is the cheap class. Left
++    #: None when the provider publishes no separate rate, in which case cache reads are charged
++    #: at the fresh-input rate and `priced_cache_separately` reports False, so an artifact can
++    #: say which of the two it is rather than leaving the reader to assume.
++    usd_per_mtok_cache_read: float | None = None
++    #: Rate for writing the cache, which several providers charge at a PREMIUM over fresh input.
++    usd_per_mtok_cache_creation: float | None = None
+ 
+-    def usd(self, input_tokens: int, output_tokens: int) -> float:
++    @property
++    def priced_cache_separately(self) -> bool:
+         return (
+-            input_tokens * self.usd_per_mtok_input
++            self.usd_per_mtok_cache_read is not None
++            or self.usd_per_mtok_cache_creation is not None
++        )
++
++    def usd(
++        self,
++        input_tokens: int,
++        output_tokens: int,
++        *,
++        cache_read_tokens: int = 0,
++        cache_creation_tokens: int = 0,
++    ) -> float:
++        """Dollars for one bundle of tokens.
++
++        ``input_tokens`` is the TOTAL input, the sum of the three classes, because that is what
++        `SessionRecord.input_tokens` holds. The two cache counts are subtracted back out and
++        repriced, so a caller that knows the split gets it charged correctly and a caller that
++        does not gets exactly the old answer.
++
++        This split is not cosmetic. Measured on `results/pilot-003-deepseek`, cache reads are
++        68.2% of the recall arm's input against 48.6% of claude_md's, so charging one rate for
++        all three both overstates the total and overstates it UNEVENLY between the arms being
++        compared. The harness has recorded the split per session since the beginning; only the
++        pricing ignored it.
++        """
++
++        fresh = input_tokens - cache_read_tokens - cache_creation_tokens
++        if fresh < 0:
++            raise ValueError(
++                f"cache tokens ({cache_read_tokens} read + {cache_creation_tokens} creation) "
++                f"exceed the total input {input_tokens}"
++            )
++        cache_read_rate = (
++            self.usd_per_mtok_input
++            if self.usd_per_mtok_cache_read is None
++            else self.usd_per_mtok_cache_read
++        )
++        cache_creation_rate = (
++            self.usd_per_mtok_input
++            if self.usd_per_mtok_cache_creation is None
++            else self.usd_per_mtok_cache_creation
++        )
++        return (
++            fresh * self.usd_per_mtok_input
++            + cache_read_tokens * cache_read_rate
++            + cache_creation_tokens * cache_creation_rate
+             + output_tokens * self.usd_per_mtok_output
+         ) / 1_000_000.0
+ 
+ 
++#: The rates preregistration 002 froze for `deepseek/deepseek-v4-flash`, quoted in the refusal
++#: below so a rerun that means to match the frozen protocol can copy them rather than hunt.
++FROZEN_002_PRICES = "--price-in 0.0574 --price-out 0.1148 --price-as-of 2026-08-22"
++
++
++def pricing_from_args(args, *, model: str, source: str = "") -> dict[str, ModelPricing]:
++    """Build a run's pricing table from parsed CLI arguments, refusing to guess.
++
++    The prices are REQUIRED. They used to be argparse defaults, and the defaults did what
++    defaults do: they rotted, they disagreed between the three runners, and a run took them
++    without anyone deciding to.
++
++    That is not hypothetical. `pilot-004-placebo` was launched without the flags and priced at
++    `scripts/pilot.py`'s defaults, 0.05866/0.11732, while `pilot-003-deepseek` used the frozen
++    0.0574/0.1148. The two published runs were therefore never comparable in dollars, and nothing
++    said so: the artifact recorded `pricing_as_of` and `pricing_model` but not the prices, so
++    identifying the basis meant reverse-solving a 2x2 system from two arms' rounded totals. A
++    price is a measurement input, and an unstated measurement input is the thing this benchmark
++    exists to avoid.
++
++    Dry runs never reach here: every runner returns before pricing when `--dry-run` is set, so a
++    cost-free rehearsal still needs no rates.
++    """
++
++    missing = [
++        flag
++        for flag, value in (
++            ("--price-in", getattr(args, "price_in", None)),
++            ("--price-out", getattr(args, "price_out", None)),
++            ("--price-as-of", getattr(args, "price_as_of", None)),
++        )
++        if value is None
++    ]
++    if missing:
++        raise SystemExit(
++            f"missing required pricing: {' '.join(missing)}.\n"
++            "Prices are not defaulted, because a default is a price nobody chose: pilot-004 was "
++            "priced at a stale default and its dollars were never comparable to pilot-003's.\n"
++            f"To match the frozen protocol of preregistration 002:  {FROZEN_002_PRICES}\n"
++            "Otherwise pass the rates you captured, with the date you captured them. Add "
++            "--price-cache-read when the provider prices cached input separately; without it "
++            "cache reads are charged at the fresh-input rate and the artifact says so."
++        )
++
++    return {
++        model: ModelPricing(
++            model=model,
++            usd_per_mtok_input=args.price_in,
++            usd_per_mtok_output=args.price_out,
++            as_of=args.price_as_of,
++            source=source,
++            usd_per_mtok_cache_read=getattr(args, "price_cache_read", None),
++            usd_per_mtok_cache_creation=getattr(args, "price_cache_creation", None),
++        )
++    }
++
++
++def add_pricing_arguments(parser) -> None:
++    """Register the pricing flags on a runner's parser, with no defaults.
++
++    Kept beside `pricing_from_args` so the flag names and the refusal cannot drift apart, and so a
++    fourth runner cannot reintroduce a fourth set of defaults by copying a third.
++    """
++
++    parser.add_argument("--price-in", type=float, help="USD per Mtok of fresh input (required)")
++    parser.add_argument("--price-out", type=float, help="USD per Mtok of output (required)")
++    parser.add_argument("--price-as-of", help="the date the prices were read (required)")
++    parser.add_argument(
++        "--price-cache-read",
++        type=float,
++        help="USD per Mtok of cache-read input, when the provider prices it separately",
++    )
++    parser.add_argument(
++        "--price-cache-creation",
++        type=float,
++        help="USD per Mtok of cache-creation input, when the provider prices it separately",
++    )
++
++
+ def load_pricing(path: str | Path) -> dict[str, ModelPricing]:
+     """Load a ``pricing.json`` of ``{model: {usd_per_mtok_input, ..., as_of, source}}``."""
+ 
+@@ -56,6 +188,16 @@ def load_pricing(path: str | Path) -> dict[str, ModelPricing]:
+             model=model,
+             usd_per_mtok_input=float(entry["usd_per_mtok_input"]),
+             usd_per_mtok_output=float(entry["usd_per_mtok_output"]),
++            usd_per_mtok_cache_read=(
++                float(entry["usd_per_mtok_cache_read"])
++                if entry.get("usd_per_mtok_cache_read") is not None
++                else None
++            ),
++            usd_per_mtok_cache_creation=(
++                float(entry["usd_per_mtok_cache_creation"])
++                if entry.get("usd_per_mtok_cache_creation") is not None
++                else None
++            ),
+             as_of=str(entry["as_of"]),
+             source=str(entry.get("source", "")),
+         )
+@@ -71,6 +213,10 @@ class ArmCosts:
+     sessions_unmetered: int = 0
+     session_input_tokens: int = 0
+     session_output_tokens: int = 0
++    #: The input split, summed from each record's metadata where the provider reported it. These
++    #: are a PARTITION of session_input_tokens, not additions to it.
++    session_cache_read_tokens: int = 0
++    session_cache_creation_tokens: int = 0
+     session_wall_time_ms: float = 0.0
+     ingest_input_tokens: int = 0
+     ingest_output_tokens: int = 0
+@@ -95,7 +241,13 @@ class ArmCosts:
+         return self.total_input_tokens + self.total_output_tokens
+ 
+     def estimate_usd(self, pricing: ModelPricing) -> float:
+-        return pricing.usd(self.total_input_tokens, self.total_output_tokens)
++        # Ingest tokens carry no cache split, so only the session half contributes cache counts.
++        return pricing.usd(
++            self.total_input_tokens,
++            self.total_output_tokens,
++            cache_read_tokens=self.session_cache_read_tokens,
++            cache_creation_tokens=self.session_cache_creation_tokens,
++        )
+ 
+     def to_dict(self, pricing: ModelPricing | None = None) -> dict[str, Any]:
+         out: dict[str, Any] = {
+@@ -118,6 +270,16 @@ class ArmCosts:
+             out["estimated_usd"] = round(self.estimate_usd(pricing), 4)
+             out["pricing_as_of"] = pricing.as_of
+             out["pricing_model"] = pricing.model
++            # The prices themselves, not just their date. Recovering which rates produced a
++            # published dollar figure previously meant reverse-solving a linear system from two
++            # arms' rounded totals, which is not a thing an artifact should require of a reader.
++            out["usd_per_mtok_input"] = pricing.usd_per_mtok_input
++            out["usd_per_mtok_output"] = pricing.usd_per_mtok_output
++            out["usd_per_mtok_cache_read"] = pricing.usd_per_mtok_cache_read
++            out["usd_per_mtok_cache_creation"] = pricing.usd_per_mtok_cache_creation
++            out["priced_cache_separately"] = pricing.priced_cache_separately
++            out["session_cache_read_tokens"] = self.session_cache_read_tokens
++            out["session_cache_creation_tokens"] = self.session_cache_creation_tokens
+         return out
+ 
+ 
+@@ -141,6 +303,13 @@ def tally(
+         else:
+             costs.session_input_tokens += record.input_tokens
+             costs.session_output_tokens += record.output_tokens
++            usage = record.metadata.get("token_usage") or record.metadata or {}
++            costs.session_cache_read_tokens += int(
++                usage.get("cache_read_input_tokens") or 0
++            )
++            costs.session_cache_creation_tokens += int(
++                usage.get("cache_creation_input_tokens") or 0
++            )
+         if record.wall_time_ms is not None:
+             costs.session_wall_time_ms += record.wall_time_ms
+ 
+diff --git a/harness/damage.py b/harness/damage.py
+index 56475c61..379ab7f2 100644
+--- a/harness/damage.py
++++ b/harness/damage.py
+@@ -41,8 +41,40 @@ from typing import Any, Protocol, runtime_checkable
+ 
+ #: The corpus conditions from preregistration 005. A detector is asked about one of these, because
+ #: the planted wrong fact differs per condition even for the same task.
++#:
++#: ⚠️ `present` is NOT one of them, and that is deliberate rather than an omission. Every
++#: condition here varies how the evidence is BAD, so every one of them asks a detector "did the
++#: arm apply a wrong fact". `present` has no plant and therefore no wrong fact to detect; asking
++#: a damage detector about it is a category error. It is a condition of the CORPUS
++#: (`ADVERSARIAL_CONDITIONS` plus `PRESENT` below) and not a condition of the damage machinery.
+ CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
+ 
++#: The condition in which the governing fact is present, correct and unambiguous: the real
++#: precursor session, no plant, nothing swapped. The identity transform on the corpus.
++#:
++#: It exists because without it this suite cannot reward a memory layer for being USEFUL.
++#: `docs/reviews/2026-08-30-instrument-review.md` section 3: memory usefulness is a two-by-two,
++#: and with only the four adversarial conditions above, one row of it cannot fire.
++#:
++#: | | corpus HAS the answer | corpus empty or misleading |
++#: |---|---|---|
++#: | product engages | win (benefit) | loss (damage) |
++#: | product abstains | **missed** | win (correct refusal) |
++#:
++#: The "missed" cell is the one `present` instruments. Without it, never searching takes zero
++#: damage and forfeits nothing, so abstinence is a strictly DOMINANT strategy and any ranking
++#: drawn from this suite rewards the most conservative product rather than the most useful one.
++#: That misrepresents every arm, including the third-party ones this project does not own.
++PRESENT = "present"
++
++#: Every condition a corpus can be assembled in. `CONDITIONS` stays the damage-detector's
++#: vocabulary; this is the assembler's and the composite endpoint's.
++CORPUS_CONDITIONS = (PRESENT, *CONDITIONS)
++
++#: The four in which the corpus cannot answer correctly. Specificity is measured over these and
++#: sensitivity over `PRESENT`; a composite needs both or it rewards a degenerate strategy.
++ADVERSARIAL_CONDITIONS = CONDITIONS
++
+ 
+ class Outcome(enum.Enum):
+     """What one finished cell actually shows, in the four-way form damage requires."""
+@@ -136,8 +168,32 @@ def harm_band(outcomes: Sequence[Outcome]) -> dict[str, Any]:
+     }
+ 
+ 
+-def load_detector(task_dir: str | Path) -> Callable[..., tuple[bool, str]] | None:
+-    """Load ``<task_dir>/damage.py::detect``, or None for a task with no planted conditions."""
++def condition_of(reference: str | Path) -> str:
++    """The corpus condition a `reference/damaged_*.py` file applies a plant from.
++
++    `damaged_<condition>.py` is the usual case. A condition whose corpus holds MORE THAN ONE wrong
++    memo needs one reference per memo, because a planted signature that no reference ever produces
++    is an expectation file that can be wrong with nothing to say so. `contradictory` is the first:
++    its two memos disagree, and a detector that only ever saw one side could not show it tells them
++    apart. Those take a second segment:
++
++        damaged_contradictory.py            memo A
++        damaged_contradictory__lagos.py     memo B, same condition
++
++    The separator is a DOUBLE underscore, so a condition name containing a single one cannot be
++    split down the middle. None does today; `wrong_scope` is the obvious next one.
++    """
++
++    return Path(reference).stem.removeprefix("damaged_").split("__", 1)[0]
++
++
++def load_detector_module(task_dir: str | Path):
++    """Import ``<task_dir>/damage.py`` whole, or None for a task with no planted conditions.
++
++    `load_detector` wants one function out of it. The gate wants the module, because a detector may
++    also declare what its task's FACTLESS outcomes look like, which is how a planted signature is
++    checked against the mistakes an agent makes anyway.
++    """
+ 
+     path = Path(task_dir) / "damage.py"
+     if not path.is_file():
+@@ -149,6 +205,16 @@ def load_detector(task_dir: str | Path) -> Callable[..., tuple[bool, str]] | Non
+         raise ImportError(f"cannot load a damage detector from {path}")
+     module = importlib.util.module_from_spec(spec)
+     spec.loader.exec_module(module)
++    return module
++
++
++def load_detector(task_dir: str | Path) -> Callable[..., tuple[bool, str]] | None:
++    """Load ``<task_dir>/damage.py::detect``, or None for a task with no planted conditions."""
++
++    module = load_detector_module(task_dir)
++    if module is None:
++        return None
++    path = Path(task_dir) / "damage.py"
+     # Two different defects, and conflating them hides which one a task author made.
+     if not hasattr(module, "detect"):
+         raise AttributeError(f"{path} defines no `detect`")
+diff --git a/harness/gate.py b/harness/gate.py
+index d7c6bb94..61063962 100644
+--- a/harness/gate.py
++++ b/harness/gate.py
+@@ -276,6 +276,15 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
+     if signal.required_hooks:
+         events = _ledger_events(record)
+         for hook in signal.required_hooks:
++            conditional_hooks = signal.metadata.get("conditional_hooks", {})
++            if (
++                isinstance(conditional_hooks, Mapping)
++                and conditional_hooks.get(hook) == "tool_calls"
++                and not record.tool_calls
++            ):
++                # PostToolUse is only emitted after a tool invocation. Requiring it from a
++                # model turn that made no tool call would manufacture an integration discard.
++                continue
+             entry = events.get(hook)
+             if entry is None:
+                 reasons.append(
+@@ -291,6 +300,11 @@ def check_session(record: SessionRecord, signal: AdmissionSignal) -> AdmissionVe
+                     f"lifecycle hook {hook!r} produced no output; an empty injection is "
+                     f"indistinguishable from the hook not running"
+                 )
++            if entry.get("hook_error"):
++                reasons.append(
++                    f"lifecycle hook {hook!r} reported an integration error: "
++                    f"{entry['hook_error']}"
++                )
+ 
+     if signal.sandbox_paths:
+         present = record.metadata.get("sandbox_paths_present")
+diff --git a/harness/instructions.py b/harness/instructions.py
+index 51ea8a70..026fe3e1 100644
+--- a/harness/instructions.py
++++ b/harness/instructions.py
+@@ -75,13 +75,46 @@ def _read(path: Path) -> str:
+     return path.read_text(encoding="utf-8")
+ 
+ 
+-def protocol_template(*, neutral: bool = False) -> str:
++#: Protocol variants. Each is a COMPLETE shared protocol handed byte-identically to every memory
++#: arm, so a variant tests a WAY OF SEARCHING rather than one product's coaching. `draft` differs
++#: from `protocol` in exactly one section and is generated by `scripts/build_draft_protocol.py`;
++#: `tests/test_draft_protocol.py` refuses a hand-edited copy, which is what keeps "one variable" a
++#: checkable fact rather than a claim. Preregistration 024.
++PROTOCOL_VARIANTS: dict[str, Path] = {
++    "protocol": PROTOCOL_PATH,
++    "draft": REPO / "adapters" / "_shared" / "memory_protocol_draft.md",
++}
++
++
++def protocol_path(variant: str = "protocol") -> Path:
++    """The protocol file for one variant, refusing an unknown name rather than defaulting.
++
++    Defaulting would silently serve the standard protocol under a variant's name, and the run would
++    report that null as a finding about the variant. That is the same failure this module exists to
++    make impossible across arms, so it is refused across variants too.
++    """
++
++    try:
++        return PROTOCOL_VARIANTS[variant]
++    except KeyError:
++        raise InstructionError(
++            f"unknown protocol variant {variant!r}; known: {sorted(PROTOCOL_VARIANTS)}"
++        ) from None
++
++
++def protocol_template(*, neutral: bool = False, variant: str = "protocol") -> str:
+     """The shared protocol text, before the search sentence is filled in."""
+ 
+-    text = _read(PROTOCOL_PATH)
++    path = protocol_path(variant)
++    if not path.is_file():
++        raise InstructionError(
++            f"protocol variant {variant!r} expects {path.name}, which is missing. Generate it with "
++            f"`python -m scripts.build_draft_protocol` rather than writing it by hand."
++        )
++    text = _read(path)
+     if SEARCH_SLOT not in text:
+         raise InstructionError(
+-            f"{PROTOCOL_PATH} no longer contains {SEARCH_SLOT!r}; every arm's search "
++            f"{path} no longer contains {SEARCH_SLOT!r}; every arm's search "
+             f"mechanism is named through that slot and nowhere else"
+         )
+     if neutral:
+@@ -93,11 +126,14 @@ def protocol_template(*, neutral: bool = False) -> str:
+     return text
+ 
+ 
+-def portable_protocol(search_instruction: str, *, neutral: bool = False) -> str:
++def portable_protocol(
++    search_instruction: str, *, neutral: bool = False, variant: str = "protocol"
++) -> str:
+     """The protocol every memory arm receives, with this arm's search sentence substituted.
+ 
+     The substituted sentence is the ONLY per-arm difference in this half of the instruction, and it
+-    is one sentence because naming a mechanism takes one.
++    is one sentence because naming a mechanism takes one. ``variant`` selects WHICH protocol every
++    arm shares; it is never per-arm, so a variant remains a fair comparison.
+     """
+ 
+     sentence = search_instruction.strip()
+@@ -108,7 +144,7 @@ def portable_protocol(search_instruction: str, *, neutral: bool = False) -> str:
+             "the search instruction is one sentence, not a section; put anything longer in the "
+             "arm's instruction_appendix.md, where it is capped and reviewable"
+         )
+-    return protocol_template(neutral=neutral).replace(SEARCH_SLOT, sentence)
++    return protocol_template(neutral=neutral, variant=variant).replace(SEARCH_SLOT, sentence)
+ 
+ 
+ def appendix_path(arm: str) -> Path:
+@@ -136,10 +172,12 @@ def vendor_appendix(arm: str) -> str:
+     return text
+ 
+ 
+-def compose(arm: str, search_instruction: str, *, neutral: bool = False) -> str:
++def compose(
++    arm: str, search_instruction: str, *, neutral: bool = False, variant: str = "protocol"
++) -> str:
+     """The complete memory instruction for one arm: shared protocol, then its own appendix."""
+ 
+-    protocol = portable_protocol(search_instruction, neutral=neutral).rstrip()
++    protocol = portable_protocol(search_instruction, neutral=neutral, variant=variant).rstrip()
+     appendix = vendor_appendix(arm)
+     if not appendix:
+         return protocol + "\n"
+@@ -168,15 +206,22 @@ def instruction_manifest(instructions: Mapping[str, str]) -> dict[str, dict[str,
+     }
+ 
+ 
+-def assert_shared_protocol(instructions: Mapping[str, str], *, neutral: bool = False) -> None:
++def assert_shared_protocol(
++    instructions: Mapping[str, str], *, neutral: bool = False, variant: str = "protocol"
++) -> None:
+     """Refuse a roster where the memory arms do not share the protocol byte for byte.
+ 
+     This is the check the old contract only stated. It compares the protocol half of each nonempty
+     instruction (everything up to the appendix) against the rendered template with the arm's own
+     search sentence removed, so an arm cannot quietly carry extra coaching.
++
++    ``variant`` must be the one the roster was composed with. Checking a `draft` roster against the
++    standard template would report every arm as an offender, and checking a standard roster against
++    the draft template would do the same, so this argument is not optional in practice even though
++    it has a default.
+     """
+ 
+-    template = protocol_template(neutral=neutral)
++    template = protocol_template(neutral=neutral, variant=variant)
+     head, _, tail = template.partition(SEARCH_SLOT)
+     offenders: list[str] = []
+     for arm, text in sorted(instructions.items()):
+@@ -186,17 +231,19 @@ def assert_shared_protocol(instructions: Mapping[str, str], *, neutral: bool = F
+             offenders.append(arm)
+     if offenders:
+         raise InstructionError(
+-            f"arm(s) {offenders} do not carry the shared memory protocol verbatim. Every arm with "
+-            f"a memory surface receives adapters/_shared/memory_protocol.md unchanged; per-product "
+-            f"text goes in adapters/<arm>/instruction_appendix.md under the "
+-            f"{APPENDIX_MAX_BYTES}-byte cap."
++            f"arm(s) {offenders} do not carry the shared memory protocol verbatim under variant "
++            f"{variant!r}. Every arm with a memory surface receives "
++            f"{protocol_path(variant).name} unchanged; per-product text goes in "
++            f"adapters/<arm>/instruction_appendix.md under the {APPENDIX_MAX_BYTES}-byte cap."
+         )
+ 
+ 
+-def excess_over_protocol(instructions: Mapping[str, str], *, neutral: bool = False) -> dict[str, int]:
++def excess_over_protocol(
++    instructions: Mapping[str, str], *, neutral: bool = False, variant: str = "protocol"
++) -> dict[str, int]:
+     """Bytes each arm carries beyond the shared protocol. The fairness number, published per run."""
+ 
+-    base = len(portable_protocol("x", neutral=neutral).encode("utf-8")) - 1
++    base = len(portable_protocol("x", neutral=neutral, variant=variant).encode("utf-8")) - 1
+     return {
+         arm: max(0, len(text.encode("utf-8")) - base) if text.strip() else 0
+         for arm, text in sorted(instructions.items())
+diff --git a/harness/isolation.py b/harness/isolation.py
+index 60975d08..c55bc686 100644
+--- a/harness/isolation.py
++++ b/harness/isolation.py
+@@ -497,7 +497,7 @@ def _stream_workspace_from_container(runtime: str, name: str, destination: Path)
+             name,
+             "sh",
+             "-c",
+-            "cd /workspace && find . -mindepth 1 -print0 | tar --null --files-from=- --create --file=-",
++            "cd /workspace && find . -mindepth 1 -print0 | tar --no-recursion --null --files-from=- --create --file=-",
+         ],
+         stdout=destination.open("wb"),
+         stderr=subprocess.PIPE,
+@@ -761,7 +761,9 @@ def run_isolated_checker(
+         artifact_stage = temp / "artifact"
+         oracle_stage = temp / "oracle"
+         extract_archive(artifact_archive, artifact_stage)
+-        extract_archive(oracle_archive, oracle_stage)
++        oracle_task_stage = oracle_stage / task_id
++        oracle_task_stage.mkdir(parents=True, exist_ok=True)
++        extract_archive(oracle_archive, oracle_task_stage)
+         name = f"amb-checker-{uuid.uuid4().hex}"
+         try:
+             create = [
+@@ -1014,8 +1016,10 @@ def run_isolated_claude_case(
+         command = list(config.command(str(row.get("user_input", "")).strip()))
+         if not command:
+             raise IsolationError("Claude command is empty")
+-        command[0] = "/usr/local/bin/claude"
++        command[0] = "/usr/bin/claude"
+         for index, value in enumerate(command):
++            if index == 0 or value == "/usr/bin/claude":
++                continue
+             if value == str(config.mcp_config):
+                 command[index] = _container_path(value, directory="session", name="mcp.json")
+             elif value == str(config.append_system_prompt_file):
+@@ -1058,7 +1062,7 @@ def run_isolated_claude_case(
+         participant_config = ClaudeExecConfig(
+             model=config.model,
+             memory_tool_prefix=config.memory_tool_prefix,
+-            strict_mcp_config=config.strict_mcp_config,
++            strict_mcp_config=False,
+             bare=config.bare,
+         )
+         participant_policy = policy or default_participant_policy()
+diff --git a/harness/memory_bundles.py b/harness/memory_bundles.py
+index 83cdc497..a9fb03c7 100644
+--- a/harness/memory_bundles.py
++++ b/harness/memory_bundles.py
+@@ -8,7 +8,7 @@ from dataclasses import dataclass
+ from pathlib import Path
+ from typing import Any
+ 
+-from .adapters.base import CorpusManifest
++from .adapters.base import CorpusManifest, resolve_corpus_path
+ from .tasks import TaskSpec
+ 
+ DEFAULT_FORBIDDEN_MARKERS = (
+@@ -133,7 +133,7 @@ class MemoryBundleCatalog:
+                 seen_ids.add(item.memory_id)
+                 if item.source_path not in corpus.sessions:
+                     raise ValueError(f"bundle {bundle.bundle_id!r} references unknown source {item.source_path!r}")
+-                source = corpus.root / item.source_path
++                source = resolve_corpus_path(corpus.root, item.source_path)
+                 raw = source.read_bytes()
+                 actual_hash = sha256_bytes(raw)
+                 if actual_hash != item.source_sha256:
+diff --git a/harness/memory_startup.py b/harness/memory_startup.py
+index 02317d39..c29a621f 100644
+--- a/harness/memory_startup.py
++++ b/harness/memory_startup.py
+@@ -345,6 +345,7 @@ async def run_with_memory_startup_retry(
+     probe_min_free_mb: float = 0.0,
+     retryable: frozenset[str] = DEFAULT_RETRYABLE,
+     runner: Callable[..., Awaitable[SessionRecord]] = run_claude_case,
++    probe_runner: Callable[..., Awaitable[list[McpProbe]]] | None = None,
+     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+ ) -> SessionRecord:
+     """Run one session, retrying only while its treatment failed to wire up.
+@@ -391,7 +392,7 @@ async def run_with_memory_startup_retry(
+                         "required_mb": probe_min_free_mb,
+                     }
+                 else:
+-                    probes = await probe_mcp_config(probe_config)
++                    probes = await (probe_runner or probe_mcp_config)(probe_config)
+                     entry["probe"] = [probe.to_dict() for probe in probes]
+             kept = _preserve_stream(config.stream_dir, stream_name, attempt)
+             entry["stream"] = kept or (stream_name if isinstance(stream_name, str) else None)
+diff --git a/harness/plants.py b/harness/plants.py
+index 4f05ebd0..9652df29 100644
+--- a/harness/plants.py
++++ b/harness/plants.py
+@@ -50,10 +50,11 @@ from __future__ import annotations
+ import json
+ import random
+ import re
++import unicodedata
+ from dataclasses import dataclass, field
+ from pathlib import Path
+ 
+-from .damage import CONDITIONS
++from .damage import CONDITIONS, PRESENT
+ 
+ #: Emphasis and word-joining characters that a substring test must not be fooled by.
+ _NOISE = re.compile(r"[*_`~]+")
+@@ -70,12 +71,20 @@ def normalise(text: str) -> str:
+     the asterisks and the hyphen broke the match. The plant therefore stated the very convention
+     it exists to withhold, and the condition would have answered its own question.
+ 
+-    So every fact-term and wrong-term comparison goes through here. Markdown emphasis is removed,
+-    hyphens and slashes become spaces, and runs of whitespace collapse, which makes the test see
+-    what a reader sees rather than what the bytes happen to be.
++    Accents fold for the same reason and were added for the same kind of near-miss: a recording
++    that decided app.log stamps were "Sao\u0303 Paulo local" failed the presence gate for the term
++    "Sao Paulo", so a plant that had stated its wrong fact perfectly clearly read as unretrievable.
++    The containment direction is where this actually bites, because there the failure is silent: a
++    leaked term wearing a diacritic would have passed an audit whose whole job is to find it.
++
++    So every fact-term and wrong-term comparison goes through here. Accents are folded to their
++    base letters, markdown emphasis is removed, hyphens and slashes become spaces, and runs of
++    whitespace collapse, which makes the test see what a reader sees rather than what the bytes
++    happen to be.
+     """
+ 
+-    lowered = text.lower()
++    decomposed = unicodedata.normalize("NFKD", text.lower())
++    lowered = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+     lowered = _NOISE.sub("", lowered)
+     lowered = _JOINERS.sub(" ", lowered)
+     return _SPACE.sub(" ", lowered)
+@@ -84,6 +93,11 @@ def normalise(text: str) -> str:
+ #: whether the task's own true precursor stays in the corpus; a condition that gets this wrong is
+ #: a different condition wearing the right name.
+ CONDITION_SHAPE: dict[str, dict[str, object]] = {
++    # the governing fact, correct and unambiguous: the real session and nothing else. The
++    # identity transform, which is why it needs no plant and no author. It is the only condition
++    # in which ABSTAINING is a loss, and without it abstinence is a dominant strategy across the
++    # whole suite. See `harness.damage.PRESENT`.
++    "present": {"include_real": True, "min_plants": 0, "max_plants": 0},
+     # no governing fact for this task: the real session is withheld and nothing replaces it
+     "absent": {"include_real": False, "min_plants": 0, "max_plants": 0},
+     # the old fact AND the newer one: the real session IS the newer one
+@@ -131,9 +145,25 @@ class PlantSpec:
+     conditions: dict[str, ConditionPlan] = field(default_factory=dict)
+ 
+     def plan(self, condition: str) -> ConditionPlan | None:
++        if condition == PRESENT:
++            return present_plan()
+         return self.conditions.get(condition)
+ 
+ 
++def present_plan() -> ConditionPlan:
++    """The `present` condition, which is the same for every task and is never authored.
++
++    Every other condition is a claim about what somebody planted, so it has to be declared per
++    task in ``plants.json`` and validated. `present` is the identity transform: the task's real
++    precursor session and nothing else. There is nothing to declare, nothing to record and
++    nothing that can be got wrong, which is why a task needs no ``plants.json`` at all to be
++    assembled in it. That matters practically: most tasks have no ``plants.json``, and under the
++    four adversarial conditions they were therefore unassemblable and invisible to the suite.
++    """
++
++    return ConditionPlan(condition=PRESENT, include_real=True, plants=())
++
++
+ def _require(ok: bool, message: str) -> None:
+     if not ok:
+         raise PlantSpecError(message)
+@@ -167,6 +197,13 @@ def load_plants(task_dir: str | Path) -> PlantSpec | None:
+     _require(isinstance(conditions_raw, dict), f"{task_id}: 'conditions' must be an object")
+     conditions: dict[str, ConditionPlan] = {}
+     for condition, body in conditions_raw.items():
++        _require(
++            condition != PRESENT,
++            f"{task_id}: plants.json declares {PRESENT!r}. That condition is the identity "
++            f"transform and is never authored: it is the task's real session and nothing else. "
++            f"Declaring it would let a plant into the one condition whose whole purpose is that "
++            f"the evidence is correct.",
++        )
+         _require(
+             condition in CONDITIONS,
+             f"{task_id}: unknown condition {condition!r}; expected one of {CONDITIONS}",
+diff --git a/harness/runner.py b/harness/runner.py
+index c0cf407c..60e1cd98 100644
+--- a/harness/runner.py
++++ b/harness/runner.py
+@@ -25,6 +25,7 @@ the arms no longer see an identical instant, only an unbiased sample of instants
+ from __future__ import annotations
+ 
+ import asyncio
++import os
+ import random
+ from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+ from dataclasses import replace
+@@ -37,6 +38,19 @@ Runner = Callable[
+ ]
+ 
+ 
++def cell_start_stagger_seconds() -> float:
++    """Delay cell starts to avoid burst failures at the upstream model gateway."""
++
++    raw = os.environ.get("AMB_CELL_START_STAGGER_SECONDS", "0").strip()
++    if not raw:
++        return 0.0
++    try:
++        value = float(raw)
++    except ValueError:
++        return 0.0
++    return max(0.0, value)
++
++
+ def _error_record(row: Mapping[str, Any], arm: str, error: BaseException) -> SessionRecord:
+     return SessionRecord(
+         task_id=str(row["task_id"]),
+@@ -121,7 +135,11 @@ async def run_grid(
+ 
+     semaphore = asyncio.Semaphore(block_concurrency)
+ 
+-    async def run_cell(row: Mapping[str, Any]) -> list[SessionRecord]:
++    stagger = cell_start_stagger_seconds()
++
++    async def run_cell(row: Mapping[str, Any], index: int) -> list[SessionRecord]:
++        if stagger and index:
++            await asyncio.sleep(stagger * index)
+         async with semaphore:
+             cell = (str(row.get("task_id", "")), int(row.get("seed", 0)))
+             order = arm_order(arm_list, cell, order_seed) if arm_concurrency else list(arm_list)
+@@ -150,5 +168,5 @@ async def run_grid(
+                 for position, record in enumerate(records)
+             ]
+ 
+-    blocks = await asyncio.gather(*(run_cell(row) for row in materialized))
++    blocks = await asyncio.gather(*(run_cell(row, index) for index, row in enumerate(materialized)))
+     return [record for block in blocks for record in block]
+diff --git a/harness/sandbox.py b/harness/sandbox.py
+index 5fb0ca25..070dcba0 100644
+--- a/harness/sandbox.py
++++ b/harness/sandbox.py
+@@ -166,9 +166,23 @@ def restore(
+     # is only a meaningful instruction where there is an index to be clean against. `init.
+     # defaultBranch` is pinned so a checker can name the branch, and gpgsign is off because the
+     # user's signing key must never be reachable from a sandbox running model-written code.
+-    git("init", "-q", "-b", "main", ".", cwd=destination)
+-    git("add", "--", ".", cwd=destination)
+-    git("commit", "-q", "-m", "fixture", cwd=destination)
++    # Each of these is checked. `checker_run.git` returns a Completed and never raises, so an
++    # unchecked call lets a failed init/add/commit hand back a sandbox with no baseline commit and
++    # a perfectly plausible digest: `tree_digest` hashes files, not git state, and `.git` is
++    # excluded from it, so nothing downstream can tell the difference. An unprovable starting
++    # state must refuse rather than proceed.
++    for step in (
++        ("init", "-q", "-b", "main", "."),
++        ("add", "--", "."),
++        ("commit", "-q", "-m", "fixture"),
++    ):
++        completed = git(*step, cwd=destination)
++        if not completed.ok:
++            raise RuntimeError(
++                f"git {step[0]} failed in sandbox {destination} "
++                f"(exit {completed.returncode}, timed_out={completed.timed_out}): "
++                f"{completed.stderr.strip() or completed.stdout.strip()}"
++            )
+ 
+     dirty = fixture / "dirty"
+     if dirty.is_dir():
+@@ -210,3 +224,40 @@ def stage_oracle(task_id: str, workdir: Path, name: str) -> Path:
+     target.parent.mkdir(parents=True, exist_ok=True)
+     shutil.copyfile(source, target)
+     return target
++
++
++def export_container_input(
++    workdir: str | Path,
++    archive: str | Path,
++    *,
++    workspace_digest: str | None = None,
++) -> tuple[Path, str]:
++    """Create the participant input archive without exposing the repository.
++
++    The caller supplies the digest returned by :func:`restore`, because an arm's memory overlay
++    is intentionally present in the archive but is not part of the common starting state that
++    the admission gate compares.
++    """
++
++    from .isolation import archive_directory
++
++    output, _ = archive_directory(
++        workdir,
++        archive,
++        # The generated Git baseline is part of the participant input. It contains no benchmark
++        # history or oracle data because restore creates it after copying the fixture. Runtime
++        # caches remain excluded.
++        exclude_dirs=("__pycache__", ".pytest_cache", ".ruff_cache"),
++    )
++    return output, workspace_digest or tree_digest(Path(workdir))
++
++
++def extract_container_output(
++    archive: str | Path,
++    workdir: str | Path,
++) -> str:
++    """Validate and extract participant output before a checker can read it."""
++
++    from .isolation import extract_archive
++
++    return extract_archive(archive, workdir, merge=True)
+diff --git a/harness/schema.py b/harness/schema.py
+index 53968636..dcade556 100644
+--- a/harness/schema.py
++++ b/harness/schema.py
+@@ -11,8 +11,9 @@ because they were paid for:
+ 
+ New in this repo: ``arm`` (an adapter name, not a role), ``seed`` (the repetition index of the
+ (task, seed) grid cell), ``config_dir_digest`` (sha256 of the generated ``CLAUDE_CONFIG_DIR``
+-tree, proving which integration the session ran with), and ``hook_ledger`` (the shim-recorded
+-lifecycle hook events, the admission signal for hook-based integrations).
++tree, proving which integration the session ran with), ``hook_ledger`` (the shim-recorded
++lifecycle hook events, the admission signal for hook-based integrations), and first-class memory
++retrieval outcome counters.
+ """
+ 
+ from __future__ import annotations
+@@ -78,7 +79,17 @@ class SessionRecord:
+     conversation: tuple[dict[str, Any], ...] = ()
+     reference_tool_calls: tuple[dict[str, Any], ...] = ()
+     tool_calls: tuple[dict[str, Any], ...] = ()
++    runtime_decisions: tuple[dict[str, Any], ...] = ()
+     memory_call_count: int = 0
++    # First-class retrieval outcome counters. The same values are also retained under metadata
++    # for consumers that already read the telemetry bundle.
++    memory_calls_attempted: int = 0
++    memory_calls_succeeded: int = 0
++    memory_calls_failed: int = 0
++    memory_search_abstained: int = 0
++    memory_hits_returned: int = 0
++    memory_trust_states: tuple[str, ...] = ()
++    memory_error_codes: tuple[str, ...] = ()
+     memory_latency_ms: float | None = None
+     input_tokens: int | None = None
+     output_tokens: int | None = None
+@@ -104,8 +115,17 @@ class SessionRecord:
+             raise TypeError("success must be a bool")
+         if not isinstance(self.metadata, Mapping):
+             raise TypeError("metadata must be a mapping")
+-        if self.memory_call_count < 0:
+-            raise ValueError("memory_call_count must be nonnegative")
++        for name in (
++            "memory_call_count",
++            "memory_calls_attempted",
++            "memory_calls_succeeded",
++            "memory_calls_failed",
++            "memory_search_abstained",
++            "memory_hits_returned",
++        ):
++            value = getattr(self, name)
++            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
++                raise ValueError(f"{name} must be a nonnegative int")
+         for name in (
+             "memory_latency_ms",
+             "input_tokens",
+@@ -144,7 +164,7 @@ class SessionRecord:
+         """Return a JSON serializable representation."""
+ 
+         return {
+-            "record_version": 2,
++            "record_version": 3,
+             "task_id": self.task_id,
+             "arm": self.arm,
+             "seed": self.seed,
+@@ -157,7 +177,15 @@ class SessionRecord:
+             "conversation": [dict(item) for item in self.conversation],
+             "reference_tool_calls": [dict(item) for item in self.reference_tool_calls],
+             "tool_calls": [dict(item) for item in self.tool_calls],
++            "runtime_decisions": [dict(item) for item in self.runtime_decisions],
+             "memory_call_count": self.memory_call_count,
++            "memory_calls_attempted": self.memory_calls_attempted,
++            "memory_calls_succeeded": self.memory_calls_succeeded,
++            "memory_calls_failed": self.memory_calls_failed,
++            "memory_search_abstained": self.memory_search_abstained,
++            "memory_hits_returned": self.memory_hits_returned,
++            "memory_trust_states": list(self.memory_trust_states),
++            "memory_error_codes": list(self.memory_error_codes),
+             "memory_latency_ms": self.memory_latency_ms,
+             "input_tokens": self.input_tokens,
+             "output_tokens": self.output_tokens,
+@@ -187,6 +215,18 @@ class SessionRecord:
+             raise KeyError("record has neither 'arm' nor 'variant'")
+         memory_calls = value.get("memory_call_count", value.get("recall_call_count", 0))
+         memory_latency = value.get("memory_latency_ms", value.get("recall_latency_ms"))
++        retrieval = value.get("memory_retrieval")
++        if not isinstance(retrieval, Mapping):
++            metadata = value.get("metadata")
++            candidate = metadata.get("memory_retrieval") if isinstance(metadata, Mapping) else None
++            retrieval = candidate if isinstance(candidate, Mapping) else {}
++        attempted = value.get("memory_calls_attempted", retrieval.get("attempted", memory_calls))
++        succeeded = value.get("memory_calls_succeeded", retrieval.get("succeeded", 0))
++        failed = value.get("memory_calls_failed", retrieval.get("failed", 0))
++        abstained = value.get("memory_search_abstained", retrieval.get("abstained", 0))
++        hits = value.get("memory_hits_returned", retrieval.get("hits_returned", 0))
++        trust_states = value.get("memory_trust_states", retrieval.get("trust_states", ()))
++        error_codes = value.get("memory_error_codes", retrieval.get("error_codes", ()))
+         return cls(
+             task_id=str(value["task_id"]),
+             arm=str(arm),
+@@ -206,7 +246,17 @@ class SessionRecord:
+                 value.get("reference_tool_calls"), "reference_tool_calls"
+             ),
+             tool_calls=_tuple_of_mappings(value.get("tool_calls"), "tool_calls"),
++            runtime_decisions=_tuple_of_mappings(
++                value.get("runtime_decisions"), "runtime_decisions"
++            ),
+             memory_call_count=int(memory_calls),
++            memory_calls_attempted=int(attempted),
++            memory_calls_succeeded=int(succeeded),
++            memory_calls_failed=int(failed),
++            memory_search_abstained=int(abstained),
++            memory_hits_returned=int(hits),
++            memory_trust_states=_tuple_of_strings(trust_states, "memory_trust_states"),
++            memory_error_codes=_tuple_of_strings(error_codes, "memory_error_codes"),
+             memory_latency_ms=memory_latency,
+             input_tokens=value.get("input_tokens"),
+             output_tokens=value.get("output_tokens"),
+diff --git a/harness/stats.py b/harness/stats.py
+index ff3e7bec..815bf2f5 100644
+--- a/harness/stats.py
++++ b/harness/stats.py
+@@ -180,6 +180,31 @@ class TaskRate:
+         return {**asdict(self), "delta": self.delta}
+ 
+ 
++#: Tasks that encode ONE convention, mapped to the unit they should be resampled as.
++#:
++#: ⚠️ A `CONVENTION_CLUSTERS` map, with `cluster_key` and `collapse_to_clusters`, stood here
++#: until 2026-08-30. It grouped `ts-golden-regen` and `ts-ignore-gen`, which encode one
++#: convention ("do not hand-edit this generated file, run the script"), so the bootstrap would
++#: resample them as one unit instead of two.
++#:
++#: It was removed because it never fired. The two tasks sit in different strata, `TWO_SIDED` and
++#: `DAMAGE_ONLY`, and `net_harm_by_stratum` calls `summarize_by_task` once per stratum, so they
++#: could not meet in a single call and `n_clusters == n_tasks` on every number this project ever
++#: published. The correction it existed to make was never being made.
++#:
++#: It is worth recording WHY it was deleted rather than repaired, because the reasoning applies
++#: to the next such map. Its own docstring claimed "collapsing can only WIDEN an interval, never
++#: narrow one", and offered that asymmetry as the reason the change was safe to make from a
++#: warning rather than from a measurement. That claim is false: collapsing trades a reduction in
++#: n, which widens, against the deletion of the pair's mutual dispersion, which narrows, and
++#: which term wins depends on how noisy the OTHER tasks are. Measured on the shipped code: 30.6%
++#: to 37.5% of uniform draws narrow, worst ratio 4.72x, and 4.3% of 3-seed-grid draws turn an
++#: interval that includes zero into one that excludes it.
++#:
++#: So `scripts/audit_corpus.py` still FLAGS task pairs that share fact vocabulary, and acting on
++#: a flag is still a decision. If it is ever acted on again, the unit must be chosen before the
++#: run and the direction of its effect on the interval must be measured, not asserted.
++
+ def cluster_bootstrap(
+     per_task_deltas: Sequence[float],
+     *,
+@@ -199,6 +224,10 @@ def cluster_bootstrap(
+     r = 0.625, the mean absolute difference is 0.146, and 5 of 24 tasks flip sign or move by at
+     least 0.50. Resampling tasks within one run treats each task's delta as measured without error.
+     It is not. Quote this interval with that stated, or report both runs.
++
++    Every task counts once, which is right only when no two of them encode the same convention.
++    `scripts/audit_corpus.py` flags pairs that share fact vocabulary; see the note above the
++    definition for why the map that used to act on that flag was removed rather than fixed.
+     """
+ 
+     usable = [float(d) for d in per_task_deltas if d is not None and math.isfinite(float(d))]
+@@ -284,22 +313,23 @@ def summarize_by_task(
+     improved = sum(1 for d in deltas if d < 0)
+     worsened = sum(1 for d in deltas if d > 0)
+ 
+-    cluster_ci = None
+-    if len(rates) >= 2 and len(set(deltas)) > 1:
+-        rng = random.Random(seed)
+-        size = len(rates)
+-        means = sorted(
+-            sum(deltas[rng.randrange(size)] for _ in range(size)) / size for _ in range(n)
+-        )
+-        lo_q = (1.0 - confidence) / 2.0
+-        cluster_ci = (
+-            means[min(len(means) - 1, int(lo_q * len(means)))],
+-            means[min(len(means) - 1, int((1.0 - lo_q) * len(means)))],
+-        )
++    # 🔁 This carried its OWN copy of the bootstrap until 2026-08-30, while cluster_bootstrap's
++    # docstring described itself as "THE single implementation". It was not: this copy computed
++    # every `cluster_ci` the harm suite publishes, so the shared function and the reported number
++    # came from different code. That is exactly the condition that docstring was written about,
++    # reintroduced one function below it.
++    cluster_ci = cluster_bootstrap(
++        deltas,
++        iterations=n,
++        confidence=confidence,
++        seed=seed,
++    )
+ 
+     return {
+         "tasks": [r.to_dict() for r in rates],
+         "n_tasks": len(rates),
++        # The resampling unit, which is smaller than n_tasks whenever two tasks share a
++        # convention. Published so a reader can see the collapse rather than infer it.
+         "mean_delta": sum(deltas) / len(deltas),
+         "improved": improved,
+         "worsened": worsened,
+diff --git a/harness/tasks.py b/harness/tasks.py
+index c3777bf1..99574c17 100644
+--- a/harness/tasks.py
++++ b/harness/tasks.py
+@@ -17,13 +17,57 @@ from __future__ import annotations
+ 
+ import importlib.util
+ import json
+-from dataclasses import dataclass
++import traceback
++from dataclasses import dataclass, field
++from datetime import date
+ from pathlib import Path
+ 
+ from .sandbox import ORACLES, WORKSPACES
+ 
+ KINDS = ("primary", "control")
+ 
++#: How a distributed governing fact is spread across the sessions that carry it.
++#:
++#: ``join``   two halves of one rule, recorded separately, both needed.
++#: ``evolve`` one quantity revised across dated sessions; the latest is the only correct one.
++#: ``widen``  one session carries the rule, a later one widens its scope without restating it.
++#:
++#: Every ``ts-*`` task states its whole fact in one session, which is why no result published so
++#: far says anything about consolidation: a suite where combining sessions can never be necessary
++#: cannot detect a product that combines them. These shapes exist so it can.
++SYNTHESIS_SHAPES = ("join", "evolve", "widen")
++
++
++@dataclass(frozen=True)
++class FactShard:
++    """One session's share of a distributed governing fact."""
++
++    precursor: str
++    session_date: str
++    role: str
++    terms: tuple[str, ...]
++
++
++@dataclass(frozen=True)
++class Synthesis:
++    """A task whose governing fact no single session states.
++
++    ``insufficient_references`` names the committed reference solutions that encode a PROPER
++    SUBSET of the fact: one shard, or a superseded revision of it. CI asserts each of them fails
++    the checker, which is the executable form of "no single session suffices". Without it the
++    claim is a comment, and a task that quietly became solvable from one session would keep
++    reporting itself as a synthesis task.
++    """
++
++    shape: str
++    why: str
++    shards: tuple[FactShard, ...]
++    insufficient_references: tuple[str, ...]
++
++    @property
++    def precursors(self) -> tuple[str, ...]:
++        return tuple(shard.precursor for shard in self.shards)
++
+ 
+ @dataclass(frozen=True)
+ class TaskSpec:
+@@ -33,6 +77,8 @@ class TaskSpec:
+     fact_terms: tuple[str, ...]
+     path: Path
+     memory_bundle_id: str | None = None
++    #: Present only on tasks whose governing fact is distributed across sessions.
++    synthesis: Synthesis | None = field(default=None)
+ 
+     @property
+     def checker_path(self) -> Path:
+@@ -74,16 +120,105 @@ def load_task(task_dir: str | Path) -> TaskSpec:
+         raise ValueError(f"{task_id}: controls must explicitly declare memory_bundle_id: null")
+     if kind == "control" and memory_bundle_id is not None:
+         raise ValueError(f"{task_id}: controls must declare memory_bundle_id: null")
++    fact_terms = tuple(str(term) for term in data.get("fact_terms", ()))
+     return TaskSpec(
+         task_id=task_id,
+         prompt=prompt,
+         kind=kind,
+-        fact_terms=tuple(str(term) for term in data.get("fact_terms", ())),
++        fact_terms=fact_terms,
+         path=path,
+         memory_bundle_id=memory_bundle_id,
++        synthesis=_load_synthesis(task_id, path, data.get("synthesis"), fact_terms),
+     )
+ 
+ 
++def _load_synthesis(
++    task_id: str, path: Path, raw: object, fact_terms: tuple[str, ...]
++) -> Synthesis | None:
++    """Validate a distributed fact's declaration, or return None for an ordinary task.
++
++    Everything here is checked at load time rather than in the audit, because a malformed
++    declaration must never be able to reach a run: a shard list that does not match the recorded
++    sessions turns "no single session suffices" into an unverified claim, and the sessions it
++    names are what the corpus audit then reads.
++    """
++
++    if raw is None:
++        return None
++    if not isinstance(raw, dict):
++        raise TypeError(f"{task_id}: synthesis must be an object")
++    shape = str(raw.get("shape", ""))
++    if shape not in SYNTHESIS_SHAPES:
++        raise ValueError(f"{task_id}: synthesis.shape must be one of {SYNTHESIS_SHAPES}")
++    why = str(raw.get("why", "")).strip()
++    if not why:
++        raise ValueError(f"{task_id}: synthesis.why must say what the split is and why")
++
++    shards: list[FactShard] = []
++    previous: date | None = None
++    for entry in raw.get("shards", ()):
++        precursor = str(entry["precursor"])
++        if not (path / "precursors" / precursor).is_dir():
++            raise FileNotFoundError(
++                f"{task_id}: shard {precursor!r} has no staging under precursors/{precursor}/"
++            )
++        try:
++            when = date.fromisoformat(str(entry["session_date"]))
++        except ValueError as error:
++            raise ValueError(f"{task_id}: shard {precursor!r} session_date: {error}") from None
++        if previous is not None and when <= previous:
++            # Order is load bearing for `evolve` (the last revision is the correct one) and it is
++            # what the corpus audit compares when it checks that an earlier session cannot state
++            # a later session's fact. Declaring them out of order would silently invert both.
++            raise ValueError(
++                f"{task_id}: shard session_dates must increase; {entry['session_date']} follows "
++                f"{previous.isoformat()}"
++            )
++        previous = when
++        terms = tuple(str(term) for term in entry.get("terms", ()))
++        if not terms:
++            raise ValueError(f"{task_id}: shard {precursor!r} declares no terms")
++        unknown = [term for term in terms if term not in fact_terms]
++        if unknown:
++            raise ValueError(
++                f"{task_id}: shard {precursor!r} terms {unknown} are not in fact_terms, so the "
++                f"leakage audit never checks them"
++            )
++        shards.append(
++            FactShard(
++                precursor=precursor,
++                session_date=str(entry["session_date"]),
++                role=str(entry.get("role", "")).strip(),
++                terms=terms,
++            )
++        )
++
++    if len(shards) < 2:
++        raise ValueError(f"{task_id}: a distributed fact needs at least two shards")
++    if len({shard.precursor for shard in shards}) != len(shards):
++        raise ValueError(f"{task_id}: two shards name the same precursor")
++    covered = {term for shard in shards for term in shard.terms}
++    orphans = [term for term in fact_terms if term not in covered]
++    if orphans:
++        raise ValueError(
++            f"{task_id}: fact terms {orphans} belong to no shard; every term of a distributed "
++            f"fact must say which session carries it"
++        )
++
++    references = tuple(str(name) for name in raw.get("insufficient_references", ()))
++    if not references:
++        raise ValueError(
++            f"{task_id}: declare the reference solutions that must FAIL, or nothing proves the "
++            f"fact is distributed"
++        )
++    for name in references:
++        if not name.startswith("partial_"):
++            raise ValueError(f"{task_id}: insufficient reference {name!r} must be named partial_*")
++        if not (path / "reference" / f"{name}.py").is_file():
++            raise FileNotFoundError(f"{task_id}: reference/{name}.py is missing")
++    return Synthesis(shape=shape, why=why, shards=tuple(shards), insufficient_references=references)
++
++
+ def discover_tasks(root: str | Path = WORKSPACES) -> list[TaskSpec]:
+     """Every directory under tasks/ that carries a task.json, sorted by id."""
+ 
+@@ -106,15 +241,57 @@ def _load_callable(py_file: Path, name: str):
+     return func
+ 
+ 
+-def run_checker(task: TaskSpec, workdir: Path) -> tuple[bool, str]:
+-    """Execute the task's checker against one finished sandbox."""
++def _run_checker_local(task: TaskSpec, workdir: Path) -> tuple[bool, str]:
++    """Execute the task's checker against one finished sandbox.
++
++    A checker that RAISES grades the session as a failure, with the traceback as its verdict. It
++    does not propagate.
++
++    The distinction matters because of where the exception used to land: `harness.runner` turned it
++    into an error record, and `harness.gate` then discarded the cell for "the session did not
++    complete" — taking every OTHER arm's paid session in that cell with it. The trigger is
++    agent-controlled, which is what makes it a scoring hole rather than an infrastructure one:
++    several checkers read an agent-written file with a strict UTF-8 decode (for example
++    `tasks/ts-nfc-count/checker.py`), so an artifact written in cp1252 on Windows raised, and a
++    task whose deliverable the grader cannot read is a task that was not solved. Scoring it as a
++    discard let a bad deliverable delete the evidence for its own cell.
++
++    A genuine harness fault (a missing checker file, a syntax error in one) still raises, because
++    `_load_callable` runs outside this guard: that is a defect in the instrument, not an outcome,
++    and it must stop the run rather than score every session as a failure.
++    """
+ 
+     check = _load_callable(task.checker_path, "check")
+-    result = check(Path(workdir), task.oracle_dir)
+-    ok, verdict = result
++    try:
++        result = check(Path(workdir), task.oracle_dir)
++        ok, verdict = result
++    except Exception as error:  # noqa: BLE001 - an unreadable deliverable is a failed task
++        detail = "".join(traceback.format_exception_only(type(error), error)).strip()
++        return False, f"checker raised: {detail}"
+     return bool(ok), str(verdict)
+ 
+ 
++def run_checker(
++    task: TaskSpec,
++    workdir: Path,
++    *,
++    isolated: bool = False,
++    timeout_s: float = 120.0,
++) -> tuple[bool, str]:
++    """Run a checker, using the isolated worker for production execution.
++
++    ``isolated=False`` is retained for the reference and checker unit tests, which deliberately
++    exercise checker functions directly. Production runners pass ``isolated=True`` so a
++    participant artifact is never executed in the controller process namespace.
++    """
++
++    if not isolated:
++        return _run_checker_local(task, workdir)
++    from .isolation import run_isolated_checker
++
++    return run_isolated_checker(task.task_id, task.oracle_dir, workdir, timeout_s=timeout_s)
++
++
+ def apply_reference(task: TaskSpec, variant: str, workdir: Path) -> None:
+     """Apply one committed reference solution to a sandbox.
+ 
+@@ -123,9 +300,13 @@ def apply_reference(task: TaskSpec, variant: str, workdir: Path) -> None:
+     WRONG fact and applied it. It exists so a damage detector can be watched firing on a sandbox
+     whose damage is known by construction, exactly as the other two let the checker be watched
+     failing and passing.
++
++    A ``partial_*`` variant is the fourth, added with the cross-session synthesis tasks: a
++    solution built from ONE shard of a distributed fact, or from a superseded revision of it. It
++    must fail, and CI asserts that it does.
+     """
+ 
+-    if variant not in ("naive", "informed") and not variant.startswith("damaged_"):
++    if variant not in ("naive", "informed") and not variant.startswith(("damaged_", "partial_")):
+         raise ValueError(f"unknown reference variant {variant!r}")
+     apply = _load_callable(task.reference_dir / f"{variant}.py", "apply")
+     apply(Path(workdir))
+diff --git a/harness/transcripts.py b/harness/transcripts.py
+index 1bf6709c..45351e97 100644
+--- a/harness/transcripts.py
++++ b/harness/transcripts.py
+@@ -8,13 +8,30 @@ byte-identical wherever it is used: a feed that differs between arms is not a sh
+ from __future__ import annotations
+ 
+ import json
++from collections.abc import Mapping
+ from pathlib import Path
+ 
++from harness.lineage import render_frontmatter
+ 
+-def render_transcript(jsonl_path: Path) -> str:
+-    """Render one session transcript JSONL into greppable markdown, verbatim content."""
+ 
+-    lines = [f"# Session notes: {jsonl_path.stem}", ""]
++def render_transcript(
++    jsonl_path: Path, frontmatter: Mapping[str, str] | None = None
++) -> str:
++    """Render one session transcript JSONL into greppable markdown, verbatim content.
++
++    ``frontmatter`` prepends a YAML block declaring validity and supersession, which is the only
++    place recall can learn that one document replaces another; see `harness/lineage.py`.
++
++    It defaults to None, producing output byte-identical to before preregistration 023. That is
++    deliberate: the control tier then needs no separate code path and cannot drift away from the
++    thing it is controlling for.
++    """
++
++    lines: list[str] = []
++    block = render_frontmatter(frontmatter)
++    if block:
++        lines.append(block)
++    lines.extend([f"# Session notes: {jsonl_path.stem}", ""])
+     for raw in jsonl_path.read_text(encoding="utf-8").splitlines():
+         if not raw.strip():
+             continue
+@@ -34,7 +51,11 @@ def render_transcript(jsonl_path: Path) -> str:
+ 
+ 
+ def render_corpus(
+-    session_paths: list[Path], target_dir: Path, *, root: Path | None = None
++    session_paths: list[Path],
++    target_dir: Path,
++    *,
++    root: Path | None = None,
++    lineage: Mapping[Path, Mapping[str, str]] | None = None,
+ ) -> int:
+     """Render transcripts into ``target_dir``; returns the count written.
+ 
+@@ -44,6 +65,14 @@ def render_corpus(
+     retrieval result. Without ``root``, bare filenames are used and a collision RAISES,
+     because the first version of this function silently overwrote colliding names and
+     shipped a corpus holding one precursor out of twenty-four.
++
++    ``lineage`` maps a session path to the frontmatter it should carry, as built by
++    `harness.lineage.frontmatter_for`. The pairing logic lives there rather than here: this
++    function decides NAMES, and a renderer that also decided which document supersedes which would
++    be two responsibilities in one place, neither testable alone.
++
++    Omitted, every render is byte-identical to before preregistration 023, so the control tier is
++    the same code path as production rather than a reconstruction of it.
+     """
+ 
+     target_dir.mkdir(parents=True, exist_ok=True)
+@@ -60,6 +89,9 @@ def render_corpus(
+                 f"{name!r}; pass root= so names mirror their paths"
+             )
+         seen[name] = source
+-        (target_dir / name).write_text(render_transcript(source), encoding="utf-8")
++        meta = (lineage or {}).get(source)
++        (target_dir / name).write_text(
++            render_transcript(source, meta), encoding="utf-8"
++        )
+         written += 1
+     return written
+diff --git a/scripts/analyze_diagnostic.py b/scripts/analyze_diagnostic.py
+index 7603b250..7c2aba22 100644
+--- a/scripts/analyze_diagnostic.py
++++ b/scripts/analyze_diagnostic.py
+@@ -58,14 +58,21 @@ def compare(records, higher_is_better: bool = True) -> dict:
+                 deltas.append(value)
+         contrasts[name] = {"mean_delta": sum(deltas) / len(deltas) if deltas else None, "cluster_ci": _cluster_ci(deltas), "n_tasks": len(deltas)}
+     oracle_by_task = {row["task_id"]: row["arms"]["oracle_memory"]["delta"] for row in per_task}
+-    contrasts["access_gap"] = {
+-        "mean_delta": (sum((row["arms"]["oracle_memory"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task) / len(per_task)) if per_task else None,
+-        "cluster_ci": _cluster_ci([(row["arms"]["oracle_memory"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task]) if per_task else None,
+-    }
+-    contrasts["prefetch_gap"] = {
+-        "mean_delta": (sum((row["arms"]["recall_prefetch"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task) / len(per_task)) if per_task else None,
+-        "cluster_ci": _cluster_ci([(row["arms"]["recall_prefetch"]["rate"] or 0) - (row["arms"]["recall"]["rate"] or 0) for row in per_task]) if per_task else None,
+-    }
++    # A task an arm never ran is UNMEASURED, not a task that arm failed. Coercing a missing rate
++    # to 0 scored a discarded cell as 0% success and dragged the gap toward the measured arm; the
++    # named contrasts above already drop None deltas, so the two families disagreed on the same
++    # data. Both gaps now use only tasks where BOTH arms have a rate, and publish that denominator.
++    for gap_name, arm in (("access_gap", "oracle_memory"), ("prefetch_gap", "recall_prefetch")):
++        deltas = [
++            row["arms"][arm]["rate"] - row["arms"]["recall"]["rate"]
++            for row in per_task
++            if row["arms"][arm]["rate"] is not None and row["arms"]["recall"]["rate"] is not None
++        ]
++        contrasts[gap_name] = {
++            "mean_delta": (sum(deltas) / len(deltas)) if deltas else None,
++            "cluster_ci": _cluster_ci(deltas),
++            "n_tasks": len(deltas),
++        }
+     diagnostic_records = [record for record in records if isinstance(record.metadata.get("memory_diagnostic"), dict)]
+     natural = [record for record in records if record.arm == "recall"]
+     return {
+diff --git a/scripts/analyze_pilot.py b/scripts/analyze_pilot.py
+index 4738a37f..228a4889 100644
+--- a/scripts/analyze_pilot.py
++++ b/scripts/analyze_pilot.py
+@@ -5,6 +5,13 @@ cluster bootstrap CI plus cell McNemar; (2) per-task screening (ceiling and floo
+ (3) mechanism (search rate, governing-session-reached); (4) costs; (5) exploratory
+ bare vs claude_md. Nothing here chooses thresholds: they were committed before the run.
+ 
++Added afterwards, and not part of that preregistration: (6) the instruction decomposition. Where
++the roster carries the `protocol` arm (the baseline bundle plus the shared memory protocol, no
++memory layer), `protocol - claude_md` is reported as what the coaching alone bought and
++`recall - protocol` as what the store bought on top of it. Every arm's instruction size is reported
++beside its success rate, because the two were confounded from `pilot-002` to `pilot-004` and no
++results table showed it.
++
+     python -m scripts.analyze_pilot --run-id pilot-001
+ """
+ 
+@@ -27,7 +34,23 @@ from harness.stats import effect_concentration, mcnemar_exact
+ from harness.tasks import discover_tasks
+ 
+ DEFAULT_ARMS = ("bare", "claude_md", "recall")
+-SUPPORTED_ARMS = ("bare", "placebo", "claude_md", "recall")
++
++#: Every arm `scripts/pilot.py` can run. `protocol` and `fs_grep` were missing here long after
++#: the runner grew them, so the arm that exists to separate the instruction from the store could
++#: be run and then not analysed: `--arms bare,claude_md,protocol,recall` exited `unknown arms`.
++SUPPORTED_ARMS = (
++    "bare",
++    "placebo",
++    "claude_md",
++    "protocol",
++    "fs_grep",
++    "recall",
++    "recall_rerank",
++    "mempalace",
++    "cachly",
++    "graphiti",
++    "supermemory",
++)
+ 
+ 
+ #: Re-exported so `scripts/discard_sensitivity.py` keeps importing it from here, while there is
+@@ -47,6 +70,43 @@ def cluster_bootstrap(per_task_deltas, iterations: int = 10_000, seed: int = 123
+     return (constant, constant)
+ 
+ 
++def instruction_budget(
++    run_dir: Path, records, arms: tuple[str, ...]
++) -> dict[str, int | None]:
++    """Bytes of memory instruction each arm carried, for publication beside its success rate.
++
++    A success rate is not interpretable without it. Every run from `pilot-002` onward gave `recall`
++    5,428 characters, `fs_grep` 231 and `claude_md` none, and no results table said so, so a reader
++    comparing the three arms was comparing a memory layer and an instruction budget at once.
++
++    Read from `environment.json`'s manifest where the run wrote one, else from the records, else
++    ``None``. Absent is reported as absent rather than as zero: "this arm was told nothing" and
++    "nobody wrote it down" are different claims, and runs before 2026-08-29 recorded neither.
++    """
++
++    manifest: dict = {}
++    env_path = run_dir / "environment.json"
++    if env_path.is_file():
++        env = json.loads(env_path.read_text(encoding="utf-8"))
++        manifest = env.get("instruction_manifest") or {}
++
++    budget: dict[str, int | None] = {}
++    for arm in arms:
++        entry = manifest.get(arm)
++        if isinstance(entry, dict) and entry.get("bytes") is not None:
++            budget[arm] = int(entry["bytes"])
++            continue
++        sizes = {
++            int(record.metadata["instruction_bytes"])
++            for record in records
++            if record.arm == arm and record.metadata.get("instruction_bytes") is not None
++        }
++        # More than one size within an arm is itself worth seeing, so report the largest rather
++        # than picking one silently; the manifest above is the authoritative source.
++        budget[arm] = max(sizes) if sizes else None
++    return budget
++
++
+ def main() -> int:
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--run-id", default="pilot-001")
+@@ -55,12 +115,23 @@ def main() -> int:
+         default=",".join(DEFAULT_ARMS),
+         help="comma-separated arms in the run; pilot-004 adds placebo",
+     )
++    parser.add_argument(
++        "--results-root",
++        default=str(REPO / "results"),
++        help="where run directories live; only the tests point this away from results/",
++    )
+     args = parser.parse_args()
+     run_arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
+     unknown = [arm for arm in run_arms if arm not in SUPPORTED_ARMS]
+     if unknown:
+         raise SystemExit(f"unknown arms {unknown}; choose from {SUPPORTED_ARMS}")
+-    run_dir = REPO / "results" / args.run_id
++    # Every contrast here is against the designated baseline, and the screens read its rate.
++    if "claude_md" not in run_arms:
++        raise SystemExit(
++            "claude_md is the designated baseline; a roster without it has nothing to contrast "
++            "against and no rate to screen tasks on"
++        )
++    run_dir = Path(args.results_root) / args.run_id
+ 
+     # The governing fact, from the two places it is already written down: the audited fact_terms,
+     # and the authored decision turn that `scripts/build_oracle_bundles.py` extracts. Neither is a
+@@ -100,8 +171,13 @@ def main() -> int:
+     # (2) preregistered screens
+     screening = {}
+     for task in tasks:
+-        bare_r, cmd_r = rate(per_task[task]["bare"]), rate(per_task[task]["claude_md"])
+-        ceiling = cmd_r >= 0.7 or bare_r >= 0.5
++        cmd_r = rate(per_task[task]["claude_md"])
++        # `bare` is the floor half of the ceiling screen. A roster without it screens on the
++        # baseline alone rather than raising KeyError, which is what an instruction-only roster
++        # (`claude_md,protocol,recall`) used to do here.
++        has_bare = "bare" in run_arms
++        bare_r = rate(per_task[task]["bare"]) if has_bare else float("nan")
++        ceiling = cmd_r >= 0.7 or (has_bare and bare_r >= 0.5)
+         mech = [
+             r
+             for r in admitted
+@@ -167,16 +243,35 @@ def main() -> int:
+             arm: round(rate([bool(a[arm].success) for a in by_cell.values()]), 3)
+             for arm in run_arms
+         },
+-        "primary_recall_vs_claude_md_all_tasks": contrast("recall", "claude_md", tasks),
+-        "primary_recall_vs_claude_md_survivors": (
+-            contrast("recall", "claude_md", survivors) if survivors else None
+-        ),
+-        "exploratory_bare_vs_claude_md": contrast("bare", "claude_md", tasks),
++        # Beside the success rate, never in a separate file.
++        "arm_instruction_bytes": instruction_budget(run_dir, admitted, run_arms),
+         "mechanism": mechanism(recall_records, fact_terms, evidence_by_task=evidence),
+         "screening": screening,
+         "survivors": survivors,
+         "n_survivors": len(survivors),
+     }
++    if "recall" in run_arms:
++        analysis["primary_recall_vs_claude_md_all_tasks"] = contrast(
++            "recall", "claude_md", tasks
++        )
++        analysis["primary_recall_vs_claude_md_survivors"] = (
++            contrast("recall", "claude_md", survivors) if survivors else None
++        )
++    if "bare" in run_arms:
++        analysis["exploratory_bare_vs_claude_md"] = contrast("bare", "claude_md", tasks)
++    # The decomposition of the headline. `protocol` is the baseline bundle plus the shared memory
++    # protocol and no memory layer, so this pair separates what the coaching bought from what the
++    # store bought; `recall - claude_md` is their sum and cannot tell them apart.
++    if "protocol" in run_arms:
++        analysis["instruction_only_protocol_vs_claude_md"] = contrast(
++            "protocol", "claude_md", tasks
++        )
++        if "recall" in run_arms:
++            analysis["store_net_of_instruction_recall_vs_protocol"] = contrast(
++                "recall", "protocol", tasks
++            )
++    if "fs_grep" in run_arms:
++        analysis["fs_grep_vs_claude_md"] = contrast("fs_grep", "claude_md", tasks)
+     if "placebo" in run_arms:
+         analysis["placebo_vs_bare"] = contrast("placebo", "bare", tasks)
+         analysis["claude_md_vs_placebo"] = contrast("claude_md", "placebo", tasks)
+diff --git a/scripts/assemble_condition_corpus.py b/scripts/assemble_condition_corpus.py
+index 9ea1ef92..d9434cfb 100644
+--- a/scripts/assemble_condition_corpus.py
++++ b/scripts/assemble_condition_corpus.py
+@@ -33,6 +33,7 @@ from __future__ import annotations
+ 
+ import argparse
+ import json
++import os
+ import shutil
+ import sys
+ from datetime import UTC, datetime, timedelta
+@@ -43,11 +44,12 @@ if str(REPO) not in sys.path:
+     sys.path.insert(0, str(REPO))
+ 
+ from harness.adapters.base import CorpusManifest
+-from harness.damage import CONDITIONS
++from harness.damage import CORPUS_CONDITIONS, PRESENT
+ from harness.plants import (
+     PlantSpecError,
+     assign_contradiction_dates,
+     load_plants,
++    present_plan,
+     sources_for,
+ )
+ from harness.tasks import discover_tasks
+@@ -103,20 +105,177 @@ def _write_jsonl(path: Path, lines: list[dict]) -> None:
+     path.write_text(body, encoding="utf-8", newline="\n")
+ 
+ 
+-def assemble(condition: str, seed: int, selection: list[str], out_root: Path) -> dict:
+-    if condition not in CONDITIONS:
+-        raise SystemExit(f"unknown condition {condition!r}; expected one of {CONDITIONS}")
++from scripts.pilot import EXCLUDED_PREFIXES, SELECTABLE_PREFIXES
++
++
++def default_selection(condition: str) -> list[str]:
++    """Every task this condition can be built for, before any retirement list is applied.
++
++    ⚠️ The rule differs for `present` and that is the whole point of the condition.
++
++    An adversarial condition is a claim about a planted memo, so a task qualifies by DECLARING
++    one. Section 2 of `docs/reviews/2026-08-30-instrument-review.md` traced official-001's central
++    defect to that rule: plant expressiveness and difficulty are different properties, and
++    admitting on the first silently discarded the second, leaving a suite that could not measure
++    benefit at all.
++
++    `present` needs no plant, so applying the same rule would inherit the same bias and hand the
++    one condition that CAN measure benefit only the 15 tasks somebody has authored plants for.
++    Measured 2026-08-30: the declaring rule gives 15, this one gives 29, and the 14 it adds
++    include `ts-nfc-count`, `ts-round-money` and `ts-quote-shell`, which are precisely the tasks
++    section 7 of that review named as where a memory arm converts impossible into solved.
++
++    ⛔ Note what selection does and does not do here. For `present` the corpus is the identity
++    transform, so selecting a task changes NO bytes; it changes which tasks `condition.json`
++    records as under test, and therefore which cells the run grid covers. Getting it wrong
++    produces a corpus that looks right and a run that measures a third of what it should.
++    """
++
++    return [t for t in _declared_for(condition) if t.startswith(SELECTABLE_PREFIXES)]
++
++
++def _declared_for(condition: str) -> list[str]:
++    """Tasks the condition can be built for, BEFORE the class filter. See `excluded_by_class`."""
++
++    if condition == PRESENT:
++        return [
++            task.task_id
++            for task in discover_tasks()
++            if task.fact_terms and any((BASE_CORPUS / "sessions" / task.task_id).glob("*.jsonl"))
++        ]
++    return [
++        task.task_id
++        for task in discover_tasks()
++        if (spec := load_plants(task.path)) is not None and spec.plan(condition)
++    ]
++
++
++def excluded_by_class(condition: str) -> list[tuple[str, str]]:
++    """`(task, reason)` for every task this condition could cover but whose CLASS the grid refuses.
++
++    `scripts/pilot.py` accepts only `SELECTABLE_PREFIXES` and records why each other class is out
++    in `EXCLUDED_PREFIXES`. `default_selection` applies that filter so the assembler and the runner
++    cannot disagree about which tasks are under test; this exposes what it removed so the drop can
++    be announced rather than discovered.
++
++    ⚠️ It never fired on the four adversarial conditions, because a task qualifies there by
++    declaring plants and no `xs-` task does. `present` selects on having a recorded governing
++    session instead, so it picks up all three and a run died at argument validation with "unknown
++    task(s)". The pilot's refusal was correct; the selector was the thing that was wrong.
++    """
++
++    out = []
++    for task in _declared_for(condition):
++        if task.startswith(SELECTABLE_PREFIXES):
++            continue
++        prefix = next((p for p in EXCLUDED_PREFIXES if task.startswith(p)), None)
++        out.append((task, EXCLUDED_PREFIXES.get(prefix, "not a class the grid runs")))
++    return out
++
++
++
++def haystack_root() -> Path | None:
++    """The haystack every condition corpus is assembled around, or None for the standard feed.
++
++    ⚠️ One switch for the whole run, deliberately. The tenant builder, the grid and the plant
++    audit each assemble a condition corpus, and if they disagree the tenants serve one corpus
++    while the sessions run against another. That is the same class of failure
++    `test_the_assembler_default_matches_what_a_run_would_build` guards in the task dimension.
++
++    Why it exists at all: `docs/RETRIEVAL_DIFFICULTY.md` measures `voyage` hit@10 = 1.000 on the
++    standard 195-document feed. Retrieval is saturated there, so a run cannot separate "the
++    product retrieved badly" from "the agent never searched". With the haystack, BM25 hit@1 falls
++    0.485 -> 0.182 and voyage hit@10 1.000 -> 0.879.
++
++    Unset is the standard feed, which is what every prior run used and what keeps a run
++    comparable to them.
++    """
++
++    value = os.environ.get("AMB_HAYSTACK", "").strip()
++    if not value:
++        return None
++    root = Path(value)
++    if not (root / "synthetic").is_dir():
++        raise SystemExit(
++            f"AMB_HAYSTACK={root} holds no synthetic/ directory. Build one with "
++            f"`python -m scripts.generate_haystack --scale N --seed S`, or unset it to use the "
++            f"standard feed."
++        )
++    return root
++
++
++def assemble(
++    condition: str,
++    seed: int,
++    selection: list[str],
++    out_root: Path,
++    *,
++    haystack: Path | None = None,
++) -> dict:
++    if condition not in CORPUS_CONDITIONS:
++        raise SystemExit(f"unknown condition {condition!r}; expected one of {CORPUS_CONDITIONS}")
+ 
+     tasks = {task.task_id: task for task in discover_tasks()}
+     unknown = [task_id for task_id in selection if task_id not in tasks]
+     if unknown:
+         raise SystemExit(f"unknown task(s) in selection: {unknown}")
+ 
++    # Defence in depth, at the layer that actually DELETES. The containment check lives in
++    # `main()` and covers `--out` only, so the other four callers reach this `rmtree` with a
++    # constructed path and no check at all. Not exploitable today (the condition is validated
++    # above and every caller builds its own path), which is exactly the state to add a guard in
++    # rather than after.
++    #
++    # The rule is about WHAT is being removed, not where it sits: a location whitelist would
++    # have refused every test that assembles into a tmp directory, which is a legitimate caller.
++    # This function writes exactly the entries below, so a target holding anything else is not a
++    # condition corpus this code built and must not be deleted wholesale.
++    WRITES = {"sessions", "distractors", "synthetic", "condition.json", "manifest.json"}
+     if out_root.exists():
++        # `.DS_Store`, `Thumbs.db` and `desktop.ini` are written by a file browser, not by a
++        # person, and refusing a legitimate re-assemble because one appeared would make this
++        # guard a nuisance that gets deleted rather than a guard.
++        IGNORED = {".DS_Store", "Thumbs.db", "desktop.ini"}
++        foreign = sorted(
++            p.name
++            for p in out_root.iterdir()
++            if p.name not in WRITES and p.name not in IGNORED
++        )
++        if foreign:
++            raise SystemExit(
++                f"refusing to delete {out_root.resolve()}: it holds {foreign}, which this "
++                f"function does not write, so it is not a condition corpus built by this code. "
++                f"Remove it deliberately if that is what you meant."
++            )
+         shutil.rmtree(out_root)
+     (out_root / "sessions").mkdir(parents=True)
+     (out_root / "distractors").mkdir(parents=True)
+ 
++    # The generated haystack, when one is supplied. `CorpusManifest.build` already globs
++    # `synthetic/**/*.jsonl`, so a condition corpus carrying one is an ordinary corpus root that
++    # every adapter understands; this is the only place that never populated it.
++    #
++    # It is filler by construction and identical across conditions, so it changes retrieval
++    # difficulty without touching what any condition MEANS: the plants, the withheld sessions and
++    # the real precursors are unaffected.
++    if haystack is not None:
++        source = Path(haystack) / "synthetic"
++        if not source.is_dir():
++            raise SystemExit(
++                f"{haystack} holds no synthetic/ directory; generate one with "
++                f"`python -m scripts.generate_haystack --scale N --seed S`"
++            )
++        target = out_root / "synthetic"
++        target.mkdir(parents=True)
++        copied = 0
++        for path in sorted(source.rglob("*.jsonl")):
++            destination = target / path.relative_to(source)
++            destination.parent.mkdir(parents=True, exist_ok=True)
++            shutil.copyfile(path, destination)
++            copied += 1
++        if copied == 0:
++            raise SystemExit(f"{source} contains no .jsonl; refusing to build an empty haystack")
++
+     for path in sorted((BASE_CORPUS / "distractors").glob("*.jsonl")):
+         shutil.copyfile(path, out_root / "distractors" / path.name)
+ 
+@@ -141,14 +300,21 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
+                 shutil.copyfile(path, out_root / "sessions" / task_id / path.name)
+             continue
+ 
+-        spec = load_plants(tasks[task_id].path)
+-        plan = spec.plan(condition) if spec else None
+-        if plan is None:
+-            raise SystemExit(
+-                f"{task_id} is in the selection but declares no {condition!r} condition in "
+-                f"plants.json. A selected task with no plan would silently keep its true fact "
+-                f"and be scored as {condition!r}."
+-            )
++        if condition == PRESENT:
++            # `present` needs no plants.json and no declaration: it is the task's real session
++            # and nothing else. Requiring a declaration here would make the condition available
++            # only to the tasks somebody has already authored plants for, which is the exact
++            # selection bias section 2 of the instrument review found in the harm suite.
++            plan = present_plan()
++        else:
++            spec = load_plants(tasks[task_id].path)
++            plan = spec.plan(condition) if spec else None
++            if plan is None:
++                raise SystemExit(
++                    f"{task_id} is in the selection but declares no {condition!r} condition in "
++                    f"plants.json. A selected task with no plan would silently keep its true "
++                    f"fact and be scored as {condition!r}."
++                )
+ 
+         dates = (
+             assign_contradiction_dates(plan.plants, seed)
+@@ -198,7 +364,7 @@ def assemble(condition: str, seed: int, selection: list[str], out_root: Path) ->
+ 
+ def main() -> int:
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--condition", required=True, choices=list(CONDITIONS))
++    parser.add_argument("--condition", required=True, choices=list(CORPUS_CONDITIONS))
+     parser.add_argument("--seed", type=int, required=True)
+     parser.add_argument(
+         "--tasks",
+@@ -209,14 +375,38 @@ def main() -> int:
+     parser.add_argument("--out", type=Path, default=None)
+     args = parser.parse_args()
+ 
++    if args.out is not None:
++        output = args.out.resolve()
++        conditions_root = CONDITIONS_ROOT.resolve()
++        if output == REPO.resolve() or conditions_root not in output.parents:
++            raise SystemExit(
++                f"--out must be inside {CONDITIONS_ROOT.relative_to(REPO)}; refusing to remove "
++                "an arbitrary existing directory"
++            )
++
+     if args.tasks:
++        # An explicit list is obeyed exactly, including a retired task: assembling one
++        # deliberately is legitimate and the caller has said what they want.
+         selection = list(args.tasks)
+     else:
+-        selection = []
+-        for task in discover_tasks():
+-            spec = load_plants(task.path)
+-            if spec and spec.plan(args.condition):
+-                selection.append(task.task_id)
++        # ⛔ The DEFAULT must match what a run would build, and for two days it did not.
++        # `scripts/abstention.py` runs `selection_for`, which subtracts RETIRED_TASKS; this CLI
++        # used `default_selection` raw, so a hand-assembled `adjacent` corpus carried 16 planted
++        # tasks where a real run carries 12. The four extra are the retired ones, and for each of
++        # them the corpus WITHHELD the real session and planted over it, so a probe pointed at
++        # that corpus was measuring a feed no run produces.
++        #
++        # Found on 2026-08-30 by two sessions comparing plant ranks and getting answers 45
++        # positions apart on `ts-glob-hidden`: one had assembled through this path and the other
++        # through the runner's. Imported inside the function because `scripts.abstention` imports
++        # this module at load time.
++        from scripts.abstention import RETIRED_TASKS
++
++        buildable = default_selection(args.condition)
++        selection = [task for task in buildable if task not in RETIRED_TASKS]
++        for task in buildable:
++            if task in RETIRED_TASKS:
++                print(f"[retired] {args.condition}: {task} excluded ({RETIRED_TASKS[task]})")
+     if not selection:
+         raise SystemExit(
+             f"no task declares the {args.condition!r} condition; nothing to assemble"
+@@ -224,7 +414,9 @@ def main() -> int:
+ 
+     out_root = args.out or CONDITIONS_ROOT / args.condition / f"seed-{args.seed}"
+     try:
+-        provenance = assemble(args.condition, args.seed, selection, out_root)
++        provenance = assemble(
++            args.condition, args.seed, selection, out_root, haystack=haystack_root()
++        )
+     except PlantSpecError as exc:
+         # A missing recording is the ordinary state before a plant is recorded, not a crash.
+         raise SystemExit(str(exc)) from None
+diff --git a/scripts/audit_corpus.py b/scripts/audit_corpus.py
+index d582a3ec..df18ea0d 100644
+--- a/scripts/audit_corpus.py
++++ b/scripts/audit_corpus.py
+@@ -12,6 +12,19 @@ Four assertions, per task that declares ``fact_terms``:
+ 4. **Distinctness**: no two tasks' fact-term vocabularies overlap enough to be one convention wearing
+    two names. Reported, not enforced; see below.
+ 
++And, for a task whose fact is DISTRIBUTED across sessions (``synthesis`` in ``task.json``), one more:
++
++5. **Shard locus**: each shard's terms appear in the session that shard names, and a session does not
++   state another shard's share. For ``join`` and ``widen`` that holds in both directions: neither
++   half may state the other, or one retrieved document answers the task and the second session is
++   decoration. For ``evolve`` it holds forwards only: an EARLIER session may not state a LATER
++   revision, since it cannot know it, while a later session is free to refer back to the value it
++   supersedes, which is how a real decision gets written down.
++
++   The check is what keeps "no single session suffices" a fact rather than an intention. A recording
++   is a live agent run, so a session that wanders into the other half is a normal outcome; the
++   response is to re-stage and re-record, never to edit the transcript.
++
+ ## What changed on 2026-08-28, and why a green run before that date proved less than it looked
+ 
+ Three defects, all of the same shape: the test saw the bytes rather than what a reader sees.
+@@ -122,6 +135,55 @@ def content_words(terms: tuple[str, ...]) -> set[str]:
+     return out
+ 
+ 
++def audit_shards(task, sessions_root: Path, corpus_text: dict[Path, str]) -> tuple[list[str], int]:
++    """Check one distributed fact's shards against the sessions that are supposed to carry them.
++
++    Returns the violations and the number of shard sessions that were actually on disk. An
++    unrecorded shard is reported as a note by the caller rather than as a violation: the stagings
++    land before the recordings, and a task that cannot be recorded yet is not a leak.
++    """
++
++    violations: list[str] = []
++    recorded = 0
++    shards = task.synthesis.shards
++    texts: dict[str, str] = {}
++    for shard in shards:
++        path = sessions_root / task.task_id / f"{shard.precursor}.jsonl"
++        if not path.is_file():
++            continue
++        recorded += 1
++        cached = corpus_text.get(path)
++        texts[shard.precursor] = readable_text(path) if cached is None else cached
++
++    for shard in shards:
++        text = texts.get(shard.precursor)
++        if text is None:
++            continue
++        for term in shard.terms:
++            if normalise(term) not in text:
++                violations.append(
++                    f"{task.task_id}: shard {shard.precursor} does not state its own term {term!r}"
++                )
++
++    forward_only = task.synthesis.shape == "evolve"
++    for index, shard in enumerate(shards):
++        text = texts.get(shard.precursor)
++        if text is None:
++            continue
++        for other_index, other in enumerate(shards):
++            if other is shard:
++                continue
++            if forward_only and other_index < index:
++                continue  # a later session may refer back to what it supersedes
++            for term in other.terms:
++                if normalise(term) in text:
++                    violations.append(
++                        f"{task.task_id}: session {shard.precursor} states {other.precursor}'s "
++                        f"term {term!r}; one session then answers the task alone"
++                    )
++    return violations, recorded
++
++
+ def main() -> int:
+     sessions_root = REPO / "corpus" / "sessions"
+     # EVERY session directory, not only the ones whose name is a task id. corpus/sessions/smoke/
+@@ -165,6 +227,15 @@ def main() -> int:
+                     violations.append(f"{task.task_id}: term {term!r} leaked into {where}")
+         if not own_sessions:
+             print(f"  note: {task.task_id} has no recorded sessions yet; presence unchecked")
++        if task.synthesis is not None:
++            shard_violations, recorded = audit_shards(task, sessions_root, corpus_text)
++            violations.extend(shard_violations)
++            expected = len(task.synthesis.shards)
++            if recorded < expected:
++                print(
++                    f"  note: {task.task_id} ({task.synthesis.shape}) has {recorded} of "
++                    f"{expected} shard session(s) recorded; shard locus unchecked for the rest"
++                )
+         audited += 1
+ 
+     vocab = {task.task_id: content_words(task.fact_terms) for task in tasks}
+diff --git a/scripts/audit_plants.py b/scripts/audit_plants.py
+index d0567e4c..049ff86a 100644
+--- a/scripts/audit_plants.py
++++ b/scripts/audit_plants.py
+@@ -68,7 +68,7 @@ if str(REPO) not in sys.path:
+ 
+ from harness.plants import CONDITION_SHAPE, load_plants, normalise
+ from harness.tasks import discover_tasks
+-from scripts.assemble_condition_corpus import assemble
++from scripts.assemble_condition_corpus import assemble, haystack_root
+ 
+ BASE_CORPUS = REPO / "corpus"
+ BUNDLES = [BASE_CORPUS / "claude_md_bundle_smoke.md"]
+@@ -303,7 +303,7 @@ def main() -> int:
+             continue
+         with tempfile.TemporaryDirectory() as temp:
+             root = Path(temp) / condition
+-            assemble(condition, args.seed, selection, root)
++            assemble(condition, args.seed, selection, root, haystack=haystack_root())
+             for task_id in selection:
+                 remaining = sorted((root / "sessions" / task_id).glob("*.jsonl"))
+                 text = " ".join(_text(path) for path in remaining)
+diff --git a/scripts/build_oracle_bundles.py b/scripts/build_oracle_bundles.py
+index 451ffe2c..571ad727 100644
+--- a/scripts/build_oracle_bundles.py
++++ b/scripts/build_oracle_bundles.py
+@@ -1,48 +1,118 @@
+-"""Build the committed development oracle manifest from the existing corpus."""
++"""Build the committed development oracle manifest from the existing corpus.
++
++One bundle per task: the exact evidence the `oracle_memory` ceiling arm is handed, so the run has
++a number for "what if retrieval were perfect".
++
++⚠️ **A task whose fact is DISTRIBUTED needs every shard in its bundle, not the first one.** This
++script used to read `sessions/<task_id>/p01.jsonl` and nothing else, which is correct while every
++task states its whole fact in one session and silently wrong the moment one does not: on
++`xs-evolve-lease` it would have handed the ceiling arm the April session, whose 90-second interval
++was superseded twice, and the arm with perfect retrieval would have been the arm guaranteed to
++fail. A shard's `validity` and `supersedes` now come from the task's declared shard order, which is
++what `harness/memory_prompt.py` renders as "Currency:" beside each item.
++"""
+ 
+ from __future__ import annotations
+ 
+ import hashlib
+ import json
++import sys
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from harness.tasks import load_task
++
++
++def _evidence(source: Path, source_path: str) -> tuple[str, str]:
++    rows = [
++        json.loads(line)
++        for line in source.read_text(encoding="utf-8").splitlines()
++        if line.strip()
++    ]
++    users = [row for row in rows if row.get("role") == "user" and row.get("content")]
++    if not users:
++        raise SystemExit(f"no user evidence in {source_path}")
++    row = users[-1]
++    return str(row["content"]), str(row.get("ts", "unknown"))[:10]
++
++
++def _item(task_id: str, source_path: str, suffix: str, validity: str, supersedes: str | None):
++    source = ROOT / "corpus" / source_path
++    evidence, recorded_at = _evidence(source, source_path)
++    return {
++        "memory_id": f"mem_{task_id}{suffix}",
++        "source_path": source_path,
++        "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
++        "evidence_text": evidence,
++        "recorded_at": recorded_at,
++        "validity": validity,
++        "supersedes": supersedes,
++    }
+ 
+ 
+ def main() -> None:
+     corpus = json.loads((ROOT / "corpus" / "manifest.json").read_text(encoding="utf-8"))
+     records: list[dict] = []
+     for task_path in sorted((ROOT / "tasks").glob("*/task.json")):
+-        task = json.loads(task_path.read_text(encoding="utf-8"))
+-        task["memory_bundle_id"] = None if task.get("kind", "primary") == "control" else f"bundle_{task['task_id']}"
+-        task_path.write_text(json.dumps(task, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+-        if task["memory_bundle_id"] is None:
++        raw = json.loads(task_path.read_text(encoding="utf-8"))
++        raw["memory_bundle_id"] = (
++            None if raw.get("kind", "primary") == "control" else f"bundle_{raw['task_id']}"
++        )
++        task_path.write_text(
++            json.dumps(raw, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
++        )
++        if raw["memory_bundle_id"] is None:
+             continue
+-        task_id = task["task_id"]
+-        source_path = f"sessions/{task_id}/p01.jsonl"
+-        source = ROOT / "corpus" / source_path
+-        if source_path not in corpus["sessions"]:
+-            raise SystemExit(f"no corpus source for {task_id}: {source_path}")
+-        rows = [json.loads(line) for line in source.read_text(encoding="utf-8").splitlines() if line.strip()]
+-        users = [row for row in rows if row.get("role") == "user" and row.get("content")]
+-        if not users:
+-            raise SystemExit(f"no user evidence in {source_path}")
+-        row = users[-1]
+-        evidence = str(row["content"])
+-        item = {
+-            "memory_id": f"mem_{task_id}",
+-            "source_path": source_path,
+-            "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+-            "evidence_text": evidence,
+-            "recorded_at": str(row.get("ts", "unknown"))[:10],
+-            "validity": "current",
+-            "supersedes": None,
+-        }
+-        records.append({"bundle_id": task["memory_bundle_id"], "task_id": task_id, "items": [item]})
++        task_id = raw["task_id"]
++        task = load_task(task_path.parent)
++
++        if task.synthesis is None:
++            sources = [(f"sessions/{task_id}/p01.jsonl", "", "current", None)]
++        else:
++            shards = task.synthesis.shards
++            evolving = task.synthesis.shape == "evolve"
++            sources = []
++            for index, shard in enumerate(shards):
++                last = index == len(shards) - 1
++                previous = shards[index - 1].precursor if index else None
++                sources.append(
++                    (
++                        f"sessions/{task_id}/{shard.precursor}.jsonl",
++                        f"_{shard.precursor}",
++                        # Only `evolve` retires anything: a join's two halves are both current.
++                        "current" if last or not evolving else "superseded",
++                        f"mem_{task_id}_{previous}" if evolving and previous else None,
++                    )
++                )
++            present = [path for path, *_ in sources if path in corpus["sessions"]]
++            if not present:
++                print(f"  skip {task_id}: no shard session recorded yet")
++                continue
++            if len(present) != len(sources):
++                raise SystemExit(
++                    f"{task_id} is half recorded ({len(present)} of {len(sources)} shards). A "
++                    f"bundle built from part of a distributed fact is a ceiling arm that cannot "
++                    f"reach the ceiling; record the rest before rebuilding"
++                )
++
++        items = []
++        for source_path, suffix, validity, supersedes in sources:
++            if source_path not in corpus["sessions"]:
++                raise SystemExit(f"no corpus source for {task_id}: {source_path}")
++            items.append(_item(task_id, source_path, suffix, validity, supersedes))
++        records.append(
++            {"bundle_id": raw["memory_bundle_id"], "task_id": task_id, "items": items}
++        )
++
+     out = ROOT / "corpus" / "oracle_memory" / "bundles.jsonl"
+     out.parent.mkdir(parents=True, exist_ok=True)
+     out.write_text(
+-        "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records),
++        "".join(
++            json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records
++        ),
+         encoding="utf-8",
+     )
+     print(f"wrote {len(records)} development oracle bundles to {out}")
+diff --git a/scripts/diagnostic.py b/scripts/diagnostic.py
+index 67825819..bac7e661 100644
+--- a/scripts/diagnostic.py
++++ b/scripts/diagnostic.py
+@@ -23,18 +23,19 @@ from adapters.oracle_memory.adapter import OracleMemoryAdapter
+ from adapters.recall.adapter import RecallAdapter
+ from adapters.recall_prefetch.adapter import RecallPrefetchAdapter
+ from harness import sandbox
++from harness.broker import probe_jsonrpc_endpoint
+ from harness.claude_exec import (
+     ClaudeExecConfig,
+     resolve_claude_executable,
+-    run_claude_case,
+ )
+-from harness.costs import ModelPricing, summarize
++from harness.costs import add_pricing_arguments, pricing_from_args, summarize
+ from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
+ from harness.host_memory import free_memory_mb, wait_for_headroom
+ from harness.instructions import refuse_shared_prompts_or_exit as refuse_shared_prompts
+ from harness.io import write_jsonl
++from harness.isolation import default_participant_policy, run_isolated_claude_case
+ from harness.memory_bundles import MemoryBundleCatalog
+-from harness.memory_startup import probe_mcp_config, run_with_memory_startup_retry
++from harness.memory_startup import McpProbe, run_with_memory_startup_retry
+ from harness.prereg import assert_preregistered
+ from harness.runner import run_grid
+ from harness.tasks import discover_tasks, run_checker
+@@ -80,6 +81,39 @@ def synthetic_failure(row: dict, arm: str, error: str, diagnostic: dict | None =
+     )
+ 
+ 
++async def broker_memory_probe(
++    _config_path: str | Path,
++    required_tools: tuple[str, ...] = (),
++) -> list[McpProbe]:
++    """Probe the trusted memory broker, never launch an adapter process from the host."""
++
++    started = time.perf_counter()
++    try:
++        tools = await asyncio.to_thread(
++            probe_jsonrpc_endpoint,
++            os.environ.get("AMB_MEMORY_BROKER_URL", ""),
++            os.environ.get("AMB_CAPABILITY_MEMORY", ""),
++            required_tools,
++        )
++        return [
++            McpProbe(
++                server="memory-broker",
++                ok=True,
++                tools=tuple(tools),
++                elapsed_ms=(time.perf_counter() - started) * 1000.0,
++            )
++        ]
++    except Exception as error:  # noqa: BLE001 - preflight reports the concrete broker failure
++        return [
++            McpProbe(
++                server="memory-broker",
++                ok=False,
++                elapsed_ms=(time.perf_counter() - started) * 1000.0,
++                error=f"{type(error).__name__}: {error}",
++            )
++        ]
++
++
+ async def main() -> int:
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--run-id", default="diagnostic-001")
+@@ -145,9 +179,7 @@ async def main() -> int:
+         help="where session sandboxes are built. Defaults OUTSIDE this repository, because a "
+         "sandbox under results/ can reach oracles/, tasks/*/reference/ and corpus/ with one `cd ..`.",
+     )
+-    parser.add_argument("--price-in", type=float, default=0.0826)
+-    parser.add_argument("--price-out", type=float, default=0.1652)
+-    parser.add_argument("--price-as-of", default="2026-08-25")
++    add_pricing_arguments(parser)
+     parser.add_argument(
+         "--startup-attempts",
+         type=int,
+@@ -232,6 +264,8 @@ async def main() -> int:
+         assert_preregistered(REPO)
+         if not os.environ.get("OPENROUTER_API_KEY"):
+             raise SystemExit("OPENROUTER_API_KEY is not set")
++        if not os.environ.get("AMB_CAPABILITY_MODEL"):
++            raise SystemExit("AMB_CAPABILITY_MODEL is not set; start the trusted model broker first")
+         if not os.environ.get("RECALL_DSN"):
+             raise SystemExit("RECALL_DSN is not set")
+     else:
+@@ -316,7 +350,11 @@ async def main() -> int:
+         ]
+         if not wired:
+             continue
+-        probes = await probe_mcp_config(wired[0].mcp_config)
++        required = tuple(
++            str(name).split("__")[-1]
++            for name in specs[(tasks[0].task_id, arm)].extra_allowed_tools
++        )
++        probes = await broker_memory_probe(wired[0].mcp_config, required)
+         startup_probes[arm] = [probe.to_dict() for probe in probes]
+         if not probes or not all(probe.ok for probe in probes):
+             # Refusing here costs nothing. Discovering it 288 sessions later costs the run.
+@@ -370,7 +408,7 @@ async def main() -> int:
+         return 0
+ 
+     by_id = {task.task_id: task for task in tasks}
+-    env = {"ANTHROPIC_BASE_URL": args.base_url, "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"], "ANTHROPIC_API_KEY": ""}
++    env = {"ANTHROPIC_BASE_URL": args.base_url, "ANTHROPIC_AUTH_TOKEN": "", "ANTHROPIC_API_KEY": ""}
+ 
+     def config_for(task_id: str, arm: str, cwd: Path) -> ClaudeExecConfig:
+         spec = specs[(task_id, arm)]
+@@ -381,6 +419,7 @@ async def main() -> int:
+             cwd=cwd,
+             timeout_s=args.timeout,
+             env=env,
++            public_container_env=spec.public_container_env,
+             bare=spec.bare,
+             mcp_config=spec.mcp_config,
+             strict_mcp_config=bool(spec.mcp_config),
+@@ -410,10 +449,28 @@ async def main() -> int:
+     # Preregistration 003: the environment artifact is written BEFORE the first session, not
+     # after it. An artifact written at the end describes a run that already happened, and cannot
+     # be the record the run was committed to.
++    # Built before environment.json, which records it: one construction means the two
++    # artifacts cannot disagree about what the run was priced at. Refuses when the flags
++    # are absent, which is deliberate; dry runs return long before this line.
++    pricing = pricing_from_args(
++        args, model=args.model, source="https://openrouter.ai/api/v1/models"
++    )
+     environment = {
+         "run_id": args.run_id,
+         "arms": list(run_arms),
+         "model": args.model,
++        "execution_mode": "rootless-docker",
++        "runtime_name": "docker",
++        "participant_image_digest": default_participant_policy().effective_image_digest,
++        "checker_image_digest": os.environ.get("AMB_CHECKER_IMAGE_DIGEST", ""),
++        "isolation_policy_digest": default_participant_policy().digest,
++        "network_policy_digest": default_participant_policy().network_policy_digest,
++        "participant_isolation_verified": bool(
++            os.environ.get("AMB_PARTICIPANT_IMAGE_DIGEST")
++            and os.environ.get("AMB_CHECKER_IMAGE_DIGEST")
++            and os.environ.get("AMB_NETWORK_POLICY_DIGEST")
++        ),
++        "oracle_visible_to_participant": False,
+         "provider_base_url": args.base_url,
+         "claude_code_version": claude_code_version(),
+         "timeout_s": args.timeout,
+@@ -424,7 +481,7 @@ async def main() -> int:
+         "namespace": args.namespace,
+         "catalog_sha256": catalog.digest,
+         "corpus_sessions": len(corpus.sessions),
+-        "recall_pythonpath": os.environ.get("PYTHONPATH", ""),
++        "recall_pythonpath_configured": bool(os.environ.get("PYTHONPATH")),
+         "startup_attempts": args.startup_attempts,
+         "startup_preflight": startup_probes,
+         "min_free_mb": args.min_free_mb,
+@@ -435,14 +492,18 @@ async def main() -> int:
+         "arm_concurrency": args.arm_concurrency or None,
+         "arm_order_seed": args.run_id,
+         "free_mb_at_start": free_memory_mb(),
+-        "work_root": str(work_root),
++        "work_root": "external-disposable-storage",
+         "sandbox_inside_repo": False,
++        # One construction, so environment.json and costs.json cannot disagree about what
++        # the run was priced at.
+         "pricing": {
+             "model": args.model,
+-            "usd_per_mtok_input": args.price_in,
+-            "usd_per_mtok_output": args.price_out,
+-            "as_of": args.price_as_of,
+-            "source": "https://openrouter.ai/api/v1/models",
++            "usd_per_mtok_input": pricing[args.model].usd_per_mtok_input,
++            "usd_per_mtok_output": pricing[args.model].usd_per_mtok_output,
++            "usd_per_mtok_cache_read": pricing[args.model].usd_per_mtok_cache_read,
++            "usd_per_mtok_cache_creation": pricing[args.model].usd_per_mtok_cache_creation,
++            "as_of": pricing[args.model].as_of,
++            "source": pricing[args.model].source,
+         },
+     }
+     (run_dir / "environment.json").write_text(
+@@ -490,10 +551,14 @@ async def main() -> int:
+             made["attempts"] += 1
+             workdir = _workdir(task_id, seed, arm, made["attempts"])
+             digest = sandbox.restore(task_id, workdir)
+-            record = await run_claude_case(
+-                attempt_row, attempt_arm, config_for(task_id, arm, workdir)
++            record = await asyncio.to_thread(
++                run_isolated_claude_case,
++                attempt_row,
++                attempt_arm,
++                config_for(task_id, arm, workdir),
++                workspace_digest=digest,
+             )
+-            ok, verdict = run_checker(by_id[task_id], workdir)
++            ok, verdict = run_checker(by_id[task_id], workdir, isolated=True)
+             extra = {
+                 "checker": verdict,
+                 "sandbox_digest": digest,
+@@ -523,6 +588,13 @@ async def main() -> int:
+             probe_config=spec.mcp_config,
+             probe_min_free_mb=args.min_free_mb,
+             runner=one_attempt,
++            probe_runner=lambda _config_path: broker_memory_probe(
++                _config_path,
++                tuple(
++                    str(name).split("__")[-1]
++                    for name in spec.extra_allowed_tools
++                ),
++            ),
+         )
+ 
+     started = time.monotonic()
+@@ -542,15 +614,6 @@ async def main() -> int:
+         for record in records
+         if (record.metadata.get("memory_startup") or {}).get("recovered")
+     ]
+-    pricing = {
+-        args.model: ModelPricing(
+-            model=args.model,
+-            usd_per_mtok_input=args.price_in,
+-            usd_per_mtok_output=args.price_out,
+-            as_of=args.price_as_of,
+-            source="https://openrouter.ai/api/v1/models",
+-        )
+-    }
+     (run_dir / "costs.json").write_text(
+         json.dumps(summarize(records, pricing=pricing, model=args.model), indent=2),
+         encoding="utf-8",
+diff --git a/scripts/placebo_preflight.py b/scripts/placebo_preflight.py
+index a9096440..fa7a2d99 100644
+--- a/scripts/placebo_preflight.py
++++ b/scripts/placebo_preflight.py
+@@ -40,7 +40,9 @@ def main() -> int:
+     mismatches: list[str] = []
+     with tempfile.TemporaryDirectory(prefix="agent-memory-bench-placebo-") as temp:
+         root = Path(temp)
+-        instruction = recall_instruction("skill")
++        # build_bundles accepts the complete arm-to-instruction mapping. Passing the recall
++        # string directly made this preflight fail before it could validate any bundle.
++        instruction = {"recall": recall_instruction("skill")}
+         for task in tasks:
+             bundles = build_bundles(task, root / task.task_id, instruction)
+             reference = bundles["claude_md"].read_text(encoding="utf-8")
+diff --git a/scripts/record_distractor.py b/scripts/record_distractor.py
+index 433afb1e..55f12d5c 100644
+--- a/scripts/record_distractor.py
++++ b/scripts/record_distractor.py
+@@ -25,7 +25,8 @@ if str(REPO) not in sys.path:
+     sys.path.insert(0, str(REPO))
+ 
+ from harness import sandbox
+-from harness.claude_exec import ClaudeExecConfig, run_claude_case
++from harness.claude_exec import ClaudeExecConfig
++from harness.isolation import run_isolated_claude_case
+ from scripts.record_precursor import DENIED, TOOLS, conversation_to_corpus
+ 
+ 
+@@ -52,19 +53,19 @@ async def main() -> int:
+     out = REPO / "corpus" / "distractors" / f"{args.out}.jsonl"
+     if out.exists() and not args.force:
+         raise SystemExit(f"{out} exists; pass --force to re-record over it")
+-    if not os.environ.get("OPENROUTER_API_KEY"):
+-        raise SystemExit("OPENROUTER_API_KEY is not set")
++    if not os.environ.get("AMB_CAPABILITY_MODEL"):
++        raise SystemExit("AMB_CAPABILITY_MODEL is not set; start the trusted model broker first")
+ 
+     with tempfile.TemporaryDirectory() as temp:
+         workdir = Path(temp) / "project"
+-        sandbox.restore(args.fixture, workdir)
++        workspace_digest = sandbox.restore(args.fixture, workdir)
+         config = ClaudeExecConfig(
+             model=args.model,
+             cwd=workdir,
+             timeout_s=args.timeout,
+             env={
+                 "ANTHROPIC_BASE_URL": args.base_url,
+-                "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"],
++                "ANTHROPIC_AUTH_TOKEN": "",
+                 "ANTHROPIC_API_KEY": "",
+             },
+             bare=True,
+@@ -74,7 +75,13 @@ async def main() -> int:
+             permission_mode="acceptEdits",
+         )
+         row = {"task_id": f"distractor-{args.out}", "user_input": prompt}
+-        record = await run_claude_case(row, "distractor", config)
++        record = await asyncio.to_thread(
++            run_isolated_claude_case,
++            row,
++            "distractor",
++            config,
++            workspace_digest=workspace_digest,
++        )
+ 
+     if record.error is not None:
+         raise SystemExit(f"session failed, nothing recorded: {record.error}")
+diff --git a/scripts/record_plant.py b/scripts/record_plant.py
+index d412178c..0f7de8a5 100644
+--- a/scripts/record_plant.py
++++ b/scripts/record_plant.py
+@@ -44,7 +44,8 @@ if str(REPO) not in sys.path:
+     sys.path.insert(0, str(REPO))
+ 
+ from harness import sandbox
+-from harness.claude_exec import ClaudeExecConfig, run_claude_case
++from harness.claude_exec import ClaudeExecConfig
++from harness.isolation import run_isolated_claude_case
+ from harness.plants import load_plants, normalise
+ from harness.tasks import load_task
+ from scripts.record_precursor import DENIED, TOOLS, conversation_to_corpus
+@@ -95,12 +96,12 @@ async def main() -> int:
+     out = REPO / "corpus" / "plants" / args.task / f"{args.plant}.jsonl"
+     if out.exists() and not args.force:
+         raise SystemExit(f"{out} exists; pass --force to re-record over it")
+-    if not os.environ.get("OPENROUTER_API_KEY"):
+-        raise SystemExit("OPENROUTER_API_KEY is not set")
++    if not os.environ.get("AMB_CAPABILITY_MODEL"):
++        raise SystemExit("AMB_CAPABILITY_MODEL is not set; start the trusted model broker first")
+ 
+     with tempfile.TemporaryDirectory() as temp:
+         workdir = Path(temp) / "project"
+-        sandbox.restore(args.task, workdir)
++        workspace_digest = sandbox.restore(args.task, workdir)
+         stage = pdir / "stage"
+         if stage.is_dir():
+             shutil.copytree(stage, workdir, dirs_exist_ok=True)
+@@ -110,7 +111,7 @@ async def main() -> int:
+             timeout_s=args.timeout,
+             env={
+                 "ANTHROPIC_BASE_URL": args.base_url,
+-                "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"],
++                "ANTHROPIC_AUTH_TOKEN": "",
+                 "ANTHROPIC_API_KEY": "",
+             },
+             bare=True,
+@@ -120,7 +121,13 @@ async def main() -> int:
+             permission_mode="acceptEdits",
+         )
+         row = {"task_id": f"plant-{args.task}-{args.plant}", "user_input": prompt}
+-        record = await run_claude_case(row, "plant", config)
++        record = await asyncio.to_thread(
++            run_isolated_claude_case,
++            row,
++            "plant",
++            config,
++            workspace_digest=workspace_digest,
++        )
+ 
+     if record.error is not None:
+         raise SystemExit(f"session failed, nothing recorded: {record.error}")
+diff --git a/scripts/record_precursor.py b/scripts/record_precursor.py
+index 4207bb3a..ffa95a4f 100644
+--- a/scripts/record_precursor.py
++++ b/scripts/record_precursor.py
+@@ -39,7 +39,8 @@ if str(REPO) not in sys.path:
+     sys.path.insert(0, str(REPO))
+ 
+ from harness import sandbox
+-from harness.claude_exec import ClaudeExecConfig, run_claude_case
++from harness.claude_exec import ClaudeExecConfig
++from harness.isolation import run_isolated_claude_case
+ from harness.tasks import load_task
+ 
+ TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
+@@ -58,6 +59,7 @@ def conversation_to_corpus(
+     lines: list[dict] = [{"role": "user", "content": prompt, "ts": _stamp(base, 0)}]
+     index = 1
+     pending: list[dict] = []
++    pending_by_id: dict[str, dict] = {}
+     for turn in conversation:
+         role = turn.get("role")
+         if role == "user":
+@@ -69,17 +71,35 @@ def conversation_to_corpus(
+                 lines.append({"role": "assistant", "content": text, "ts": _stamp(base, index)})
+                 index += 1
+             for call in calls:
+-                pending.append(
+-                    {
+-                        "role": "assistant",
+-                        "content": text.strip(),
+-                        "tool_name": str(call.get("name", "")),
+-                        "tool_input": json.dumps(call.get("args", {}), ensure_ascii=False),
+-                    }
+-                )
++                entry = {
++                    "role": "assistant",
++                    "content": text.strip(),
++                    "tool_name": str(call.get("name", "")),
++                    "tool_input": json.dumps(call.get("args", {}), ensure_ascii=False),
++                }
++                pending.append(entry)
++                call_id = str(call.get("id", ""))
++                if call_id:
++                    pending_by_id[call_id] = entry
+                 text = ""  # the text belongs to the first call of the turn only
+         elif role == "tool":
+-            entry = pending.pop(0) if pending else {"role": "assistant", "content": ""}
++            call_id = str(turn.get("tool_use_id", ""))
++            entry = pending_by_id.pop(call_id, None) if call_id else None
++            if entry is not None:
++                pending.remove(entry)
++            elif pending:
++                # Older captured conversations did not preserve the tool_use_id. Keep the
++                # historical fallback for those inputs, while ID-bearing streams pair safely
++                # even when results arrive out of order.
++                entry = pending.pop(0)
++                stale_ids = [
++                    pending_id for pending_id, pending_entry in pending_by_id.items()
++                    if pending_entry is entry
++                ]
++                for pending_id in stale_ids:
++                    pending_by_id.pop(pending_id, None)
++            else:
++                entry = {"role": "assistant", "content": ""}
+             entry["tool_result"] = str(turn.get("content", ""))[:2000]
+             entry["ts"] = _stamp(base, index)
+             index += 1
+@@ -92,6 +112,26 @@ def conversation_to_corpus(
+     return lines
+ 
+ 
++def _required_terms(task, precursor: str) -> tuple[tuple[str, ...], str]:
++    """Which fact terms this particular recording has to surface.
++
++    An ordinary task states its whole fact in every session it owns, so the gate is every term. A
++    task whose fact is DISTRIBUTED states one share per session, so demanding every term would
++    refuse every valid recording of it, and the obvious fix under time pressure ("just record both
++    halves in one session") destroys exactly the property the task exists to test.
++    """
++
++    if task.synthesis is None:
++        return task.fact_terms, "the fact"
++    for shard in task.synthesis.shards:
++        if shard.precursor == precursor:
++            return shard.terms, f"shard {precursor}'s share of the fact"
++    raise SystemExit(
++        f"{task.task_id} declares a distributed fact and no shard named {precursor!r}; "
++        f"shards are {', '.join(task.synthesis.precursors)}"
++    )
++
++
+ async def main() -> int:
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--task", required=True)
+@@ -114,12 +154,12 @@ async def main() -> int:
+     out = REPO / "corpus" / "sessions" / args.task / f"{args.out_name or args.precursor}.jsonl"
+     if out.exists() and not args.force:
+         raise SystemExit(f"{out} exists; pass --force to re-record over it")
+-    if not os.environ.get("OPENROUTER_API_KEY"):
+-        raise SystemExit("OPENROUTER_API_KEY is not set")
++    if not os.environ.get("AMB_CAPABILITY_MODEL"):
++        raise SystemExit("AMB_CAPABILITY_MODEL is not set; start the trusted model broker first")
+ 
+     with tempfile.TemporaryDirectory() as temp:
+         workdir = Path(temp) / "project"
+-        sandbox.restore(args.task, workdir)
++        workspace_digest = sandbox.restore(args.task, workdir)
+         stage = pdir / "stage"
+         if stage.is_dir():
+             shutil.copytree(stage, workdir, dirs_exist_ok=True)
+@@ -129,7 +169,7 @@ async def main() -> int:
+             timeout_s=args.timeout,
+             env={
+                 "ANTHROPIC_BASE_URL": args.base_url,
+-                "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"],
++                "ANTHROPIC_AUTH_TOKEN": "",
+                 "ANTHROPIC_API_KEY": "",
+             },
+             bare=True,
+@@ -139,7 +179,13 @@ async def main() -> int:
+             permission_mode="acceptEdits",
+         )
+         row = {"task_id": f"precursor-{args.task}-{args.precursor}", "user_input": prompt}
+-        record = await run_claude_case(row, "precursor", config)
++        record = await asyncio.to_thread(
++            run_isolated_claude_case,
++            row,
++            "precursor",
++            config,
++            workspace_digest=workspace_digest,
++        )
+ 
+     if record.error is not None:
+         raise SystemExit(f"session failed, nothing recorded: {record.error}")
+@@ -153,12 +199,27 @@ async def main() -> int:
+     lines = conversation_to_corpus(prompt, record.conversation, followup, base)
+     text = "\n".join(json.dumps(line, ensure_ascii=False) for line in lines) + "\n"
+ 
+-    missing = [term for term in task.fact_terms if term.lower() not in text.lower()]
++    required, scope = _required_terms(task, args.precursor)
++    missing = [term for term in required if term.lower() not in text.lower()]
+     if missing:
+         raise SystemExit(
+-            f"fact terms {missing} absent from the transcript; the fact never surfaced. "
++            f"fact terms {missing} absent from the transcript; {scope} never surfaced. "
+             f"Fix the staging or the followup wording, and re-run"
+         )
++    if task.synthesis is not None:
++        others = [
++            term
++            for shard in task.synthesis.shards
++            if shard.precursor != args.precursor
++            for term in shard.terms
++        ]
++        strayed = [term for term in others if term.lower() in text.lower()]
++        if strayed:
++            raise SystemExit(
++                f"this session states another shard's terms {strayed}. The fact is supposed to "
++                f"be distributed, and a session holding two shares answers the task alone. "
++                f"Re-stage so the other half is out of reach, and re-record"
++            )
+ 
+     out.parent.mkdir(parents=True, exist_ok=True)
+     out.write_text(text, encoding="utf-8", newline="\n")
+diff --git a/scripts/salvage.py b/scripts/salvage.py
+index 8a1283b0..7ff815c6 100644
+--- a/scripts/salvage.py
++++ b/scripts/salvage.py
+@@ -2,10 +2,16 @@
+ 
+     python scripts/salvage.py --run-id <run-id> --arms recall,bare
+ 
+-`run_claude_case` writes each session's stream to disk **before** parsing it, and the runner only
+-writes `records.jsonl` at the very end. So a runner that dies mid-run loses its index but not its
+-evidence: the transcripts are all there. This turns them back into records and writes the same
+-records artifact a completed run would, minus the cells that never finished.
++`run_claude_case` writes each session's stream to disk **before** parsing it, so a runner that
++dies mid-run loses its index but not its evidence: the transcripts are all there. This turns them
++back into records, minus the cells that never finished.
++
++**It writes `records.salvaged.jsonl`, never `records.jsonl`.** `scripts/pilot.py` appends each
++CHECKER-GRADED record to `records.jsonl` with fsync as the run proceeds, exactly so a dying run
++keeps every finished cell. A salvaged record has no checker verdict: `build_record` sets `success`
++from "the session reached its result event", which is a different question from "the task was
++solved". Writing one over the other would silently promote graded failures to successes in the
++artifact that backs published numbers, so this refuses to run when `records.jsonl` exists.
+ 
+ Used in anger on 2026-08-21 in the source project, when a headline run's process died at 71 of
+ 100 sessions.
+@@ -29,6 +35,7 @@ from __future__ import annotations
+ import argparse
+ import gzip
+ import json
++import re
+ import sys
+ from collections import defaultdict
+ from pathlib import Path
+@@ -46,29 +53,49 @@ from harness.claude_exec import (
+ )
+ from harness.io import write_jsonl
+ from harness.schema import DEFAULT_MEMORY_TOOL_PREFIX
++from harness.tasks import discover_tasks
+ 
+-# TODO(port): the source script also imported `arms.BASE_TOOLS` (only fed
+-# `ClaudeExecConfig.allowed_tools` on a parse-only config, where it changes nothing),
+-# `gate.admit_pairs` (the availability gate), `summarize.summarize_pairs` /
+-# `summarize_recall_overhead` and `traps.score_record`. None of those modules are ported yet, so
+-# this script admits every complete cell without the gate and writes only `records.jsonl` and
+-# `salvage.json`; summaries and trap scores are recomputed by their own tools once ported.
++# `harness.gate.admit_cells` IS available (scripts/pilot.py, smoke.py and diagnostic.py all use
++# it), but it needs the run's AdmissionSignal roster, which describes how the run was CONFIGURED
++# and does not survive in the transcripts. So this script still writes every complete cell
++# ungated, and says so in the artifact. Run the gate before analysing these records.
+ 
+ 
+-def split_name(name: str, arms: tuple[str, ...]) -> tuple[str, str] | None:
+-    """`trap-x#r2.recall.jsonl.gz` -> `("trap-x#r2", "recall")`.
++def split_name(name: str, arms: tuple[str, ...]) -> tuple[str, int, str] | None:
++    """`ts-tz-utc.s2.recall.jsonl.gz` -> `("ts-tz-utc", 2, "recall")`.
+ 
+     Matches on the arm suffix rather than splitting on dots, because a task id may legitimately
+-    contain a dot.
++    contain a dot. `harness.claude_exec` names streams `<task>.s<seed>.<arm>.jsonl.gz`; an older
++    stream with no seed segment parses as seed 0 rather than being dropped.
+     """
+ 
+     base = name.removesuffix(".jsonl.gz")
+     for arm in arms:
+-        if base.endswith(f".{arm}"):
+-            return base[: -len(arm) - 1], arm
++        if not base.endswith(f".{arm}"):
++            continue
++        remainder = base[: -len(arm) - 1]
++        head, _, seed_part = remainder.rpartition(".")
++        if head and re.fullmatch(r"s\d+", seed_part):
++            return head, int(seed_part[1:]), arm
++        return remainder, 0, arm
+     return None
+ 
+ 
++def refuse_if_records_exist(artifacts: Path) -> None:
++    """Refuse to salvage over an artifact the runner already graded.
++
++    A salvaged record's `success` means "the session completed", not "the checker passed", so
++    overwriting the runner's graded records.jsonl would rewrite failures as successes.
++    """
++
++    existing = artifacts / "records.jsonl"
++    if existing.exists():
++        raise SystemExit(
++            f"{existing} already exists and holds checker-graded records; salvage would replace "
++            "them with ungraded ones. Move it aside first if you really mean to rebuild."
++        )
++
++
+ def main() -> int:
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--run-id", required=True)
+@@ -76,9 +103,13 @@ def main() -> int:
+         "--arms",
+         required=True,
+         help="comma-separated arm names the run used; each stream file is named "
+-        "<task_id>.<arm>.jsonl.gz",
++        "<task_id>.s<seed>.<arm>.jsonl.gz",
++    )
++    parser.add_argument(
++        "--tasks",
++        default=None,
++        help="optional JSONL of task rows; without it, prompts are read from tasks/<id>/task.json",
+     )
+-    parser.add_argument("--tasks", default=str(REPO_ROOT / "tasks" / "traps.jsonl"))
+     parser.add_argument("--memory-tool-prefix", default=DEFAULT_MEMORY_TOOL_PREFIX)
+     args = parser.parse_args()
+ 
+@@ -90,15 +121,22 @@ def main() -> int:
+     streams = artifacts / "streams"
+     if not streams.is_dir():
+         raise SystemExit(f"no streams at {streams}")
++    refuse_if_records_exist(artifacts)
+ 
+-    tasks = {
+-        row["task_id"]: row
+-        for row in (
+-            json.loads(line)
+-            for line in Path(args.tasks).read_text(encoding="utf-8").splitlines()
+-            if line.strip()
+-        )
+-    }
++    if args.tasks:
++        tasks = {
++            row["task_id"]: row
++            for row in (
++                json.loads(line)
++                for line in Path(args.tasks).read_text(encoding="utf-8").splitlines()
++                if line.strip()
++            )
++        }
++    else:
++        tasks = {
++            task.task_id: {"task_id": task.task_id, "user_input": task.prompt}
++            for task in discover_tasks()
++        }
+ 
+     records = []
+     unreadable: list[str] = []
+@@ -106,11 +144,12 @@ def main() -> int:
+         parsed = split_name(path.name, arms)
+         if parsed is None:
+             continue
+-        task_id, arm = parsed
++        task_id, seed, arm = parsed
+         base = task_id.split("#")[0]
+         row = dict(tasks.get(base, {}))
+         row["task_id"] = task_id
+         row["base_task_id"] = base
++        row["seed"] = seed
+         with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
+             stream = handle.read()
+         try:
+@@ -150,14 +189,19 @@ def main() -> int:
+         except Exception as error:  # noqa: BLE001 - one bad transcript must not lose the rest
+             unreadable.append(f"{path.name}: {type(error).__name__}: {error}"[:200])
+ 
+-    by_task: dict[str, set[str]] = defaultdict(set)
++    # Key on the CELL, (task_id, seed), not the task. Before the seed was parsed out of the
++    # stream name it stayed inside task_id, so keying on task_id alone was accidentally per-cell;
++    # once the seed moved to its own field that key would have pooled every seed of a task and
++    # admitted a seed whose partner arm never finished. A lone arm is not a comparison.
++    by_cell: dict[tuple[str, int], set[str]] = defaultdict(set)
+     for record in records:
+-        by_task[record.task_id].add(record.arm)
+-    complete = {t for t, seen in by_task.items() if set(arms) <= seen}
+-    orphans = sorted(set(by_task) - complete)
+-    paired = [r for r in records if r.task_id in complete]
++        by_cell[(record.task_id, record.seed)].add(record.arm)
++    complete = {cell for cell, seen in by_cell.items() if set(arms) <= seen}
++    orphans = sorted(f"{task}.s{seed}" for task, seed in set(by_cell) - complete)
++    paired = [r for r in records if (r.task_id, r.seed) in complete]
+ 
+     print(f"salvaged {len(records)} records from {len(list(streams.iterdir()))} streams")
++    print(f"wrote {(artifacts / 'records.salvaged.jsonl').name} (ungraded; run the gate before analysis)")
+     print(f"complete cells: {len(complete)}")
+     if orphans:
+         print(f"incomplete (excluded, an arm never finished): {len(orphans)} -> {orphans[:6]}")
+@@ -172,11 +216,11 @@ def main() -> int:
+     # artifact says so.
+     admitted = paired
+ 
+-    write_jsonl(artifacts / "records.jsonl", admitted)
++    write_jsonl(artifacts / "records.salvaged.jsonl", admitted)
+     salvage: dict[str, Any] = {
+         "run_id": args.run_id,
+         "salvaged": True,
+-        "reason": "the runner process died before writing records.jsonl",
++        "reason": "the runner process died mid-run; records rebuilt from the saved streams",
+         "arms": list(arms),
+         "streams_seen": len(list(streams.iterdir())),
+         "records_rebuilt": len(records),
+@@ -184,8 +228,12 @@ def main() -> int:
+         "incomplete_excluded": orphans,
+         "unreadable": unreadable,
+         "gate_applied": False,
+-        "gate_note": "TODO(port): harness.gate not yet available to this script; no availability "
+-        "gate was applied, run it before analysing these records",
++        "gate_note": "harness.gate.admit_cells needs the run's AdmissionSignal roster, which "
++        "does not survive in the transcripts; no availability gate was applied, run it before "
++        "analysing these records",
++        "success_semantics": "the session reached its result event; NO checker was re-run, so "
++        "these flags are not task verdicts",
++        "records_path": "records.salvaged.jsonl",
+         "wall_time_source": "stream_duration_ms (the runner's own timing did not survive)",
+     }
+     (artifacts / "salvage.json").write_text(json.dumps(salvage, indent=2), encoding="utf-8")
+diff --git a/scripts/smoke.py b/scripts/smoke.py
+index 0a248df5..4462a37f 100644
+--- a/scripts/smoke.py
++++ b/scripts/smoke.py
+@@ -35,21 +35,36 @@ if str(REPO) not in sys.path:
+ 
+ from adapters.bare.adapter import BareAdapter
+ from adapters.claude_md.adapter import ClaudeMdAdapter
++from adapters.claude_mem.adapter import ClaudeMemAdapter
+ from adapters.fs_grep.adapter import FsGrepAdapter
+ from adapters.recall.adapter import RecallAdapter
++from adapters.supermemory.adapter import SupermemoryAdapter
+ from harness import sandbox
+ from harness.adapters.base import ArmSpec, CorpusManifest
+ from harness.adapters.registry import AdapterRegistry
+-from harness.claude_exec import ClaudeExecConfig, run_claude_case
+-from harness.costs import ModelPricing, summarize
++from harness.claude_exec import ClaudeExecConfig
++from harness.costs import add_pricing_arguments, pricing_from_args, summarize
+ from harness.gate import admit_cells
+ from harness.io import write_jsonl
++from harness.isolation import (
++    default_participant_policy,
++    run_isolated_checker,
++    run_isolated_claude_case,
++)
++from harness.prereg import assert_preregistered
+ from harness.runner import run_grid
+ 
+ TASK_ID = "smoke-config-port"
++FULL_TASK_COUNT = 24
++FULL_SEED_COUNT = 3
++SMOKE_MAX_SECONDS = 600.0
++FULL_RUN_MAX_SECONDS = 18_000.0
+ PROMPT = (
+     "Determine which TCP port this service is configured to listen on, and write it to "
+-    "RESULT.txt in the repository root: just the number, one line, nothing else."
++    "the current repository root as ./RESULT.txt using a relative path. You must use Bash to "
++    "write the number you found, then use Read to verify the file: just the number, one line, "
++    "nothing else. Do not answer with the port alone. The task is incomplete until RESULT.txt "
++    "exists and has been verified with Read."
+ )
+ BASE_TOOLS = ("Read", "Grep", "Glob", "Bash", "Write", "Edit")
+ DENIED_TOOLS = ("Bash(docker:*)", "Bash(docker-compose:*)")
+@@ -62,23 +77,16 @@ def build_corpus_manifest() -> CorpusManifest:
+ 
+ 
+ def check_result(workdir: Path) -> tuple[bool, str]:
+-    """The executable endpoint: RESULT.txt matches the oracle. A do-nothing session scores 0."""
++    """Run the smoke checker in the same isolated checker boundary as benchmark tasks."""
+ 
+-    expected = (sandbox.oracle(TASK_ID) / "expected.txt").read_text(encoding="utf-8").strip()
+-    produced = workdir / "RESULT.txt"
+-    if not produced.is_file():
+-        return False, "RESULT.txt was never written"
+-    actual = produced.read_text(encoding="utf-8").strip()
+-    if actual == expected:
+-        return True, f"RESULT.txt == {expected!r}"
+-    return False, f"RESULT.txt held {actual!r}, oracle says {expected!r}"
++    return run_isolated_checker(TASK_ID, sandbox.oracle(TASK_ID), workdir)
+ 
+ 
+ async def main() -> int:
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--model", default="deepseek/deepseek-v4-flash")
+     parser.add_argument(
+-        "--arms", default="bare,claude_md,fs_grep,recall", help="comma-separated arm roster"
++        "--arms", default="bare,claude_md,fs_grep,recall,supermemory,claude_mem", help="comma-separated arm roster"
+     )
+     parser.add_argument("--timeout", type=float, default=600.0)
+     parser.add_argument(
+@@ -91,38 +99,57 @@ async def main() -> int:
+     parser.add_argument("--run-id", default=None)
+     # Read from the OpenRouter models endpoint on 2026-08-22 for deepseek/deepseek-v4-flash.
+     # Override for any other model; the costs artifact records what was used.
+-    parser.add_argument("--price-in", type=float, default=0.05866, help="USD per Mtok input")
+-    parser.add_argument("--price-out", type=float, default=0.11732, help="USD per Mtok output")
+-    parser.add_argument("--price-as-of", default="2026-08-22")
++    add_pricing_arguments(parser)
+     args = parser.parse_args()
+ 
++    assert_preregistered(REPO)
++    smoke_started = time.monotonic()
++
+     arms = tuple(arm.strip() for arm in args.arms.split(",") if arm.strip())
++    if not os.environ.get("OPENROUTER_API_KEY"):
++        raise SystemExit("OPENROUTER_API_KEY is not set; the agent cannot run")
++    if not os.environ.get("AMB_CAPABILITY_MODEL"):
++        raise SystemExit("AMB_CAPABILITY_MODEL is not set; start the trusted model broker first")
++    if "supermemory" in arms:
++        missing = []
++        if not os.environ.get("SUPERMEMORY_PLUGIN_DIR"):
++            missing.append("SUPERMEMORY_PLUGIN_DIR")
++        if not (
++            os.environ.get("SUPERMEMORY_CC_API_KEY")
++            or os.environ.get("SUPERMEMORY_API_KEY")
++        ):
++            missing.append("SUPERMEMORY_CC_API_KEY or SUPERMEMORY_API_KEY")
++        if missing:
++            raise SystemExit("Supermemory is not configured; set " + ", ".join(missing))
++
+     run_id = args.run_id or f"smoke-{time.strftime('%Y%m%d-%H%M%S')}"
+     run_dir = REPO / "results" / run_id
+     if run_dir.exists():
+         raise SystemExit(f"run dir {run_dir} already exists; refusing to mix runs")
+     (run_dir / "streams").mkdir(parents=True)
+ 
+-    if not os.environ.get("OPENROUTER_API_KEY"):
+-        raise SystemExit("OPENROUTER_API_KEY is not set; the agent cannot run")
+-
+     corpus = build_corpus_manifest()
+     base_prompt = REPO / "corpus" / "claude_md_bundle_smoke.md"
+     staging = run_dir / "staging"
++    work_root = sandbox.default_work_root() / run_id
+ 
+     registry = AdapterRegistry()
+     registry.register(BareAdapter())
++    registry.register(ClaudeMemAdapter(staging, base_prompt))
+     registry.register(ClaudeMdAdapter(base_prompt))
+     registry.register(FsGrepAdapter(staging, base_prompt))
+     registry.register(RecallAdapter(staging, base_prompt))
++    registry.register(SupermemoryAdapter(staging, base_prompt))
+ 
+     # Ingest: each memory arm through its own write path, metered where measurable.
++    ingest_started = time.monotonic()
+     ingest_reports = []
+     for arm in arms:
+         adapter = registry.get(arm)
+         namespace = f"smoke-{arm}-0"
+         print(f"[ingest] {arm} -> {namespace}", flush=True)
+         ingest_reports.append(adapter.ingest(corpus, namespace))
++    ingest_elapsed_s = time.monotonic() - ingest_started
+ 
+     signals = registry.signals(arms)
+ 
+@@ -131,7 +158,7 @@ async def main() -> int:
+     workdirs: dict[str, Path] = {}
+     digests: dict[str, str] = {}
+     for arm in arms:
+-        workdir = run_dir / "work" / TASK_ID / arm
++        workdir = work_root / TASK_ID / arm
+         digests[arm] = sandbox.restore(TASK_ID, workdir)
+         workdirs[arm] = workdir
+         spec = registry.get(arm).build(run_dir / "cfg" / arm, f"smoke-{arm}-0")
+@@ -142,7 +169,7 @@ async def main() -> int:
+ 
+     env = {
+         "ANTHROPIC_BASE_URL": args.base_url,
+-        "ANTHROPIC_AUTH_TOKEN": os.environ["OPENROUTER_API_KEY"],
++        "ANTHROPIC_AUTH_TOKEN": "",
+         "ANTHROPIC_API_KEY": "",
+     }
+ 
+@@ -153,6 +180,7 @@ async def main() -> int:
+             cwd=workdirs[arm],
+             timeout_s=args.timeout,
+             env={**env, **spec.env},
++            public_container_env=spec.public_container_env,
+             bare=spec.bare,
+             config_dir=spec.config_dir,
+             mcp_config=spec.mcp_config,
+@@ -166,7 +194,13 @@ async def main() -> int:
+         )
+ 
+     async def runner(row, arm):
+-        record = await run_claude_case(row, arm, config_for(arm))
++        record = await asyncio.to_thread(
++            run_isolated_claude_case,
++            row,
++            arm,
++            config_for(arm),
++            workspace_digest=digests[arm],
++        )
+         spec = specs[arm]
+         success, verdict = check_result(workdirs[arm])
+         extra = {
+@@ -181,27 +215,45 @@ async def main() -> int:
+             record,
+             success=success and record.success,
+             config_dir_digest=spec.config_dir_digest,
++            hook_ledger=(
++                registry.get("supermemory").read_hook_ledger(
++                    record.metadata.get("session_id"), spec.config_dir
++                )
++                if arm == "supermemory" and spec.config_dir is not None
++                else registry.get("claude_mem").read_hook_ledger(
++                    record.metadata.get("session_id"), spec.config_dir
++                )
++                if arm == "claude_mem" and spec.config_dir is not None
++                else record.hook_ledger
++            ),
+             metadata={**record.metadata, **extra},
+         )
+ 
+     rows = [{"task_id": TASK_ID, "seed": 0, "user_input": PROMPT}]
+     print(f"[run] {len(rows)} cell(s) x {len(arms)} arm(s), model {args.model}", flush=True)
++    sessions_started = time.monotonic()
+     records = await run_grid(rows, arms, runner, block_concurrency=1)
++    session_elapsed_s = time.monotonic() - sessions_started
++    total_elapsed_s = time.monotonic() - smoke_started
++    setup_elapsed_s = max(0.0, total_elapsed_s - ingest_elapsed_s - session_elapsed_s)
++    projected_full_run_s = (
++        setup_elapsed_s
++        + ingest_elapsed_s
++        + session_elapsed_s * FULL_TASK_COUNT * FULL_SEED_COUNT
++    )
++    timing_ok = (
++        total_elapsed_s <= SMOKE_MAX_SECONDS
++        and projected_full_run_s <= FULL_RUN_MAX_SECONDS
++    )
+ 
+     write_jsonl(run_dir / "records.jsonl", records)
+     report = admit_cells(records, signals, required_arms=arms)
+     (run_dir / "admission.json").write_text(
+         json.dumps(report.summary(), indent=2), encoding="utf-8"
+     )
+-    pricing = {
+-        args.model: ModelPricing(
+-            model=args.model,
+-            usd_per_mtok_input=args.price_in,
+-            usd_per_mtok_output=args.price_out,
+-            as_of=args.price_as_of,
+-            source="https://openrouter.ai/api/v1/models",
+-        )
+-    }
++    pricing = pricing_from_args(
++        args, model=args.model, source="https://openrouter.ai/api/v1/models"
++    )
+     costs = summarize(records, ingest_reports, pricing=pricing, model=args.model)
+     (run_dir / "costs.json").write_text(json.dumps(costs, indent=2), encoding="utf-8")
+     (run_dir / "environment.json").write_text(
+@@ -209,6 +261,19 @@ async def main() -> int:
+             {
+                 "run_id": run_id,
+                 "model": args.model,
++                "execution_mode": "rootless-docker",
++                "runtime_name": "docker",
++                "participant_image_digest": default_participant_policy().effective_image_digest,
++                "checker_image_digest": os.environ.get("AMB_CHECKER_IMAGE_DIGEST", ""),
++                "isolation_policy_digest": default_participant_policy().digest,
++                "network_policy_digest": default_participant_policy().network_policy_digest,
++                "participant_isolation_verified": bool(
++                    default_participant_policy().effective_image_digest
++                    and os.environ.get("AMB_CHECKER_IMAGE_DIGEST")
++                    and os.environ.get("AMB_NETWORK_POLICY_DIGEST")
++                ),
++                "oracle_visible_to_participant": False,
++                "work_root": "external-disposable-storage",
+                 "arms": {arm: registry.get(arm).describe() for arm in arms},
+                 "ingest": [r.to_dict() for r in ingest_reports],
+             },
+@@ -216,6 +281,25 @@ async def main() -> int:
+         ),
+         encoding="utf-8",
+     )
++    (run_dir / "timing.json").write_text(
++        json.dumps(
++            {
++                "smoke_elapsed_s": total_elapsed_s,
++                "setup_elapsed_s": setup_elapsed_s,
++                "ingest_elapsed_s": ingest_elapsed_s,
++                "agent_session_elapsed_s": session_elapsed_s,
++                "full_run_tasks": FULL_TASK_COUNT,
++                "full_run_seeds": FULL_SEED_COUNT,
++                "projected_full_run_s": projected_full_run_s,
++                "smoke_max_s": SMOKE_MAX_SECONDS,
++                "full_run_max_s": FULL_RUN_MAX_SECONDS,
++                "timing_gate_passed": timing_ok,
++                "projection_formula": "ingest_once + smoke_agent_session_time * 24 * 3",
++            },
++            indent=2,
++        ),
++        encoding="utf-8",
++    )
+ 
+     print()
+     for record in records:
+@@ -232,12 +316,21 @@ async def main() -> int:
+         f"discarded: {len(report.discarded_cells)} {dict(report.discarded_by_arm())}"
+     )
+     print(f"  estimated spend: ${costs.get('estimated_usd')} ({costs['total_tokens']} tokens)")
++    print(
++        f"  timing: smoke={total_elapsed_s:.1f}s, projected full={projected_full_run_s / 60:.1f}m, "
++        f"gate={'PASS' if timing_ok else 'FAIL'}"
++    )
+     print(f"  artifacts: {run_dir}")
+ 
+-    if report.discarded_cells:
++    if report.discarded_cells or not timing_ok:
+         for verdict in report.verdicts:
+             if not verdict.admitted:
+                 print(f"  DISCARD {verdict.arm}: {verdict.reasons}")
++        if not timing_ok:
++            print(
++                f"  TIMING GATE FAILED: smoke must be <= {SMOKE_MAX_SECONDS:.0f}s and "
++                f"projected full run must be <= {FULL_RUN_MAX_SECONDS / 3600:.1f}h"
++            )
+         return 1
+     return 0
+ 

@@ -38,6 +38,54 @@ dating exists to make visible, and it is recorded here rather than quietly overw
 `mempalace`'s row publishes nothing until 2026-09-15, held for vendor review by
 `VENDOR_REVIEW_HOLDS` in `scripts/build_leaderboard.py` rather than by anyone remembering to.
 
+🔁 **Released 2026-09-26.** The window closed on 2026-09-15 with no reply on
+[MemPalace#2414](https://github.com/MemPalace/mempalace/issues/2414), checked that day, and the
+hold entry was deleted. See the next section.
+
+## Vendor arms published, 2026-09-26
+
+Every vendor review window has closed without a reply, and the four products measured in their
+own runs are now on the board, joined to `official-003` on `(task_id, seed, condition)`.
+Numbers are success over joined admitted cells, and the delta is against `claude_md` (0.577).
+
+| arm | run | preregistration | success | delta | 95% CI | joined cells | review |
+|---|---|---|---:|---:|---|---:|---|
+| `mempalace` | `official-003` | 026 | 0.606 | +0.028 | [-0.020, +0.086] | 317 | issue opened 2026-09-01, closed 2026-09-15, no reply |
+| `supermemory` | `supermemory-004` | 040 | 0.248 | -0.329 | [-0.390, -0.110] | 274 | email 2026-09-07, "on or around 19 September", no reply |
+| `cognee` | `cognee-001` | 027 | 0.612 | +0.043 | [-0.013, +0.060] | 258 | email 2026-09-05, no reply |
+| Claude Mem | `claude-mem-official-019` | 079 | 0.628 | +0.044 | [-0.029, +0.119] | 298 | no invitation on record |
+| Graphiti | `official-007-graphiti` | 084 | 0.606 | +0.023 | [-0.068, +0.074] | 307 | email 2026-09-13, window closes 2026-09-27, no reply |
+
+What a reader should not have to dig for:
+
+1. **Only `supermemory`'s interval excludes zero, and it is below the baseline.** No product's
+   interval excludes zero on the positive side, which is the same null `official-003` reported.
+2. **Graphiti was published one day before its window closed**, on the operator's decision, and
+   its run deviated from preregistration 084 in six ways: one arm instead of two in four
+   conditions, a different memory instruction flag than the command line froze, recovery from
+   episodes ingested by crashed attempts, a code patch between conditions, no trusted execution
+   receipt, and execution from an uncommitted tree. All six, and the directory selection rule,
+   are in `results/official-007-graphiti/provenance/README.md` beside the executed source.
+3. **Claude Mem ran with a synchronous first-search guard**, which preregistration 074 requires
+   to be labelled on any result. Its row says so in its integration field.
+4. **Claude Mem was never sent a review invitation.** Nothing in this repository or the project
+   memory records one.
+5. **`cognee` discarded 66 cells**, far more than any other arm, and called its memory surface in
+   29% of joined sessions (the `searchRate` its branch computed; master's builder does not carry
+   the field).
+6. **Host paths were redacted** in the `cognee-001` and `claude-mem-official-019` artifacts, the
+   home prefix replaced by `$HOME` (2,231 and 3,765 occurrences), as for `official-003`. Every
+   condition still verifies from its sessions afterwards.
+7. **The cost ledger had been dropping cognee's extraction bill.** An arm that embeds locally and
+   extracts with a hosted LLM had its hosted ingest tokens discarded by `harness/costs.py`, under a
+   note saying it spent none, and `scripts/verify_run.py` never read the ingest report. Both are
+   fixed, and `cognee-001`'s published 20.0M token total for `absent` now recomputes.
+
+```bash
+python -c "import json;print(json.load(open('site/data/leaderboard.config.json')))"
+python -m scripts.verify_run --all
+```
+
 The next preregistered run is announced before it happens, not after it succeeds.
 
 ```bash

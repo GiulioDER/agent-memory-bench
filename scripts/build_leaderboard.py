@@ -83,8 +83,18 @@ PENDING_ARM_DEFINITIONS = {
 # entry; it does not publish a row by itself.
 ADDITIVE_ARM_DEFINITIONS = {
     # internal name: integration, role, public name
-    "cognee": ("MCP server", None, None),
-    "supermemory": ("official Claude Code lifecycle hooks", None, None),
+    "cognee": ("MCP server", None, "cognee"),
+    "supermemory": ("official Claude Code lifecycle hooks", None, "supermemory"),
+    # The first-search guard is part of the measured configuration, not a footnote: preregistration
+    # 074 requires guard-enabled results to stay labelled as guarded, so the label rides on the row.
+    "claude_mem": (
+        "official Claude Code lifecycle hooks and MCP search, first-search guard enabled",
+        None,
+        "Claude Mem",
+    ),
+    # Same reasoning: the run deviated from preregistration 084 in six stated ways, and a reader of
+    # the row alone should not have to open results/official-007-graphiti/provenance/ to learn it.
+    "graphiti": ("Graphiti MCP server, run deviated from its preregistration", None, "Graphiti"),
 }
 
 # ⛔ PRODUCT_ARMS is the list of arms that are MEASURED, not the arms that are hoped for. `mem0`,
@@ -161,13 +171,10 @@ REFERENCE_TRACKS = [
 #
 # `until` and `issue` are published on the page so a reader can check the promise against the
 # vendor's own thread rather than taking this repository's word for it.
-VENDOR_REVIEW_HOLDS: dict[str, dict[str, str]] = {
-    "mempalace": {
-        "until": "2026-09-15",
-        "issue": "https://github.com/MemPalace/mempalace/issues/2414",
-        "reason": "held for vendor review",
-    },
-}
+#
+# `mempalace` was released on 2026-09-26: its window closed on 2026-09-15 and issue #2414 had no
+# reply when checked that day. The mechanism stays for the next vendor whose window is open.
+VENDOR_REVIEW_HOLDS: dict[str, dict[str, str]] = {}
 
 ARM_FIELDS = ("success", "delta", "ci", "discarded", "tokensPerTask", "costPerTask")
 VENDOR_FIELDS = ("totalTokens",)

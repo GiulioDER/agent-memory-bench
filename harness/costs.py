@@ -283,6 +283,22 @@ class ArmCosts:
         return out
 
 
+def _local_only_note(report) -> str:
+    """The note for an arm whose ingest made no hosted call at all.
+
+    Zero hosted tokens is the TRUE answer for such an arm, and it is also the misleading one if it
+    is printed beside a competitor's LLM-extraction bill with nothing to say the two numbers
+    measure different resources. Name the model and keep the wall clock.
+    """
+
+    return (
+        f"ingest into {report.namespace!r} spent NO hosted tokens: it ran the local model "
+        f"{report.local_model!r} on the benchmark host. The zero in the token column is a "
+        f"real zero and is not a zero cost; compare it against another arm's extraction "
+        f"tokens only alongside ingest_wall_time_ms"
+    )
+
+
 def tally(
     records: Iterable[SessionRecord],
     ingest_reports: Iterable[IngestReport] = (),
@@ -315,26 +331,36 @@ def tally(
 
     for report in ingest_reports:
         costs = ledger.setdefault(report.arm, ArmCosts(arm=report.arm))
+        # ⛔ `local_model` used to be an exclusive branch, which was right while every arm was
+        # either all-local or all-hosted and silently wrong for the first arm that is BOTH. An arm
+        # that embeds locally and extracts with a hosted LLM would have had its extraction tokens
+        # DROPPED from the ledger and a note printed claiming it "spent NO hosted tokens", which is
+        # the worst of both: a real bill missing from the totals, under a sentence asserting there
+        # was none. Naming the local model and metering the hosted half are separate facts now.
         if report.local_model:
-            # Zero hosted tokens is the TRUE answer here, and it is also the misleading one if it
-            # is printed beside a competitor's LLM-extraction bill with nothing to say the two
-            # numbers measure different resources. Name the model and keep the wall clock.
             costs.ingest_local_model = report.local_model
-            costs.notes.append(
-                f"ingest into {report.namespace!r} spent NO hosted tokens: it ran the local model "
-                f"{report.local_model!r} on the benchmark host. The zero in the token column is a "
-                f"real zero and is not a zero cost; compare it against another arm's extraction "
-                f"tokens only alongside ingest_wall_time_ms"
-            )
-        elif report.llm_input_tokens is None or report.llm_output_tokens is None:
-            costs.ingest_unmetered += 1
-            costs.notes.append(
-                f"ingest into {report.namespace!r} was not token-metered "
-                f"(vendor-side extraction); its cost is missing from the totals, not zero"
-            )
+        if report.llm_input_tokens is None or report.llm_output_tokens is None:
+            if report.local_model:
+                costs.notes.append(_local_only_note(report))
+            else:
+                costs.ingest_unmetered += 1
+                costs.notes.append(
+                    f"ingest into {report.namespace!r} was not token-metered "
+                    f"(vendor-side extraction); its cost is missing from the totals, not zero"
+                )
         else:
             costs.ingest_input_tokens += report.llm_input_tokens
             costs.ingest_output_tokens += report.llm_output_tokens
+            if report.local_model and not (report.llm_input_tokens or report.llm_output_tokens):
+                costs.notes.append(_local_only_note(report))
+            elif report.local_model:
+                costs.notes.append(
+                    f"ingest into {report.namespace!r} paid on BOTH sides: "
+                    f"{report.llm_input_tokens + report.llm_output_tokens} hosted token(s) for "
+                    f"extraction, plus the local model {report.local_model!r} for embedding, whose "
+                    f"cost is in ingest_wall_time_ms rather than in the token columns. Neither "
+                    f"number is the whole bill on its own"
+                )
         if report.wall_time_ms is not None:
             costs.ingest_wall_time_ms += report.wall_time_ms
         if report.items_stored is not None:

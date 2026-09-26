@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "generated_by": "scripts/build_arm_submission.py",
+  "run": {
+    "id": "official-007-graphiti",
+    "date": "2026-09-13",
+    "cli": "claude-code",
+    "model": "deepseek/deepseek-v4-flash",
+    "tasks": 26,
+    "sessionsPerCell": 1,
+    "prereg": "preregistration/084-official-007-graphiti-bare-vps2.md"
+  },
+  "arm": "graphiti",
+  "base_run": "official-003",
+  "result": {
+    "success": 0.6059,
+    "delta": 0.0228,
+    "ci": [
+      -0.0677,
+      0.0737
+    ],
+    "discarded": 2,
+    "totalTokens": 12931466,
+    "tokensPerTask": 36947,
+    "costPerTask": 0.0022,
+    "byCondition": {
+      "present": {
+        "solved": 46,
+        "cells": 110
+      },
+      "absent": {
+        "solved": 39,
+        "cells": 52
+      },
+      "superseded": {
+        "solved": 31,
+        "cells": 46
+      },
+      "contradictory": {
+        "solved": 34,
+        "cells": 47
+      },
+      "adjacent": {
+        "solved": 36,
+        "cells": 52
+      }
+    }
+  },
+  "join": {
+    "baseRun": "official-003",
+    "baseAdmittedCells": 317,
+    "joinedCells": 307,
+    "baseCellsLostToJoin": 10,
+    "conditions": [
+      "present",
+      "absent",
+      "superseded",
+      "contradictory",
+      "adjacent"
+    ]
+  }
+}

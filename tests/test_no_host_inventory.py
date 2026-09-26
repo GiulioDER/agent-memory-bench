@@ -127,6 +127,10 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/080-graphiti-deepseek-v4-flash-vps2-smoke.md",
         "preregistration/081-official-004-graphiti-vps2.md",
         "preregistration/082-official-005-graphiti-bare-vps2.md",
+        # Added 2026-09-26 when this run was published: a frozen preregistration whose method
+        # section names the execution host, like 080 to 082 above. Never edited.
+        "preregistration/027-cognee-joined-pass.md",
+        "preregistration/084-official-007-graphiti-bare-vps2.md",
         "preregistration/084-official-008-recall-context4.md",
         "preregistration/086-official-010-recall-context4-graph-rerank.md",
         # Frozen private specialist experiment records name the execution host only to document

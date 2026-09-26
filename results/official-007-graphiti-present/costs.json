@@ -1,0 +1,86 @@
+{
+  "arms": {
+    "bare": {
+      "arm": "bare",
+      "sessions": 130,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 1919828,
+      "session_output_tokens": 180386,
+      "session_wall_time_ms": 4101173.0663282797,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "ingest_items_stored": 0,
+      "ingest_local_model": null,
+      "total_tokens": 2100214,
+      "notes": [],
+      "estimated_usd": 0.1309,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 1409792,
+      "session_cache_creation_tokens": 0
+    },
+    "graphiti": {
+      "arm": "graphiti",
+      "sessions": 130,
+      "sessions_unmetered": 1,
+      "session_input_tokens": 4151762,
+      "session_output_tokens": 207428,
+      "session_wall_time_ms": 4738444.598266855,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 1,
+      "ingest_wall_time_ms": 0.0,
+      "ingest_items_stored": 132,
+      "ingest_local_model": null,
+      "total_tokens": 4359190,
+      "notes": [
+        "ingest into 'amb-graphiti-official-007-present' was not token-metered (vendor-side extraction); its cost is missing from the totals, not zero"
+      ],
+      "estimated_usd": 0.2621,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 3268717,
+      "session_cache_creation_tokens": 0
+    }
+  },
+  "total_tokens": 6459404,
+  "total_sessions": 260,
+  "estimated_usd": 0.393,
+  "pricing_as_of": "2026-08-22",
+  "efficiency": {
+    "bare": {
+      "sessions": 130,
+      "successes": 49,
+      "input_tokens": 1919828,
+      "output_tokens": 180386,
+      "wall_ms": 4101173.0663282797,
+      "successes_per_mtok_input": 25.52,
+      "successes_per_mtok_total": 23.33,
+      "mean_input_tokens_per_session": 14767.9,
+      "mean_wall_s_per_session": 31.5
+    },
+    "graphiti": {
+      "sessions": 130,
+      "successes": 50,
+      "input_tokens": 4151762,
+      "output_tokens": 207428,
+      "wall_ms": 4738444.598266855,
+      "successes_per_mtok_input": 12.04,
+      "successes_per_mtok_total": 11.47,
+      "mean_input_tokens_per_session": 31936.6,
+      "mean_wall_s_per_session": 36.4
+    }
+  }
+}
