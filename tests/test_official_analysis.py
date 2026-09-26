@@ -129,3 +129,61 @@ def test_additive_vendor_submission_is_projected_into_analysis(tmp_path):
     assert projected["comparison"] == "joined to run-x"
     assert projected["cost"]["reported_usd_per_task"] == 0.5
     assert projected["condition_delta_vs_baseline"]["present"] == 0.5
+
+
+@pytest.mark.parametrize(
+    ("delta", "ci95", "expected"),
+    [
+        pytest.param(
+            -0.3285,
+            [-0.3904, -0.1101],
+            "product_x is below the claude_md baseline at -32.9%, and its published 95% interval [-39.0%, -11.0%] excludes zero.",
+            id="negative-excludes-zero",
+        ),
+        pytest.param(
+            0.2,
+            [0.05, 0.3],
+            "product_x is above the claude_md baseline at +20.0%, and its published 95% interval [+5.0%, +30.0%] excludes zero.",
+            id="positive-excludes-zero",
+        ),
+        pytest.param(
+            -0.05,
+            [-0.1, 0.02],
+            "product_x shows a negative point estimate, but its published 95% interval crosses zero.",
+            id="negative-crosses-zero",
+        ),
+        pytest.param(
+            0.082,
+            [-0.01, 0.17],
+            "product_x shows a positive point estimate, but its published 95% interval crosses zero.",
+            id="positive-crosses-zero",
+        ),
+    ],
+)
+def test_insights_state_the_direction_and_whether_the_interval_excludes_zero(delta, ci95, expected):
+    """Every visible product with a nonzero delta gets exactly one sign line, whichever its sign.
+
+    Invariant: the published insights name the direction of each product's point estimate against
+    the claude_md baseline, and say "excludes zero" rather than "crosses zero" when the 95%
+    interval lies wholly on one side. Failure mode: before this test, `_insights` only spoke about
+    a positive estimate whose interval crossed zero, so supermemory in official-003 (delta
+    -0.3285, ci95 [-0.3904, -0.1101], the only arm whose interval excludes zero) got no line at all.
+
+    Red proof, recorded 2026-09-26, node
+    `tests/test_official_analysis.py::test_insights_state_the_direction_and_whether_the_interval_excludes_zero[<id>]`:
+    * Baseline: `scripts/analyze_official.py` at abd4e6bc (pre-fix `_insights`). The three new
+      cases `negative-excludes-zero`, `positive-excludes-zero` and `negative-crosses-zero` failed
+      in the `assert lines == [expected]` assertion with `lines == []`.
+    * `positive-crosses-zero` passes at abd4e6bc by design: it guards the wording that already
+      shipped. Its red proof is a mutation of the fixed `_insights`, swapping the "positive" and
+      "negative" direction words, which failed it in the same assertion.
+    Green after restoring the fixed implementation.
+    """
+    analyzer = _module(SCRIPT, "analyze_official_insight_sign_test")
+    arms = {
+        "claude_md": {"success": 0.5773, "delta_vs_baseline": 0.0, "ci95": None},
+        "product_x": {"success": 0.5773 + delta, "delta_vs_baseline": delta, "ci95": ci95, "cost": {}},
+    }
+    insights = analyzer._insights(arms, {}, {}, ("product_x",))
+    lines = [line for line in insights if line.startswith("product_x ") and "interval" in line]
+    assert lines == [expected]
