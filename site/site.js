@@ -110,7 +110,9 @@
     var c = a.cost;
     if (!c) return cell("num", null);
     var td = cell("num", span("m strong-num", tokens(c.agentTokensPerTask)));
-    td.appendChild(block("m-dim", times(c.relativeToBaseline) + " " + BASELINE));
+    if (c.relativeToBaseline != null) {
+      td.appendChild(block("m-dim", times(c.relativeToBaseline) + " " + BASELINE));
+    }
     if (c.agentUsdPerTask != null) td.appendChild(block("m-dim", money(c.agentUsdPerTask)));
     return td;
   }
@@ -539,7 +541,8 @@
     }
     if (a.cost) {
       stat(strip, "agent tokens / task", tokens(a.cost.agentTokensPerTask),
-        "×" + a.cost.relativeToBaseline.toFixed(1) + " " + BASELINE);
+        a.cost.relativeToBaseline == null ? null
+          : "×" + a.cost.relativeToBaseline.toFixed(1) + " " + BASELINE);
       var i = a.cost.ingest;
       stat(strip, "ingest", i.status === "none recorded" ? "not in ledger" : i.status,
         i.tokens ? tokens(i.tokens) + " tokens" : i.localModel || null);
