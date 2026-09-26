@@ -1,0 +1,109 @@
+{
+  "created_utc": "2026-09-11T11:21:00+00:00",
+  "commit": "61ba3ff392e6865aea4d4ce60fc6bb78883497e0",
+  "what_this_is": "sha256 and git blob id of every preregistration file at stamp time. Append-only; a later manifest supersedes, never replaces, this one. See docs/TIMESTAMPING.md for what an anchor on this file proves.",
+  "files": [
+    {
+      "path": "preregistration/000-pilot.md",
+      "sha256": "fc9f14bab7fd415eb3f6097f8a65888c855e08b7c23df30613d6cd26798767a4",
+      "git_blob": "f7f22921b4e7d7c0c76cbcadadbaa0bbf3219570",
+      "bytes": 9316
+    },
+    {
+      "path": "preregistration/001-skill-instruction.md",
+      "sha256": "3a9bca32922f71c4519b8035d7a4d4a355420ec7635a40fe4664af80d4d943a1",
+      "git_blob": "d045d4edabf92eeb27c74a6749e4c09b39a12b03",
+      "bytes": 5443
+    },
+    {
+      "path": "preregistration/002-model-freeze.md",
+      "sha256": "ea51c08355dbd2b45b6ac8abae890ab92ee8145aed96ba9b07b10cb0c32a6dcb",
+      "git_blob": "9cf40590917becf14f60fdbf67ca6f542f73765e",
+      "bytes": 15376
+    },
+    {
+      "path": "preregistration/003-oracle-prefetch-diagnostic.md",
+      "sha256": "8766d847084f5822be2b63c4bece2f5f3a338c7f6951a68f51f409969de865d0",
+      "git_blob": "269fc3507d791d9ad55d5efaf40d632d7f7ec4fd",
+      "bytes": 2373
+    },
+    {
+      "path": "preregistration/004-claude-md-placebo.md",
+      "sha256": "d7923e89d026a800bc902dd2d13c0f8033ee69b67d2284d40c7d8b53112ab743",
+      "git_blob": "924b17103b9fb507e44c1c9bb26c10f94c862d00",
+      "bytes": 5513
+    },
+    {
+      "path": "preregistration/005-abstention-suite.md",
+      "sha256": "68366109f528bf9fb04ae5b74ead8d71da2084af725d1be038b37eda24cf0fce",
+      "git_blob": "db2393e13356672ef2125998f830224a4f7ccda3",
+      "bytes": 8452
+    },
+    {
+      "path": "preregistration/006-longitudinal-suite.md",
+      "sha256": "1c06cb3eb8119a035ed7925aa8261bfa10ccd2a99e9df8257d5ac82367f6b589",
+      "git_blob": "f4e74280e06ddedb609fff795fd64f4361ae82e3",
+      "bytes": 9665
+    },
+    {
+      "path": "preregistration/007-abstention-task-selection.md",
+      "sha256": "e263ff9c1c598585936ec98054deee28c2ee067116b6fe6ff5f8a6eac684219e",
+      "git_blob": "e9cc0158742e250fb44c9d9ced9ffda499c6f8b2",
+      "bytes": 11918
+    },
+    {
+      "path": "preregistration/008-midband-task-calibration.md",
+      "sha256": "f6fb3c5b8feec2c7154434b9a2beaa6c03f56c9c47a6cc5c61f1211b055b21f2",
+      "git_blob": "5a4ddcef447c95dbbb142ddb6fe8e017e30c7c97",
+      "bytes": 10668
+    },
+    {
+      "path": "preregistration/009-bare-resolution-remeasure.md",
+      "sha256": "ef477b7501a8c335ec5eaa8173068ad5f8a392303df0f34c4b7a8764a85d842f",
+      "git_blob": "1db11c1612f2a8378c264fb3eb5a163e1224aa94",
+      "bytes": 14598
+    },
+    {
+      "path": "preregistration/010-abstention-partial-execution.md",
+      "sha256": "f43a04f01a98b399f292fe717be08aa86552b51c5ed067f50121a250303114ff",
+      "git_blob": "3dc1783a3077b2682277fe093b7296b7d91b01dc",
+      "bytes": 5223
+    },
+    {
+      "path": "preregistration/081-official-004-graphiti-vps2.md",
+      "sha256": "6bfc6a65363a6c29abcee29a64cb0b094d14d6bfe3dc5d29629f12f9c683adc6",
+      "git_blob": "1afb83fac24dfb968979703e6d8e771a999d12c4",
+      "bytes": 6309
+    },
+    {
+      "path": "preregistration/082-official-005-graphiti-bare-vps2.md",
+      "sha256": "cda06bffefb08dd334b01fdd628d3177ba8f13679c425b0b3d83da7d09731b1f",
+      "git_blob": "84b74b8f38f8927c94b70b62d0a6193db12407a4",
+      "bytes": 4750
+    },
+    {
+      "path": "preregistration/083-official-006-graphiti-bare-vps2.md",
+      "sha256": "c66e18a1eb1014298c8cf40f7f18412ba737c1058636afa45c8b8743b8f2b2ae",
+      "git_blob": "b153afff9fd9cf70f3fd2baeba5c94db0d5d077c",
+      "bytes": 3339
+    },
+    {
+      "path": "preregistration/084-official-007-graphiti-bare-vps2.md",
+      "sha256": "e720d024ad126f1f4a25ccfa5ea2bfa46aa7b3d3bad0b88c561dbe05ffbc62a8",
+      "git_blob": "d061ae8d88715624f8549f86994991bb85dffbe5",
+      "bytes": 3596
+    },
+    {
+      "path": "preregistration/README.md",
+      "sha256": "79f607dc6ea54d8f4247c2c3852a9c258787533c8039f9c773bffdf648694065",
+      "git_blob": "c2f0309908d8cafcc5d0b329aea531eff39a41b7",
+      "bytes": 1062
+    },
+    {
+      "path": "preregistration/TEMPLATE.md",
+      "sha256": "2ce2296a403ed79b42787237c679b1889c56093c8f3607677bb5918c5bba8e6c",
+      "git_blob": "bb0b6004ac4bc8a9f0036554a76d7e0f602a4a78",
+      "bytes": 917
+    }
+  ]
+}

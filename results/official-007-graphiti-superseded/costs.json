@@ -1,0 +1,49 @@
+{
+  "arms": {
+    "graphiti": {
+      "arm": "graphiti",
+      "sessions": 55,
+      "sessions_unmetered": 1,
+      "session_input_tokens": 1892633,
+      "session_output_tokens": 103170,
+      "session_wall_time_ms": 2851571.7213149182,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 1,
+      "ingest_wall_time_ms": 0.0,
+      "ingest_items_stored": 143,
+      "ingest_local_model": null,
+      "total_tokens": 1995803,
+      "notes": [
+        "ingest into 'amb-graphiti-official-007-superseded' was not token-metered (vendor-side extraction); its cost is missing from the totals, not zero"
+      ],
+      "estimated_usd": 0.1205,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 1471327,
+      "session_cache_creation_tokens": 0
+    }
+  },
+  "total_tokens": 1995803,
+  "total_sessions": 55,
+  "estimated_usd": 0.1205,
+  "pricing_as_of": "2026-08-22",
+  "efficiency": {
+    "graphiti": {
+      "sessions": 55,
+      "successes": 33,
+      "input_tokens": 1892633,
+      "output_tokens": 103170,
+      "wall_ms": 2851571.7213149182,
+      "successes_per_mtok_input": 17.44,
+      "successes_per_mtok_total": 16.53,
+      "mean_input_tokens_per_session": 34411.5,
+      "mean_wall_s_per_session": 51.8
+    }
+  }
+}
