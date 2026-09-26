@@ -136,7 +136,9 @@ run_condition() {
   local condition="$1"
   local tasks="$2"
   local corpus="$BASE_REPO/corpus/conditions/$condition/seed-1"
-  CURRENT_NAMESPACE="$RUN_ID-$condition"
+  # The product echoes its namespace to the agent, so it must not spell the condition out;
+  # scripts.pilot refuses one that does.
+  CURRENT_NAMESPACE="$(cd "$REPO" && "$PY" -c 'import sys; from harness.corpus_names import condition_namespace; print(condition_namespace(sys.argv[1], sys.argv[2]))' "$RUN_ID" "$condition")"
   [[ -f "$corpus/manifest.json" ]] || { echo "missing corpus manifest: $corpus" >&2; exit 2; }
   echo "[$condition] starting frozen task selection with $AMB_BLOCK_CONCURRENCY worker(s)" >&2
   "$PY" -m scripts.pilot \
@@ -146,7 +148,7 @@ run_condition() {
     --seeds 5 \
     --model "$MODEL" \
     --base-url "$BASE_URL" \
-    --namespace "$RUN_ID-$condition" \
+    --namespace "$CURRENT_NAMESPACE" \
     --corpus-root "$corpus" \
     --condition "$condition" \
     --memory-instruction protocol \

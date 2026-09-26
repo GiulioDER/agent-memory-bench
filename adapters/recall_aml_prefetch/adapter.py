@@ -21,6 +21,7 @@ from harness.adapters.base import (
     namespace_path,
     resolve_corpus_path,
 )
+from harness.corpus_names import neutral_stem
 from harness.gate import AdmissionSignal
 from harness.memory_prompt import estimated_input_tokens, sha256_text
 from scripts.audit_corpus import readable_text
@@ -196,7 +197,10 @@ class HostedAmlPrefetchAdapter(MemoryAdapter):
                         f"{manifest_sha}\0{relative}".encode()
                     ).hexdigest(),
                     "user_id": namespace,
-                    "session_id": relative,
+                    # The hosted API echoes this back and `_ranked_evidence` prints it into the
+                    # prompt as "Source session". It was the corpus path until 2026-09-26, so a
+                    # planted hit arrived labelled `plants/<task>/stale_...`. Neutral now.
+                    "session_id": neutral_stem(relative),
                     "messages": [{"role": "user", "content": content}],
                 },
             )

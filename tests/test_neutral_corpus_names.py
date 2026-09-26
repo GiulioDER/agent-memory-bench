@@ -21,6 +21,8 @@ dafe4c10 behaviour, the named test run, and the line restored:
 | lineage computes the path name | `..._names_a_document_the_same_way` | `['plants__ts-base36-id__stale_lowercase.md']` |
 | recall decodes a neutral name | `..._instead_of_inventing_a_path` | `'notes/d0a0a960074dd1b2.jsonl' == 'notes__...md'` |
 | mempalace accepts any base name | `..._legacy_names_is_refused` | `DID NOT RAISE RuntimeError` |
+| prompt prints the raw `source_path` | `..._prompt_shows_no_corpus_path_...` | `sessions/ts-tz-utc/p01.jsonl` |
+| AML prefetch sends the corpus path as `session_id` | `test_recall_aml_prefetch.py::test_hosted_prefetch_ingests_...` | `{'distractors/...', 'sessions/ts-a/p01.jsonl'} == {'notes__...'}` |
 """
 
 from __future__ import annotations
@@ -112,6 +114,54 @@ def test_recall_returns_a_neutral_source_bare_instead_of_inventing_a_path():
     assert manifest_key(f"feed/{name}") == name
     # The legacy decode is kept for re-analysing the published runs.
     assert manifest_key("sessions__ts-tz-utc__p01.md") == "sessions/ts-tz-utc/p01.jsonl"
+
+
+def test_the_prefetch_and_oracle_prompt_shows_no_corpus_path_or_legacy_name():
+    """`recall_prefetch` and `oracle_memory` inject evidence straight into the prompt, and the
+    records never store that prompt, so this exposure was invisible to any scan of the published
+    runs. It printed `Source: <source_path>`: a corpus path for the oracle, recall's returned name
+    for prefetch."""
+
+    from harness.memory_bundles import MemoryItem
+    from harness.memory_prompt import format_memory_items
+
+    items = [
+        MemoryItem(
+            memory_id="a",
+            source_path="sessions/ts-tz-utc/p01.jsonl",
+            source_sha256="x",
+            evidence_text="store timestamps in UTC",
+            recorded_at="2026-08-07",
+            validity="current",
+            supersedes="sessions__ts-tz-utc__stale_dubai_local.md",
+        ),
+        MemoryItem(
+            memory_id="b",
+            source_path="sessions__ts-tz-utc__stale_dubai_local.md",
+            source_sha256="y",
+            evidence_text="store timestamps in Dubai local time",
+            recorded_at="2026-02-19",
+            validity="superseded",
+            supersedes=None,
+        ),
+        MemoryItem(
+            memory_id="c",
+            source_path=neutral_stem("sessions/ts-tz-utc/p02.jsonl") + ".md",
+            source_sha256="z",
+            evidence_text="already neutral",
+            recorded_at="2026-08-08",
+            validity="current",
+            supersedes=None,
+        ),
+    ]
+    text = format_memory_items(items)
+    shown = re.findall(r"^(?:Source|Replaces): (.+)$", text, flags=re.MULTILINE)
+    assert len(shown) == 4
+    for value in shown:
+        assert NEUTRAL_NAME.match(value), value
+    assert not REVEALING.search("\n".join(shown))
+    # An already neutral name passes through unchanged, so a hit still joins back to the corpus.
+    assert neutral_stem("sessions/ts-tz-utc/p02.jsonl") + ".md" in shown
 
 
 def test_a_base_palace_filed_under_legacy_names_is_refused(tmp_path):

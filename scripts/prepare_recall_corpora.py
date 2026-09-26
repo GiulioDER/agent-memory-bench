@@ -43,6 +43,7 @@ if str(REPO) not in sys.path:
 
 from adapters.recall.adapter import corpus_fingerprint, resolve_location
 from harness.adapters.base import CorpusManifest, namespace_path, validate_namespace
+from harness.corpus_names import condition_namespace
 from harness.damage import CORPUS_CONDITIONS
 from harness.graph_metadata import GRAPH_METADATA_MODE, structural_graph_metadata
 from harness.lineage import lineage_from_env
@@ -174,9 +175,9 @@ def _generation_id(stdout: str) -> str | None:
 
 
 def prepare(condition: str, seed: int, namespace: str, *, force: bool) -> None:
-    # Same shape the runner uses, `<namespace>-<condition>`, so the suite and this script
-    # cannot disagree about which tenant holds which condition.
-    tenant = f"{namespace}-{condition}"
+    # Same helper the runner uses, so the suite and this script cannot disagree about which
+    # tenant holds which condition. It no longer spells the condition out.
+    tenant = condition_namespace(namespace, condition)
     corpus_root = REPO / "corpus" / "conditions" / condition / f"seed-{seed}"
     selection = selection_for(condition)
     if not selection:

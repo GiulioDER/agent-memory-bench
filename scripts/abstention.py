@@ -52,6 +52,7 @@ if str(REPO) not in sys.path:
 
 from harness.abstention import cells_from_records, endpoints
 from harness.adapters.base import CorpusManifest
+from harness.corpus_names import condition_namespace
 from harness.costs import add_pricing_arguments, pricing_from_args
 from harness.damage import CORPUS_CONDITIONS
 from scripts.assemble_condition_corpus import (
@@ -327,7 +328,7 @@ def run_condition(args, condition: str) -> Path:
         f"{provenance['sessions_total']} session file(s) in the feed"
     )
 
-    namespace = f"{args.namespace}-{condition}"
+    namespace = condition_namespace(args.namespace, condition)
     recall_arms = args.arms.split(",")
     ingest_arm = (
         next(arm for arm in recall_arms if arm in RECALL_GRAPH_FULLTOOLS_ARMS)

@@ -124,6 +124,7 @@ from harness.adjudication import (
 )
 from harness.broker import SessionCapabilityIssuer, probe_jsonrpc_endpoint
 from harness.claude_exec import ClaudeExecConfig
+from harness.corpus_names import arm_dir_name, names_a_condition, work_dir_name
 from harness.costs import (
     add_pricing_arguments,
     efficiency,
@@ -1026,6 +1027,18 @@ def classify_cell(
     }
 
 
+def session_work_root(work_root_arg: str | None, run_id: str) -> Path:
+    """Where a run's sessions work, which every session's agent is shown as its directory.
+
+    The run id names the corpus condition (`official-003-superseded`), and until 2026-09-26 it was
+    the directory name, so the condition reached every arm, controls included, in every run on the
+    host. An explicit ``--work-root`` is the operator's choice and is used as given.
+    """
+
+    if work_root_arg:
+        return Path(work_root_arg)
+    return sandbox.default_work_root() / work_dir_name(run_id)
+
 
 def _refuse_a_dirty_work_root(work_root: Path, run_id: str) -> None:
     """Stop before the first session if this run id has already been used here.
@@ -1418,6 +1431,17 @@ async def main() -> int:
     add_pricing_arguments(parser)
     args = parser.parse_args()
 
+    # Products echo their namespace back to the agent, so a namespace that names its
+    # corpus condition tells the agent what kind of trap it is in. Refused here, the one
+    # place every launcher passes through, rather than trusted to each launcher.
+    named = names_a_condition(args.namespace or "", CORPUS_CONDITIONS)
+    if named:
+        raise SystemExit(
+            f"--namespace {args.namespace!r} names the corpus condition {named!r}, which "
+            f"products echo to the agent; build it with "
+            f"harness.corpus_names.condition_namespace"
+        )
+
     if args.seed_values:
         try:
             seed_values = [int(value.strip()) for value in args.seed_values.split(",") if value.strip()]
@@ -1665,11 +1689,7 @@ async def main() -> int:
             raise SystemExit(
                 f"{preparation_dir} already exists; refusing to overwrite a preparation receipt"
             )
-        preparation_work_root = (
-            Path(args.work_root)
-            if args.work_root
-            else sandbox.default_work_root() / f"{args.run_id}-prepare"
-        )
+        preparation_work_root = session_work_root(args.work_root, f"{args.run_id}-prepare")
         _refuse_a_dirty_work_root(preparation_work_root, f"{args.run_id}-prepare")
         preparation_staging = preparation_work_root / "staging"
         preparation_bundles = {
@@ -1759,7 +1779,11 @@ async def main() -> int:
             ]
     elif (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
         raise SystemExit(f"{run_dir} already holds records; refusing to mix runs")
-    work_root = Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
+    work_root = session_work_root(args.work_root, args.run_id)
+    # Per-session configuration (prompts, MCP configs, CLAUDE_CONFIG_DIR) lives under the neutral
+    # work root, not under results/<run_id>: that path names the condition, and CLAUDE_CONFIG_DIR
+    # and the adapters' hook paths put it in every session's environment.
+    config_root = work_root / "cfg"
     _refuse_a_dirty_work_root(work_root, args.run_id)
     staging = work_root / "staging"
 
@@ -1801,7 +1825,7 @@ async def main() -> int:
         )
 
     bundles = {
-        task.task_id: build_bundles(task, run_dir / "cfg" / task.task_id, texts)
+        task.task_id: build_bundles(task, config_root / task.task_id, texts)
         for task in tasks
     }
     registry = build_registry(
@@ -1893,7 +1917,7 @@ async def main() -> int:
             )
             namespace = cell_namespace(args.namespace, task.task_id, 0, arm)
             specs[(task.task_id, arm)] = adapter.build_for_task(
-                run_dir / "cfg" / task.task_id / arm,
+                config_root / task.task_id / arm,
                 namespace,
                 task.task_id,
                 task.prompt,
@@ -1908,7 +1932,7 @@ async def main() -> int:
             for seed in range(1, args.seeds):
                 namespace = cell_namespace(args.namespace, task.task_id, seed, arm)
                 cell_specs[(task.task_id, seed, arm)] = adapter.build_for_task(
-                    run_dir / "cfg" / task.task_id / f"s{seed}" / arm,
+                    config_root / task.task_id / f"s{seed}" / arm,
                     namespace,
                     task.task_id,
                     task.prompt,
@@ -1934,7 +1958,7 @@ async def main() -> int:
                     )
                     sequence_specs[(chain.chain_id, task.task_id, chain.seed, arm)] = (
                         adapter.build_for_task(
-                            run_dir / "cfg" / "sequence" / chain_digest / task.task_id / arm,
+                            config_root / "sequence" / chain_digest / task.task_id / arm,
                             namespace,
                             task.task_id,
                             task.prompt,
@@ -2374,10 +2398,14 @@ async def main() -> int:
             chain_id = str(sequence["chain_id"])
             chain_digest = hashlib.sha256(chain_id.encode("utf-8")).hexdigest()[:16]
             session_namespace = sequence_namespace(args.namespace, chain_id, seed, arm)
-            workdir = work_root / "work" / "sequence" / chain_digest / task_id / f"s{seed}" / arm
+            workdir = (
+                work_root / "work" / "sequence" / chain_digest / task_id / f"s{seed}"
+                / arm_dir_name(arm)
+            )
         else:
             session_namespace = cell_namespace(args.namespace, task_id, seed, arm)
-            workdir = work_root / "work" / task_id / f"s{seed}" / arm
+            # The arm is named by a token, not spelled out: the path is shown to the agent.
+            workdir = work_root / "work" / task_id / f"s{seed}" / arm_dir_name(arm)
         overlay = (
             namespace_path(staging, session_namespace, "memory")
             if arm == "fs_grep" and sequence is not None
