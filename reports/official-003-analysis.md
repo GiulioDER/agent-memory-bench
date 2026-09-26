@@ -14,6 +14,7 @@ Best visible memory product: `recall`.
 1. recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.
 1. mempalace shows a positive point estimate, but its published 95% interval crosses zero.
 1. mempalace costs 5.3 times the baseline per admitted cell, including retrieval context tokens.
+1. supermemory is below the claude_md baseline at -32.9%, and its published 95% interval [-39.0%, -11.0%] excludes zero.
 1. cognee shows a positive point estimate, but its published 95% interval crosses zero.
 1. claude_mem shows a positive point estimate, but its published 95% interval crosses zero.
 1. graphiti shows a positive point estimate, but its published 95% interval crosses zero.
