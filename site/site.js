@@ -50,6 +50,12 @@
     return "$" + (x >= 1 ? x.toFixed(2) : x >= 0.01 ? x.toFixed(3) : x.toFixed(4));
   }
 
+  function tokens(n) {
+    if (n == null) return null;
+    return n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n);
+  }
+  function times(x) { return x == null ? null : "×" + x.toFixed(1); }
+
   function span(cls, text, bold) {
     var s = document.createElement(bold ? "strong" : "span");
     if (cls) s.className = cls;
@@ -97,41 +103,70 @@
     }, 0);
   }
 
-  /* One shared axis for every interval in the product table, always including zero. */
-  var lo = 0, hi = 0;
-  products.forEach(function (a) {
-    if (a.ci && !a.held) { lo = Math.min(lo, a.ci[0]); hi = Math.max(hi, a.ci[1]); }
-  });
-  var axisPad = Math.max(0.02, (hi - lo) * 0.06);
-  lo -= axisPad; hi += axisPad;
-  function at(x) { return (100 * (x - lo) / (hi - lo)).toFixed(2) + "%"; }
+  /* Cost is the AGENT's tokens per task, metered the same way for every arm and priced at one
+     rate; the ingest that built each product's store is a separate column because it was not
+     metered the same way for every arm, and one number for both would compare unlike things. */
+  function costCell(a) {
+    var c = a.cost;
+    if (!c) return cell("num", null);
+    var td = cell("num", span("m strong-num", tokens(c.agentTokensPerTask)));
+    if (c.relativeToBaseline != null) {
+      td.appendChild(block("m-dim", times(c.relativeToBaseline) + " " + BASELINE));
+    }
+    if (c.agentUsdPerTask != null) td.appendChild(block("m-dim", money(c.agentUsdPerTask)));
+    return td;
+  }
 
-  function ciPlot(a) {
+  var INGEST = {
+    "metered": "metered",
+    "not metered": "not metered",
+    "local model": "local model",
+    "none recorded": "not in ledger"
+  };
+  function ingestCell(a) {
+    var c = a.cost;
+    if (!c) return cell("ingest", null);
+    var i = c.ingest;
+    var td = cell("ingest", span(i.status === "not metered" ? "m verdict-strong" : "m",
+      INGEST[i.status] || i.status));
+    if (i.tokens) td.appendChild(block("m-dim", tokens(i.tokens) + " tokens"));
+    if (i.status === "not metered") td.appendChild(block("m-dim", "cost missing, not zero"));
+    else if (i.localModel) td.appendChild(block("m-dim", "not billed in tokens"));
+    return td;
+  }
+
+  /* Pros and cons are editorial, written by the author in data/analysis.js and dated there.
+     They carry no number: every number on this page is generated from run artifacts. */
+  var NOTES = (window.AMB_ANALYSIS && window.AMB_ANALYSIS.vendors) || {};
+  function notesList(items, kind) {
     var box = document.createElement("div");
-    box.className = "ci-plot";
-    box.setAttribute("role", "img");
-    var zero = document.createElement("span");
-    zero.className = "ci-zero";
-    zero.style.left = at(0);
-    box.appendChild(zero);
-    if (!a.ci || a.held) {
-      box.setAttribute("aria-label", "no interval");
-      return box;
-    }
-    var bar = document.createElement("span");
-    bar.className = "ci-bar" + (verdict(a) === SAME ? "" : " ci-bar-clear");
-    bar.style.left = at(a.ci[0]);
-    bar.style.width = (100 * (a.ci[1] - a.ci[0]) / (hi - lo)).toFixed(2) + "%";
-    box.appendChild(bar);
-    if (a.delta != null) {
-      var dot = document.createElement("span");
-      dot.className = "ci-dot";
-      dot.style.left = at(a.delta);
-      box.appendChild(dot);
-    }
-    box.setAttribute("aria-label",
-      "95% interval " + ciTxt(a.ci) + " points, estimate " + signed(a.delta));
+    box.className = "notes-col";
+    box.appendChild(span("notes-label m-dim", kind));
+    var ul = document.createElement("ul");
+    ul.className = "notes-list notes-" + kind;
+    items.forEach(function (text) {
+      var li = document.createElement("li");
+      li.textContent = text;
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
     return box;
+  }
+  function notesRow(a) {
+    var n = NOTES[a.name];
+    if (!n || !((n.pros && n.pros.length) || (n.cons && n.cons.length))) return null;
+    var tr = document.createElement("tr");
+    tr.className = "notes-row";
+    tr.appendChild(document.createElement("td"));
+    var td = document.createElement("td");
+    td.colSpan = 7;
+    var grid = document.createElement("div");
+    grid.className = "notes-grid";
+    grid.appendChild(notesList(n.pros || [], "pros"));
+    grid.appendChild(notesList(n.cons || [], "cons"));
+    td.appendChild(grid);
+    tr.appendChild(td);
+    return tr;
   }
 
   /* ---------- 01 memory products ---------- */
@@ -183,67 +218,102 @@
     tr.appendChild(nameTd);
 
     tr.appendChild(cell("num", pct(a.success) && span("m strong-num", pct(a.success))));
-    tr.appendChild(cell("num", pts(a.delta) && span("m", pts(a.delta)),
-      a.ci && block("m-dim", ciTxt(a.ci))));
-    tr.appendChild(cell("ci-col", ciPlot(a)));
-    tr.appendChild(cell("verdict", v && span(v === SAME ? "dim" : "verdict-strong", v)));
+    tr.appendChild(cell("num", pts(a.delta) && span("m", pts(a.delta))));
+    /* The interval as numbers, bold when it excludes zero: that is the only case in which the
+       difference from the baseline is a result rather than noise. */
+    tr.appendChild(cell("num", a.ci && !a.held &&
+      span(v === SAME ? "m dim" : "m strong-num", ciTxt(a.ci))));
     var scored = scoredCells(a);
     tr.appendChild(cell("num", scored != null && span("m", String(scored)),
       a.discarded != null && block("m-dim", a.discarded + " discarded")));
-    tr.appendChild(cell("num", money(a.costPerTask) && span("m", money(a.costPerTask))));
-    board.appendChild(tr);
+    tr.appendChild(costCell(a));
+    tr.appendChild(ingestCell(a));
+    /* Pros and cons sit in a band under the numbers rather than in two more columns: as columns
+       they pushed the table past the page width, and a reader scrolled sideways to find them. */
+    var notes = notesRow(a);
+    if (notes) {
+      tr.className += " has-notes";
+      if (tr.className.indexOf("row-worse") !== -1) notes.className += " row-worse";
+      board.appendChild(tr);
+      board.appendChild(notes);
+    } else {
+      board.appendChild(tr);
+    }
   });
 
-  /* ---------- 02 condition by condition, products as rows ---------- */
+  /* ---------- 02 condition by condition, one ranked list per condition ----------
+     Changed 2026-09-26 from one grid (products as rows, conditions as columns): a reader wanted to
+     see who led each condition, which a grid makes you work out column by column. Each condition
+     is now its own list, best first, with claude_md placed where it ranks. */
 
-  var condHead = document.getElementById("condition-head");
-  var condBody = document.getElementById("condition-body");
-  if (condHead && condBody) {
+  var CONDITION_NOTES = {
+    present: "a clean governing fact",
+    absent: "no answer to find",
+    superseded: "a stale fact, since replaced",
+    contradictory: "two facts in conflict",
+    adjacent: "a plausible fact from the wrong scope"
+  };
+
+  var condGrid = document.getElementById("condition-grid");
+  if (condGrid) {
     var conds = [];
     D.arms.forEach(function (a) {
       if (a.byCondition) Object.keys(a.byCondition).forEach(function (c) {
         if (conds.indexOf(c) === -1) conds.push(c);
       });
     });
+    var order = ["present", "absent", "superseded", "contradictory", "adjacent"];
+    conds.sort(function (x, y) {
+      var i = order.indexOf(x), j = order.indexOf(y);
+      return (i < 0 ? 99 : i) - (j < 0 ? 99 : j);
+    });
     var ref = baselineArm && baselineArm.byCondition;
     var rate = function (v) { return v && v.cells ? v.solved / v.cells : null; };
+    var listed = [baselineArm].concat(ranked).filter(function (a) {
+      return a && a.byCondition && !a.held;
+    });
 
-    var condRow = function (a, isBaseline) {
-      var tr = document.createElement("tr");
-      if (isBaseline) tr.className = "row-baseline";
-      var nameTd = cell(null, span("product-name", a.name, true));
-      if (isBaseline) nameTd.appendChild(block("m-dim", "baseline"));
-      tr.appendChild(nameTd);
-      conds.forEach(function (c) {
-        var v = a.byCondition ? a.byCondition[c] : null;
-        var r = rate(v);
-        if (r == null) { tr.appendChild(cell("num", null)); return; }
-        var td = cell("num", span("m strong-num", Math.round(100 * r) + "%"));
-        var sub = v.solved + "/" + v.cells;
-        var base = ref ? rate(ref[c]) : null;
-        if (!isBaseline && base != null) {
-          var d = Math.round(100 * (r - base));
-          sub = (d > 0 ? "+" : d < 0 ? MINUS : "±") + Math.abs(d) + " · " + sub;
-        }
-        td.appendChild(block("m-dim", sub));
-        tr.appendChild(td);
-      });
-      condBody.appendChild(tr);
-    };
+    conds.forEach(function (c) {
+      var card = document.createElement("div");
+      card.className = "cond-card";
+      var head = document.createElement("div");
+      head.className = "cond-head";
+      head.appendChild(span("cond-name", c, true));
+      if (CONDITION_NOTES[c]) head.appendChild(block("m-dim", CONDITION_NOTES[c]));
+      card.appendChild(head);
 
-    if (conds.length) {
-      var th0 = document.createElement("th");
-      th0.textContent = "arm";
-      condHead.appendChild(th0);
-      conds.forEach(function (c) {
-        var th = document.createElement("th");
-        th.className = "num";
-        th.textContent = c;
-        condHead.appendChild(th);
+      var base = ref ? rate(ref[c]) : null;
+      var rows = listed.map(function (a) {
+        return { arm: a, r: rate(a.byCondition[c]), v: a.byCondition[c] };
+      }).filter(function (x) { return x.r != null; });
+      rows.sort(function (x, y) { return y.r - x.r; });
+
+      var ol = document.createElement("ol");
+      ol.className = "cond-list";
+      var place = 0;
+      rows.forEach(function (x) {
+        var isBase = x.arm.name === BASELINE;
+        var li = document.createElement("li");
+        if (isBase) li.className = "cond-baseline";
+        else if (base != null && x.r < base) li.className = "cond-below";
+        li.appendChild(span("cond-rank m-dim", isBase ? "·" : String(++place)));
+        var who = document.createElement("span");
+        who.className = "cond-who";
+        who.appendChild(span("product-name", x.arm.name));
+        who.appendChild(block("m-dim", x.v.solved + "/" + x.v.cells));
+        li.appendChild(who);
+        var num = document.createElement("span");
+        num.className = "cond-num";
+        num.appendChild(span("m strong-num", Math.round(100 * x.r) + "%"));
+        var d = base == null ? null : Math.round(100 * (x.r - base));
+        num.appendChild(block("m-dim", isBase ? "baseline" :
+          d == null ? "" : (d > 0 ? "+" : d < 0 ? MINUS : "±") + Math.abs(d) + " pts"));
+        li.appendChild(num);
+        ol.appendChild(li);
       });
-      if (baselineArm && baselineArm.byCondition) condRow(baselineArm, true);
-      ranked.forEach(function (a) { if (a.byCondition) condRow(a, false); });
-    }
+      card.appendChild(ol);
+      condGrid.appendChild(card);
+    });
   }
 
   /* ---------- 03 controls and reference tracks ---------- */
@@ -366,6 +436,13 @@
     });
   }
 
+  var priceBox = document.getElementById("price-basis");
+  if (priceBox && D.priceBasis) {
+    priceBox.textContent = D.priceBasis.model + " at $" + D.priceBasis.usdPerMtokInput +
+      " input and $" + D.priceBasis.usdPerMtokOutput + " output per million tokens, as of " +
+      D.priceBasis.asOf;
+  }
+
   /* Run banner */
   var meta = document.getElementById("run-meta");
   if (meta) {
@@ -393,4 +470,99 @@
       meta.appendChild(item("page data updated " + D.updated));
     }
   }
+})();
+
+/* Renders the generated numbers on analysis.html. The prose on that page is written by hand and
+   dated; the figures beside it are not, so a reader can check one against the other. Each
+   `[data-arm]` placeholder receives that product's strip, condition row and pros and cons. */
+
+(function () {
+  var D = window.AMB_LEADERBOARD;
+  var A = window.AMB_ANALYSIS;
+  var slots = document.querySelectorAll("[data-arm]");
+  if (!D || !slots.length) return;
+
+  var BASELINE = D.baseline || "claude_md";
+  var MINUS = "−";
+  var byName = {};
+  D.arms.forEach(function (a) { byName[a.name] = a; });
+  var base = byName[BASELINE];
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function signed(x, digits) {
+    return (x > 0 ? "+" : x < 0 ? MINUS : "±") + Math.abs(x).toFixed(digits == null ? 1 : digits);
+  }
+  function tokens(n) {
+    return n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n);
+  }
+  function stat(box, label, value, note) {
+    var s = el("div", "vstat");
+    s.appendChild(el("span", "label m-dim", label));
+    s.appendChild(el("strong", "value", value));
+    if (note) s.appendChild(el("span", "note m-dim", note));
+    box.appendChild(s);
+  }
+
+  Array.prototype.forEach.call(slots, function (slot) {
+    var a = byName[slot.getAttribute("data-arm")];
+    if (!a) return;
+    var kind = slot.getAttribute("data-show");
+
+    if (kind === "notes") {
+      var n = A && A.vendors && A.vendors[a.name];
+      if (!n) return;
+      var grid = el("div", "notes-grid");
+      ["pros", "cons"].forEach(function (k) {
+        var col = el("div", "notes-col");
+        col.appendChild(el("span", "notes-label m-dim", k));
+        var ul = el("ul", "notes-list notes-" + k);
+        (n[k] || []).forEach(function (t) { ul.appendChild(el("li", null, t)); });
+        col.appendChild(ul);
+        grid.appendChild(col);
+      });
+      slot.appendChild(grid);
+      return;
+    }
+
+    var strip = el("div", "vstats");
+    if (a.success != null) {
+      stat(strip, "task success", (100 * a.success).toFixed(1) + "%",
+        signed(100 * a.delta) + " pts vs " + BASELINE);
+    }
+    if (a.ci) {
+      var clear = a.ci[0] > 0 || a.ci[1] < 0;
+      stat(strip, "95% interval", signed(100 * a.ci[0]) + " to " + signed(100 * a.ci[1]),
+        clear ? "excludes zero" : "crosses zero");
+    }
+    if (a.cost) {
+      stat(strip, "agent tokens / task", tokens(a.cost.agentTokensPerTask),
+        a.cost.relativeToBaseline == null ? null
+          : "×" + a.cost.relativeToBaseline.toFixed(1) + " " + BASELINE);
+      var i = a.cost.ingest;
+      stat(strip, "ingest", i.status === "none recorded" ? "not in ledger" : i.status,
+        i.tokens ? tokens(i.tokens) + " tokens" : i.localModel || null);
+    }
+    if (a.sourceRun) stat(strip, "run", a.sourceRun, a.discarded != null ? a.discarded + " cells discarded" : null);
+    slot.appendChild(strip);
+
+    if (a.byCondition && base && base.byCondition) {
+      var row = el("div", "vconds");
+      ["present", "absent", "superseded", "contradictory", "adjacent"].forEach(function (c) {
+        var v = a.byCondition[c], b = base.byCondition[c];
+        if (!v || !v.cells || !b || !b.cells) return;
+        var d = Math.round(100 * (v.solved / v.cells - b.solved / b.cells));
+        var cell = el("div", "vcond" + (d < 0 ? " vcond-below" : d > 0 ? " vcond-above" : ""));
+        cell.appendChild(el("span", "m-dim", c));
+        cell.appendChild(el("strong", null, Math.round(100 * v.solved / v.cells) + "%"));
+        cell.appendChild(el("span", "m-dim", signed(d, 0) + " pts"));
+        row.appendChild(cell);
+      });
+      slot.appendChild(row);
+    }
+  });
 })();

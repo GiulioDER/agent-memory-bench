@@ -24,6 +24,7 @@
       <a href="index.html">Overview</a>
       <a href="method.html">Method</a>
       <a href="leaderboard.html" aria-current="page">Leaderboard</a>
+      <a href="analysis.html">Analysis</a>
       <a href="submit.html">Submit</a>
       <a href="https://github.com/GiulioDER/agent-memory-bench">GitHub&nbsp;&#8599;</a>
       <button class="theme-toggle" type="button" aria-label="Switch between light and dark"><span class="sw" aria-hidden="true"></span></button>
@@ -50,9 +51,11 @@
     </div>
 
     <p class="prose mt-s">Each product against the <code>claude_md</code> baseline, a curated
-    static instruction file. The bar is the 95% interval of the difference and the dot is the
-    estimate; the vertical line is the baseline. A bar that crosses the line is not
-    distinguishable from <code>claude_md</code>.</p>
+    static instruction file. The 95% interval is the range the true difference from
+    <code>claude_md</code> most likely lies in: when it runs from a negative to a positive number,
+    the product cannot be told apart from the baseline. An interval in bold excludes zero. The pros and
+    cons under each product are my reading of its run; the full reasoning is on the <a href="analysis.html">analysis
+    page</a>.</p>
 
     <div class="table-scroll mt-s">
       <table class="board">
@@ -62,10 +65,10 @@
             <th>product</th>
             <th class="num">success</th>
             <th class="num">vs claude_md</th>
-            <th class="ci-col">95% interval</th>
-            <th>verdict</th>
+            <th class="num">95% interval</th>
             <th class="num">cells</th>
-            <th class="num">cost / task</th>
+            <th class="num">agent tokens / task</th>
+            <th>ingest</th>
           </tr>
         </thead>
         <tbody id="board-body"></tbody>
@@ -74,8 +77,16 @@
 
     <p class="prose mt-m dim">Cells scored are admitted task, seed and condition cells; discarded
     cells failed the <a href="method.html#gate">admission gate</a> and are counted, not scored.
-    A product measured in its own run is compared on the cells it shares with official-003. Cost is
-    end to end, including ingestion.</p>
+    A product measured in its own run is compared on the cells it shares with official-003.</p>
+
+    <p class="prose mt-s dim"><strong>Reading the cost.</strong> Agent tokens per task are what the
+    coding agent itself read and wrote in one session, metered identically for every arm; the
+    multiple is against <code>claude_md</code>, and the dollar figure prices those tokens at one
+    rate for every arm (<span id="price-basis">the run's list price</span>). Building each
+    product's store is a separate, one-time cost, shown under ingest as what it is: metered in
+    tokens, not metered (the product called its own model and the bill is missing, not zero), run
+    on a local model the token meter cannot see, or not in the ledger at all. Products whose
+    ingest is unmetered are cheaper here than they are.</p>
   </section>
 
   <!-- What this ranking is a ranking OF. Written by scripts/build_leaderboard.py from
@@ -116,15 +127,10 @@
     <p class="prose mt-s"><code>present</code> holds a clean governing fact. The other four test
     whether memory hurts: <code>absent</code> has no answer to find, <code>superseded</code> holds a
     stale one, <code>contradictory</code> holds a conflict, and <code>adjacent</code> holds a
-    plausible fact from the wrong scope. The small number is the difference from
-    <code>claude_md</code> in the same condition.</p>
+    plausible fact from the wrong scope. Each condition is ranked on its own, best first, with
+    <code>claude_md</code> placed where it lands; the small number is the difference from it.</p>
 
-    <div class="table-scroll mt-s">
-      <table class="conditions">
-        <thead><tr id="condition-head"></tr></thead>
-        <tbody id="condition-body"></tbody>
-      </table>
-    </div>
+    <div class="cond-grid mt-s" id="condition-grid"></div>
 
     <p class="prose mt-m dim">Percentages are solved cells over admitted cells. The baseline row is
     over all of official-003's admitted cells; a joined product was scored on the subset it shares
@@ -212,6 +218,7 @@
       <div class="foot-title">Pages</div>
       <a href="method.html">Method</a><br>
       <a href="leaderboard.html">Leaderboard</a><br>
+      <a href="analysis.html">Analysis</a><br>
       <a href="submit.html">Submit &amp; reproduce</a>
     </div>
     <div>
@@ -224,6 +231,7 @@
 </footer>
 
 <script src="data/leaderboard.js"></script>
+<script src="data/analysis.js"></script>
 <script src="site.js"></script>
 </body>
 </html>

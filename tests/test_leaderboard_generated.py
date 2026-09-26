@@ -135,7 +135,7 @@ def test_official_summary_fills_the_page(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     data = _payload(root)
     assert data["run"]["id"] == "run-x"
-    recall = next(a for a in data["arms"] if a["name"] == "recall")
+    recall = next(a for a in data["arms"] if a["name"] == "RE-call")
     assert recall["success"] == 0.5 and recall["costPerTask"] == 1.25
     assert recall["totalTokens"] == 12345
     control = next(a for a in data["arms"] if a["name"] == "claude_md")
@@ -513,3 +513,133 @@ def test_the_front_page_task_and_condition_counts_match_their_sources():
         f"index.html says {tile('corpus conditions')} corpus conditions, "
         f"CORPUS_CONDITIONS has {len(CORPUS_CONDITIONS)}: {CORPUS_CONDITIONS}"
     )
+
+
+# --- cost on one basis for every arm, added 2026-09-26 ---------------------------------------
+
+
+def _ledger_row(**overrides):
+    row = {
+        "sessions": 10,
+        "sessions_unmetered": 0,
+        "session_input_tokens": 1000,
+        "session_output_tokens": 100,
+        "session_cache_read_tokens": 500,
+        "ingest_input_tokens": 0,
+        "ingest_output_tokens": 0,
+        "ingest_unmetered": 0,
+        "ingest_local_model": None,
+        "pricing_model": "test-model",
+        "pricing_as_of": "2026-08-22",
+        "usd_per_mtok_input": 1.0,
+        "usd_per_mtok_output": 2.0,
+    }
+    row.update(overrides)
+    return row
+
+
+def _write_ledgers(root, run_id, arms_by_condition):
+    """``arms_by_condition``: ``{condition: {arm: ledger row}}``, one costs.json per condition."""
+    for condition, arms in arms_by_condition.items():
+        directory = root / "results" / f"{run_id}-{condition}"
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "costs.json").write_text(json.dumps({"arms": arms}), encoding="utf-8")
+
+
+def test_an_unmetered_ingest_is_never_published_as_a_metered_total(tmp_path):
+    """The ingest column must not show a partial bill as the whole bill.
+
+    Invariant: an arm whose ingest went unmetered in ANY condition is labelled `not metered`, even
+    when another condition metered some ingest tokens, and its agent tokens per task are the
+    session tokens over METERED sessions, compared against the baseline's on the same basis.
+    Failure mode caught: the old `costPerTask` added metered ingest to one arm (cognee) and nothing
+    to arms whose ingest was unmetered (Graphiti, Claude Mem), so the unmetered arms looked cheap.
+
+    Red proof, 2026-09-26: with `_cost` in scripts/build_leaderboard.py mutated to test
+    `elif ingest_tokens:` before the unmetered branch, this failed on
+    `recall["cost"]["ingest"]["status"] == "not metered"` ('metered' != 'not metered').
+    """
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    conditions = _generator().CONDITIONS
+    ledgers = {}
+    for i, condition in enumerate(conditions):
+        ledgers[condition] = {name: _ledger_row() for name in ARMS}
+        # recall: ingest tokens metered in one condition, unmetered in another, and one
+        # unmetered session whose zero tokens must not dilute the per-task figure.
+        ledgers[condition]["recall"] = _ledger_row(
+            session_input_tokens=3000,
+            session_output_tokens=300,
+            sessions=11,
+            sessions_unmetered=1,
+            ingest_input_tokens=5000 if i == 0 else 0,
+            ingest_unmetered=1 if i == 1 else 0,
+        )
+    _write_ledgers(root, "run-x", ledgers)
+
+    result = _run(root=root)
+    assert result.returncode == 0, result.stdout + result.stderr
+    data = _payload(root)
+    rows = {a["name"]: a for a in data["arms"]}
+    recall = rows["RE-call"]
+    assert recall["cost"]["ingest"]["status"] == "not metered"
+    assert recall["cost"]["ingest"]["tokens"] == 5000
+    assert recall["cost"]["agentTokensPerTask"] == 330
+    assert rows["claude_md"]["cost"]["agentTokensPerTask"] == 110
+    assert recall["cost"]["relativeToBaseline"] == 3.0
+    assert recall["cost"]["agentUsdPerTask"] == round((3000 * 1.0 + 300 * 2.0) / 1e6 / 10, 5)
+    assert data["priceBasis"]["usdPerMtokInput"] == 1.0
+
+
+def test_a_run_with_some_condition_ledgers_missing_is_refused(tmp_path):
+    """A cost built from four of five conditions would be published as the whole run's.
+
+    Red proof, 2026-09-26: with the all-or-nothing check in `_ledger_rows` removed (reading only
+    the ledgers that exist), the build exited 0 and this failed on `result.returncode != 0`.
+    """
+
+    root = _scaffold(tmp_path, summary=_summary(), official_run="run-x")
+    first = _generator().CONDITIONS[0]
+    _write_ledgers(root, "run-x", {first: {name: _ledger_row() for name in ARMS}})
+    result = _run(root=root)
+    assert result.returncode != 0
+    assert "cost ledgers for some conditions only" in (result.stdout + result.stderr)
+
+
+def test_the_editorial_pros_and_cons_carry_no_number():
+    """The leaderboard promises that every number on it is generated. The pros and cons are not.
+
+    Invariant: `site/data/analysis.js`, hand-written and rendered beside generated figures, holds
+    no digit in any pro or con. A number belongs in the generated payload, or, dated and sourced,
+    in the analysis page's prose, where the page says it was written by hand.
+
+    Red proof, 2026-09-26: with supermemory's first con changed to end "at 12x the tokens." in
+    analysis.js this failed on the `not offending` assertion, naming that con.
+    """
+
+    import re
+
+    text = (REPO_ROOT / "site" / "data" / "analysis.js").read_text(encoding="utf-8")
+    payload = json.loads(text.split("window.AMB_ANALYSIS = ", 1)[1].rstrip().rstrip(";"))
+    names = {a["name"] for a in _payload(REPO_ROOT)["arms"]}
+    offending = [
+        f"{vendor}: {item}"
+        for vendor, notes in payload["vendors"].items()
+        for kind in ("pros", "cons")
+        for item in notes.get(kind, [])
+        if re.search(r"\d", item)
+    ]
+    assert not offending, "a pro or con carries a hand-typed number: " + "; ".join(offending)
+    assert set(payload["vendors"]) <= names, "notes for an arm the board does not publish"
+
+
+def test_every_page_links_the_analysis_page():
+    """A page reachable from one nav bar and not the others is a page most readers never find.
+
+    Red proof, 2026-09-26: with both Analysis links removed from site/submit.html this failed on
+    `submit.html does not link the analysis page`.
+    """
+
+    for page in ("index.html", "method.html", "leaderboard.html", "submit.html", "analysis.html"):
+        html = (REPO_ROOT / "site" / page).read_text(encoding="utf-8")
+        assert 'href="analysis.html"' in html, f"{page} does not link the analysis page"

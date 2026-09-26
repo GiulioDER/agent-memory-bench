@@ -23,7 +23,7 @@ window.AMB_LEADERBOARD = {
   "provenance": {
     "baseRun": "official-003",
     "armRuns": {
-      "recall": "official-003",
+      "RE-call": "official-003",
       "mempalace": "official-003",
       "fs_grep": "official-003",
       "placebo": "official-003",
@@ -35,9 +35,15 @@ window.AMB_LEADERBOARD = {
       "Graphiti": "official-007-graphiti"
     }
   },
+  "priceBasis": {
+    "model": "deepseek/deepseek-v4-flash",
+    "asOf": "2026-08-22",
+    "usdPerMtokInput": 0.0574,
+    "usdPerMtokOutput": 0.1148
+  },
   "arms": [
     {
-      "name": "recall",
+      "name": "RE-call",
       "type": "MCP server",
       "success": 0.6593,
       "delta": 0.082,
@@ -50,6 +56,17 @@ window.AMB_LEADERBOARD = {
       "costPerTask": 0.0044,
       "totalTokens": 23408500,
       "sourceRun": "official-003",
+      "cost": {
+        "agentTokensPerTask": 64133,
+        "cacheReadShare": 0.69,
+        "ingest": {
+          "status": "none recorded",
+          "tokens": null,
+          "localModel": null
+        },
+        "agentUsdPerTask": 0.00382,
+        "relativeToBaseline": 3.5
+      },
       "byCondition": {
         "present": {
           "solved": 56,
@@ -87,6 +104,17 @@ window.AMB_LEADERBOARD = {
       "costPerTask": 0.007,
       "totalTokens": 37832025,
       "sourceRun": "official-003",
+      "cost": {
+        "agentTokensPerTask": 103934,
+        "cacheReadShare": 0.74,
+        "ingest": {
+          "status": "local model",
+          "tokens": null,
+          "localModel": "chromadb onnx all-MiniLM-L6-v2"
+        },
+        "agentUsdPerTask": 0.00612,
+        "relativeToBaseline": 5.6
+      },
       "byCondition": {
         "present": {
           "solved": 53,
@@ -123,7 +151,18 @@ window.AMB_LEADERBOARD = {
       "discarded": 2,
       "tokensPerTask": 43766,
       "costPerTask": 0.0031,
-      "sourceRun": "official-003"
+      "sourceRun": "official-003",
+      "cost": {
+        "agentTokensPerTask": 45224,
+        "cacheReadShare": 0.67,
+        "ingest": {
+          "status": "none recorded",
+          "tokens": null,
+          "localModel": null
+        },
+        "agentUsdPerTask": 0.00274,
+        "relativeToBaseline": 2.4
+      }
     },
     {
       "name": "placebo",
@@ -138,7 +177,18 @@ window.AMB_LEADERBOARD = {
       "discarded": 8,
       "tokensPerTask": 19189,
       "costPerTask": 0.0014,
-      "sourceRun": "official-003"
+      "sourceRun": "official-003",
+      "cost": {
+        "agentTokensPerTask": 19431,
+        "cacheReadShare": 0.59,
+        "ingest": {
+          "status": "none recorded",
+          "tokens": null,
+          "localModel": null
+        },
+        "agentUsdPerTask": 0.00122,
+        "relativeToBaseline": 1.1
+      }
     },
     {
       "name": "claude_md",
@@ -154,6 +204,17 @@ window.AMB_LEADERBOARD = {
       "tokensPerTask": 17954,
       "costPerTask": 0.0013,
       "sourceRun": "official-003",
+      "cost": {
+        "agentTokensPerTask": 18480,
+        "cacheReadShare": 0.55,
+        "ingest": {
+          "status": "none recorded",
+          "tokens": null,
+          "localModel": null
+        },
+        "agentUsdPerTask": 0.00117,
+        "relativeToBaseline": 1.0
+      },
       "byCondition": {
         "present": {
           "solved": 43,
@@ -190,7 +251,18 @@ window.AMB_LEADERBOARD = {
       "discarded": 5,
       "tokensPerTask": 18457,
       "costPerTask": 0.0014,
-      "sourceRun": "official-003"
+      "sourceRun": "official-003",
+      "cost": {
+        "agentTokensPerTask": 19096,
+        "cacheReadShare": 0.56,
+        "ingest": {
+          "status": "none recorded",
+          "tokens": null,
+          "localModel": null
+        },
+        "agentUsdPerTask": 0.00121,
+        "relativeToBaseline": 1.0
+      }
     },
     {
       "name": "supermemory",
@@ -207,6 +279,17 @@ window.AMB_LEADERBOARD = {
       "totalTokens": 31081691,
       "sourceRun": "supermemory-004",
       "comparison": "joined to official-003",
+      "cost": {
+        "agentTokensPerTask": 90092,
+        "cacheReadShare": 0.6,
+        "ingest": {
+          "status": "local model",
+          "tokens": null,
+          "localModel": "Supermemory Local configured model"
+        },
+        "agentUsdPerTask": 0.00521,
+        "relativeToBaseline": 4.9
+      },
       "byCondition": {
         "absent": {
           "solved": 29,
@@ -245,6 +328,17 @@ window.AMB_LEADERBOARD = {
       "totalTokens": 103098591,
       "sourceRun": "cognee-001",
       "comparison": "joined to official-003",
+      "cost": {
+        "agentTokensPerTask": 39830,
+        "cacheReadShare": 0.68,
+        "ingest": {
+          "status": "metered",
+          "tokens": 88680099,
+          "localModel": "fastembed BAAI/bge-small-en-v1.5"
+        },
+        "agentUsdPerTask": 0.00242,
+        "relativeToBaseline": 2.2
+      },
       "byCondition": {
         "present": {
           "solved": 41,
@@ -283,6 +377,17 @@ window.AMB_LEADERBOARD = {
       "totalTokens": 81381374,
       "sourceRun": "claude-mem-official-019",
       "comparison": "joined to official-003",
+      "cost": {
+        "agentTokensPerTask": 237263,
+        "cacheReadShare": 0.83,
+        "ingest": {
+          "status": "not metered",
+          "tokens": null,
+          "localModel": null
+        },
+        "agentUsdPerTask": 0.01374,
+        "relativeToBaseline": 12.8
+      },
       "byCondition": {
         "present": {
           "solved": 49,
@@ -308,7 +413,7 @@ window.AMB_LEADERBOARD = {
     },
     {
       "name": "Graphiti",
-      "type": "Graphiti MCP server, run deviated from its preregistration",
+      "type": "Graphiti MCP server, run without the distractor corpus and deviated from its preregistration",
       "success": 0.6059,
       "delta": 0.0228,
       "ci": [
@@ -321,6 +426,17 @@ window.AMB_LEADERBOARD = {
       "totalTokens": 12931466,
       "sourceRun": "official-007-graphiti",
       "comparison": "joined to official-003",
+      "cost": {
+        "agentTokensPerTask": 37159,
+        "cacheReadShare": 0.76,
+        "ingest": {
+          "status": "not metered",
+          "tokens": null,
+          "localModel": null
+        },
+        "agentUsdPerTask": 0.00224,
+        "relativeToBaseline": 2.0
+      },
       "byCondition": {
         "present": {
           "solved": 46,
@@ -367,7 +483,7 @@ window.AMB_LEADERBOARD = {
       "success": 0.6719
     },
     "best_visible_memory": {
-      "arm": "recall",
+      "arm": "RE-call",
       "success": 0.6593,
       "delta_vs_baseline": 0.082
     },
@@ -381,10 +497,10 @@ window.AMB_LEADERBOARD = {
     ],
     "insights": [
       "placebo is the highest scoring visible arm at 67.2%; this is not evidence that a memory layer won.",
-      "recall is the highest scoring visible memory product at 65.9%.",
+      "RE-call is the highest scoring visible memory product at 65.9%.",
       "The placebo exceeds the claude_md baseline by +9.5%, so the run does not isolate a memory benefit cleanly.",
-      "recall shows a positive point estimate, but its published 95% interval crosses zero.",
-      "recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
+      "RE-call shows a positive point estimate, but its published 95% interval crosses zero.",
+      "RE-call costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
       "mempalace shows a positive point estimate, but its published 95% interval crosses zero.",
       "mempalace costs 5.3 times the baseline per admitted cell, including retrieval context tokens.",
       "supermemory is below the claude_md baseline at -32.9%, and its published 95% interval [-39.0%, -11.0%] excludes zero.",
@@ -395,7 +511,7 @@ window.AMB_LEADERBOARD = {
     "report_markdown": "reports/official-003-analysis.md",
     "audit_json": "reports/official-003-audit.json",
     "arms": {
-      "recall": {
+      "RE-call": {
         "status": "published",
         "success": 0.6593,
         "delta_vs_baseline": 0.082,

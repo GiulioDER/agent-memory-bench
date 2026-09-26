@@ -58,7 +58,7 @@ from pathlib import Path
 # plus a regeneration; nothing else in the harness moves.
 PRODUCT_ARMS = [
     # internal name, integration, role, public name (None while undisclosed)
-    ("recall", "MCP server", None, "recall"),
+    ("recall", "MCP server", None, "RE-call"),
     ("mempalace", "MCP server", None, "mempalace"),
     ("fs_grep", "transcripts on disk plus grep", "control", "fs_grep"),
     ("placebo", "inert prose, no memory content", "control", "placebo"),
@@ -94,7 +94,17 @@ ADDITIVE_ARM_DEFINITIONS = {
     ),
     # Same reasoning: the run deviated from preregistration 084 in six stated ways, and a reader of
     # the row alone should not have to open results/official-007-graphiti/provenance/ to learn it.
-    "graphiti": ("Graphiti MCP server, run deviated from its preregistration", None, "Graphiti"),
+    # The corpus clause was added 2026-09-26: its store held the standard feed without the
+    # distractor haystack every other product searched (about 130 sessions against 4,900), which
+    # makes the row incomparable in a way no deviation in that list states.
+    "graphiti": (
+        (
+            "Graphiti MCP server, run without the distractor corpus and deviated from its "
+            "preregistration"
+        ),
+        None,
+        "Graphiti",
+    ),
 }
 
 # ⛔ PRODUCT_ARMS is the list of arms that are MEASURED, not the arms that are hoped for. `mem0`,
@@ -411,6 +421,94 @@ def _load_arm_submission(
     return submission
 
 
+# The corpus conditions a run is split into. Each has a sibling result directory,
+# ``results/<run_id>-<condition>/``, holding that condition's cost ledger.
+CONDITIONS = ("present", "absent", "superseded", "contradictory", "adjacent")
+
+
+def _ledger_rows(results_dir: Path, run_id: str, arm: str) -> list[dict] | None:
+    """One ``costs.json`` row per condition for ``arm``, or None when the run has no ledgers.
+
+    All or nothing: a run that publishes some condition ledgers but not others would price the
+    arm on a subset of its sessions while the page called it the whole run, so it is refused.
+    """
+
+    paths = [results_dir / f"{run_id}-{condition}" / "costs.json" for condition in CONDITIONS]
+    present = [path for path in paths if path.is_file()]
+    if not present:
+        return None
+    if len(present) != len(paths):
+        missing = [path.parent.name for path in paths if not path.is_file()]
+        raise SummaryInvalid(f"run {run_id!r} publishes cost ledgers for some conditions only; missing {missing}")
+    rows = []
+    for path in paths:
+        row = json.loads(path.read_text(encoding="utf-8")).get("arms", {}).get(arm)
+        if not isinstance(row, dict):
+            raise SummaryInvalid(f"cost ledger {path} has no arm {arm!r}")
+        rows.append(row)
+    return rows
+
+
+def _cost(rows: list[dict] | None, price: tuple[float, float] | None) -> dict | None:
+    """What one task costs this arm, on a basis that is the same for every arm on the board.
+
+    Added 2026-09-26, when a reader could not compare vendors on the old ``costPerTask``. It mixed
+    three bases: the base run divided by admitted cells and the joined runs by sessions; cognee's
+    figure carried its metered ingest extraction while Graphiti's and Claude Mem's ingest was never
+    metered at all; and supermemory and mempalace embedded on a local model the token meter cannot
+    see. So the comparable number is the AGENT's tokens per session, which the harness meters the
+    same way for every arm, priced at one rate, and the ingest is stated beside it as what it is.
+    """
+
+    if not rows:
+        return None
+    metered = sum(int(r.get("sessions", 0)) - int(r.get("sessions_unmetered", 0)) for r in rows)
+    if metered <= 0:
+        return None
+    tokens_in = sum(int(r.get("session_input_tokens", 0) or 0) for r in rows)
+    tokens_out = sum(int(r.get("session_output_tokens", 0) or 0) for r in rows)
+    cache_read = sum(int(r.get("session_cache_read_tokens", 0) or 0) for r in rows)
+    ingest_tokens = sum(
+        int(r.get("ingest_input_tokens", 0) or 0) + int(r.get("ingest_output_tokens", 0) or 0)
+        for r in rows
+    )
+    local_models = sorted({str(r["ingest_local_model"]) for r in rows if r.get("ingest_local_model")})
+    # Order matters: an unmetered ingest makes any token figure beside it a floor, not a total.
+    if any(int(r.get("ingest_unmetered", 0) or 0) for r in rows):
+        status = "not metered"
+    elif ingest_tokens:
+        status = "metered"
+    elif local_models:
+        status = "local model"
+    else:
+        status = "none recorded"
+    cost: dict = {
+        "agentTokensPerTask": round((tokens_in + tokens_out) / metered),
+        "cacheReadShare": round(cache_read / tokens_in, 2) if tokens_in else None,
+        "ingest": {
+            "status": status,
+            "tokens": ingest_tokens or None,
+            "localModel": ", ".join(local_models) or None,
+        },
+    }
+    if price is not None:
+        cost["agentUsdPerTask"] = round(
+            (tokens_in * price[0] + tokens_out * price[1]) / 1e6 / metered, 5
+        )
+    return cost
+
+
+def _price(rows: list[dict] | None) -> tuple[float, float] | None:
+    """The per-Mtok input and output rates a ledger was priced at, if it published them."""
+
+    if not rows:
+        return None
+    rates = {(r.get("usd_per_mtok_input"), r.get("usd_per_mtok_output")) for r in rows}
+    if len(rates) != 1 or None in next(iter(rates)):
+        return None
+    return next(iter(rates))
+
+
 def _scope(config: dict) -> dict:
     """What this page is a ranking OF, decided by the config and not by the person writing copy.
 
@@ -472,6 +570,22 @@ def build(repo_root: str | Path) -> str:
         arm_numbers[internal] = submission["result"]
         arm_sources[internal] = submission_run
 
+    # Every arm's agent tokens are priced at the BASE run's rates, so the dollar figure differs
+    # between arms only where their tokens do.
+    base_rows = _ledger_rows(repo_root / "results", run_id, "claude_md") if run_id else None
+    base_price = _price(base_rows)
+    costs = {
+        internal: _cost(_ledger_rows(repo_root / "results", arm_sources[internal], internal), base_price)
+        for internal, *_ in definitions
+        if arm_sources.get(internal)
+    }
+    baseline_cost = costs.get("claude_md")
+    for cost in costs.values():
+        if cost and baseline_cost:
+            cost["relativeToBaseline"] = round(
+                cost["agentTokensPerTask"] / baseline_cost["agentTokensPerTask"], 1
+            )
+
     arms = []
     for internal, public, arm_type, role in public_arms(definitions):
         entry: dict = {"name": public, "type": arm_type}
@@ -496,6 +610,7 @@ def build(repo_root: str | Path) -> str:
             )
         if source_run and source_run != run_id:
             entry["comparison"] = f"joined to {run_id}"
+        entry["cost"] = costs.get(internal)
         if internal == "claude_md" and entry["delta"] is None:
             entry["delta"] = 0  # the page renders the baseline row from this sentinel
         # Per-condition detail is published for PRODUCTS and for the BASELINE. The controls exist
@@ -518,6 +633,7 @@ def build(repo_root: str | Path) -> str:
             # breakdown while withholding its headline would defeat the point of the hold.
             if "byCondition" in entry:
                 entry["byCondition"] = None
+            entry["cost"] = None
             entry["held"] = hold["reason"]
             entry["heldUntil"] = hold["until"]
             entry["heldIssue"] = hold["issue"]
@@ -555,6 +671,16 @@ def build(repo_root: str | Path) -> str:
             # provenance too, not just the visible row.
             "armRuns": public_sources,
         },
+        "priceBasis": (
+            {
+                "model": base_rows[0].get("pricing_model"),
+                "asOf": base_rows[0].get("pricing_as_of"),
+                "usdPerMtokInput": base_price[0],
+                "usdPerMtokOutput": base_price[1],
+            }
+            if base_price
+            else None
+        ),
         "arms": arms,
         "reference": reference,
     }

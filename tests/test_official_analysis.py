@@ -36,7 +36,8 @@ def test_leaderboard_committed_data_includes_the_analysis_layer():
     payload = (REPO_ROOT / "site" / "data" / "leaderboard.js").read_text(encoding="utf-8")
     data = json.loads(payload.split("window.AMB_LEADERBOARD = ", 1)[1].rstrip().rstrip(";"))
     assert data["analysis"]["headline"] == "No clear memory winner"
-    assert data["analysis"]["best_visible_memory"]["arm"] == "recall"
+    # The PUBLIC name since 2026-09-26; the report behind it still says `recall`, the internal id.
+    assert data["analysis"]["best_visible_memory"]["arm"] == "RE-call"
     assert data["analysis"]["arms"]["mempalace"]["status"] == "published"
 
 
