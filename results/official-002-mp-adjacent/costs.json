@@ -1,0 +1,86 @@
+{
+  "arms": {
+    "bare": {
+      "arm": "bare",
+      "sessions": 60,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 1024985,
+      "session_output_tokens": 120524,
+      "session_wall_time_ms": 2759974.67258526,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 0.0,
+      "ingest_items_stored": 0,
+      "ingest_local_model": null,
+      "total_tokens": 1145509,
+      "notes": [],
+      "estimated_usd": 0.0727,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 592384,
+      "session_cache_creation_tokens": 0
+    },
+    "mempalace": {
+      "arm": "mempalace",
+      "sessions": 60,
+      "sessions_unmetered": 0,
+      "session_input_tokens": 5667793,
+      "session_output_tokens": 156273,
+      "session_wall_time_ms": 5072849.500602111,
+      "ingest_input_tokens": 0,
+      "ingest_output_tokens": 0,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 584004.7614253126,
+      "ingest_items_stored": 1587,
+      "ingest_local_model": "chromadb onnx all-MiniLM-L6-v2",
+      "total_tokens": 5824066,
+      "notes": [
+        "ingest into 'bench-official-002-adjacent' spent NO hosted tokens: it ran the local model 'chromadb onnx all-MiniLM-L6-v2' on the benchmark host. The zero in the token column is a real zero and is not a zero cost; compare it against another arm's extraction tokens only alongside ingest_wall_time_ms"
+      ],
+      "estimated_usd": 0.3433,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 3952896,
+      "session_cache_creation_tokens": 0
+    }
+  },
+  "total_tokens": 6969575,
+  "total_sessions": 120,
+  "estimated_usd": 0.4159,
+  "pricing_as_of": "2026-08-22",
+  "efficiency": {
+    "bare": {
+      "sessions": 60,
+      "successes": 48,
+      "input_tokens": 1024985,
+      "output_tokens": 120524,
+      "wall_ms": 2759974.67258526,
+      "successes_per_mtok_input": 46.83,
+      "successes_per_mtok_total": 41.9,
+      "mean_input_tokens_per_session": 17083.1,
+      "mean_wall_s_per_session": 46.0
+    },
+    "mempalace": {
+      "sessions": 60,
+      "successes": 40,
+      "input_tokens": 5667793,
+      "output_tokens": 156273,
+      "wall_ms": 5072849.500602111,
+      "successes_per_mtok_input": 7.06,
+      "successes_per_mtok_total": 6.87,
+      "mean_input_tokens_per_session": 94463.2,
+      "mean_wall_s_per_session": 84.5
+    }
+  }
+}

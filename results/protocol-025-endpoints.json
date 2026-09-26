@@ -1,0 +1,457 @@
+{
+  "reference_arm": "bare",
+  "arms": {
+    "protocol": {
+      "1_net_harm_by_stratum": {
+        "TWO_SIDED": {
+          "n_paired_cells": 107,
+          "n_tasks": 7,
+          "harmed": 34,
+          "helped": 16,
+          "damage_rate": 0.3177570093457944,
+          "benefit_rate": 0.14953271028037382,
+          "net_harm": 0.16822429906542055,
+          "mean_task_delta": 0.018884945282460843,
+          "cluster_ci": [
+            -0.37361727299615494,
+            0.4
+          ],
+          "underpowered": true,
+          "interpretable": true
+        },
+        "DAMAGE_ONLY": {
+          "n_paired_cells": 164,
+          "n_tasks": 7,
+          "harmed": 6,
+          "helped": 9,
+          "damage_rate": 0.036585365853658534,
+          "benefit_rate": 0.054878048780487805,
+          "net_harm": -0.018292682926829267,
+          "mean_task_delta": 0.02,
+          "cluster_ci": [
+            -0.009523809523809506,
+            0.05428571428571426
+          ],
+          "underpowered": true,
+          "interpretable": false
+        },
+        "BENEFIT_ONLY": {
+          "n_paired_cells": 77,
+          "n_tasks": 13,
+          "harmed": 0,
+          "helped": 0,
+          "damage_rate": 0.0,
+          "benefit_rate": 0.0,
+          "net_harm": 0.0,
+          "mean_task_delta": 0.0,
+          "cluster_ci": null,
+          "underpowered": false,
+          "interpretable": false
+        }
+      },
+      "2_damage_rate_by_condition": {
+        "absent": {
+          "n_paired_cells": 35,
+          "n_tasks": 7,
+          "harmed": 2,
+          "damage_rate": 0.05714285714285714,
+          "underpowered": true
+        },
+        "superseded": {
+          "n_paired_cells": 28,
+          "n_tasks": 6,
+          "harmed": 2,
+          "damage_rate": 0.07142857142857142,
+          "underpowered": true
+        },
+        "contradictory": {
+          "n_paired_cells": 33,
+          "n_tasks": 7,
+          "harmed": 1,
+          "damage_rate": 0.030303030303030304,
+          "underpowered": true
+        },
+        "adjacent": {
+          "n_paired_cells": 34,
+          "n_tasks": 7,
+          "harmed": 1,
+          "damage_rate": 0.029411764705882353,
+          "underpowered": true
+        }
+      },
+      "3_abstention_rate": {
+        "absent": {
+          "n_cells": 60,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        },
+        "contradictory": {
+          "n_cells": 50,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        }
+      },
+      "4_wrong_fact_applied": {
+        "absent": {
+          "n_cells": 60,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "superseded": {
+          "n_cells": 50,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "contradictory": {
+          "n_cells": 50,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "adjacent": {
+          "n_cells": 55,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        }
+      },
+      "5_usefulness_composite": {
+        "sensitivity": 0.1098,
+        "sensitivity_n_cells": 82,
+        "missed_rate": 0.0,
+        "missed_n_cells": 0,
+        "missed_n_present_cells": 133,
+        "specificity_floor": 1.0,
+        "specificity_ceiling": 1.0,
+        "specificity_n_cells": 215,
+        "youden_j_floor": 0.1098,
+        "youden_j_ceiling": 0.1098,
+        "zero_means": "never searching (sensitivity 0, specificity 1) and always trusting (sensitivity 1, specificity 0) both score 0",
+        "sensitivity_n_tasks": 20,
+        "specificity_n_tasks": 12,
+        "underpowered": false,
+        "never_run": false
+      }
+    },
+    "recall": {
+      "1_net_harm_by_stratum": {
+        "TWO_SIDED": {
+          "n_paired_cells": 107,
+          "n_tasks": 7,
+          "harmed": 31,
+          "helped": 24,
+          "damage_rate": 0.2897196261682243,
+          "benefit_rate": 0.22429906542056074,
+          "net_harm": 0.06542056074766354,
+          "mean_task_delta": 0.06643744454303462,
+          "cluster_ci": [
+            -0.24456521739130435,
+            0.37142857142857144
+          ],
+          "underpowered": true,
+          "interpretable": true
+        },
+        "DAMAGE_ONLY": {
+          "n_paired_cells": 164,
+          "n_tasks": 7,
+          "harmed": 11,
+          "helped": 9,
+          "damage_rate": 0.06707317073170732,
+          "benefit_rate": 0.054878048780487805,
+          "net_harm": 0.012195121951219513,
+          "mean_task_delta": -0.010000000000000009,
+          "cluster_ci": [
+            -0.08619047619047618,
+            0.054285714285714284
+          ],
+          "underpowered": true,
+          "interpretable": false
+        },
+        "BENEFIT_ONLY": {
+          "n_paired_cells": 77,
+          "n_tasks": 13,
+          "harmed": 0,
+          "helped": 12,
+          "damage_rate": 0.0,
+          "benefit_rate": 0.15584415584415584,
+          "net_harm": -0.15584415584415584,
+          "mean_task_delta": 0.1811965811965812,
+          "cluster_ci": [
+            0.05042735042735043,
+            0.3316239316239316
+          ],
+          "underpowered": false,
+          "interpretable": false
+        }
+      },
+      "2_damage_rate_by_condition": {
+        "absent": {
+          "n_paired_cells": 35,
+          "n_tasks": 7,
+          "harmed": 1,
+          "damage_rate": 0.02857142857142857,
+          "underpowered": true
+        },
+        "superseded": {
+          "n_paired_cells": 28,
+          "n_tasks": 6,
+          "harmed": 1,
+          "damage_rate": 0.03571428571428571,
+          "underpowered": true
+        },
+        "contradictory": {
+          "n_paired_cells": 33,
+          "n_tasks": 7,
+          "harmed": 6,
+          "damage_rate": 0.18181818181818182,
+          "underpowered": true
+        },
+        "adjacent": {
+          "n_paired_cells": 34,
+          "n_tasks": 7,
+          "harmed": 3,
+          "damage_rate": 0.08823529411764706,
+          "underpowered": true
+        }
+      },
+      "3_abstention_rate": {
+        "absent": {
+          "n_cells": 60,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        },
+        "contradictory": {
+          "n_cells": 50,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        }
+      },
+      "4_wrong_fact_applied": {
+        "absent": {
+          "n_cells": 60,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "superseded": {
+          "n_cells": 50,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "contradictory": {
+          "n_cells": 50,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "adjacent": {
+          "n_cells": 55,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        }
+      },
+      "5_usefulness_composite": {
+        "sensitivity": 0.2805,
+        "sensitivity_n_cells": 82,
+        "missed_rate": 0.0,
+        "missed_n_cells": 0,
+        "missed_n_present_cells": 133,
+        "specificity_floor": 1.0,
+        "specificity_ceiling": 1.0,
+        "specificity_n_cells": 215,
+        "youden_j_floor": 0.2805,
+        "youden_j_ceiling": 0.2805,
+        "zero_means": "never searching (sensitivity 0, specificity 1) and always trusting (sensitivity 1, specificity 0) both score 0",
+        "sensitivity_n_tasks": 20,
+        "specificity_n_tasks": 12,
+        "underpowered": false,
+        "never_run": false
+      }
+    },
+    "mempalace": {
+      "1_net_harm_by_stratum": {
+        "TWO_SIDED": {
+          "n_paired_cells": 107,
+          "n_tasks": 7,
+          "harmed": 40,
+          "helped": 23,
+          "damage_rate": 0.37383177570093457,
+          "benefit_rate": 0.21495327102803738,
+          "net_harm": 0.1588785046728972,
+          "mean_task_delta": 0.050007394262052675,
+          "cluster_ci": [
+            -0.3668219461697722,
+            0.46190476190476193
+          ],
+          "underpowered": true,
+          "interpretable": true
+        },
+        "DAMAGE_ONLY": {
+          "n_paired_cells": 164,
+          "n_tasks": 7,
+          "harmed": 10,
+          "helped": 8,
+          "damage_rate": 0.06097560975609756,
+          "benefit_rate": 0.04878048780487805,
+          "net_harm": 0.012195121951219513,
+          "mean_task_delta": -0.00976190476190478,
+          "cluster_ci": [
+            -0.06500000000000003,
+            0.04571428571428569
+          ],
+          "underpowered": true,
+          "interpretable": false
+        },
+        "BENEFIT_ONLY": {
+          "n_paired_cells": 77,
+          "n_tasks": 13,
+          "harmed": 0,
+          "helped": 5,
+          "damage_rate": 0.0,
+          "benefit_rate": 0.06493506493506493,
+          "net_harm": -0.06493506493506493,
+          "mean_task_delta": 0.08461538461538462,
+          "cluster_ci": [
+            0.015384615384615385,
+            0.1769230769230769
+          ],
+          "underpowered": false,
+          "interpretable": false
+        }
+      },
+      "2_damage_rate_by_condition": {
+        "absent": {
+          "n_paired_cells": 35,
+          "n_tasks": 7,
+          "harmed": 3,
+          "damage_rate": 0.08571428571428572,
+          "underpowered": true
+        },
+        "superseded": {
+          "n_paired_cells": 28,
+          "n_tasks": 6,
+          "harmed": 1,
+          "damage_rate": 0.03571428571428571,
+          "underpowered": true
+        },
+        "contradictory": {
+          "n_paired_cells": 33,
+          "n_tasks": 7,
+          "harmed": 1,
+          "damage_rate": 0.030303030303030304,
+          "underpowered": true
+        },
+        "adjacent": {
+          "n_paired_cells": 34,
+          "n_tasks": 7,
+          "harmed": 4,
+          "damage_rate": 0.11764705882352941,
+          "underpowered": true
+        }
+      },
+      "3_abstention_rate": {
+        "absent": {
+          "n_cells": 60,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        },
+        "contradictory": {
+          "n_cells": 50,
+          "abstained": 0,
+          "rate": 0.0,
+          "markers": [],
+          "is_lower_bound": true
+        }
+      },
+      "4_wrong_fact_applied": {
+        "absent": {
+          "n_cells": 60,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "superseded": {
+          "n_cells": 50,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "contradictory": {
+          "n_cells": 50,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        },
+        "adjacent": {
+          "n_cells": 55,
+          "wrong_fact_applied": 0,
+          "rate": 0.0
+        }
+      },
+      "5_usefulness_composite": {
+        "sensitivity": 0.2073,
+        "sensitivity_n_cells": 82,
+        "missed_rate": 0.0,
+        "missed_n_cells": 0,
+        "missed_n_present_cells": 133,
+        "specificity_floor": 1.0,
+        "specificity_ceiling": 1.0,
+        "specificity_n_cells": 215,
+        "youden_j_floor": 0.2073,
+        "youden_j_ceiling": 0.2073,
+        "zero_means": "never searching (sensitivity 0, specificity 1) and always trusting (sensitivity 1, specificity 0) both score 0",
+        "sensitivity_n_tasks": 20,
+        "specificity_n_tasks": 12,
+        "underpowered": false,
+        "never_run": false
+      }
+    }
+  },
+  "conditions": [
+    "absent",
+    "adjacent",
+    "contradictory",
+    "present",
+    "superseded"
+  ],
+  "n_cells": 1392,
+  "search_rates": {
+    "recall[present]": 0.556390977443609,
+    "mempalace[present]": 0.6842105263157895,
+    "recall[absent]": 0.4666666666666667,
+    "mempalace[absent]": 0.6,
+    "recall[superseded]": 0.48,
+    "mempalace[superseded]": 0.6,
+    "recall[contradictory]": 0.56,
+    "mempalace[contradictory]": 0.6,
+    "recall[adjacent]": 0.509090909090909,
+    "mempalace[adjacent]": 0.5818181818181818
+  },
+  "search_rates_all_cells": {
+    "recall[present]": 0.5481481481481482,
+    "mempalace[present]": 0.6888888888888889,
+    "recall[absent]": 0.4666666666666667,
+    "mempalace[absent]": 0.6,
+    "recall[superseded]": 0.43636363636363634,
+    "mempalace[superseded]": 0.6,
+    "recall[contradictory]": 0.5272727272727272,
+    "mempalace[contradictory]": 0.5818181818181818,
+    "recall[adjacent]": 0.4666666666666667,
+    "mempalace[adjacent]": 0.5833333333333334
+  },
+  "interpretable": {
+    "recall[present]": true,
+    "mempalace[present]": true,
+    "recall[absent]": false,
+    "mempalace[absent]": true,
+    "recall[superseded]": false,
+    "mempalace[superseded]": true,
+    "recall[contradictory]": true,
+    "mempalace[contradictory]": true,
+    "recall[adjacent]": true,
+    "mempalace[adjacent]": true
+  }
+}

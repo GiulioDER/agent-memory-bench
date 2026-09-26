@@ -1,0 +1,53 @@
+{
+  "groups": [
+    {"id": "inputs", "label": "Frozen inputs", "description": "What every arm receives, byte identical"},
+    {"id": "treat", "label": "Treatments", "description": "One published integration per arm"},
+    {"id": "run", "label": "Isolated session", "description": "One Claude Code session per task, seed and arm"},
+    {"id": "score", "label": "Execution scoring", "description": "Pass or fail, no judge"},
+    {"id": "publish", "label": "Publication", "description": "Everything a sceptic needs to re-derive the number"}
+  ],
+  "nodes": [
+    {"id": "prereg", "label": "Preregistration", "type": "committed before run", "description": null, "groupId": null, "path": "preregistration", "shape": "document"},
+    {"id": "tasks", "label": "Task suite", "type": "34 executable tasks", "description": null, "groupId": "inputs", "path": "tasks", "shape": "box"},
+    {"id": "corpus", "label": "Session corpus", "type": "real agent transcripts", "description": null, "groupId": "inputs", "path": "corpus", "shape": "database"},
+    {"id": "conditions", "label": "Condition assembler", "type": "5 corpus states", "description": null, "groupId": "inputs", "path": "scripts/assemble_condition_corpus.py", "shape": "box"},
+    {"id": "names", "label": "Neutral names", "type": "no role, task or condition", "description": null, "groupId": "inputs", "path": "harness/corpus_names.py", "shape": "hexagon"},
+    {"id": "controls", "label": "Controls", "type": "bare, placebo, claude_md", "description": null, "groupId": "treat", "path": "harness/placebo.py", "shape": "box"},
+    {"id": "retrieval", "label": "Retrieval control", "type": "fs_grep", "description": null, "groupId": "treat", "path": "adapters/fs_grep/adapter.py", "shape": "box"},
+    {"id": "products", "label": "Memory products", "type": "MCP servers and hooks", "description": null, "groupId": "treat", "path": "adapters", "shape": "box"},
+    {"id": "protocol", "label": "Shared instruction", "type": "same bytes for every arm", "description": null, "groupId": "treat", "path": "adapters/_shared/memory_protocol.md", "shape": "document"},
+    {"id": "sandbox", "label": "Sandbox", "type": "fixture repo, oracle absent", "description": null, "groupId": "run", "path": "harness/isolation.py", "shape": "box"},
+    {"id": "agent", "label": "Coding agent", "type": "Claude Code session", "description": null, "groupId": "run", "path": "harness/claude_exec.py", "shape": "circle"},
+    {"id": "checker", "label": "Executable checker", "type": "runs the artifact", "description": null, "groupId": "score", "path": "harness/checker_run.py", "shape": "box"},
+    {"id": "gate", "label": "Admission gate", "type": "treatment proven available", "description": null, "groupId": "score", "path": "harness/gate.py", "shape": "hexagon"},
+    {"id": "stats", "label": "Paired statistics", "type": "task clustered bootstrap", "description": null, "groupId": "score", "path": "harness/stats.py", "shape": "box"},
+    {"id": "records", "label": "Session records", "type": "streams, verdicts, costs", "description": null, "groupId": "publish", "path": "results", "shape": "database"},
+    {"id": "verify", "label": "verify_run", "type": "re-derives every number", "description": null, "groupId": "publish", "path": "scripts/verify_run.py", "shape": "box"},
+    {"id": "join", "label": "Additive join", "type": "vendor run to frozen base", "description": null, "groupId": "publish", "path": "scripts/build_arm_submission.py", "shape": "box"},
+    {"id": "board", "label": "Leaderboard", "type": "generated, CI checked", "description": null, "groupId": "publish", "path": "scripts/build_leaderboard.py", "shape": "box"}
+  ],
+  "edges": [
+    {"from": "prereg", "to": "conditions", "label": "freezes grid", "description": null, "style": "dashed"},
+    {"from": "corpus", "to": "conditions", "label": "plants", "description": null, "style": "solid"},
+    {"from": "conditions", "to": "names", "label": "renders", "description": null, "style": "solid"},
+    {"from": "names", "to": "retrieval", "label": "same feed", "description": null, "style": "solid"},
+    {"from": "names", "to": "products", "label": "same feed", "description": null, "style": "solid"},
+    {"from": "protocol", "to": "products", "label": "instructs", "description": null, "style": "solid"},
+    {"from": "protocol", "to": "retrieval", "label": "instructs", "description": null, "style": "solid"},
+    {"from": "tasks", "to": "sandbox", "label": "fixture", "description": null, "style": "solid"},
+    {"from": "controls", "to": "agent", "label": "prompt only", "description": null, "style": "solid"},
+    {"from": "retrieval", "to": "agent", "label": "files", "description": null, "style": "solid"},
+    {"from": "products", "to": "agent", "label": "tools or hooks", "description": null, "style": "solid"},
+    {"from": "sandbox", "to": "agent", "label": "works in", "description": null, "style": "solid"},
+    {"from": "agent", "to": "checker", "label": "artifact", "description": null, "style": "solid"},
+    {"from": "tasks", "to": "checker", "label": "oracle inputs", "description": null, "style": "dashed"},
+    {"from": "agent", "to": "gate", "label": "session evidence", "description": null, "style": "solid"},
+    {"from": "checker", "to": "stats", "label": "pass or fail", "description": null, "style": "solid"},
+    {"from": "gate", "to": "stats", "label": "admitted cells", "description": null, "style": "solid"},
+    {"from": "stats", "to": "records", "label": "writes", "description": null, "style": "solid"},
+    {"from": "records", "to": "verify", "label": "audited by", "description": null, "style": "solid"},
+    {"from": "records", "to": "join", "label": "joined on task, seed, condition", "description": null, "style": "solid"},
+    {"from": "join", "to": "board", "label": "additive arms", "description": null, "style": "solid"},
+    {"from": "records", "to": "board", "label": "base run", "description": null, "style": "solid"}
+  ]
+}
