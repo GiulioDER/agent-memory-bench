@@ -67,6 +67,26 @@ day.
    2026-08-29 history rewrite and would republish content removed since. What executed is
    preserved here instead (next section).
 
+## The corpus was not the haystack (added 2026-09-26, the same day)
+
+**This was missing from the first version of this page, and it matters more than any deviation
+above.** Graphiti was offered only the condition's own sessions, without the shared ~4,900 document
+haystack every other arm searched:
+
+| condition | sessions offered to Graphiti | offered to mempalace and cognee |
+|---|---:|---:|
+| present | 132 | 4,900 |
+| absent | 120 | 4,888 |
+| superseded | 143 | 4,911 |
+| contradictory | 142 | 4,911 |
+| adjacent | 132 | 4,900 |
+
+Read from `ingest[*].sessions_offered` in each `environment.json`. Preregistration 084 does not state
+a corpus size, so this is not a deviation from its text, but it is a different retrieval problem:
+with no distractors, finding the governing session is far easier. The joined comparison against
+official-003 is therefore not like for like, and the Graphiti row must not be read as a ranking
+against arms that searched the full haystack.
+
 ## Source
 
 `source/` holds the working-tree copies of the files that define the arm and its execution:

@@ -308,7 +308,7 @@ window.AMB_LEADERBOARD = {
     },
     {
       "name": "Graphiti",
-      "type": "Graphiti MCP server, run deviated from its preregistration",
+      "type": "Graphiti MCP server, searched about 140 sessions instead of the 4,900 document haystack, and deviated from its preregistration; not comparable",
       "success": 0.6059,
       "delta": 0.0228,
       "ci": [

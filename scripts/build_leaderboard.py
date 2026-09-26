@@ -94,7 +94,14 @@ ADDITIVE_ARM_DEFINITIONS = {
     ),
     # Same reasoning: the run deviated from preregistration 084 in six stated ways, and a reader of
     # the row alone should not have to open results/official-007-graphiti/provenance/ to learn it.
-    "graphiti": ("Graphiti MCP server, run deviated from its preregistration", None, "Graphiti"),
+    "graphiti": (
+        (
+            "Graphiti MCP server, searched about 140 sessions instead of the 4,900 document "
+            "haystack, and deviated from its preregistration; not comparable"
+        ),
+        None,
+        "Graphiti",
+    ),
 }
 
 # ⛔ PRODUCT_ARMS is the list of arms that are MEASURED, not the arms that are hoped for. `mem0`,

@@ -66,6 +66,9 @@ What a reader should not have to dig for:
    episodes ingested by crashed attempts, a code patch between conditions, no trusted execution
    receipt, and execution from an uncommitted tree. All six, and the directory selection rule,
    are in `results/official-007-graphiti/provenance/README.md` beside the executed source.
+   🔁 **Added the same day, and larger than all six: Graphiti searched a different corpus.** It
+   was offered 120 to 143 sessions per condition, without the ~4,900 document haystack every other
+   arm searched, so its row is not comparable to theirs and must not be read as a ranking.
 3. **Claude Mem ran with a synchronous first-search guard**, which preregistration 074 requires
    to be labelled on any result. Its row says so in its integration field.
 4. **Claude Mem was never sent a review invitation.** Nothing in this repository or the project
