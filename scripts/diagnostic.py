@@ -28,6 +28,7 @@ from harness.claude_exec import (
     ClaudeExecConfig,
     resolve_claude_executable,
 )
+from harness.corpus_names import arm_dir_name, work_dir_name
 from harness.costs import add_pricing_arguments, pricing_from_args, summarize
 from harness.gate import AdmissionSignal, admit_cells, with_forbidden_prefixes
 from harness.host_memory import free_memory_mb, wait_for_headroom
@@ -193,7 +194,9 @@ async def main() -> int:
         raise SystemExit("no task has an oracle bundle; nothing this diagnostic can measure")
     catalog = MemoryBundleCatalog.load(oracle_root, corpus, tasks)
     work_root = (
-        Path(args.work_root) if args.work_root else sandbox.default_work_root() / args.run_id
+        Path(args.work_root)
+        if args.work_root
+        else sandbox.default_work_root() / work_dir_name(args.run_id)
     )
     run_dir = REPO / "results" / args.run_id
     if (run_dir / "records.jsonl").exists() or (run_dir / "records.final.jsonl").exists():
@@ -473,7 +476,7 @@ async def main() -> int:
         # directory that already exists, and cleaning it in place would destroy the failed
         # attempt's tree, which is the evidence for what the retry recovered from.
         suffix = "" if attempt == 1 else f".attempt{attempt}"
-        return work_root / "work" / task_id / f"s{seed}" / f"{arm}{suffix}"
+        return work_root / "work" / task_id / f"s{seed}" / f"{arm_dir_name(arm)}{suffix}"
 
     async def runner(row, arm):
         task_id, seed = str(row["task_id"]), int(row["seed"])

@@ -27,6 +27,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from harness import sandbox
+from harness.corpus_names import work_dir_name
 from scripts.abstention import condition_state
 
 CONDITIONS = ("absent", "superseded", "contradictory", "adjacent")
@@ -39,7 +40,7 @@ def archive(run_id: str, conditions: list[str], *, dry_run: bool) -> int:
 
     for condition in conditions:
         run_dir = REPO / "results" / f"{run_id}-{condition}"
-        work_dir = work_root / f"{run_id}-{condition}"
+        work_dir = work_root / work_dir_name(f"{run_id}-{condition}")
         state = condition_state(run_dir)
 
         if state == "complete":

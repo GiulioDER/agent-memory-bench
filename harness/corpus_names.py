@@ -43,6 +43,51 @@ def rendered_name(source: Path, root: Path | None = None) -> str:
     return neutral_stem(rel) + ".md"
 
 
+def neutral_token(kind: str, value: str, length: int = 12) -> str:
+    """A stable, opaque token for ``value``, namespaced by ``kind`` so tokens never collide."""
+
+    return hashlib.sha256(f"{NAME_SALT}:{kind}:{value}".encode()).hexdigest()[:length]
+
+
+def condition_namespace(namespace: str, condition: str) -> str:
+    """The product namespace for one corpus condition, without the condition's name in it.
+
+    It used to be ``<namespace>-<condition>``, and products echo their namespace back: Graphiti
+    returned ``amb-graphiti-official-007-superseded`` 280 times in its superseded tool outputs. An
+    agent told which condition it is in knows what kind of trap the corpus holds.
+    """
+
+    return f"{namespace}-c{neutral_token('condition', condition, 8)}"
+
+
+def work_dir_name(run_id: str) -> str:
+    """The directory a run's sessions work in, without the run id, which names the condition.
+
+    Every session's working directory is shown to the agent, and it was
+    ``<work root>/<run_id>-<condition>/work/...``: the condition name reached every arm, controls
+    included, in every run executed on the host.
+    """
+
+    return f"run-{neutral_token('run', run_id)}"
+
+
+def arm_dir_name(arm: str) -> str:
+    """The per-arm directory inside a session's working directory, without the arm's name.
+
+    The working directory is shown to the agent, and it ended in the arm name, so a `placebo`
+    session saw `placebo` in its own path. A control that announces itself is a weaker control.
+    """
+
+    return f"a{neutral_token('arm', arm, 8)}"
+
+
+def names_a_condition(value: str, conditions: Iterable[str]) -> str | None:
+    """The first corpus condition named inside ``value``, or None."""
+
+    lowered = value.lower()
+    return next((c for c in conditions if c.lower() in lowered), None)
+
+
 def neutral_key_map(keys: Iterable[str], suffix: str = ".md") -> dict[str, str]:
     """Neutral file name to corpus key, for joining what an arm returns back to the corpus.
 

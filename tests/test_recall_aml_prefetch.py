@@ -12,6 +12,7 @@ from adapters.recall_aml_prefetch.adapter import (
     HostedResult,
 )
 from harness.adapters.base import ArmSpec, CorpusManifest, IngestReport
+from harness.corpus_names import neutral_stem
 from scripts import pilot
 
 
@@ -23,12 +24,12 @@ class _Client:
             {
                 "id": "rank-two-lexically",
                 "content": "first ranked evidence",
-                "session_id": "sessions/ts-a/p01.jsonl",
+                "session_id": neutral_stem("sessions/ts-a/p01.jsonl"),
             },
             {
                 "id": "a-sorts-first",
                 "content": "second ranked evidence",
-                "session_id": "distractors/d001.jsonl",
+                "session_id": neutral_stem("distractors/d001.jsonl"),
             },
         ]
 
@@ -109,7 +110,12 @@ def test_hosted_prefetch_ingests_the_verified_corpus_through_public_add(tmp_path
     )
     adds = [call for call in client.calls if call[1] == "/v1/add"]
     assert len(adds) == 2
-    assert {call[2]["session_id"] for call in adds} == set(corpus.sessions)
+    # Neutral since 2026-09-26: the API echoes `session_id` back and the adapter prints it
+    # into the prompt, so a corpus path here put `plants/<task>/stale_...` in front of the agent.
+    assert {call[2]["session_id"] for call in adds} == {
+        neutral_stem(rel) for rel in corpus.sessions
+    }
+    assert not any("/" in call[2]["session_id"] for call in adds)
     assert all(call[2]["user_id"] == "amb-specialist-full" for call in adds)
 
 

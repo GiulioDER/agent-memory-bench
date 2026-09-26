@@ -106,7 +106,17 @@ the admitted cells of every published run:
 | fs_grep | 7 / 46 | 12 / 51 | superseded 5/7 vs 27/39; contradictory 8/12 vs 28/39 |
 | mempalace | 8 / 46 | 4 / 51 | superseded 7/8 vs 26/38; contradictory 3/4 vs 30/47 |
 | protocol | 1 / 46 | 0 / 51 | |
-| every other arm, including the four joined vendors | 0 | 0 | |
+| recall_prefetch, oracle_memory | **not measurable** | **not measurable** | see below |
+| bare, claude_md, placebo, and the four joined vendors | 0 | 0 | |
+
+⚠️ **The prefetch arms cannot be scanned.** `harness/memory_prompt.py` printed `Source:
+<source_path>` into the injected prompt (recall's returned name for `recall_prefetch`, a corpus path
+for `oracle_memory`), and the published records do not store that prompt, so a zero from the records
+means "not recorded", not "not seen". By construction, a prefetch cell was exposed whenever a planted
+document was among its injected hits. The same holds for the private preregistration 094 run
+(`specialist-conditions-003`), whose AML prefetch adapter sent the corpus path as `session_id` and
+printed it back as `Source session: plants/<task>/stale_...`; its superseded result (C7 29 of 30)
+must be read with that in mind.
 
 Agents rarely reasoned from the name; one recall session said so outright ("The filename
 `stale_compatible_release.md` signals that approach was later superseded"). The success split is
@@ -118,13 +128,41 @@ needs a rerun of every exposed arm.
 
 Fixed by `harness/corpus_names.py`: every name an arm can read is `notes__<digest>`, derived from
 the corpus path and a versioned salt, the heading carries no stem, and adapters join a returned
-name back through an in-memory map, never a file beside the feed. **This changes every corpus
-fingerprint**, so recall tenants, mempalace base palaces and any cached vendor fixtures built
+name back through an in-memory map, never a file beside the feed. The prefetch and oracle prompt
+prints only neutral names, and the AML prefetch adapter sends a neutral `session_id`. **This changes
+every corpus fingerprint**, so recall tenants, mempalace base palaces and any cached vendor fixtures built
 before it must be rebuilt before a new run. `harness.reached.reached_by_path` and
 `scripts/failure_taxonomy.py` match the old names and apply to earlier runs only.
 
 ```bash
 python -m pytest tests/test_neutral_corpus_names.py -q
+```
+
+### A second channel: the condition's own name
+
+Found the same day while checking the first was closed. Every run id is `<run>-<condition>`, and
+three agent-visible names were built from it:
+
+1. **The session's working directory**, `<work root>/<run>-<condition>/work/<task>/s<seed>/<arm>`,
+   which Claude Code shows to the agent and which agents write into absolute paths. The condition
+   reached between 27 and 55 of 55 superseded sessions of **every** official-003 arm, controls
+   included, and every host-run vendor arm (Claude Mem 49 of 50, cognee 37 of 55).
+2. **The product namespace**, `<namespace>-<condition>`, which products echo: Graphiti, run in a
+   container, returned `amb-graphiti-official-007-superseded` 280 times in its superseded outputs.
+3. **`CLAUDE_CONFIG_DIR` and adapter hook paths**, under `results/<run>-<condition>/cfg`, in every
+   session's environment. No agent was seen reading its environment.
+4. **The arm's own name**, the last component of the working directory, so a `placebo` session saw
+   `placebo` in its path. That weakens the control rather than favouring a product.
+
+It is symmetric rather than an advantage to one arm, and no agent was found reasoning from it, but
+it tells every agent what kind of trap its corpus holds. Fixed: the working directory, the arm
+directory inside it and the config root are named from opaque tokens
+(`harness.corpus_names.work_dir_name`, `arm_dir_name`), namespaces from
+`condition_namespace`, and `scripts.pilot` **refuses** a `--namespace` that names a condition, so a
+launcher that forgets is stopped rather than trusted.
+
+```bash
+python -m pytest tests/test_condition_name_hidden.py -q
 ```
 
 ## Runs to date

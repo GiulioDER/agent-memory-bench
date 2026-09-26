@@ -28,6 +28,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.corpus_names import work_dir_name
+
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
@@ -50,7 +52,9 @@ def partial_run(tmp_path, monkeypatch):
     )
 
     work_root = tmp_path / "work"
-    work_dir = work_root / "run-001-absent"
+    # The pilot names a run's working directory from an opaque token, because the run id names
+    # the condition and every session is shown its directory; the archiver must find it the same way.
+    work_dir = work_root / work_dir_name("run-001-absent")
     (work_dir / "ts-a").mkdir(parents=True)
     (work_dir / "ts-a" / "sandbox.txt").write_text("evidence", encoding="utf-8")
 
