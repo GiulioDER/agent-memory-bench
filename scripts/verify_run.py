@@ -126,11 +126,11 @@ def _load_ingest_reports(run_dir: Path) -> list[IngestReport]:
         return []
     raw_reports = json.loads(path.read_text(encoding="utf-8")).get("ingest", [])
     if not isinstance(raw_reports, list):
-        raise ValueError(f"{path} has a non-list ingest report")
+        raise TypeError(f"{path} has a non-list ingest report")
     reports: list[IngestReport] = []
     for raw in raw_reports:
         if not isinstance(raw, dict):
-            raise ValueError(f"{path} has a malformed ingest report")
+            raise TypeError(f"{path} has a malformed ingest report")
         reports.append(
             IngestReport(
                 arm=str(raw["arm"]),

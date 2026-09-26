@@ -43,7 +43,7 @@ import os
 import sqlite3
 import sys
 from pathlib import Path
-from uuid import NAMESPACE_OID, uuid5
+from uuid import uuid5
 
 
 def _probe_text(files: list[Path]) -> str:
@@ -97,10 +97,10 @@ def _configure_bounded_retries() -> dict[str, int | float | str | bool]:
     if framework != "litellm_native":
         return policy
 
-    from tenacity import stop_after_attempt, stop_after_delay
     from cognee.infrastructure.llm.structured_output_framework.litellm_native.native_adapter import (
         NativeLiteLLMAdapter,
     )
+    from tenacity import stop_after_attempt, stop_after_delay
 
     retrying = NativeLiteLLMAdapter.acreate_structured_output.retry
     retrying.stop = stop_after_attempt(attempts) | stop_after_delay(max_seconds)
@@ -188,16 +188,15 @@ async def _run_bulk_standard_pipeline(
     disabled for this arm, and omitting the context avoids manufacturing incorrect provenance.
     """
 
-    from sqlalchemy import select
-
     from cognee.api.v1.cognify.cognify import get_default_tasks
-    from cognee.modules.data.methods.get_dataset_ids import get_dataset_ids
     from cognee.infrastructure.databases.relational import get_relational_engine
+    from cognee.modules.data.methods.get_dataset_ids import get_dataset_ids
     from cognee.modules.data.models import Data
     from cognee.modules.pipelines.models.DataItemStatus import DataItemStatus
     from cognee.modules.pipelines.operations.run_tasks_base import run_tasks_base
     from cognee.modules.pipelines.utils import generate_pipeline_id
     from cognee.modules.users.methods import get_default_user
+    from sqlalchemy import select
 
     user = await get_default_user()
     dataset_ids = await get_dataset_ids([dataset_name], user)
@@ -365,11 +364,10 @@ def _configure_tolerant_summaries() -> dict[str, object]:
     quota, and provider errors remain fatal.
     """
 
+    import importlib
     from json import JSONDecodeError
 
     from pydantic import ValidationError
-
-    import importlib
 
     graph_task_module = importlib.import_module(
         "cognee.tasks.graph.extract_graph_and_summarize"
