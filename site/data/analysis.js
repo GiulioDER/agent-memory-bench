@@ -48,12 +48,12 @@ window.AMB_ANALYSIS = {
     },
     "Graphiti": {
       "pros": [
-        "The cheapest product per task in agent tokens.",
+        "The cheapest product per task in agent tokens, though partly because its store was small.",
         "Strong on absent, second only to RE-call.",
         "A temporal graph whose facts carry validity in time, which is the right design for knowledge that changes."
       ],
       "cons": [
-        "The store it searched held only a small fraction of the corpus, after a crash recovery reused a partial ingest.",
+        "Measured on the corpus without its distractor sessions, an easier search than any other product faced, so its row is not comparable.",
         "The run deviated from its preregistration in several stated ways.",
         "The agent searched rarely, and there was no gain on superseded, where a temporal graph should help most.",
         "Ingest was not metered."

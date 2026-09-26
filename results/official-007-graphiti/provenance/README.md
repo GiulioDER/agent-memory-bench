@@ -67,6 +67,52 @@ day.
    2026-08-29 history rewrite and would republish content removed since. What executed is
    preserved here instead (next section).
 
+## Not the corpus the joined comparison assumes
+
+Added 2026-09-26, after publication. This is not a deviation from 084, which never names a corpus
+size, but it matters more to the published row than any deviation above. **Graphiti searched the
+standard feed without the distractor haystack. Every product it is ranked against searched the
+haystack.**
+
+| condition | Graphiti sessions offered and stored | official-003 sessions offered |
+|---|---:|---:|
+| `present` | 132 | 4,900 |
+| `absent` | 120 | 4,888 |
+| `superseded` | 143 | 4,911 |
+| `contradictory` | 142 | 4,911 |
+| `adjacent` | 132 | 4,900 |
+
+Offered equals stored in every condition, so this is the whole corpus Graphiti was given, not a
+partial ingest. `recover_graphiti_condition.py` raises unless every session in the corpus is in
+the store, and `run_recovered_conditions.py` sets `AMB_CORPUS_FLOOR` to the corpus size.
+
+The corpus came from `corpus/conditions/<condition>/seed-1` as the host assembled it. The
+assembler adds the haystack only when `AMB_HAYSTACK` is set (`haystack_root` in
+`scripts/assemble_condition_corpus.py`), and no run records whether it was. The sizes settle
+it:
+
+- official-003's corpora are master's standard feed plus about 4,704 haystack sessions. The
+  standard feed, assembled on master on 2026-09-26, holds 196, 185, 206, 206 and 196 sessions,
+  and 4,900 minus 196 is 4,704.
+- Graphiti's counts sit a constant 63 to 65 below master's standard feed in every condition.
+  That is consistent with the host branch's older feed and with no haystack at all.
+
+What it changes. Without the haystack, retrieval on this feed is close to saturated:
+`docs/RETRIEVAL_DIFFICULTY.md` measures voyage hit@10 at 1.000 on the standard feed. So
+Graphiti's search task was easier than the one every other product faced. Its result is not
+comparable to theirs, and the difference, if anything, favours Graphiti. Its agent tokens per
+task are also lower partly because there was less to retrieve from.
+
+How it went unnoticed. The ingest notes attribute the store to "direct Graphiti core recovery",
+which reads as a partial load. The first draft of the analysis page repeated that reading, and
+so did the pull request that added it (#115), until this check.
+
+Re-measure, from the repository root:
+
+```bash
+python -c "import json;[print(c,[i['sessions_offered'] for i in json.load(open(f'results/official-007-graphiti-{c}/environment.json'))['ingest'] if i['arm']=='graphiti'],[i['sessions_offered'] for i in json.load(open(f'results/official-003-{c}/environment.json'))['ingest']][:1]) for c in ('present','absent','superseded','contradictory','adjacent')]"
+```
+
 ## Source
 
 `source/` holds the working-tree copies of the files that define the arm and its execution:

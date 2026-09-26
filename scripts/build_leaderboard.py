@@ -94,7 +94,17 @@ ADDITIVE_ARM_DEFINITIONS = {
     ),
     # Same reasoning: the run deviated from preregistration 084 in six stated ways, and a reader of
     # the row alone should not have to open results/official-007-graphiti/provenance/ to learn it.
-    "graphiti": ("Graphiti MCP server, run deviated from its preregistration", None, "Graphiti"),
+    # The corpus clause was added 2026-09-26: its store held the standard feed without the
+    # distractor haystack every other product searched (about 130 sessions against 4,900), which
+    # makes the row incomparable in a way no deviation in that list states.
+    "graphiti": (
+        (
+            "Graphiti MCP server, run without the distractor corpus and deviated from its "
+            "preregistration"
+        ),
+        None,
+        "Graphiti",
+    ),
 }
 
 # ⛔ PRODUCT_ARMS is the list of arms that are MEASURED, not the arms that are hoped for. `mem0`,

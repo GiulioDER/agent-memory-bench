@@ -413,7 +413,7 @@ window.AMB_LEADERBOARD = {
     },
     {
       "name": "Graphiti",
-      "type": "Graphiti MCP server, run deviated from its preregistration",
+      "type": "Graphiti MCP server, run without the distractor corpus and deviated from its preregistration",
       "success": 0.6059,
       "delta": 0.0228,
       "ci": [

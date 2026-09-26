@@ -260,19 +260,21 @@
       <h4>How it was run here</h4>
       <p>The official MCP server with six read tools, extraction and embeddings through hosted
       models, ingest by the controller only. The run deviated from its preregistration in six
-      ways, published with the run's provenance. There is a seventh that matters more than any of
-      them. After the first attempt crashed, each condition resumed from the episodes already
-      ingested, and those stores held between 120 and 143 sessions. Every other product searched
-      a store of about 4,900. So Graphiti was measured on a small fraction of the corpus the
-      others saw.</p>
+      ways, published with the run's provenance. One difference matters more than any of them:
+      Graphiti was given the standard corpus without the distractor sessions. Its store held
+      between 120 and 143 sessions per condition, all of the corpus it was offered, while every
+      product it is ranked against searched about 4,900, most of them distractors.</p>
 
       <h4>How it performed</h4>
       <p>Close to the middle of the field, strong on <code>absent</code>, and the cheapest
-      product per task in agent tokens. I read that result as a partial store measurement, not as
-      a verdict on Graphiti: a store that small is cheap to search and easy to miss in. The agent
+      product per task in agent tokens. None of that is comparable with the other products. On
+      the corpus Graphiti searched, retrieval is close to saturated: in this benchmark's own
+      measurement, a strong embedder puts the right session in its first ten hits every time. Its search task was easier than
+      theirs, and some of its low cost comes from having less to search. That it still gained
+      little over <code>claude_md</code> on an easier corpus is itself informative, and the agent
       searched in only about one session in six. The finding I most wanted from this product, a
-      gain on <code>superseded</code> from its handling of time, did not appear, and with this
-      store it could not fairly have been tested.</p>
+      gain on <code>superseded</code> from its handling of time, did not appear. It needs a rerun
+      on the full corpus before I would draw a conclusion about Graphiti from it.</p>
 
       <h4>Pros and cons</h4>
       <div data-arm="Graphiti" data-show="notes"></div>
@@ -357,6 +359,9 @@
       <p class="mt-s"><strong>Joined runs.</strong> Four products were measured in their own runs,
       on different dates, and are compared with <code>official-003</code> on the cells both share.
       Their differences are indicative, not paired to the last cell.</p>
+      <p class="mt-s"><strong>Graphiti searched a different corpus.</strong> Its run used the
+      corpus without the distractor sessions, so its row answers an easier question than the
+      other five and is not ranked against them on equal terms.</p>
       <p class="mt-s"><strong>Cost is list price.</strong> Agent tokens are priced at one published
       rate for every arm, with cached input charged as ordinary input. A real bill with cache
       discounts would narrow the gap for the products that re-read the most context.</p>
