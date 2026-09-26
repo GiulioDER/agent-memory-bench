@@ -92,6 +92,38 @@ The next preregistered run is announced before it happens, not after it succeeds
 python -c "import json;print(json.load(open('site/data/leaderboard.config.json')))"
 ```
 
+## official-002 and protocol-025 published, 2026-09-26
+
+Both runs were quoted in public (the protocol-025 figures in an article, official-002's in the
+project's own analysis) while their records existed only on the run host. Their five condition
+directories each, plus official-002's separate MemPalace pass (`official-002-mp-*`) and both
+endpoints files, are now in `results/`, `cfg/` excluded as for every run. All fifteen condition
+directories verify from their own sessions. The host home prefix is replaced by `$HOME` (36,657
+occurrences in 448 files), as for official-003.
+
+⚠️ **Re-derived from these records, protocol-025 is a little weaker than the figures quoted
+before**, which came from the run's first write-up and were never checked against the finished
+directories:
+
+| | quoted before | from the published records |
+|---|---|---|
+| admitted cells | 358 | 348 |
+| `protocol` vs `bare` | −17, p = 0.053 | −15 (25:40), p = 0.082 |
+| `recall` vs `protocol` | +20, p = 0.015 | +18 (38:20), p = 0.025 |
+| `mempalace` vs `protocol` | +2, p = 0.885 | +1 (23:22), p = 1.000 |
+
+Same directions, same reading (the instruction costs cells, recall repays it, MemPalace does not),
+smaller magnitudes. Where the ten-cell difference comes from is not established. The records are
+authoritative; anything quoting the old figures should be corrected. official-002's contradictory
+dose response, recounted from the rival names in recall's returned hits, is 26/31 (0.84) with no
+rival retrieved, 9/14 (0.64) with one and 3/9 (0.33) with both, against 0.85 / 0.55 / 0.33 quoted
+before. Neither run was rendered with neutral names, so both carry the plant-name and
+condition-name exposure described below.
+
+```bash
+python -m scripts.verify_run results/protocol-025-present results/official-002-present
+```
+
 ## Corpus names leaked the plant role until 2026-09-26
 
 Every rendered corpus document was named from its path (`sessions__ts-x__stale_old_way.md`) and

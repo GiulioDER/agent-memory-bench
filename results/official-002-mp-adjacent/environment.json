@@ -1,0 +1,165 @@
+{
+  "run_id": "official-002-mp-adjacent",
+  "model": "deepseek/deepseek-v4-flash",
+  "arms": [
+    "bare",
+    "mempalace"
+  ],
+  "memory_instruction": "skill",
+  "neutral_protocol": false,
+  "instruction_manifest": {
+    "bare": {
+      "bytes": 0,
+      "chars": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "mempalace": {
+      "bytes": 4325,
+      "chars": 4325,
+      "sha256": "f160bf8b358210b16a4548b509d6c95e573655ce3a93a46be3e8b6b8f760f6fd"
+    }
+  },
+  "instruction_excess_bytes": {
+    "bare": 0,
+    "mempalace": 853
+  },
+  "instruction_arms_matched": false,
+  "placebo_length_metric": "whitespace_tokens_and_lines",
+  "placebo_length_match": {
+    "ts-base36-id": {
+      "match": true,
+      "reference_whitespace_tokens": 49,
+      "placebo_whitespace_tokens": 49,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-bom-merge": {
+      "match": true,
+      "reference_whitespace_tokens": 42,
+      "placebo_whitespace_tokens": 42,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-dedup-order": {
+      "match": true,
+      "reference_whitespace_tokens": 45,
+      "placebo_whitespace_tokens": 45,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-golden-regen": {
+      "match": true,
+      "reference_whitespace_tokens": 35,
+      "placebo_whitespace_tokens": 35,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-ignore-gen": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-legacy-hash": {
+      "match": true,
+      "reference_whitespace_tokens": 39,
+      "placebo_whitespace_tokens": 39,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-manifest-rel": {
+      "match": true,
+      "reference_whitespace_tokens": 44,
+      "placebo_whitespace_tokens": 44,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-mig-name": {
+      "match": true,
+      "reference_whitespace_tokens": 53,
+      "placebo_whitespace_tokens": 53,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-natural-order": {
+      "match": true,
+      "reference_whitespace_tokens": 62,
+      "placebo_whitespace_tokens": 62,
+      "reference_lines": 10,
+      "placebo_lines": 10
+    },
+    "ts-schema-additive": {
+      "match": true,
+      "reference_whitespace_tokens": 43,
+      "placebo_whitespace_tokens": 43,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-semver-pin": {
+      "match": true,
+      "reference_whitespace_tokens": 36,
+      "placebo_whitespace_tokens": 36,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    },
+    "ts-tz-utc": {
+      "match": true,
+      "reference_whitespace_tokens": 40,
+      "placebo_whitespace_tokens": 40,
+      "reference_lines": 8,
+      "placebo_lines": 8
+    }
+  },
+  "prompt_sha256_by_task": {
+    "bare": {},
+    "mempalace": {
+      "ts-base36-id": "854684d9b99e915c99f06c116ee9670b23008ad16df972acc933d8be45ce200c",
+      "ts-bom-merge": "6a988466023b5cfe6ae19ffa35907b289e6c81107a4ca9a6e3428f3c1136f6e6",
+      "ts-dedup-order": "1678f42f90ee0a7e4adc7d437c5b6804cffa8b83117a8acfcda6ceb2274bd121",
+      "ts-golden-regen": "752180c55759eb3897d6568afb5175756bc831bb85700e8cc45430c653912910",
+      "ts-ignore-gen": "fa29281439db3806d618c82727ea95f31d6425aee3790d021ea68b2946887c04",
+      "ts-legacy-hash": "a46670e733e6c5bcb3ba3e3290c2f6bf8f821f5dadf6b8bb9eaa9f4bada79c6b",
+      "ts-manifest-rel": "7054e9366a0bd23a5375e9d3d1b792835709b27817e54dac3c8e3749b0f1a250",
+      "ts-mig-name": "a478bcc1d0a5b6c3fc39e9935db980e3dc3fa99aa9081872f282c104a9cb68e2",
+      "ts-natural-order": "ed1fe92a3a602659b4b2dc7f0c9088a24b6dafeee6df3b1723a68457c2eaddd2",
+      "ts-schema-additive": "a213e524ab186299223458cca8fc8ef4cf4bc60119a2f13d8d4da0c18c604303",
+      "ts-semver-pin": "31815f08c75b2dfa707d4b96c4e52714abbe72f85f63ac1f1c856f20958cf602",
+      "ts-tz-utc": "56e5e745e9371c8480df0b480afb5a4931a2376ad15d6e36bd770f033d8715b1"
+    }
+  },
+  "namespace": "bench-official-002-adjacent",
+  "work_root": "/tmp/agent-memory-bench-work/official-002-mp-adjacent",
+  "sandbox_inside_repo": false,
+  "adapters": {
+    "bare": {
+      "arm": "bare",
+      "memory": "none"
+    },
+    "mempalace": {
+      "arm": "mempalace",
+      "memory": "static+retrieved",
+      "product": "mempalace",
+      "package_pin": "mempalace==3.8.0",
+      "ingest_mode": "convos",
+      "tools_allowed": 20,
+      "config_sha256": "c79206fb626d9f000a97044769e5661eabf62e7e12162d44ccbac798f93cbb66"
+    }
+  },
+  "ingest": [
+    {
+      "arm": "mempalace",
+      "namespace": "bench-official-002-adjacent",
+      "sessions_offered": 4900,
+      "items_stored": 1587,
+      "wall_time_ms": 584004.7614253126,
+      "llm_input_tokens": 0,
+      "llm_output_tokens": 0,
+      "local_model": "chromadb onnx all-MiniLM-L6-v2",
+      "notes": [
+        "filed via `mempalace mine --mode convos`, one palace per namespace",
+        "embedded locally through onnxruntime; the zero token counts are a true zero paid for in host compute, and wall_time_ms is where that cost shows up"
+      ]
+    }
+  ]
+}

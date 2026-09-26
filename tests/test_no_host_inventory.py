@@ -53,6 +53,10 @@ INVENTORY = (
     "pgsock",
     "amb-recall-pin",
     "recall-repos",
+    # A tailnet hostname. Added 2026-09-26: a MemPalace session in official-003-present printed
+    # git's `user@<host>.<tailnet>.ts.net` identity in an error, published 2026-09-02 and found by
+    # a network-identity scan. Generic on purpose: naming the tailnet here would publish it again.
+    ".ts.net",
 )
 
 #: The serving host's alias. Kept apart from INVENTORY because it behaves differently: it appears
