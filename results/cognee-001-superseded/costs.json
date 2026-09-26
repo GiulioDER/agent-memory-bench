@@ -1,0 +1,49 @@
+{
+  "arms": {
+    "cognee": {
+      "arm": "cognee",
+      "sessions": 55,
+      "sessions_unmetered": 1,
+      "session_input_tokens": 1924359,
+      "session_output_tokens": 117577,
+      "session_wall_time_ms": 4775351.966067217,
+      "ingest_input_tokens": 14730892,
+      "ingest_output_tokens": 3020035,
+      "ingest_unmetered": 0,
+      "ingest_wall_time_ms": 838549.2226229981,
+      "ingest_items_stored": 4911,
+      "ingest_local_model": "fastembed BAAI/bge-small-en-v1.5",
+      "total_tokens": 19792863,
+      "notes": [
+        "ingest into 'cognee-001-superseded' paid on BOTH sides: 17750927 hosted token(s) for extraction, plus the local model 'fastembed BAAI/bge-small-en-v1.5' for embedding, whose cost is in ingest_wall_time_ms rather than in the token columns. Neither number is the whole bill on its own"
+      ],
+      "estimated_usd": 1.3162,
+      "pricing_as_of": "2026-08-22",
+      "pricing_model": "deepseek/deepseek-v4-flash",
+      "usd_per_mtok_input": 0.0574,
+      "usd_per_mtok_output": 0.1148,
+      "usd_per_mtok_cache_read": null,
+      "usd_per_mtok_cache_creation": null,
+      "priced_cache_separately": false,
+      "session_cache_read_tokens": 1269712,
+      "session_cache_creation_tokens": 0
+    }
+  },
+  "total_tokens": 19792863,
+  "total_sessions": 55,
+  "estimated_usd": 1.3162,
+  "pricing_as_of": "2026-08-22",
+  "efficiency": {
+    "cognee": {
+      "sessions": 55,
+      "successes": 30,
+      "input_tokens": 1924359,
+      "output_tokens": 117577,
+      "wall_ms": 4775351.966067217,
+      "successes_per_mtok_input": 15.59,
+      "successes_per_mtok_total": 14.69,
+      "mean_input_tokens_per_session": 34988.3,
+      "mean_wall_s_per_session": 86.8
+    }
+  }
+}
