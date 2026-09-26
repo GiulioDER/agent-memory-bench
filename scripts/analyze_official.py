@@ -355,8 +355,22 @@ def _insights(
         insights.append(f"The placebo exceeds the claude_md baseline by {arms['placebo']['delta_vs_baseline']:+.1%}, so the run does not isolate a memory benefit cleanly.")
     for arm in products:
         data = arms[arm]
-        if data.get("delta_vs_baseline", 0) > 0 and data.get("ci95") and data["ci95"][0] <= 0 <= data["ci95"][1]:
-            insights.append(f"{arm} shows a positive point estimate, but its published 95% interval crosses zero.")
+        delta = data.get("delta_vs_baseline")
+        ci95 = data.get("ci95")
+        if isinstance(delta, (int, float)) and ci95:
+            low, high = ci95
+            if low <= 0 <= high:
+                if delta:
+                    direction = "positive" if delta > 0 else "negative"
+                    insights.append(f"{arm} shows a {direction} point estimate, but its published 95% interval crosses zero.")
+            else:
+                # An interval wholly on one side is a distinguishable result, in either direction, so
+                # it gets its own wording rather than being left out when the estimate is a loss.
+                side = "above" if low > 0 else "below"
+                insights.append(
+                    f"{arm} is {side} the {BASELINE} baseline at {delta:+.1%}, and its published 95% interval "
+                    f"[{low:+.1%}, {high:+.1%}] excludes zero."
+                )
         relative_cost = data.get("cost", {}).get("relative_to_baseline")
         if isinstance(relative_cost, (int, float)) and relative_cost > 0.5:
             insights.append(f"{arm} costs {relative_cost + 1:.1f} times the baseline per admitted cell, including retrieval context tokens.")
