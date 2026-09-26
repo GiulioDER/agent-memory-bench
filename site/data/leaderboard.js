@@ -365,6 +365,7 @@ window.AMB_LEADERBOARD = {
       "recall costs 3.3 times the baseline per admitted cell, including retrieval context tokens.",
       "mempalace shows a positive point estimate, but its published 95% interval crosses zero.",
       "mempalace costs 5.3 times the baseline per admitted cell, including retrieval context tokens.",
+      "supermemory is below the claude_md baseline at -32.9%, and its published 95% interval [-39.0%, -11.0%] excludes zero.",
       "cognee shows a positive point estimate, but its published 95% interval crosses zero.",
       "Claude Mem shows a positive point estimate, but its published 95% interval crosses zero.",
       "Graphiti shows a positive point estimate, but its published 95% interval crosses zero."
