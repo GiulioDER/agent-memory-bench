@@ -95,6 +95,44 @@ def test_a_doctored_token_total_is_caught(good_run):
     assert any("total tokens" in line for line in f.bad), f.bad
 
 
+def test_hosted_ingest_tokens_published_in_the_environment_count_toward_the_total(good_run):
+    """A self-ingesting arm's extraction bill is part of its total, and the verifier must add it.
+
+    Invariant: the published ``total_tokens`` is sessions plus the hosted ingest recorded in
+    ``environment.json``. Failure mode caught: a verifier that recomputes sessions only reports an
+    honest end-to-end total as doctored, which is what master did to `cognee-001` (2,325,473
+    recomputed against 20,038,282 published) until 2026-09-26.
+
+    Red proof, 2026-09-26: with `_load_ingest_reports(run_dir)` removed from the `summarize` call
+    in `scripts/verify_run.py`, this failed on its `total tokens` assertion with
+    "440 vs published 50440".
+    """
+
+    (good_run / "environment.json").write_text(
+        json.dumps(
+            {
+                "ingest": [
+                    {
+                        "arm": "recall",
+                        "namespace": "verify-001",
+                        "sessions_offered": 2,
+                        "llm_input_tokens": 41000,
+                        "llm_output_tokens": 9000,
+                        "local_model": "fastembed BAAI/bge-small-en-v1.5",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    costs = json.loads((good_run / "costs.json").read_text(encoding="utf-8"))
+    costs["total_tokens"] = 440 + 41000 + 9000
+    (good_run / "costs.json").write_text(json.dumps(costs), encoding="utf-8")
+
+    f = verify(good_run)
+    assert not any("total tokens" in line for line in f.bad), f.bad
+
+
 def test_a_dropped_session_is_caught(good_run):
     """Mutation: delete one arm's record from an admitted cell.
 
