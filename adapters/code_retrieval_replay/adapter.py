@@ -27,6 +27,8 @@ from scripts.code_embedding_replacement_experiment import (
 from scripts.retrieval_probe import WINDOW_STRIDE, WINDOW_WORDS, load_windows
 
 from .served import (
+    CD1_ARMS,
+    CD1_MODEL,
     LW_ARMS,
     LW_MODEL,
     SERVED_ARMS,
@@ -34,18 +36,20 @@ from .served import (
     LastWindowEvidence,
     ServedItem,
     format_served_evidence,
+    load_cd1,
     load_last_window_served,
     load_served,
 )
 
 #: The two arms of preregistration 091, read from its frozen artifact.
 REPLAY_091_ARMS = ("code3_replay", "code4_replay")
-ARMS = (*REPLAY_091_ARMS, *SERVED_ARMS, *LW_ARMS)
+ARMS = (*REPLAY_091_ARMS, *SERVED_ARMS, *LW_ARMS, *CD1_ARMS)
 ARM_MODELS = {
     "code3_replay": DEFAULT_CONTROL_MODEL,
     "code4_replay": DEFAULT_TREATMENT_MODEL,
     **{arm: SERVED_MODEL for arm in SERVED_ARMS},
     **{arm: LW_MODEL for arm in LW_ARMS},
+    **{arm: CD1_MODEL for arm in CD1_ARMS},
 }
 EVIDENCE_K = 10
 
@@ -85,6 +89,10 @@ class CodeRetrievalReplayCatalog:
         last_window: dict[str, LastWindowEvidence] | None = None,
         last_window_digest: str = "",
         last_window_manifest_digest: str = "",
+        cd1: dict[str, tuple[ServedItem, ...]] | None = None,
+        cd1_digest: str = "",
+        cd1_condition: str = "",
+        cd1_gated: frozenset[str] = frozenset(),
     ) -> None:
         self.path = path
         self.digest = digest
@@ -97,8 +105,15 @@ class CodeRetrievalReplayCatalog:
         self.last_window = last_window
         self.last_window_digest = last_window_digest
         self.last_window_manifest_digest = last_window_manifest_digest
+        #: CD-1 Stage 1's collect per task (all 100 served items), its condition and gated tasks.
+        self.cd1 = cd1
+        self.cd1_digest = cd1_digest
+        self.cd1_condition = cd1_condition
+        self.cd1_gated = cd1_gated
 
     def artifact_digest(self, arm: str) -> str:
+        if arm in CD1_ARMS:
+            return self.cd1_digest
         if arm in LW_ARMS:
             return self.last_window_digest
         return self.served_digest if arm in SERVED_ARMS else self.digest
@@ -113,6 +128,8 @@ class CodeRetrievalReplayCatalog:
         served_path: str | Path | None = None,
         last_window_path: str | Path | None = None,
         last_window_manifest_path: str | Path | None = None,
+        cd1_path: str | Path | None = None,
+        cd1_condition: str = "",
     ) -> CodeRetrievalReplayCatalog:
         path = Path(path)
         corpus_root = Path(corpus_root)
@@ -214,6 +231,11 @@ class CodeRetrievalReplayCatalog:
             last_window_digest, last_window_manifest_digest, last_window = load_last_window_served(
                 Path(last_window_path), Path(last_window_manifest_path), set(tasks)
             )
+        if (cd1_path is None) != (not cd1_condition):
+            raise ValueError("a CD-1 collect and its condition are loaded together or not at all")
+        cd1, cd1_digest, cd1_gated = None, "", frozenset()
+        if cd1_path is not None:
+            cd1_digest, cd1_gated, cd1 = load_cd1(Path(cd1_path), cd1_condition, set(tasks))
         return cls(
             path=path,
             digest=_sha256_file(path),
@@ -224,6 +246,10 @@ class CodeRetrievalReplayCatalog:
             last_window=last_window,
             last_window_digest=last_window_digest,
             last_window_manifest_digest=last_window_manifest_digest,
+            cd1=cd1,
+            cd1_digest=cd1_digest,
+            cd1_condition=cd1_condition,
+            cd1_gated=cd1_gated,
         )
 
 
@@ -264,6 +290,8 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
             raise ValueError(f"{arm} requires a served evidence artifact")
         if arm in LW_ARMS and catalog.last_window is None:
             raise ValueError(f"{arm} requires the last-window artifact and its manifest")
+        if arm in CD1_ARMS and catalog.cd1 is None:
+            raise ValueError(f"{arm} requires a CD-1 collect and its condition")
         self.name = arm
         self.catalog = catalog
         self.staging_root = Path(staging_root)
@@ -304,6 +332,15 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
             evidence = self.catalog.last_window[task_id]
             items = evidence.top if self.name == "c9_raw2" else (*evidence.top, *evidence.appended)
             return self._build_served(namespace, task_id, query_sha, items)
+        if self.name in CD1_ARMS:
+            assert self.catalog.cd1 is not None
+            if task_id not in self.catalog.cd1_gated:
+                raise ValueError(
+                    f"{task_id}: G(0.25) does not gate it under {self.catalog.cd1_condition!r}, so "
+                    "cd1_full and cd1_gated would show identical evidence; CD-1 Stage 1 runs gated tasks only"
+                )
+            full = self.catalog.cd1[task_id]
+            return self._build_served(namespace, task_id, query_sha, full if self.name == "cd1_full" else full[:10])
         windows = task.arms[self.name]
         evidence_text = format_ranked_evidence(windows)
         prompt = namespace_path(self.staging_root, namespace, task_id, f"{self.name}.system.md")
@@ -365,10 +402,12 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
     ) -> ArmSpec:
         digest = self.catalog.artifact_digest(self.name)
         model = ARM_MODELS[self.name]
-        # Only A1's arms carry a manifest; TS-1's two keep their payload and diagnostic unchanged.
-        manifest = (
+        # Only A1's arms carry a manifest and CD-1's a condition; TS-1's two keep theirs unchanged.
+        manifest: dict[str, Any] = (
             {"last_window_manifest_sha256": self.catalog.last_window_manifest_digest}
             if self.name in LW_ARMS
+            else {"cd1_condition": self.catalog.cd1_condition, "cd1_items_shown": len(items)}
+            if self.name in CD1_ARMS
             else {}
         )
         evidence_text = format_served_evidence(items, normalised=self.name == "c9_norm")

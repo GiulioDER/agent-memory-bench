@@ -22,6 +22,17 @@ The service does not say how many windows it appended, so the arm takes that fro
 written by the collect's apparatus check, which recomputed LW-1 from the corpus and found the
 served items at ranks 11 onward equal to it. The manifest names the collect it describes by
 digest, and every listed id must be the served item at its rank, or nothing loads.
+
+RE-call's CD-1 Stage 1 (pre-registered 2026-09-27) adds two arms read from a CD-1 Stage 0 collect,
+which kept all 100 served items and each task's top-1 dense cosine. Its rule G(0.25) returns only
+the top 10 when that cosine is below 0.25, so:
+
+* ``cd1_full`` shows the 100 items in served order, rendered exactly as ``c9_raw`` renders;
+* ``cd1_gated`` shows the first 10 of them.
+
+Only the tasks G gates run: on every other task the two arms' input is identical by construction.
+The collect is bound by its full digest and its own arm label, and the gated set recomputed from it
+must equal the one the pre-registration lists, or nothing loads.
 """
 
 from __future__ import annotations
@@ -40,6 +51,37 @@ SERVED_K = 10
 LW_ARMS = ("c9_raw2", "c9_lw")
 LW_MODEL = "re-call-c9-last-window"
 LW_MANIFEST_SCHEMA = "ts1-a1-last-windows-v1"
+CD1_ARMS = ("cd1_full", "cd1_gated")
+CD1_MODEL = "re-call-c9-cd1-g025"
+CD1_ITEMS = 100
+CD1_TAU = 0.25
+
+
+@dataclass(frozen=True)
+class Cd1Collect:
+    """One CD-1 Stage 0 collect as the pre-registration fixed it: file digest, arm label, gated set."""
+
+    sha256: str
+    arm: str
+    gated: frozenset[str]
+
+
+#: RE-call recall-lab ``research/preregistrations/2026-09-27-cd1-coding-return-size-stage1.md``; the
+#: digests as corrected in the Stage 0 record the same evening (its prefixes were swapped).
+CD1_REGISTERED = {
+    "present": Cd1Collect(
+        sha256="c5dde73e17b799f3412eaf9fb9f16c4fd83236a4667d302a2c466ff0b8d2c95d",
+        arm="CD1P",
+        gated=frozenset({"ts-ignore-gen", "ts-natural-order", "ts-nfc-count", "ts-quote-shell",
+                         "ts-semver-pin", "xs-join-batch"}),
+    ),
+    "absent": Cd1Collect(
+        sha256="f463677024753e6f14577dc09bf8aacdcf8abd9e99bf55527a08fff12fd2e4d6",
+        arm="CD1A",
+        gated=frozenset({"ts-dedup-order", "ts-ignore-gen", "ts-mig-name", "ts-natural-order",
+                         "ts-nfc-count", "ts-quote-shell", "ts-semver-pin", "xs-join-batch"}),
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -134,6 +176,47 @@ def load_last_window_served(
         ranked = [_served_item(task_id, rank, item) for rank, item in enumerate(items[:SERVED_K + len(wanted)], start=1)]
         evidence[task_id] = LastWindowEvidence(top=tuple(ranked[:SERVED_K]), appended=tuple(ranked[SERVED_K:]))
     return digest, hashlib.sha256(manifest_raw).hexdigest(), evidence
+
+
+def load_cd1(
+    path: Path,
+    condition: str,
+    task_ids: set[str],
+    registered: dict[str, Cd1Collect] | None = None,
+) -> tuple[str, frozenset[str], dict[str, tuple[ServedItem, ...]]]:
+    """A CD-1 collect's digest, its gated tasks, and each task's 100 served items in order.
+
+    Refused unless the file is the registered collect for ``condition`` (digest and arm label),
+    every task holds exactly ``CD1_ITEMS`` items and a top-1 cosine, and the tasks whose top-1 is
+    below ``CD1_TAU`` are exactly the registered gated set.
+    """
+    registered = CD1_REGISTERED if registered is None else registered
+    if condition not in registered:
+        raise ValueError(f"unknown CD-1 condition {condition!r}; expected one of {sorted(registered)}")
+    expected = registered[condition]
+    raw = path.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != expected.sha256:
+        raise ValueError(f"CD-1 {condition} collect digest {digest[:16]} is not the registered one")
+    data = json.loads(gzip.decompress(raw) if path.suffix == ".gz" else raw)
+    if data.get("arm") != expected.arm:
+        raise ValueError(f"CD-1 {condition} collect is arm {data.get('arm')!r}, not {expected.arm!r}")
+    _, rows = _served_rows(path, task_ids)
+    top1 = {str(row["task_id"]): row.get("dense_top1") for row in data["rows"]}
+    evidence: dict[str, tuple[ServedItem, ...]] = {}
+    for task_id, items in rows.items():
+        if len(items) != CD1_ITEMS:
+            raise ValueError(f"{task_id}: CD-1 collect holds {len(items)} items, not {CD1_ITEMS}")
+        if not isinstance(top1.get(task_id), (int, float)):
+            raise TypeError(f"{task_id}: CD-1 collect has no top-1 dense cosine")
+        evidence[task_id] = tuple(_served_item(task_id, rank, item) for rank, item in enumerate(items, start=1))
+    gated = frozenset(task_id for task_id, value in top1.items() if task_id in rows and value < CD1_TAU)
+    if gated != expected.gated:
+        raise ValueError(
+            f"CD-1 {condition} gated set differs from the registered one: "
+            f"extra={sorted(gated - expected.gated)}, missing={sorted(expected.gated - gated)}"
+        )
+    return digest, gated, evidence
 
 
 def format_served_evidence(items: tuple[ServedItem, ...], *, normalised: bool) -> str:

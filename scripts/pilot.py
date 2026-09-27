@@ -63,7 +63,7 @@ from adapters.code_retrieval_replay.adapter import (
     CodeRetrievalReplayAdapter,
     CodeRetrievalReplayCatalog,
 )
-from adapters.code_retrieval_replay.served import LW_ARMS, SERVED_ARMS
+from adapters.code_retrieval_replay.served import CD1_ARMS, CD1_REGISTERED, LW_ARMS, SERVED_ARMS
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 
 try:
@@ -1362,6 +1362,18 @@ async def main() -> int:
         "with --last-window-artifact",
     )
     parser.add_argument(
+        "--cd1-artifact",
+        type=Path,
+        help="RE-call CD-1 Stage 0 collect (100 served items per task), required by cd1_full and cd1_gated",
+    )
+    parser.add_argument(
+        "--cd1-condition",
+        default="",
+        choices=("", *sorted(CD1_REGISTERED)),
+        help="which registered CD-1 collect --cd1-artifact is; the run's --tasks must be exactly its "
+        "gated set, which the pre-registration fixes",
+    )
+    parser.add_argument(
         "--condition",
         default="",
         choices=("", *CORPUS_CONDITIONS),
@@ -1589,17 +1601,37 @@ async def main() -> int:
             "--last-window-artifact and --last-window-manifest are required exactly when a "
             f"last-window arm ({', '.join(LW_ARMS)}) runs"
         )
+    cd1_selected = any(arm in run_arms for arm in CD1_ARMS)
+    if not (cd1_selected == bool(args.cd1_artifact) == bool(args.cd1_condition)):
+        raise SystemExit(
+            "--cd1-artifact and --cd1-condition are required exactly when a CD-1 arm "
+            f"({', '.join(CD1_ARMS)}) runs"
+        )
+    if cd1_selected:
+        # The task set is the pre-registration's, not a calibration subset: exactly the gated tasks.
+        registered_gated = CD1_REGISTERED[args.cd1_condition].gated
+        if {task.task_id for task in tasks} != registered_gated:
+            raise SystemExit(
+                f"a CD-1 run must name exactly the {args.cd1_condition} gated tasks: "
+                f"{','.join(sorted(registered_gated))}"
+            )
     code_retrieval_catalog: CodeRetrievalReplayCatalog | None = None
     if replay_selected:
         try:
             code_retrieval_catalog = CodeRetrievalReplayCatalog.load(
                 args.code_retrieval_artifact,
                 corpus_root,
-                expected_task_ids={task.task_id for task in tasks},
+                # A CD-1 run selects a registered subset; the 091 artifact and the collect still
+                # load and validate whole, and every gated task must be in them.
+                expected_task_ids=None if cd1_selected else {task.task_id for task in tasks},
                 served_path=args.served_evidence_artifact,
                 last_window_path=args.last_window_artifact,
                 last_window_manifest_path=args.last_window_manifest,
+                cd1_path=args.cd1_artifact,
+                cd1_condition=args.cd1_condition,
             )
+            if cd1_selected and code_retrieval_catalog.cd1_gated != {task.task_id for task in tasks}:
+                raise ValueError("the CD-1 collect's gated set is not the run's task set")
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
             raise SystemExit(str(error)) from None
     oracle_catalog: MemoryBundleCatalog | None = None
@@ -2159,6 +2191,12 @@ async def main() -> int:
                     if code_retrieval_catalog is not None
                     else None
                 ),
+                "cd1_artifact_sha256": (
+                    code_retrieval_catalog.cd1_digest or None
+                    if code_retrieval_catalog is not None
+                    else None
+                ),
+                "cd1_condition": args.cd1_condition or None,
                 "namespace": args.namespace,
                 "cell_namespace_policy": {
                     "claude_mem": "one cloned post-import worker namespace per task-seed cell",
