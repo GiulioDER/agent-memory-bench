@@ -75,6 +75,9 @@ HOST_ALIAS = "vps2"
 KNOWN_PROSE_MENTIONS = frozenset(
     {
         "adapters/recall/adapter.py",
+        # The public-tree ratchet's own record: it lists paths of files already tracked here,
+        # some of whose names contain the alias. Paths and counts only, no new mention.
+        "scripts/public_tree_baseline.json",
         "adapters/recall/config.frozen.json",
         # Frozen measured configs preserve their historical topology note byte for byte.
         "adapters/recall_graph_fulltools/config.frozen.json",

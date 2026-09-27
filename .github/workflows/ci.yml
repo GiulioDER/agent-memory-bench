@@ -36,6 +36,40 @@ jobs:
       # empty results/<id>/ that the next real run with that id would then refuse.
       - run: git diff --exit-code && test -z "$(git status --porcelain)"
 
+  # This repository is public. GitHub secret scanning looks for credential formats only; this
+  # refuses host addresses, key fingerprints, personal mailboxes, private memo content, real
+  # account names in home paths and a private deny list, in every tracked file. Account names,
+  # deny-list terms and memo-shaped text already recorded in results/ are capped per file by
+  # scripts/public_tree_baseline.json; a new file or a higher count fails. Standard library only.
+  public-tree:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      # The deny list cannot live in a public tree, so it arrives as the repository secret
+      # PUBLIC_TREE_DENYLIST. A fork PR receives no secrets and is told the rule was not checked;
+      # anywhere else a missing secret fails, because a check that silently skips its strictest
+      # rule is a false green.
+      - name: Write the private deny list
+        env:
+          DENYLIST: ${{ secrets.PUBLIC_TREE_DENYLIST }}
+          FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          if [ -n "$DENYLIST" ]; then
+            printf '%s\n' "$DENYLIST" > "$RUNNER_TEMP/public-tree-denylist.txt"
+            echo "RECALL_PUBLIC_TREE_DENYLIST=$RUNNER_TEMP/public-tree-denylist.txt" >> "$GITHUB_ENV"
+          elif [ "$FORK" = "true" ]; then
+            echo "::notice::fork pull request: private-term is not checked here"
+          else
+            echo "::error::secret PUBLIC_TREE_DENYLIST is missing, so private-term would not be checked"
+            exit 1
+          fi
+      - name: Refuse infrastructure and private content in the public tree
+        run: python scripts/check_public_tree.py
+
   # An admission smoke (1 cheap task, every wired arm, gate must admit) joins this file at the
   # end of Phase 0. It needs the Claude CLI and per-arm credentials, so it runs on a schedule
   # with secrets, not on fork PRs.
