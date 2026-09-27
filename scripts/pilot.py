@@ -63,6 +63,7 @@ from adapters.code_retrieval_replay.adapter import (
     CodeRetrievalReplayAdapter,
     CodeRetrievalReplayCatalog,
 )
+from adapters.code_retrieval_replay.served import SERVED_ARMS
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 
 try:
@@ -1050,8 +1051,10 @@ def instruction_arms_are_matched(
 ) -> bool:
     """Whether the run claims equal instruction treatment across its compared arms."""
 
+    # Every replay arm (091's two and TS-1's served pair) injects evidence and no instruction, so
+    # any two or more of them are matched; one replay arm beside a live arm is not.
     return memory_instruction in {"protocol", PREMUTATION_CHECKPOINT_PAIRED_VARIANT} or (
-        set(run_arms) == set(CODE_RETRIEVAL_REPLAY_ARMS)
+        len(set(run_arms)) >= 2 and set(run_arms) <= set(CODE_RETRIEVAL_REPLAY_ARMS)
     )
 
 
@@ -1339,8 +1342,13 @@ async def main() -> int:
     parser.add_argument(
         "--code-retrieval-artifact",
         type=Path,
-        help="frozen preregistration-091 evidence artifact required by code3_replay and "
-        "code4_replay",
+        help="frozen preregistration-091 evidence artifact required by every replay arm "
+        "(it carries the task roster and prompt hashes)",
+    )
+    parser.add_argument(
+        "--served-evidence-artifact",
+        type=Path,
+        help="RE-call TS-1 collect output (top items per task) required by c9_norm and c9_raw",
     )
     parser.add_argument(
         "--condition",
@@ -1556,6 +1564,12 @@ async def main() -> int:
         raise SystemExit(
             "--code-retrieval-artifact is required exactly when a code retrieval replay arm runs"
         )
+    served_selected = any(arm in run_arms for arm in SERVED_ARMS)
+    if served_selected != bool(args.served_evidence_artifact):
+        raise SystemExit(
+            "--served-evidence-artifact is required exactly when a served evidence arm "
+            f"({', '.join(SERVED_ARMS)}) runs"
+        )
     code_retrieval_catalog: CodeRetrievalReplayCatalog | None = None
     if replay_selected:
         try:
@@ -1563,6 +1577,7 @@ async def main() -> int:
                 args.code_retrieval_artifact,
                 corpus_root,
                 expected_task_ids={task.task_id for task in tasks},
+                served_path=args.served_evidence_artifact,
             )
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
             raise SystemExit(str(error)) from None
@@ -2105,6 +2120,11 @@ async def main() -> int:
                 "prompt_sha256_by_task": prompt_hashes,
                 "code_retrieval_artifact_sha256": (
                     code_retrieval_catalog.digest
+                    if code_retrieval_catalog is not None
+                    else None
+                ),
+                "served_evidence_artifact_sha256": (
+                    code_retrieval_catalog.served_digest or None
                     if code_retrieval_catalog is not None
                     else None
                 ),

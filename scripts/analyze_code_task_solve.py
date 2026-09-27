@@ -20,10 +20,12 @@ from typing import Any
 
 from adapters.code_retrieval_replay.adapter import (
     ARM_MODELS,
-    ARMS,
     EVIDENCE_K,
     CodeRetrievalReplayCatalog,
     format_ranked_evidence,
+)
+from adapters.code_retrieval_replay.adapter import (
+    REPLAY_091_ARMS as ARMS,
 )
 from harness.io import read_jsonl
 from harness.memory_prompt import estimated_input_tokens, sha256_text

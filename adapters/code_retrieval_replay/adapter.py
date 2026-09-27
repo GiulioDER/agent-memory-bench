@@ -26,10 +26,15 @@ from scripts.code_embedding_replacement_experiment import (
 )
 from scripts.retrieval_probe import WINDOW_STRIDE, WINDOW_WORDS, load_windows
 
-ARMS = ("code3_replay", "code4_replay")
+from .served import SERVED_ARMS, SERVED_MODEL, ServedItem, format_served_evidence, load_served
+
+#: The two arms of preregistration 091, read from its frozen artifact.
+REPLAY_091_ARMS = ("code3_replay", "code4_replay")
+ARMS = (*REPLAY_091_ARMS, *SERVED_ARMS)
 ARM_MODELS = {
     "code3_replay": DEFAULT_CONTROL_MODEL,
     "code4_replay": DEFAULT_TREATMENT_MODEL,
+    **{arm: SERVED_MODEL for arm in SERVED_ARMS},
 }
 EVIDENCE_K = 10
 
@@ -64,11 +69,19 @@ class CodeRetrievalReplayCatalog:
         digest: str,
         manifest_sha256: str,
         tasks: dict[str, ReplayTask],
+        served: dict[str, tuple[ServedItem, ...]] | None = None,
+        served_digest: str = "",
     ) -> None:
         self.path = path
         self.digest = digest
         self.manifest_sha256 = manifest_sha256
         self.tasks = tasks
+        #: TS-1's served evidence per task, when a served artifact was loaded alongside 091's.
+        self.served = served
+        self.served_digest = served_digest
+
+    def artifact_digest(self, arm: str) -> str:
+        return self.served_digest if arm in SERVED_ARMS else self.digest
 
     @classmethod
     def load(
@@ -77,6 +90,7 @@ class CodeRetrievalReplayCatalog:
         corpus_root: str | Path,
         *,
         expected_task_ids: set[str] | None = None,
+        served_path: str | Path | None = None,
     ) -> CodeRetrievalReplayCatalog:
         path = Path(path)
         corpus_root = Path(corpus_root)
@@ -128,7 +142,7 @@ class CodeRetrievalReplayCatalog:
             if not task_id or task_id in tasks:
                 raise ValueError(f"invalid or duplicate replay task {task_id!r}")
             arm_windows: dict[str, tuple[ReplayWindow, ...]] = {}
-            for arm in ARMS:
+            for arm in REPLAY_091_ARMS:
                 raw_arm = raw_task.get(arm)
                 if not isinstance(raw_arm, dict) or raw_arm.get("model") != ARM_MODELS[arm]:
                     raise ValueError(f"{task_id}: invalid {arm} model identity")
@@ -168,11 +182,16 @@ class CodeRetrievalReplayCatalog:
             missing = sorted(expected_task_ids - set(tasks))
             extra = sorted(set(tasks) - expected_task_ids)
             raise ValueError(f"code retrieval replay task roster mismatch: missing={missing}, extra={extra}")
+        served, served_digest = None, ""
+        if served_path is not None:
+            served_digest, served = load_served(Path(served_path), set(tasks))
         return cls(
             path=path,
             digest=_sha256_file(path),
             manifest_sha256=actual_manifest_sha,
             tasks=tasks,
+            served=served,
+            served_digest=served_digest,
         )
 
 
@@ -209,6 +228,8 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
     ) -> None:
         if arm not in ARMS:
             raise ValueError(f"unknown code retrieval replay arm {arm!r}")
+        if arm in SERVED_ARMS and catalog.served is None:
+            raise ValueError(f"{arm} requires a served evidence artifact")
         self.name = arm
         self.catalog = catalog
         self.staging_root = Path(staging_root)
@@ -241,6 +262,8 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
         query_sha = sha256_text(user_input)
         if query_sha != task.query_sha256:
             raise ValueError(f"{task_id}: task prompt hash does not match the evidence build")
+        if self.name in SERVED_ARMS:
+            return self._build_served(namespace, task_id, query_sha)
         windows = task.arms[self.name]
         evidence_text = format_ranked_evidence(windows)
         prompt = namespace_path(self.staging_root, namespace, task_id, f"{self.name}.system.md")
@@ -297,12 +320,54 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
             },
         )
 
+    def _build_served(self, namespace: str, task_id: str, query_sha: str) -> ArmSpec:
+        assert self.catalog.served is not None
+        items = self.catalog.served[task_id]
+        evidence_text = format_served_evidence(items, normalised=self.name == "c9_norm")
+        prompt = namespace_path(self.staging_root, namespace, task_id, f"{self.name}.system.md")
+        prompt.parent.mkdir(parents=True, exist_ok=True)
+        static = self.base_prompt_file.read_text(encoding="utf-8").rstrip()
+        prompt.write_text(evidence_text.rstrip() + "\n\n" + static + "\n", encoding="utf-8")
+        described = [{"rank": i.rank, "id": i.item_id, "kind": i.kind, "session_id": i.session_id,
+                      "content_sha256": i.content_sha256} for i in items]
+        prompt.with_name(f"{self.name}.payload.json").write_text(
+            json.dumps({"artifact_sha256": self.catalog.served_digest, "arm": self.name, "model": SERVED_MODEL,
+                        "task_id": task_id, "query_sha256": query_sha, "items": described,
+                        "injected_text_sha256": sha256_text(evidence_text)},
+                       ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        return ArmSpec(
+            arm=self.name,
+            bare=True,
+            append_system_prompt_file=prompt,
+            metadata={
+                "memory": "served_evidence_replay",
+                "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest(),
+                "memory_diagnostic": {
+                    "kind": self.name,
+                    "task_id": task_id,
+                    "model": SERVED_MODEL,
+                    "artifact_sha256": self.catalog.served_digest,
+                    "manifest_sha256": self.catalog.manifest_sha256,
+                    "query_sha256": query_sha,
+                    "window_indices": [],
+                    "item_ids": [i.item_id for i in items],
+                    "item_kinds": [i.kind for i in items],
+                    "source_paths": [i.session_id for i in items],
+                    "injected_text_sha256": sha256_text(evidence_text),
+                    "injected_input_tokens": estimated_input_tokens(evidence_text),
+                    "status": "ok",
+                },
+            },
+        )
+
     def admission_signal(self) -> AdmissionSignal:
         return AdmissionSignal(
             arm=self.name,
             metadata={
                 "diagnostic_kind": self.name,
-                "artifact_sha256": self.catalog.digest,
+                "artifact_sha256": self.catalog.artifact_digest(self.name),
                 "manifest_sha256": self.catalog.manifest_sha256,
                 "model": ARM_MODELS[self.name],
             },
@@ -313,6 +378,6 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
             "arm": self.name,
             "memory": "frozen ranked evidence replay",
             "model": ARM_MODELS[self.name],
-            "artifact_sha256": self.catalog.digest,
+            "artifact_sha256": self.catalog.artifact_digest(self.name),
             "manifest_sha256": self.catalog.manifest_sha256,
         }
