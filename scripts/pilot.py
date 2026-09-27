@@ -63,7 +63,7 @@ from adapters.code_retrieval_replay.adapter import (
     CodeRetrievalReplayAdapter,
     CodeRetrievalReplayCatalog,
 )
-from adapters.code_retrieval_replay.served import SERVED_ARMS
+from adapters.code_retrieval_replay.served import LW_ARMS, SERVED_ARMS
 from adapters.fs_grep.adapter import FS_GREP_SEARCH_SENTENCE, FsGrepAdapter
 
 try:
@@ -1051,7 +1051,7 @@ def instruction_arms_are_matched(
 ) -> bool:
     """Whether the run claims equal instruction treatment across its compared arms."""
 
-    # Every replay arm (091's two and TS-1's served pair) injects evidence and no instruction, so
+    # Every replay arm (091's two, TS-1's served pair and A1's) injects evidence and no instruction, so
     # any two or more of them are matched; one replay arm beside a live arm is not.
     return memory_instruction in {"protocol", PREMUTATION_CHECKPOINT_PAIRED_VARIANT} or (
         len(set(run_arms)) >= 2 and set(run_arms) <= set(CODE_RETRIEVAL_REPLAY_ARMS)
@@ -1351,6 +1351,17 @@ async def main() -> int:
         help="RE-call TS-1 collect output (top items per task) required by c9_norm and c9_raw",
     )
     parser.add_argument(
+        "--last-window-artifact",
+        type=Path,
+        help="RE-call TS-1 amendment A1 collect (served with LW-1 on), required by c9_raw2 and c9_lw",
+    )
+    parser.add_argument(
+        "--last-window-manifest",
+        type=Path,
+        help="the A1 apparatus check's manifest of each task's appended last windows, required "
+        "with --last-window-artifact",
+    )
+    parser.add_argument(
         "--condition",
         default="",
         choices=("", *CORPUS_CONDITIONS),
@@ -1570,6 +1581,14 @@ async def main() -> int:
             "--served-evidence-artifact is required exactly when a served evidence arm "
             f"({', '.join(SERVED_ARMS)}) runs"
         )
+    last_window_selected = any(arm in run_arms for arm in LW_ARMS)
+    if not (
+        last_window_selected == bool(args.last_window_artifact) == bool(args.last_window_manifest)
+    ):
+        raise SystemExit(
+            "--last-window-artifact and --last-window-manifest are required exactly when a "
+            f"last-window arm ({', '.join(LW_ARMS)}) runs"
+        )
     code_retrieval_catalog: CodeRetrievalReplayCatalog | None = None
     if replay_selected:
         try:
@@ -1578,6 +1597,8 @@ async def main() -> int:
                 corpus_root,
                 expected_task_ids={task.task_id for task in tasks},
                 served_path=args.served_evidence_artifact,
+                last_window_path=args.last_window_artifact,
+                last_window_manifest_path=args.last_window_manifest,
             )
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
             raise SystemExit(str(error)) from None
@@ -2125,6 +2146,16 @@ async def main() -> int:
                 ),
                 "served_evidence_artifact_sha256": (
                     code_retrieval_catalog.served_digest or None
+                    if code_retrieval_catalog is not None
+                    else None
+                ),
+                "last_window_artifact_sha256": (
+                    code_retrieval_catalog.last_window_digest or None
+                    if code_retrieval_catalog is not None
+                    else None
+                ),
+                "last_window_manifest_sha256": (
+                    code_retrieval_catalog.last_window_manifest_digest or None
                     if code_retrieval_catalog is not None
                     else None
                 ),

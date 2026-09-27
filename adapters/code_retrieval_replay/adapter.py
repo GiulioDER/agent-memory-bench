@@ -26,15 +26,26 @@ from scripts.code_embedding_replacement_experiment import (
 )
 from scripts.retrieval_probe import WINDOW_STRIDE, WINDOW_WORDS, load_windows
 
-from .served import SERVED_ARMS, SERVED_MODEL, ServedItem, format_served_evidence, load_served
+from .served import (
+    LW_ARMS,
+    LW_MODEL,
+    SERVED_ARMS,
+    SERVED_MODEL,
+    LastWindowEvidence,
+    ServedItem,
+    format_served_evidence,
+    load_last_window_served,
+    load_served,
+)
 
 #: The two arms of preregistration 091, read from its frozen artifact.
 REPLAY_091_ARMS = ("code3_replay", "code4_replay")
-ARMS = (*REPLAY_091_ARMS, *SERVED_ARMS)
+ARMS = (*REPLAY_091_ARMS, *SERVED_ARMS, *LW_ARMS)
 ARM_MODELS = {
     "code3_replay": DEFAULT_CONTROL_MODEL,
     "code4_replay": DEFAULT_TREATMENT_MODEL,
     **{arm: SERVED_MODEL for arm in SERVED_ARMS},
+    **{arm: LW_MODEL for arm in LW_ARMS},
 }
 EVIDENCE_K = 10
 
@@ -71,6 +82,9 @@ class CodeRetrievalReplayCatalog:
         tasks: dict[str, ReplayTask],
         served: dict[str, tuple[ServedItem, ...]] | None = None,
         served_digest: str = "",
+        last_window: dict[str, LastWindowEvidence] | None = None,
+        last_window_digest: str = "",
+        last_window_manifest_digest: str = "",
     ) -> None:
         self.path = path
         self.digest = digest
@@ -79,8 +93,14 @@ class CodeRetrievalReplayCatalog:
         #: TS-1's served evidence per task, when a served artifact was loaded alongside 091's.
         self.served = served
         self.served_digest = served_digest
+        #: TS-1 amendment A1's LW-1 collect per task, and the manifest that fixes what it appended.
+        self.last_window = last_window
+        self.last_window_digest = last_window_digest
+        self.last_window_manifest_digest = last_window_manifest_digest
 
     def artifact_digest(self, arm: str) -> str:
+        if arm in LW_ARMS:
+            return self.last_window_digest
         return self.served_digest if arm in SERVED_ARMS else self.digest
 
     @classmethod
@@ -91,6 +111,8 @@ class CodeRetrievalReplayCatalog:
         *,
         expected_task_ids: set[str] | None = None,
         served_path: str | Path | None = None,
+        last_window_path: str | Path | None = None,
+        last_window_manifest_path: str | Path | None = None,
     ) -> CodeRetrievalReplayCatalog:
         path = Path(path)
         corpus_root = Path(corpus_root)
@@ -185,6 +207,13 @@ class CodeRetrievalReplayCatalog:
         served, served_digest = None, ""
         if served_path is not None:
             served_digest, served = load_served(Path(served_path), set(tasks))
+        if (last_window_path is None) != (last_window_manifest_path is None):
+            raise ValueError("the last-window artifact and its manifest are loaded together or not at all")
+        last_window, last_window_digest, last_window_manifest_digest = None, "", ""
+        if last_window_path is not None and last_window_manifest_path is not None:
+            last_window_digest, last_window_manifest_digest, last_window = load_last_window_served(
+                Path(last_window_path), Path(last_window_manifest_path), set(tasks)
+            )
         return cls(
             path=path,
             digest=_sha256_file(path),
@@ -192,6 +221,9 @@ class CodeRetrievalReplayCatalog:
             tasks=tasks,
             served=served,
             served_digest=served_digest,
+            last_window=last_window,
+            last_window_digest=last_window_digest,
+            last_window_manifest_digest=last_window_manifest_digest,
         )
 
 
@@ -230,6 +262,8 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
             raise ValueError(f"unknown code retrieval replay arm {arm!r}")
         if arm in SERVED_ARMS and catalog.served is None:
             raise ValueError(f"{arm} requires a served evidence artifact")
+        if arm in LW_ARMS and catalog.last_window is None:
+            raise ValueError(f"{arm} requires the last-window artifact and its manifest")
         self.name = arm
         self.catalog = catalog
         self.staging_root = Path(staging_root)
@@ -263,7 +297,13 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
         if query_sha != task.query_sha256:
             raise ValueError(f"{task_id}: task prompt hash does not match the evidence build")
         if self.name in SERVED_ARMS:
-            return self._build_served(namespace, task_id, query_sha)
+            assert self.catalog.served is not None
+            return self._build_served(namespace, task_id, query_sha, self.catalog.served[task_id])
+        if self.name in LW_ARMS:
+            assert self.catalog.last_window is not None
+            evidence = self.catalog.last_window[task_id]
+            items = evidence.top if self.name == "c9_raw2" else (*evidence.top, *evidence.appended)
+            return self._build_served(namespace, task_id, query_sha, items)
         windows = task.arms[self.name]
         evidence_text = format_ranked_evidence(windows)
         prompt = namespace_path(self.staging_root, namespace, task_id, f"{self.name}.system.md")
@@ -320,9 +360,17 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
             },
         )
 
-    def _build_served(self, namespace: str, task_id: str, query_sha: str) -> ArmSpec:
-        assert self.catalog.served is not None
-        items = self.catalog.served[task_id]
+    def _build_served(
+        self, namespace: str, task_id: str, query_sha: str, items: tuple[ServedItem, ...]
+    ) -> ArmSpec:
+        digest = self.catalog.artifact_digest(self.name)
+        model = ARM_MODELS[self.name]
+        # Only A1's arms carry a manifest; TS-1's two keep their payload and diagnostic unchanged.
+        manifest = (
+            {"last_window_manifest_sha256": self.catalog.last_window_manifest_digest}
+            if self.name in LW_ARMS
+            else {}
+        )
         evidence_text = format_served_evidence(items, normalised=self.name == "c9_norm")
         prompt = namespace_path(self.staging_root, namespace, task_id, f"{self.name}.system.md")
         prompt.parent.mkdir(parents=True, exist_ok=True)
@@ -331,9 +379,9 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
         described = [{"rank": i.rank, "id": i.item_id, "kind": i.kind, "session_id": i.session_id,
                       "content_sha256": i.content_sha256} for i in items]
         prompt.with_name(f"{self.name}.payload.json").write_text(
-            json.dumps({"artifact_sha256": self.catalog.served_digest, "arm": self.name, "model": SERVED_MODEL,
+            json.dumps({"artifact_sha256": digest, "arm": self.name, "model": model,
                         "task_id": task_id, "query_sha256": query_sha, "items": described,
-                        "injected_text_sha256": sha256_text(evidence_text)},
+                        "injected_text_sha256": sha256_text(evidence_text), **manifest},
                        ensure_ascii=False, sort_keys=True) + "\n",
             encoding="utf-8",
         )
@@ -347,8 +395,9 @@ class CodeRetrievalReplayAdapter(MemoryAdapter):
                 "memory_diagnostic": {
                     "kind": self.name,
                     "task_id": task_id,
-                    "model": SERVED_MODEL,
-                    "artifact_sha256": self.catalog.served_digest,
+                    "model": model,
+                    "artifact_sha256": digest,
+                    **manifest,
                     "manifest_sha256": self.catalog.manifest_sha256,
                     "query_sha256": query_sha,
                     "window_indices": [],
