@@ -5,7 +5,7 @@
 # sessions when the session that launched it ended. `setsid` puts the run in its own session so
 # it survives the SSH connection closing, which `nohup` alone does not reliably do.
 #
-# Bounded because this host also runs live trading services. Two of the five arms do real local
+# Bounded because this host also runs unrelated production services. Two of the five arms do real local
 # work here: MemPalace embeds every ingest and every query with onnxruntime, and five `claude`
 # processes run concurrently within each cell. A cgroup limit is enforced by the KERNEL against
 # the whole process tree, so the run is killed rather than the host.

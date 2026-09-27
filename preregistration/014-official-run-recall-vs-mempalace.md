@@ -285,7 +285,7 @@ survives either way.
 
 ⚠️ **MemPalace embeds locally and VPS2 is not an idle machine.** Its ingest smoke took **69.5 s for
 4 sessions** on VPS2 against **7.1 s** on the workstation, part model download and part a host
-carrying load average 8.9 on 12 cores from live trading services. So the MemPalace arm's ingest is
+carrying load average 8.9 on 12 cores from unrelated production services. So the MemPalace arm's ingest is
 materially slower in the official run than in any preflight, and the run is bounded by a systemd
 scope (`MemoryMax=16G`, `MemorySwapMax=0`, `CPUQuota=500%`, `nice -n 10`) so that it is killed
 rather than the host. No endpoint depends on wall clock, and cost is reported in tokens.
