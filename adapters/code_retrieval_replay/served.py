@@ -66,17 +66,18 @@ class Cd1Collect:
     gated: frozenset[str]
 
 
-#: RE-call recall-lab ``research/preregistrations/2026-09-27-cd1-coding-return-size-stage1.md``; the
-#: digests as corrected in the Stage 0 record the same evening (its prefixes were swapped).
+#: RE-call recall-lab ``research/preregistrations/2026-09-27-cd1-coding-return-size-stage1.md``. Since
+#: its Amendment 1 (2026-09-30) the digests are the re-collects at recall 1f8666df, the build C9
+#: serves (``research/2026-09-30-cd1-s1/coding-CD1{P,A}-1f8666df.json.gz``), not Stage 0's files.
 CD1_REGISTERED = {
     "present": Cd1Collect(
-        sha256="c5dde73e17b799f3412eaf9fb9f16c4fd83236a4667d302a2c466ff0b8d2c95d",
+        sha256="6f0693704c620be8266333b86c2eb2338eaa9666ff3457748d25e82fc7eb4491",
         arm="CD1P",
         gated=frozenset({"ts-ignore-gen", "ts-natural-order", "ts-nfc-count", "ts-quote-shell",
                          "ts-semver-pin", "xs-join-batch"}),
     ),
     "absent": Cd1Collect(
-        sha256="f463677024753e6f14577dc09bf8aacdcf8abd9e99bf55527a08fff12fd2e4d6",
+        sha256="64e3816275478da66ecd0d17aeb37bb3e079142508da4e618cb9d0178e7c327b",
         arm="CD1A",
         gated=frozenset({"ts-dedup-order", "ts-ignore-gen", "ts-mig-name", "ts-natural-order",
                          "ts-nfc-count", "ts-quote-shell", "ts-semver-pin", "xs-join-batch"}),
