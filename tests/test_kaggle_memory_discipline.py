@@ -338,3 +338,27 @@ def test_rescoring_disagreement_fails_the_analysis(tmp_path):
     assert _analysis().main([str(tmp_path), "--out", str(tmp_path / "out")]) == 1
     report = json.loads((tmp_path / "out" / "report.json").read_text(encoding="utf-8"))
     assert report["m"]["rescoring_disagreements"] == 1
+
+
+# ---- kaggle_memory/generation.py: the reply-length cap of preregistration 098, Deviation 1 ----
+#
+# Red proofs (2026-10-05): `reply_length_cap` mutated to `return {}` failed
+# test_reply_length_cap_names_the_parameter_each_client_expects; the template's
+# `extra_api_params=reply_length_cap(llm)` deleted from scripts/build_kaggle_tasks.py failed
+# test_generated_tasks_cap_every_model_call.
+
+def test_reply_length_cap_names_the_parameter_each_client_expects():
+    from kaggle_memory.generation import MAX_REPLY_TOKENS, reply_length_cap
+
+    google = type("GoogleGenAI", (), {})()
+    openai_style = type("OpenAI", (), {})()
+    assert reply_length_cap(google) == {"max_output_tokens": MAX_REPLY_TOKENS}
+    assert reply_length_cap(openai_style) == {"max_completion_tokens": MAX_REPLY_TOKENS}
+    assert MAX_REPLY_TOKENS == 8192
+
+
+def test_generated_tasks_cap_every_model_call():
+    for name, text in _builder().render().items():
+        calls = re.findall(r"llm\.prompt\([^\n]*\)", text)
+        assert calls == ['llm.prompt(item["prompt"], extra_api_params=reply_length_cap(llm))'], name
+        assert "def reply_length_cap(llm):" in text, name

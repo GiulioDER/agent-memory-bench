@@ -43,6 +43,11 @@ import pandas as pd
 # ---- end of kaggle_memory/scoring.py ----
 
 # %%
+# ---- kaggle_memory/generation.py, verbatim ----
+{generation}
+# ---- end of kaggle_memory/generation.py ----
+
+# %%
 ITEMS = json.loads(r\'\'\'{items_json}\'\'\')
 BY_ID = {{item["item_id"]: item for item in ITEMS}}
 MAX_ERRORED_SHARE = 0.05
@@ -51,7 +56,7 @@ MAX_ERRORED_SHARE = 0.05
 @kbench.task(name="memory-discipline-{family}-item", store_task=False)
 def answer_item(llm, item_id: str) -> dict:
     item = BY_ID[item_id]
-    reply = llm.prompt(item["prompt"])
+    reply = llm.prompt(item["prompt"], extra_api_params=reply_length_cap(llm))
     return classify(item, reply)
 
 
@@ -97,6 +102,7 @@ def _sha(data: bytes) -> str:
 
 def render() -> dict[str, str]:
     scoring = (PACKAGE / "scoring.py").read_text(encoding="utf-8")
+    generation = (PACKAGE / "generation.py").read_text(encoding="utf-8")
     items_bytes = (PACKAGE / "items.json").read_bytes()
     items = json.loads(items_bytes)
     files = {}
@@ -111,6 +117,7 @@ def render() -> dict[str, str]:
             items_sha=_sha(items_bytes),
             scoring_sha=_sha(scoring.encode("utf-8")),
             scoring=scoring.rstrip("\n"),
+            generation=generation.rstrip("\n"),
             items_json=items_json,
             conditions=conditions,
         )

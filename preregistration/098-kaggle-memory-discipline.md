@@ -211,3 +211,54 @@ trusted; they are listed in `tests/test_kaggle_memory_discipline.py`.
 
 Nothing may change after the first push; a second amendment of this kind is not available once
 any model has answered.
+
+## Deviation 1 (2026-10-05), AFTER one model had answered
+
+**This is a deviation, not an amendment.** Amendment 1 said no further change was available once
+any model had answered, and one had: `gemini-3.7-flash` ran on both tasks under the Amendment 1
+files (trust 120/120, restraint 95/96, J 0.986, zero re-scoring disagreements). The change was
+decided by the user after the quota facts below were measured, and it is recorded here so that
+anyone can weigh it.
+
+**What forced it.** The account's Kaggle model quota, read from `GetModelProxyQuotas` on
+2026-10-05: **$10 per day and $100 per month**. Kaggle reserves the worst-case cost of every call
+before making it, from the maximum output length; at the provider default one Opus call reserved
+$3.20 (Sonnet $0.96, Haiku $0.32), and the task sends four calls at a time. The first batch of the
+grid (the eight Claude models) was refused on 15 of its 16 runs with `exceeds your available quota
+(based on max_output_tokens)`, and no refused run produced an item result. As frozen, the five
+Opus models could never start under a $10 daily cap.
+
+**What changed, and only this.** Every model call now carries a reply-length cap of 8,192 tokens
+(`kaggle_memory/generation.py`, copied verbatim into both task files): `max_output_tokens` for
+Google's client, `max_completion_tokens` for the OpenAI-compatible one. Items, prompts, the
+scorer, the analysis, the endpoints and the predictions are unchanged, byte for byte. 8,192 is
+about fifteen times `gemini-3.7-flash`'s mean of 532 output tokens per item (114,854 over 216,
+thinking included). A reply cut off by the cap has no directive line and scores `format_failure`;
+the analysis reports that rate, and prediction 10 stands as written.
+
+**How the change was checked before use.** Probes through the proxy with the cap accepted it on
+Gemini, GPT, Claude, DeepSeek and Qwen models; a fake-model run of both generated files under
+`kaggle_benchmarks` confirmed all 216 calls carry the cap under the right name for either client;
+two new tests, each shown red against a named mutation, pin both facts.
+
+**Consequences for the record.**
+
+1. `gemini-3.7-flash` is re-run under the capped files in its alphabetical place, so every model
+   in the reported grid ran under identical settings. Its pre-deviation result is reported only
+   here, as the one observation made before the change.
+2. Runs are made one model at a time, both tasks together, in alphabetical order of slug, so the
+   reservations of one model never block another. When the daily quota is spent, the run waits for
+   the refill and continues in the same order. Whatever is unrun at the deadline is listed, never
+   selected.
+3. The analysis reads only the capped task version's downloads.
+
+**The files now in force:**
+
+| file | sha256 |
+|---|---|
+| `kaggle_memory/generation.py` | `b8d6e75eb6d239fb59ed4914117f94c845a5dbf9ef034269ca02a65841f83fd7` |
+| `kaggle_memory/tasks/memory_discipline_trust.py` | `2f8a25c6d6a3c8f8790121daaca5811018b6f5be6979b06e1aee3ba722f8966a` |
+| `kaggle_memory/tasks/memory_discipline_restraint.py` | `6d315a9eae2e76b3c087bdc5501a4af85576b158c304fe06ae3aff94bf69c59f` |
+| `kaggle_memory/items.json` | `e8010a1d904668527c8389aaca06ac22be11776aac338ffb5f2290ef64835a7a` (unchanged) |
+| `kaggle_memory/scoring.py` | `284bb96980bd48496c2e88c82e302ea6be492af32ffd75e636fc6c5b67c74ec6` (unchanged) |
+| `scripts/analyze_kaggle_memory.py` | `1541c34c98b83c8051727042ab0622dd9873dddea6ccf8bbb778782832e56795` (unchanged) |
