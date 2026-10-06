@@ -187,3 +187,65 @@ is noise pointing the other way.
 The corpus-side lane is closed by this result. The retrieval miss, 45% of `superseded` sessions
 where neither plant surfaces and worth roughly three times the lineage term, is not addressed here
 and is registered separately as **024**.
+
+## Correction, appended 2026-10-06: the "embedding perturbation" mechanism is refuted
+
+Everything above stands as written, including the numbers. What this section retracts is the
+**explanation** given under "The deliverable": that Tier 1 moved the result because writing
+`valid_from` onto all 4,911 documents changed every chunk's text and therefore every embedding. That
+was an inference from a verdict mix, never checked against the indexer, and it is wrong.
+
+### The code that ran does not embed frontmatter
+
+Read in recall at `492501c6`, the last master commit before these tiers were built:
+
+* `.md` files are indexed as `text/markdown` (`recall/extraction.py`, the suffix rule).
+* The generation builder (`recall/generations.py`) chunks `parse_document(text).human_body`, which
+  is the body with frontmatter **removed**, and moves the frontmatter keys into chunk metadata.
+* The context prefix that is embedded with each chunk (`recall/context.py::contextual_passages`)
+  reads a frontmatter `title:` key and nothing else. The lineage block never carried one.
+
+So `valid_from`, `valid_until` and `supersedes` reached row metadata and never reached the embedded
+text.
+
+### The run records agree
+
+The tier generations no longer exist on the bench host (garbage collected), but the session streams
+under `results/lineage-t{0,1,2}-superseded/streams/` do, and they record every `recall_search`
+response. Read-only, 2026-10-06:
+
+| check | T0 | T1 | T2 |
+|---|---|---|---|
+| pipeline fingerprint | `f60d8216…` | `f60d8216…` | `f60d8216…` |
+| threshold, bracketed from served hits (max `low_confidence`, min `ok` score) | (0.5301, 0.5315] | (0.5306, 0.5343] | above 0.5302 |
+| distinct (task, query) pairs | 76 | 63 | 64 |
+
+* **Identical queries return identical results.** Three queries were issued verbatim in both T0 and
+  T2. All three returned the same ranked sources; two matched every score to four decimals and the
+  third to within 0.0012. A rewritten index cannot do that.
+* **The agent almost never repeats a query.** None of T0's 76 distinct queries recurs in T1. So the
+  per-task differences between tiers, including the `ts-legacy-hash` verdict shift cited above, come
+  from the agent asking different questions, not from the index answering differently.
+
+Only three queries overlap, which is a small sample; exact score agreement is nonetheless hard to
+produce any other way.
+
+### What the result now says
+
+* **T0 to T1 (5 harmed to 2) is most plausibly run to run variance**, not a measured perturbation.
+  Prediction 1, scored above as falsified, would on this reading have been consistent: Tier 1 added
+  no information and moved nothing attributable.
+* **The decomposition into 75% perturbation and 25% verdict does not hold**, because T1 is not a
+  perturbation control; it is a second sample of the control. The defensible summary is T0 against
+  T2: **4 cells of 30, p = 0.1945, not significant, and not attributable** to the supersession
+  verdict or to anything else at this n.
+* **The rescoring of Prediction 4 against T1 rests on the same error**, and is withdrawn. Against T0
+  the swing was the predicted 5 cells; whether that reflects the mechanism cannot be decided here.
+* The conclusion that the corpus side lane is closed should be read as **"no detectable effect at
+  n = 30"**, not as "the verdict is worth one cell".
+
+One apparatus note, since it nearly produced a false null: `recall_search` results in these streams
+are JSON wrapped inside JSON (`{"result": "<json>"}`). A parser that reads one layer finds zero hits
+on every call.
+
+The same explanation was given in a public reply on 2026-10-06, before this check was made.
