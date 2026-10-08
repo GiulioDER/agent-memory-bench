@@ -85,3 +85,10 @@ not certified. On the same new store, the realistic set gives 0.699. So a headin
 built-in check pass while the threshold still cannot separate real near-miss questions from
 answerable ones: a false certification, not merely an optimistic one. 099 showed the offline
 probes overstate separability; this shows the overstatement can cross the certification bar.
+
+## Owner override (2026-10-08)
+
+The owner asked to submit `V1V2-sac` despite the decision rule ("submit V1V2-sac anyway"). On the
+23 hidden questions (over `store-sac.sqlite`) it differs from run 4 only in the wording of four
+free-text answers (hid-04, hid-13, hid-14, hid-21); every value, YES/NO and both NOT_IN_CONTEXT
+are unchanged. Submitted as run 5. Its score is not evidence for structure-aware chunking.
