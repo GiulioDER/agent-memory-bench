@@ -66,3 +66,41 @@ prediction is scored separately, and a miss stays in the record. If generation y
 3. Gold answers in half B are model-written and can be wrong; dev scores are noisy estimates.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Result (2026-10-08)
+
+**Status:** measured.
+
+**The question set.** 180 questions from `google/gemini-3-flash-preview` (cost about $0.04),
+4 dropped for cosine above 0.85 to a hidden question, 1 near-duplicate dropped, 175 kept (closest
+kept question to any hidden one: 0.845). Half A: 44 answerable, 46 unanswerable. Half B: 41 and
+44. A spot check of six per class found the labels sound; the unanswerable ones are hard
+near-misses (details the corpus mentions but never states, such as a portal's URL).
+
+| | predicted | measured |
+|---|---|---|
+| 1. separability on half A | at least 0.93, lower bound at least 0.90, certified | **0.713, interval [0.607, 0.820], NOT certified** |
+| 2. threshold | 0.30 to 0.45 | **0.530** |
+| 3a. half B answerable pass rate at the half-A threshold | at least 85% | **87.8%** (36/41) |
+| 3b. half B unanswerable reject rate | at least 70% | **50.0%** (22/44) |
+
+Held-out separability on half B was 0.790; median top cosine 0.641 for answerable questions
+against 0.535 for unanswerable ones. Prediction 1 is falsified, prediction 2 is falsified,
+prediction 3 is half met.
+
+**The gap, and what it means.** I predicted that realistic questions would separate BETTER than
+RE-call's offline probes (0.906). They separated far worse. The mechanism is visible in the
+questions: a near-miss unanswerable question is built from the corpus's own vocabulary, so its
+best match scores almost as high as an answerable question's. A top-cosine threshold measures
+whether the corpus is ABOUT the question, not whether it STATES the answer, and on this set no
+threshold separates the two. RE-call refused to certify, which is the right behaviour: its message
+says no threshold separates the classes and moving one only trades one error for the other.
+RE-call's own offline probes overstate separability on this kind of corpus, because their
+unanswerable class is easier than real traps.
+
+Consequence for the pipeline: abstention on near-miss questions cannot come from the retrieval
+score; it has to come from reading the evidence (the answering model's insufficient_evidence
+flag, or an entailment check). The store's calibration was replaced by this uncertified one; the
+pre-099 store is kept as `~/rag-gauntlet/store.before-099.sqlite` on VPS2. Artefacts:
+`~/rag-gauntlet/qset/` (generated.json, half_A.json, half_B.json, filter_report.json,
+calibration_result.json, heldout_result.json).
