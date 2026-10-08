@@ -94,3 +94,13 @@ near-miss questions, against 50% for RE-call's retrieval threshold alone in 099:
 evidence is the better abstention signal, which is what 099 implied. The effects are within noise
 for 85 questions, so this is a direction, not a finding.
 Cost: about 1.66M input and 41K output tokens on `claude-opus-5.5`, roughly $7.5, plus the judge.
+
+## Owner override (2026-10-08)
+
+The owner asked to submit `V1+V2` despite the decision rule ("submit V1+V2 anyway"). Run on the
+23 hidden questions it changed NO answer against run 3: the same 21 answers and the same two
+NOT_IN_CONTEXT; only the wording of three free-text answers (hid-04, hid-14, hid-21) and some
+citation lists differ. The answerability check rejected nothing and the wider context flipped
+nothing. Submitted as run 4; its public score is recorded below when known. This override is not
+evidence for the variants: whatever run 4 scores reflects citation-list differences, not the
+mechanisms this study tested.
