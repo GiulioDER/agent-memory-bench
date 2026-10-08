@@ -104,3 +104,5 @@ citation lists differ. The answerability check rejected nothing and the wider co
 nothing. Submitted as run 4; its public score is recorded below when known. This override is not
 evidence for the variants: whatever run 4 scores reflects citation-list differences, not the
 mechanisms this study tested.
+
+Run 4 public score (2026-10-08 13:40 UTC): **87.50**, identical to run 3, as its identical answers predicted.
