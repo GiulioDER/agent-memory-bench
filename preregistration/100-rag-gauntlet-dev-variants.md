@@ -63,3 +63,34 @@ noise and is reported as no difference.
 3. Each arm runs once; the answering model at temperature 0 can still vary between runs.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Result (2026-10-08)
+
+**Status:** measured. All four arms ran once, sequentially, on the 85 dev questions (12:41 to
+13:28 UTC), and were scored together by `score_dev.py` with one shared judge cache.
+
+| arm | dev score | answerable accuracy | citation rate on correct | unanswerable abstention | vs base |
+|---|---:|---:|---:|---:|---:|
+| base | 82.94 | 0.927 | 0.974 | 0.705 | |
+| V1 | 83.41 | 0.902 | 0.973 | 0.750 | +0.47 |
+| V2 | 84.83 | 0.927 | 0.974 | 0.750 | +1.89 |
+| V1+V2 | 85.31 | 0.902 | 0.973 | 0.795 | +2.37 |
+
+1. `base` between 65 and 85: **met** (82.94).
+2. V1 abstention +15 or more: **falsified** (+4.5); answerable drop at most 5: met (-2.4);
+   net +3 or more: **falsified** (+0.47).
+3. V2 answerable +3 or more: **falsified** (0); abstention within 5 points: met (+4.5, at the
+   edge); net +2 or more: **falsified** (+1.89).
+4. `V1+V2` highest: **met**.
+
+**Decision rule applied:** the best arm beats `base` by 2.37 points, under the 3-point bar.
+Nothing new is submitted.
+
+**The gap, and what it means.** I expected the answerability check to carry abstention and the
+wider context to carry accuracy. Both moved abstention instead, by the same 4.5 points each, and
+neither moved accuracy. A wider context helps the model see that the corpus does NOT state
+something, which is the job I had assigned to the check. Combined they reach 79.5% abstention on
+near-miss questions, against 50% for RE-call's retrieval threshold alone in 099: reading the
+evidence is the better abstention signal, which is what 099 implied. The effects are within noise
+for 85 questions, so this is a direction, not a finding.
+Cost: about 1.66M input and 41K output tokens on `claude-opus-5.5`, roughly $7.5, plus the judge.
