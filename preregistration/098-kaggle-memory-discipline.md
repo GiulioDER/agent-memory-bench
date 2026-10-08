@@ -262,3 +262,33 @@ two new tests, each shown red against a named mutation, pin both facts.
 | `kaggle_memory/items.json` | `e8010a1d904668527c8389aaca06ac22be11776aac338ffb5f2290ef64835a7a` (unchanged) |
 | `kaggle_memory/scoring.py` | `284bb96980bd48496c2e88c82e302ea6be492af32ffd75e636fc6c5b67c74ec6` (unchanged) |
 | `scripts/analyze_kaggle_memory.py` | `1541c34c98b83c8051727042ab0622dd9873dddea6ccf8bbb778782832e56795` (unchanged) |
+
+## Deviation 2 (2026-10-08): one model was run twice; the first complete run is the scored one
+
+**What happened.** From 2026-10-07 21:48 to 22:16 UTC every Kaggle API call made by the grid
+driver returned `401 Unauthorized`, and the driver crashed and was restarted 27 times. On the
+restart that got through, the status check for `claude-haiku-4-5-20251001` still failed, the
+driver (v2) read the failure as "not complete", and it ran that model again at 22:17 UTC, two days
+after its complete run of 2026-10-05 (about 19:00 UTC). Both runs are on task version 2, under
+identical files. The second run's in-notebook scores were trust 0.953 and restraint 0.924,
+against 0.979 and 0.931 for the first.
+
+**The rule, stated now, before the analysis is run.** For each model, the scored run is the
+**earliest** run on task version 2 in which both tasks completed with at most 5% of items errored.
+Any later run of the same model is excluded from every endpoint and every prediction. This is the
+reading of "each run once" in the Grid section; for every model except this one it selects the
+only complete run. It selects, for example, `gpt-5.5`'s retry, because its first run was refused
+for quota on 142 of 216 items. The excluded duplicate is reported separately and only as what it
+is: one accidental repeat of one model on the same items, which says something about run-to-run
+variation and nothing about any other model.
+
+**Why this is a deviation and not a rule from the start.** `scripts/analyze_kaggle_memory.py`
+(frozen) keeps the LATEST completed reply per item. Applied to downloads containing both Haiku
+runs, it would score the duplicate. So the downloads are filtered to the scored runs before the
+frozen script reads them, and the filter is committed with its own test before the analysis runs.
+
+**Also recorded.** `gpt-oss-120b`'s runs have shown "Running" on Kaggle with no start time since
+2026-10-07 20:38 UTC; three launches never started. If none completes before the deadline it is
+listed as not run, for that reason, like any model the budget does not reach. The driver (v3,
+deployed 2026-10-08 07:56 UTC) no longer re-runs a model it has recorded as done, treats a failed
+check as unknown rather than incomplete, and defers a model stuck in flight to a second pass.
