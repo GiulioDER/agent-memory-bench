@@ -56,3 +56,32 @@ Each prediction states its threshold; a difference under 3 dev points is within 
 3. Same dev-set caveats as 100: model-written gold and judge.
 
 <!-- results are appended below this line; everything above is frozen -->
+
+## Result (2026-10-08)
+
+**Status:** measured (13:46 to 14:09 UTC).
+
+| arm | store | dev score | answerable accuracy | citation on correct | unanswerable abstention |
+|---|---|---:|---:|---:|---:|
+| base | original (81 chunks) | 82.94 | 0.927 | 0.974 | 0.705 |
+| V1+V2 | original | 85.31 | 0.902 | 0.973 | 0.795 |
+| base-sac | structure-aware (80 chunks) | 82.46 | 0.927 | 0.947 | 0.705 |
+| V1V2-sac | structure-aware | 85.78 | 0.927 | 0.974 | 0.773 |
+
+1. 150 to 300 chunks: **falsified (80).** The chunker still packs paragraphs to 800 characters;
+   headings move the boundaries, not the count.
+2. `base-sac` at least +2 over `base`: **falsified (-0.48).**
+3. `V1V2-sac` highest of the six arms: **met** (85.78), within noise of V1+V2 (85.31).
+4. Calibration on half A over the new store above 0.713 and below 0.85: **falsified (0.699,
+   interval [0.591, 0.808]),** unchanged within noise. Not certified.
+
+**Decision rule applied:** best new arm +0.47 over 85.31, under the 3-point bar. Nothing new is
+submitted.
+
+**The unexpected result, which matters more than the score.** On indexing the structure-aware
+corpus, RE-call's automatic calibration on its own offline probes CERTIFIED: separability 0.960
+on 40 answerable and 40 unanswerable probes. On the original corpus the same probes gave 0.906,
+not certified. On the same new store, the realistic set gives 0.699. So a heading change made the
+built-in check pass while the threshold still cannot separate real near-miss questions from
+answerable ones: a false certification, not merely an optimistic one. 099 showed the offline
+probes overstate separability; this shows the overstatement can cross the certification bar.
