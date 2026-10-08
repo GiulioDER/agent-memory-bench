@@ -379,22 +379,30 @@ def _selector():
     return module
 
 
-def _download(root, task, version, model, run_id, start, completed):
-    """One run directory in `kaggle b t download` layout, with `completed` items completed."""
+def _download(root, task, version, model, run_id, start, completed, slug=None, silent=0,
+              directory=None):
+    """One run directory in `kaggle b t download` layout: `completed` items completed with a
+    reply, of which the last `silent` have state COMPLETED but no assistant reply."""
     family = task.rsplit("-", 1)[1]
     items = [i for i in ITEMS if i["family"] == family]
-    run_dir = root / task / str(version) / model / str(run_id)
+    run_dir = root / task / str(version) / (directory or model) / str(run_id)
     run_dir.mkdir(parents=True)
-    main = {"taskVersion": {"name": task}, "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
-            "startTime": start}
+    version_info = {"slug": slug or model}
+    main = {"taskVersion": {"name": task}, "modelVersion": version_info,
+            "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED", "startTime": start}
     (run_dir / f"{task}-run_id_Run_1_{model}.run.json").write_text(json.dumps(main),
                                                                       encoding="utf-8")
-    for n, _ in enumerate(items):
-        state = ("BENCHMARK_TASK_RUN_STATE_COMPLETED" if n < completed
-                 else "BENCHMARK_TASK_RUN_STATE_ERRORED")
+    for n, item in enumerate(items):
+        ok = n < completed
+        contents = [{"parts": [{"text": item["prompt"]}], "role": "CONTENT_ROLE_USER"}]
+        if ok and n < completed - silent:
+            contents.append({"parts": [{"text": "ASK: x"}], "role": "CONTENT_ROLE_ASSISTANT"})
+        data = {"taskVersion": {"name": f"{task}-item"}, "modelVersion": version_info,
+                "state": ("BENCHMARK_TASK_RUN_STATE_COMPLETED" if ok
+                          else "BENCHMARK_TASK_RUN_STATE_ERRORED"),
+                "conversations": [{"requests": [{"contents": contents}]}]}
         (run_dir / f"{task}-item-run_param_id_{n}_{model}.run.json").write_text(
-            json.dumps({"taskVersion": {"name": f"{task}-item"}, "state": state}),
-            encoding="utf-8")
+            json.dumps(data), encoding="utf-8")
 
 
 def _kept(rows):
@@ -452,3 +460,60 @@ def test_the_filtered_tree_feeds_the_analysis(tmp_path):
     assert _selector().main([str(downloads), "--out", str(scored)]) == 0
     report = _analysis().analyse(scored)
     assert report["m"]["j"] == 1.0  # the earlier, oracle run; the later always_ask run scores 0
+
+
+# From the bug-auditor review of select_scored_runs.py (2026-10-08). Red proofs (2026-10-08):
+# keying runs by directory name instead of `modelVersion.slug` failed
+# test_a_model_is_identified_by_slug_not_directory; counting a COMPLETED item without a reply
+# failed test_a_completed_item_without_a_reply_is_missing; ordering by the startTime string failed
+# test_start_times_order_as_times_not_strings; deleting the unscored report failed
+# test_a_model_with_no_complete_run_is_reported_not_dropped; `>=` for `>` in the completeness
+# check failed test_the_five_percent_boundary_on_both_sides.
+
+def test_the_five_percent_boundary_on_both_sides(tmp_path):
+    for n, run in ((113, 1), (114, 2)):
+        _download(tmp_path, "memory-discipline-trust", 2, f"m{n}", run, "2026-10-06T10:00:00Z", n)
+    for n, run in ((91, 3), (92, 4)):
+        _download(tmp_path, "memory-discipline-restraint", 2, f"r{n}", run,
+                  "2026-10-06T10:00:00Z", n)
+    kept = _kept(_selector().select(tmp_path))
+    assert set(kept) == {("memory-discipline-trust", "m114"),
+                         ("memory-discipline-restraint", "r92")}
+
+
+def test_a_model_is_identified_by_slug_not_directory(tmp_path):
+    for run, start, directory in ((1, "2026-10-05T19:00:00Z", "claude-haiku-4-5-20251001"),
+                                  (2, "2026-10-07T22:17:00Z", "claude-haiku-4-5")):
+        _download(tmp_path, "memory-discipline-trust", 2, "haiku", run, start, 120,
+                  slug="anthropic/claude-haiku-4-5-20251001", directory=directory)
+    kept = _kept(_selector().select(tmp_path))
+    assert kept == {("memory-discipline-trust", "anthropic/claude-haiku-4-5-20251001"): "1"}
+
+
+def test_a_completed_item_without_a_reply_is_missing(tmp_path):
+    _download(tmp_path, "memory-discipline-trust", 2, "m", 1, "2026-10-06T10:00:00Z", 120,
+              silent=10)
+    _download(tmp_path, "memory-discipline-trust", 2, "m", 2, "2026-10-06T11:00:00Z", 120)
+    kept = _kept(_selector().select(tmp_path))
+    assert kept == {("memory-discipline-trust", "m"): "2"}
+
+
+def test_start_times_order_as_times_not_strings(tmp_path):
+    # As strings "...37Z" sorts AFTER "...37.5Z"; as times it is half a second earlier.
+    _download(tmp_path, "memory-discipline-trust", 2, "m", 1, "2026-10-06T10:00:37.5Z", 120)
+    _download(tmp_path, "memory-discipline-trust", 2, "m", 2, "2026-10-06T10:00:37Z", 120)
+    kept = _kept(_selector().select(tmp_path))
+    assert kept == {("memory-discipline-trust", "m"): "2"}
+
+
+def test_a_model_with_no_complete_run_is_reported_not_dropped(tmp_path, capsys):
+    _download(tmp_path / "d", "memory-discipline-trust", 2, "ok", 1, "2026-10-06T10:00:00Z", 120)
+    _download(tmp_path / "d", "memory-discipline-restraint", 2, "ok", 2,
+              "2026-10-06T10:00:01Z", 96)
+    _download(tmp_path / "d", "memory-discipline-trust", 2, "stuck", 3, "", 0)
+    assert _selector().main([str(tmp_path / "d"), "--out", str(tmp_path / "o")]) == 0
+    record = json.loads((tmp_path / "o" / "selection.json").read_text(encoding="utf-8"))
+    assert record["unscored"] == [{"task": "memory-discipline-restraint", "model": "stuck"},
+                                  {"task": "memory-discipline-trust", "model": "stuck"}]
+    assert record["pairs"] == {"ok": 1.0}
+    assert "NO SCORED RUN: memory-discipline-trust stuck" in capsys.readouterr().out
