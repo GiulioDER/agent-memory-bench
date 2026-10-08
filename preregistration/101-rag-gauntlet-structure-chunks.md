@@ -92,3 +92,5 @@ The owner asked to submit `V1V2-sac` despite the decision rule ("submit V1V2-sac
 23 hidden questions (over `store-sac.sqlite`) it differs from run 4 only in the wording of four
 free-text answers (hid-04, hid-13, hid-14, hid-21); every value, YES/NO and both NOT_IN_CONTEXT
 are unchanged. Submitted as run 5. Its score is not evidence for structure-aware chunking.
+
+Run 5 public score (2026-10-08 14:33 UTC): **87.50**, identical to runs 3 and 4, as its unchanged answers predicted.
