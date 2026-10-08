@@ -362,3 +362,93 @@ def test_generated_tasks_cap_every_model_call():
         calls = re.findall(r"llm\.prompt\([^\n]*\)", text)
         assert calls == ['llm.prompt(item["prompt"], extra_api_params=reply_length_cap(llm))'], name
         assert "def reply_length_cap(llm):" in text, name
+
+
+# ---- scripts/select_scored_runs.py: the scored-run rule of preregistration 098, Deviation 2 ----
+#
+# Red proofs (2026-10-08): sorting runs latest-first made test_the_earliest_complete_run_is_scored
+# fail (the duplicate was kept); deleting the completeness check made
+# test_an_incomplete_first_run_is_passed_over fail (the quota-refused run was kept); deleting the
+# version check made test_version_one_runs_are_never_scored fail.
+
+def _selector():
+    path = REPO / "scripts" / "select_scored_runs.py"
+    spec = importlib.util.spec_from_file_location("select_scored_runs", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _download(root, task, version, model, run_id, start, completed):
+    """One run directory in `kaggle b t download` layout, with `completed` items completed."""
+    family = task.rsplit("-", 1)[1]
+    items = [i for i in ITEMS if i["family"] == family]
+    run_dir = root / task / str(version) / model / str(run_id)
+    run_dir.mkdir(parents=True)
+    main = {"taskVersion": {"name": task}, "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+            "startTime": start}
+    (run_dir / f"{task}-run_id_Run_1_{model}.run.json").write_text(json.dumps(main),
+                                                                      encoding="utf-8")
+    for n, _ in enumerate(items):
+        state = ("BENCHMARK_TASK_RUN_STATE_COMPLETED" if n < completed
+                 else "BENCHMARK_TASK_RUN_STATE_ERRORED")
+        (run_dir / f"{task}-item-run_param_id_{n}_{model}.run.json").write_text(
+            json.dumps({"taskVersion": {"name": f"{task}-item"}, "state": state}),
+            encoding="utf-8")
+
+
+def _kept(rows):
+    return {(r["task"], r["model"]): r["run_id"] for r in rows if r["kept"]}
+
+
+def test_the_earliest_complete_run_is_scored(tmp_path):
+    for task, n in (("memory-discipline-trust", 120), ("memory-discipline-restraint", 96)):
+        _download(tmp_path, task, 2, "haiku", 100, "2026-10-05T19:00:00Z", n)
+        _download(tmp_path, task, 2, "haiku", 200, "2026-10-07T22:17:00Z", n)
+    kept = _kept(_selector().select(tmp_path))
+    assert kept == {("memory-discipline-trust", "haiku"): "100",
+                    ("memory-discipline-restraint", "haiku"): "100"}
+
+
+def test_an_incomplete_first_run_is_passed_over(tmp_path):
+    _download(tmp_path, "memory-discipline-trust", 2, "gpt", 1, "2026-10-06T19:56:00Z", 19)
+    _download(tmp_path, "memory-discipline-trust", 2, "gpt", 2, "2026-10-07T18:18:00Z", 120)
+    _download(tmp_path, "memory-discipline-restraint", 2, "gpt", 3, "2026-10-06T19:56:00Z", 96)
+    kept = _kept(_selector().select(tmp_path))
+    # Per task: the retry for trust, the first run for restraint, which completed.
+    assert kept == {("memory-discipline-trust", "gpt"): "2",
+                    ("memory-discipline-restraint", "gpt"): "3"}
+
+
+def test_up_to_five_percent_missing_still_counts_as_complete(tmp_path):
+    _download(tmp_path, "memory-discipline-trust", 2, "m", 1, "2026-10-06T10:00:00Z", 114)
+    _download(tmp_path, "memory-discipline-trust", 2, "m", 2, "2026-10-06T11:00:00Z", 120)
+    kept = _kept(_selector().select(tmp_path))
+    assert kept == {("memory-discipline-trust", "m"): "1"}
+
+
+def test_version_one_runs_are_never_scored(tmp_path):
+    _download(tmp_path, "memory-discipline-trust", 1, "gemini", 7, "2026-10-05T18:13:00Z", 120)
+    _download(tmp_path, "memory-discipline-trust", 2, "gemini", 9, "2026-10-05T18:51:00Z", 120)
+    kept = _kept(_selector().select(tmp_path))
+    assert kept == {("memory-discipline-trust", "gemini"): "9"}
+
+
+def test_the_filtered_tree_feeds_the_analysis(tmp_path):
+    """End to end: a duplicate later run with different replies must not reach the score."""
+    downloads, scored = tmp_path / "downloads", tmp_path / "scored"
+    for run_id, start, policy in ((1, "2026-10-05T19:00:00Z", "oracle"),
+                                  (2, "2026-10-07T22:17:00Z", "always_ask")):
+        for family in ("trust", "restraint"):
+            task = f"memory-discipline-{family}"
+            run_dir = downloads / task / "2" / "m" / str(run_id)
+            run_dir.mkdir(parents=True)
+            (run_dir / f"{task}-run_id_Run_1_m.run.json").write_text(
+                json.dumps({"taskVersion": {"name": task},
+                            "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED", "startTime": start}),
+                encoding="utf-8")
+            for item in (i for i in ITEMS if i["family"] == family):
+                _write_run(run_dir, "m", item, _policy(policy, item), end=start, tag=str(run_id))
+    assert _selector().main([str(downloads), "--out", str(scored)]) == 0
+    report = _analysis().analyse(scored)
+    assert report["m"]["j"] == 1.0  # the earlier, oracle run; the later always_ask run scores 0
