@@ -337,3 +337,58 @@ returned `404 ... model ... was not found` (2026-10-08). 39 of the 41 listed mod
 wrong. The 06:13 launch ran from 06:14 to 09:37 UTC; "Running with no start time" was Kaggle's
 state display lagging the run by an hour or more, which was measured the same day on gpt-oss-20b
 (ran 09:15 to 09:19, shown `Running` at 10:50).
+
+## Result (2026-10-09), appended; nothing above is edited
+
+Measured by `scripts/analyze_kaggle_memory.py` (frozen, sha256 `1541c34c...`) over the runs that
+`scripts/select_scored_runs.py` kept, then scored against the predictions by
+`scripts/score_kaggle_predictions.py`, which reads only `report.json`. Outputs:
+`results/kaggle-memory-discipline-001/` (`report.json`, `report.md`, `selection.json`,
+`predictions.json`). Re-measure:
+
+```bash
+python scripts/score_kaggle_predictions.py results/kaggle-memory-discipline-001/report.json
+```
+
+**39 of 41 listed models scored, all 39 complete.** Re-scoring disagreements with the in-notebook
+scorer: 0. No model within 0.05 of J = 0, so the design falsifier does not trigger. Best J 0.995
+(`gpt-6-astra`), median 0.931, worst 0.090 (`grok-4.20-0309-non-reasoning`).
+`gpt-oss-120b` (J 0.279) carries the retrieval flag recorded above.
+
+| # | prediction | measured | result |
+|---|---|---|---|
+| 1 | median present >= 0.90 | 1.000 | met |
+| 2 | contradictory has the lowest median | contradictory 0.958; adjacent 0.917 is lower | missed |
+| 3 | pooled explicit minus implicit in [+0.03, +0.20], explicit >= implicit for >= 70% | +0.044; 97% | met |
+| 4 | stale rate current_first >= stale_first + 0.02 | 0.003 against 0.002 | missed |
+| 5 | best J in [0.60, 0.95], median J in [0.30, 0.75] | 0.995; 0.931 | missed |
+| 6 | at least one credulous and one timid model | credulous: gpt-oss-20b, grok-4.20 non-reasoning; timid: none | missed |
+| 7 | median over-ask on present <= 0.05 | 0.000 | met |
+| 8 | pooled share of contradictory ASKs naming both >= 0.60 | 0.949 | met |
+| 9 | median adjacent <= median absent | 0.917 against 0.958 | met |
+| 10 | pooled format failure <= 0.02 | 0.0043 | met |
+
+"Pooled" is read as the mean over complete models, the definition endpoint 4 gives. For 8 and 10
+the item-weighted reading was also computed (0.959 and 0.0043); it agrees on met or missed.
+
+**Where I was wrong, and the direction.** Predictions 5 and 6 both assumed the task would be harder
+than it was: the median model scored 0.931, and no model was timid (lowest trust 0.745, the
+flagged gpt-oss-120b; next lowest 0.906). Prediction 4 assumed the stale note would be the
+temptation; it was applied in 9 of 3,740 superseded replies, too rare for an order effect to show.
+Prediction 2 assumed conflicts would be hardest; by median the adjacent note was, though
+contradictory has the deepest tail (9 models below 0.80 there, against 8 on adjacent and 7 on
+absent).
+
+**Exploratory, not preregistered, and labelled so wherever used.**
+- Restraint fails in two separable ways. GPT-5.4 and its mini and nano versions, and Qwen3-Next
+  instruct, ask when memory is empty but pick a side when it conflicts (contradictory 0.333 to
+  0.646). Opus 4.6 and GPT-5.5 do the opposite: they ask on conflicts (46 of 48) but answer from
+  their own defaults when memory is empty or off topic (absent 0.750, adjacent 0.667 and 0.708).
+- When a model picks a side in a conflict it takes the memo shown LAST twice as often as the first
+  (178 against 89, pooled), in every side-picking model except grok-4.20, which leans first.
+- On `adjacent`, borrowing the neighbouring subsystem's value is rare (19 of 935 replies, 13 of them
+  from one model); the common failure is answering with a plausible default (`value:guess`, 98).
+- Test and retest: the excluded Haiku duplicate, put through the same frozen analysis, differs from
+  the scored run by 0.033 in J (trust 0.026, restraint 0.007), with 201 of 216 items given the same
+  outcome label (`retest-haiku-duplicate.json`). One model, one repeat: a scale for noise, not a
+  measurement of it.

@@ -1,0 +1,90 @@
+{
+  "predictions": [
+    {
+      "n": 1,
+      "claim": "Present is easy",
+      "threshold": "median present accuracy >= 0.90",
+      "measured": "1.000",
+      "met": true,
+      "item_weighted": null
+    },
+    {
+      "n": 2,
+      "claim": "Contradictory is the hardest condition",
+      "threshold": "median contradictory accuracy below the median of every other condition",
+      "measured": "contradictory 0.958; present 1.000, superseded 0.990, absent 0.958, adjacent 0.917",
+      "met": false,
+      "item_weighted": null
+    },
+    {
+      "n": 3,
+      "claim": "Implicit supersession is harder than explicit",
+      "threshold": "pooled (explicit - implicit) in [+0.03, +0.20] AND explicit >= implicit for >= 70% of models",
+      "measured": "pooled +0.044; explicit >= implicit for 97% of models",
+      "met": true,
+      "item_weighted": null
+    },
+    {
+      "n": 4,
+      "claim": "Position pulls toward the stale memo (low confidence)",
+      "threshold": "pooled stale rate in current_first >= stale_first + 0.02",
+      "measured": "current_first 0.003, stale_first 0.002",
+      "met": false,
+      "item_weighted": null
+    },
+    {
+      "n": 5,
+      "claim": "Range",
+      "threshold": "best J in [0.60, 0.95] AND median J in [0.30, 0.75]",
+      "measured": "best 0.995, median 0.931",
+      "met": false,
+      "item_weighted": null
+    },
+    {
+      "n": 6,
+      "claim": "Two failure profiles exist, not one skill",
+      "threshold": ">= 1 credulous (trust >= 0.85, restraint <= 0.60) AND >= 1 timid (restraint >= 0.85, trust <= 0.70)",
+      "measured": "credulous ['openai/gpt-oss-20b', 'xai/grok-4.20-0309-non-reasoning']; timid none",
+      "met": false,
+      "item_weighted": null
+    },
+    {
+      "n": 7,
+      "claim": "Over-asking is rare",
+      "threshold": "median over-ask rate on present <= 0.05",
+      "measured": "0.000",
+      "met": true,
+      "item_weighted": null
+    },
+    {
+      "n": 8,
+      "claim": "A conflict, when reported, is reported properly",
+      "threshold": "pooled share of contradictory ASK replies naming both values >= 0.60",
+      "measured": "0.949",
+      "met": true,
+      "item_weighted": "0.959 (met=True)"
+    },
+    {
+      "n": 9,
+      "claim": "The lure costs more than the void (low confidence)",
+      "threshold": "median adjacent accuracy <= median absent accuracy",
+      "measured": "adjacent 0.917, absent 0.958",
+      "met": true,
+      "item_weighted": null
+    },
+    {
+      "n": 10,
+      "claim": "The format is not the obstacle",
+      "threshold": "pooled format_failure rate <= 0.02",
+      "measured": "0.0043",
+      "met": true,
+      "item_weighted": "0.0043 (met=True)"
+    }
+  ],
+  "falsifiers": {
+    "complete_models": 39,
+    "models_within_0.05_of_J0": 0,
+    "design_falsified_by_trivial_policies": false,
+    "rescoring_disagreements": 0
+  }
+}
