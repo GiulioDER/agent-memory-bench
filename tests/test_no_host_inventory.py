@@ -134,6 +134,9 @@ KNOWN_PROSE_MENTIONS = frozenset(
         "preregistration/089-code-candidate-generation-leg.md",
         "preregistration/090-voyage-code4-direct-replacement.md",
         "preregistration/094-routed-specialist-five-condition-api.md",
+        # The alias appears once, in prose, saying where a backup store is kept; no address or
+        # connection detail. A committed preregistration, so it is exempted rather than edited.
+        "preregistration/099-rag-gauntlet-calibration.md",
         "preregistration/timestamps/manifest-20260907T172420Z.json",
         "preregistration/timestamps/manifest-20260907T191609Z.json",
         "preregistration/timestamps/manifest-20260907T221701Z.json",
