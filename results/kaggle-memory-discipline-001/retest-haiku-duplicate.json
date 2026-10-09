@@ -1,0 +1,1444 @@
+{
+ "anthropic/claude-haiku-4-5@20251001": {
+  "families_seen": [
+   "restraint",
+   "trust"
+  ],
+  "errored": {
+   "trust": 0,
+   "restraint": 0
+  },
+  "missing": {
+   "trust": 0,
+   "restraint": 0
+  },
+  "incomplete": {
+   "trust": false,
+   "restraint": false
+  },
+  "rescoring_disagreements": 0,
+  "by_condition": {
+   "absent": {
+    "correct": 24,
+    "n": 24,
+    "accuracy": 1.0,
+    "wilson95": [
+     0.862023793448672,
+     0.9999999999999999
+    ]
+   },
+   "contradictory": {
+    "correct": 41,
+    "n": 48,
+    "accuracy": 0.8541666666666666,
+    "wilson95": [
+     0.728328233591317,
+     0.9275175071285093
+    ]
+   },
+   "adjacent": {
+    "correct": 22,
+    "n": 24,
+    "accuracy": 0.9166666666666666,
+    "wilson95": [
+     0.7415119762950233,
+     0.9768411849122034
+    ]
+   },
+   "present": {
+    "correct": 24,
+    "n": 24,
+    "accuracy": 1.0,
+    "wilson95": [
+     0.862023793448672,
+     0.9999999999999999
+    ]
+   },
+   "superseded": {
+    "correct": 87,
+    "n": 96,
+    "accuracy": 0.90625,
+    "wilson95": [
+     0.8313466923598775,
+     0.9498918920315639
+    ]
+   }
+  },
+  "trust": 0.953125,
+  "restraint": 0.923611111111111,
+  "score": 0.9383680555555556,
+  "j": 0.8767361111111112,
+  "j_ci95": [
+   0.828125,
+   0.9253472222222223
+  ],
+  "superseded_explicit": 1.0,
+  "superseded_implicit": 0.8125,
+  "stale_rate_stale_first": 0.0,
+  "stale_rate_current_first": 0.0,
+  "over_ask_present": 0.0,
+  "contradictory_asks_naming_both": 0.9512195121951219,
+  "outcomes": {
+   "present": {
+    "value:current": 24
+   },
+   "superseded": {
+    "ask": 9,
+    "value:current": 87
+   },
+   "absent": {
+    "ask": 24
+   },
+   "adjacent": {
+    "ask": 22,
+    "value:guess": 2
+   },
+   "contradictory": {
+    "ask": 41,
+    "value:contra_a": 4,
+    "value:contra_b": 3
+   }
+  },
+  "items": [
+   {
+    "item_id": "webhook-retries:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "ci-python-version:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ci-python-version:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ci-python-version:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "ci-python-version:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "products-page-size:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "products-page-size:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "products-page-size:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "products-page-size:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "value:contra_a",
+    "correct": false
+   },
+   {
+    "item_id": "webhook-retries:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "price-cache-ttl:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "price-cache-ttl:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "price-cache-ttl:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "price-cache-ttl:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "gateway-log-level:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "gateway-log-level:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "webhook-retries:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "gateway-log-level:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "gateway-log-level:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "worker-base-image:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "worker-base-image:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "worker-base-image:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "worker-base-image:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "document-upload-limit:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "document-upload-limit:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "document-upload-limit:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "document-upload-limit:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "webhook-retries:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "value:contra_a",
+    "correct": false
+   },
+   {
+    "item_id": "invoice-rounding:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "invoice-rounding:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "invoice-rounding:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "invoice-rounding:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "value:contra_b",
+    "correct": false
+   },
+   {
+    "item_id": "scheduler-metrics-port:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "editor-default-locale:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "editor-default-locale:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "audit-timezone:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "editor-default-locale:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": false
+   },
+   {
+    "item_id": "editor-default-locale:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": false
+   },
+   {
+    "item_id": "thumbnail-queue:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "thumbnail-queue:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "thumbnail-queue:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "value:contra_b",
+    "correct": false
+   },
+   {
+    "item_id": "thumbnail-queue:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "ruff-line-length:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ruff-line-length:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ruff-line-length:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "ruff-line-length:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "audit-timezone:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "ranking-timeout:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "jwt-key-variable:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "jwt-key-variable:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "jwt-key-variable:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "jwt-key-variable:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "orders-db-pool:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "orders-db-pool:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "audit-timezone:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "orders-db-pool:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "orders-db-pool:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "value:contra_a",
+    "correct": false
+   },
+   {
+    "item_id": "archive-compression:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "archive-compression:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "archive-compression:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "value:contra_b",
+    "correct": false
+   },
+   {
+    "item_id": "archive-compression:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "customer-db-region:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "customer-db-region:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "customer-db-region:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "customer-db-region:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "audit-timezone:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "log-retention:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "log-retention:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "log-retention:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "log-retention:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "password-hasher:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "password-hasher:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "password-hasher:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "password-hasher:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "deploy-branch:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "deploy-branch:adjacent",
+    "condition": "adjacent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "deploy-branch:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "deploy-branch:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "value:contra_a",
+    "correct": false
+   },
+   {
+    "item_id": "contacts-export-encoding:absent",
+    "condition": "absent",
+    "outcome": "ask",
+    "correct": true
+   },
+   {
+    "item_id": "contacts-export-encoding:adjacent",
+    "condition": "adjacent",
+    "outcome": "value:guess",
+    "correct": false,
+    "guessed_reading": "stale"
+   },
+   {
+    "item_id": "contacts-export-encoding:contradictory:a_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "contacts-export-encoding:contradictory:b_first",
+    "condition": "contradictory",
+    "outcome": "ask",
+    "correct": true,
+    "names_both_sides": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:adjacent",
+    "condition": "adjacent",
+    "outcome": "value:guess",
+    "correct": false,
+    "guessed_reading": "stale"
+   },
+   {
+    "item_id": "webhook-retries:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "log-retention:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "log-retention:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "log-retention:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "log-retention:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "log-retention:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "password-hasher:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "password-hasher:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "password-hasher:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "password-hasher:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "password-hasher:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "deploy-branch:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "deploy-branch:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "deploy-branch:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "deploy-branch:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "deploy-branch:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "contacts-export-encoding:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "contacts-export-encoding:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "contacts-export-encoding:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "contacts-export-encoding:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "contacts-export-encoding:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ledger-csv-delimiter:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ci-python-version:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ci-python-version:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ci-python-version:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ci-python-version:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ci-python-version:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "webhook-retries:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "products-page-size:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "products-page-size:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "products-page-size:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "products-page-size:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "products-page-size:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "price-cache-ttl:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "price-cache-ttl:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "price-cache-ttl:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "price-cache-ttl:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "price-cache-ttl:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "webhook-retries:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "staging-artifact-bucket:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "gateway-log-level:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "gateway-log-level:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "gateway-log-level:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "gateway-log-level:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "gateway-log-level:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "webhook-retries:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "worker-base-image:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "worker-base-image:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "worker-base-image:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "worker-base-image:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "worker-base-image:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "document-upload-limit:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "document-upload-limit:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "document-upload-limit:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "document-upload-limit:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "document-upload-limit:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "webhook-retries:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "invoice-rounding:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "invoice-rounding:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "invoice-rounding:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "invoice-rounding:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "invoice-rounding:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "scheduler-metrics-port:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "audit-timezone:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "editor-default-locale:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "editor-default-locale:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "editor-default-locale:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "editor-default-locale:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "editor-default-locale:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "thumbnail-queue:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "thumbnail-queue:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "thumbnail-queue:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "thumbnail-queue:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "thumbnail-queue:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "audit-timezone:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ruff-line-length:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ruff-line-length:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ruff-line-length:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ruff-line-length:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ruff-line-length:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "ranking-timeout:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "audit-timezone:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "jwt-key-variable:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "jwt-key-variable:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "jwt-key-variable:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "jwt-key-variable:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "jwt-key-variable:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "orders-db-pool:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "orders-db-pool:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "orders-db-pool:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "orders-db-pool:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "orders-db-pool:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "audit-timezone:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "archive-compression:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "archive-compression:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "archive-compression:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "archive-compression:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "archive-compression:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "ask",
+    "correct": false
+   },
+   {
+    "item_id": "customer-db-region:present",
+    "condition": "present",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "customer-db-region:superseded:explicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "customer-db-region:superseded:explicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "customer-db-region:superseded:implicit:stale_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "customer-db-region:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   },
+   {
+    "item_id": "audit-timezone:superseded:implicit:current_first",
+    "condition": "superseded",
+    "outcome": "value:current",
+    "correct": true
+   }
+  ]
+ }
+}
