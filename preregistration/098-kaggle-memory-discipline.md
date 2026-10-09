@@ -292,3 +292,48 @@ frozen script reads them, and the filter is committed with its own test before t
 listed as not run, for that reason, like any model the budget does not reach. The driver (v3,
 deployed 2026-10-08 07:56 UTC) no longer re-runs a model it has recorded as done, treats a failed
 check as unknown rather than incomplete, and defers a model stuck in flight to a second pass.
+
+## Deviation 2, retrieval record (2026-10-09), written before the analysis is run
+
+**What Kaggle lets me download.** `ListBenchmarkTaskRuns`, which `kaggle b t download` uses,
+returns only the LATEST run of each model on each task, whatever paging, `skip` or model filter is
+passed (checked 2026-10-09). An earlier run can be fetched only by its id, and the grid driver did
+not log run ids. So the rule above cannot be applied to the CLI download alone: for a model run
+more than once it would see only the last run. Earlier ids were recovered by probing ids near the
+time of each launch, interpolated from the listed runs of other models (the two tasks of one
+launch get consecutive ids). A probed run counts as one of these runs only when its files are a
+`memory-discipline-*` task on the expected model: a successful download is not proof, because
+Kaggle also serves other users' public runs, and two such were fetched by mistake and deleted
+unread beyond their task name, model and first timestamp.
+
+**Per model run more than once, what was retrieved and what the rule selects:**
+
+- `claude-haiku-4-5-20251001`: the scored run was recovered, ids 4190364 (trust) and 4190363
+  (restraint), items from 2026-10-05 18:59:40 to 19:00:45 UTC, all items completed, reply cap
+  present. The duplicate (4424507 and 4424508, 2026-10-07 22:17 UTC) is excluded and reported only
+  as a test and retest of one model.
+- `gpt-5.5-2026-04-23`: the first launch (2026-10-06 19:56 UTC) was refused for quota on 142 of 216
+  items and cannot qualify; its ids were not sought. The scored run is the second launch.
+- `gpt-oss-120b`: five launches; Kaggle answered most of its items with `429 The model is currently
+  experiencing heavy load`. Retrieved: 2026-10-08 06:13 UTC (4526721 trust 85 of 120 completed,
+  4526720 restraint 61 of 96: both excluded), 10:49 UTC (4549124 trust 115 of 120, which is within
+  5%, and 4549123 restraint), and 20:22 UTC (4576117, trust only). The rule selects the 10:49
+  launch for both tasks, so the 20:22 trust run is excluded.
+  **Not retrieved: the launches of 2026-10-07 18:38 UTC and 2026-10-08 01:31 UTC.** For the first,
+  the ids around its expected position were searched (4368719 to 4368935, anchored on another user's
+  public run whose first step was 18:39:05 UTC) and none was one of these runs; the second had no
+  anchor close enough to search under Kaggle's rate limit before the deadline. What is known about
+  them: the driver found both tasks of each still `Running` when it gave up waiting (after 2 h and
+  after 1 h 40 min), and the 06:13 launch, under the same overload, finished with 35 errored items
+  per task. **Consequence:** the rule is applied to the runs that could be retrieved. If either
+  unretrieved launch completed with at most 5% missing on a task, gpt-oss-120b's scored run on
+  that task would be that one instead. Its row is reported with this flag, and any statement that
+  depends on gpt-oss-120b alone carries it.
+
+**Not scored:** `grok-4.5-0708` and `grok-4.6`. Kaggle lists both but serves neither: every call
+returned `404 ... model ... was not found` (2026-10-08). 39 of the 41 listed models are scored.
+
+**Correction to "Also recorded" above, left in place there.** "Three launches never started" was
+wrong. The 06:13 launch ran from 06:14 to 09:37 UTC; "Running with no start time" was Kaggle's
+state display lagging the run by an hour or more, which was measured the same day on gpt-oss-20b
+(ran 09:15 to 09:19, shown `Running` at 10:50).
