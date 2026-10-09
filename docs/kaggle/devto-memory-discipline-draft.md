@@ -225,14 +225,17 @@ question before the model sees it.
 
 [Memory Discipline on Kaggle Benchmarks](https://www.kaggle.com/benchmarks/giulioder/memory-discipline)
 
-Three differences between Kaggle's leaderboard and this post, so the numbers line up. Kaggle ranks
-by the average of the two task scores; I rank by J, which is twice that average minus one, so the
-order is the same. Kaggle shows each model's latest run, while I score the earliest complete one,
-as committed before the analysis; that changes two models, Claude Haiku 4.5 (Kaggle shows the
-accidental repeat) and gpt-oss-120b (Kaggle shows its trust rerun). And Kaggle's leaderboard lists
-38 models, because Claude Sonnet 4.5 was retired from Kaggle after it ran; its runs are still on
-the task pages and in my analysis.
+How to read Kaggle's leaderboard against this post. **The leaderboard is a replay.** My task files
+did not name their main task the way Kaggle's leaderboard needs (a `%choose` line), so the live
+runs, where every model answered all 216 items, could not be shown as scores. Rather than call
+every model again, version 3 of each task replays the scored runs: it carries which items each
+model answered correctly and recomputes the score with the same scorer, without calling the
+model. So the leaderboard shows exactly the numbers in this post, a test checks that it does, and
+the live runs are still there as version 2 of each task. Two smaller differences: Kaggle ranks by
+the average of the two task scores, and I rank by J, which is twice that average minus one, so the
+order is the same; and Kaggle lists 38 models, because Claude Sonnet 4.5 was retired from Kaggle
+after it ran.
 
 Everything behind the numbers is public: the items, the scorer, the analysis script, the
-preregistration with its predictions, both deviations and the result, and the selection of scored
+preregistration with its predictions, its three deviations and the result, and the selection of scored
 runs: [agent-memory-bench, kaggle_memory]({{REPO_REF}}/kaggle_memory).
