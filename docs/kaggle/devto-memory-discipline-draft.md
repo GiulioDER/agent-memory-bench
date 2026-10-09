@@ -1,5 +1,5 @@
 ---
-title: "Same memory, 39 models: trusting it is solved, knowing when not to is what separates them"
+title: "The hard part of agent memory is knowing when to ask"
 published: false
 tags: devchallenge, kagglechallenge, ai, machinelearning
 ---
