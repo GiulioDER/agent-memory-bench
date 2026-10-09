@@ -9,7 +9,7 @@ PUBLISHED 2026-10-09 13:13 UTC on DEV (article 4823060):
 https://dev.to/gde03/the-hard-part-of-agent-memory-is-knowing-when-to-ask-1goi
 This file is the source; DEV holds the same text with paragraphs unwrapped.
 Filled 2026-10-09 from results/kaggle-memory-discipline-001 (commits cc8b1c6d, 54bf6267).
-Not for publication until the user approves it.
+Published on the user's instruction, after their review.
 
 Still open before publishing:
 - {{REPO_REF}}: the GitHub ref that holds the final files (branch
