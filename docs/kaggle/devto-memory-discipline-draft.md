@@ -12,10 +12,11 @@ Still open before publishing:
 - {{REPO_REF}}: the GitHub ref that holds the final files (branch
   claude/kaggle-memory-use-benchmark until it merges). It is also the chart's URL below; or
   upload docs/kaggle/trust-restraint.png in the DEV editor and use that URL instead.
-- {{KAGGLE_BENCHMARK_URL}}: the two tasks have to be grouped into a benchmark on the Kaggle
-  website (a step for the user) and made public; the post must link it.
-- Tag: the template pre-fills `kagglechallenge`; the announcement named `#kagglebenchallenge`.
-  Use what the rules page asks for.
+- Kaggle benchmark: https://www.kaggle.com/benchmarks/giulioder/memory-discipline (public,
+  38 models; on 2026-10-09 its leaderboard cells showed "-" to a logged out viewer).
+- Tag: settled. The challenge page names `kagglechallenge` as the required tag.
+- DEV draft id 4823060 (unpublished) is built from this file with this comment stripped and
+  {{REPO_REF}} set to the branch URLs.
 - Keep OUT of this post: the RE-call calibration results of preregistrations 099 to 101 (reserved
   for the Gemma 4 paper track).
 - House rules: no dash used as punctuation, first person singular throughout.
@@ -222,7 +223,15 @@ question before the model sees it.
 
 ## My Benchmark
 
-{{KAGGLE_BENCHMARK_URL}}
+[Memory Discipline on Kaggle Benchmarks](https://www.kaggle.com/benchmarks/giulioder/memory-discipline)
+
+Three differences between Kaggle's leaderboard and this post, so the numbers line up. Kaggle ranks
+by the average of the two task scores; I rank by J, which is twice that average minus one, so the
+order is the same. Kaggle shows each model's latest run, while I score the earliest complete one,
+as committed before the analysis; that changes two models, Claude Haiku 4.5 (Kaggle shows the
+accidental repeat) and gpt-oss-120b (Kaggle shows its trust rerun). And Kaggle's leaderboard lists
+38 models, because Claude Sonnet 4.5 was retired from Kaggle after it ran; its runs are still on
+the task pages and in my analysis.
 
 Everything behind the numbers is public: the items, the scorer, the analysis script, the
 preregistration with its predictions, both deviations and the result, and the selection of scored
