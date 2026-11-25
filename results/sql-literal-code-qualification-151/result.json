@@ -1,0 +1,121 @@
+{
+  "cases": [
+    {
+      "case": "Q01",
+      "db": "california_schools",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q01"
+    },
+    {
+      "case": "Q02",
+      "db": "california_schools",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q02"
+    },
+    {
+      "case": "Q03",
+      "db": "california_schools",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q03"
+    },
+    {
+      "case": "Q04",
+      "db": "california_schools",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "wrong result",
+      "source_id": "Q04"
+    },
+    {
+      "case": "Q05",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q05"
+    },
+    {
+      "case": "Q06",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q06"
+    },
+    {
+      "case": "Q07",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "clarification",
+      "source_id": "Q07"
+    },
+    {
+      "case": "Q08",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q08"
+    },
+    {
+      "case": "Q09",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q09"
+    },
+    {
+      "case": "Q10",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "clarification",
+      "source_id": "Q10"
+    },
+    {
+      "case": "Q11",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q11"
+    },
+    {
+      "case": "Q12",
+      "db": "financial",
+      "edit": "applied",
+      "grounded": "correct",
+      "plain": "correct",
+      "source_id": "Q12"
+    }
+  ],
+  "checks": {
+    "at_least_11_exact": true,
+    "at_least_2_gains_over_plain": true,
+    "zero_losses_against_plain": true
+  },
+  "decision": "PASS",
+  "edit_statuses": {
+    "applied": 12
+  },
+  "gains": 3,
+  "losses": 0,
+  "totals": {
+    "grounded": {
+      "correct": 12
+    },
+    "plain": {
+      "clarification": 2,
+      "correct": 9,
+      "wrong result": 1
+    }
+  }
+}
